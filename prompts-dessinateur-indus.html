@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prompts — Dessinateur Industriel</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230f1117'/><rect x='6' y='15' width='20' height='2' rx='1' fill='%234f8ef7'/><rect x='6' y='10' width='12' height='2' rx='1' fill='%234f8ef7'/><rect x='6' y='20' width='16' height='2' rx='1' fill='%232563d4'/><circle cx='23' cy='11' r='3' fill='none' stroke='%234f8ef7' stroke-width='1.5'/><line x1='25.1' y1='13.1' x2='27' y2='15' stroke='%234f8ef7' stroke-width='1.5' stroke-linecap='round'/></svg>">
+<style>
+  :root{--bg:#0f1117;--surface:#181c26;--surface2:#1e2333;--border:#2a2f42;--border2:#363d56;--accent:#4f8ef7;--accent2:#2563d4;--text:#e8eaf2;--muted:#7a829c;--muted2:#555d78;--green:#22c55e;--red:#f87171;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:40px 40px;opacity:.2;pointer-events:none;z-index:0}
+  .page{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:2rem 1.5rem 4rem}
+
+  header{margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+  .header-left .lbl{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--accent);text-transform:uppercase;margin-bottom:.4rem}
+  h1{font-size:2rem;font-weight:600;line-height:1.2}
+  h1 span{color:var(--accent)}
+  .subtitle{font-size:13px;color:var(--muted);margin-top:.3rem}
+  .header-actions{display:flex;gap:.5rem;flex-shrink:0;flex-wrap:wrap}
+  .hbtn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:6px;border:1px solid var(--border2);background:var(--surface);color:var(--muted);font-size:12px;font-family:var(--sans);cursor:pointer;transition:all .15s}
+  .hbtn-save:hover{border-color:var(--green);color:var(--green)}
+  .hbtn-load:hover{border-color:var(--accent);color:var(--accent)}
+  .hbtn-export:hover{border-color:#fb923c;color:#fb923c}
+
+  /* IA BAR */
+  .ia-bar{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:2.5rem;padding:1rem 1.25rem;background:var(--surface);border:1px solid var(--border);border-radius:10px}
+  .ia-bar-lbl{width:100%;font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.4rem}
+  .ia-link{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:6px;font-size:13px;font-weight:500;text-decoration:none;border:1px solid var(--border2);background:var(--surface2);color:var(--text);transition:border-color .15s,background .15s}
+  .ia-link:hover{border-color:var(--accent);background:#1a2240;color:var(--accent)}
+  .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+  .dot-chatgpt{background:#10a37f}.dot-claude{background:#d97706}.dot-grok{background:#9b59b6}.dot-gemini{background:#4285f4}.dot-custom{background:var(--muted2)}
+  .ia-cw{display:inline-flex;flex-direction:column;gap:4px}
+  .ia-ci{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;border:1px dashed var(--border2);background:transparent;font-size:13px;font-family:var(--sans)}
+  .ia-ci input{background:transparent;border:none;outline:none;color:var(--text);font-size:13px;font-family:var(--sans);width:120px}
+  .ia-ci input::placeholder{color:var(--muted2)}
+  .ia-uf{display:none;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2)}
+  .ia-uf input{background:transparent;border:none;outline:none;color:var(--muted);font-size:12px;font-family:var(--mono);width:200px}
+  .ia-uf input::placeholder{color:var(--muted2)}
+  .add-ia-btn{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:6px;border:1px dashed var(--border2);background:transparent;color:var(--muted);font-size:12px;cursor:pointer;font-family:var(--sans);transition:border-color .15s,color .15s}
+  .add-ia-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+  /* SECTIONS */
+  .section{margin-bottom:1.75rem}
+  .sec-hd{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;padding:5px 0;margin-bottom:.5rem}
+  .sec-hd:hover .sec-title{color:var(--text)}
+  .tri{display:inline-block;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid var(--muted2);transition:transform .2s;flex-shrink:0}
+  .section:not(.open) .tri{transform:rotate(-90deg)}
+  .sec-title{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);transition:color .15s}
+  .sec-line{flex:1;height:1px;background:var(--border)}
+  .sec-cnt{font-family:var(--mono);font-size:10px;color:var(--muted2);flex-shrink:0}
+  .sec-body{display:none}
+  .section.open .sec-body{display:block}
+
+  /* CARDS */
+  .pcard{background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:.6rem;overflow:hidden;transition:border-color .15s}
+  .pcard:hover{border-color:var(--border2)}
+  .pcard.open{border-color:var(--accent2)}
+  .ch{display:flex;align-items:center;justify-content:space-between;padding:.85rem 1.25rem;cursor:pointer;gap:10px}
+  .chl{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+  .cnum{font-family:var(--mono);font-size:11px;color:var(--muted2);flex-shrink:0;min-width:22px}
+  .ctitle{font-size:14px;font-weight:500;color:var(--text)}
+  .cdesc{font-size:12px;color:var(--muted);margin-top:1px}
+  .chr{display:flex;align-items:center;gap:6px;flex-shrink:0}
+  .ctri{display:inline-block;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--muted2);transition:transform .2s;flex-shrink:0}
+  .pcard:not(.open) .ctri{transform:rotate(-90deg)}
+  .tag{font-size:10px;font-weight:500;padding:2px 7px;border-radius:4px;white-space:nowrap;font-family:var(--mono);letter-spacing:.04em;text-transform:uppercase}
+  .tp{background:#1a2f4a;color:#60a5fa;border:1px solid #1e3a5f}
+  .tr{background:#2a1f12;color:#fb923c;border:1px solid #3a2a16}
+  .tc{background:#1e2a1a;color:#86efac;border:1px solid #243a22}
+  .ti{background:#261e38;color:#c084fc;border:1px solid #32264a}
+  .tm{background:#261e22;color:#f9a8d4;border:1px solid #3a2430}
+  .tt{background:#1e2a2a;color:#67e8f9;border:1px solid #1e3838}
+  .te{background:#2a2212;color:#fde68a;border:1px solid #3a3016}
+  .ta{background:#1e1e2a;color:var(--muted);border:1px solid var(--border)}
+  .cbody{display:none;padding:0 1.25rem 1rem}
+  .pcard.open .cbody{display:block}
+  .pt{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.9rem 1rem;font-family:var(--mono);font-size:12px;line-height:1.75;color:#c5cde8;white-space:pre-wrap;word-break:break-word;margin-bottom:.75rem}
+  .ph{color:#4f8ef7;background:#1a2a44;border-radius:3px;padding:0 3px}
+  .acts{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center}
+  .bcopy{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:6px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--sans);transition:all .15s}
+  .bcopy:hover{border-color:var(--accent);color:var(--accent)}
+  .bcopy.copied{border-color:var(--green);color:var(--green)}
+  .bia{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:11px;cursor:pointer;font-family:var(--sans);text-decoration:none;transition:all .15s}
+  .bia:hover{border-color:var(--accent);color:var(--accent);background:#151d35}
+  .dsm{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+
+  /* CUSTOM BLOCKS */
+  .cblock{background:var(--surface);border:1px dashed var(--border2);border-radius:10px;margin-bottom:.6rem;overflow:hidden;transition:border-color .15s}
+  .cblock.open{border-style:solid;border-color:var(--accent2)}
+  .cbhd{display:flex;align-items:center;gap:8px;padding:.75rem 1.25rem;cursor:pointer}
+  .cbhl{display:flex;align-items:center;gap:8px;flex:1}
+  .cprev{font-size:13px;color:var(--muted);font-style:italic;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cprev.ok{color:var(--text);font-style:normal;font-weight:500}
+  .cbbody{display:none;padding:0 1.25rem 1rem}
+  .cblock.open .cbbody{display:block}
+  .clbl{font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:6px;letter-spacing:.06em;text-transform:uppercase}
+  .crow{display:flex;gap:8px;margin-bottom:8px;align-items:center}
+  .ctit{flex:1;padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;font-weight:500;font-family:var(--sans);outline:none}
+  .ctit:focus,.cta:focus,.csel:focus{border-color:var(--accent)}
+  .ctit::placeholder,.cta::placeholder{color:var(--muted2)}
+  .csel{padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:12px;font-family:var(--sans);outline:none;cursor:pointer}
+  .cta{width:100%;padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;font-family:var(--mono);outline:none;resize:vertical;min-height:90px;line-height:1.65}
+  .cacts{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin-top:.75rem}
+  .bdel{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted2);font-size:11px;cursor:pointer;font-family:var(--sans);margin-left:auto;transition:all .15s}
+  .bdel:hover{border-color:var(--red);color:var(--red)}
+  .add-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:.65rem;border-radius:8px;border:1px dashed var(--border2);background:transparent;color:var(--muted);font-size:13px;cursor:pointer;font-family:var(--sans);transition:all .15s}
+  .add-btn:hover{border-color:var(--accent);color:var(--accent);background:#151d35}
+
+  /* TOAST */
+  #toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--surface);border:1px solid var(--green);color:var(--green);font-size:12px;font-family:var(--mono);padding:8px 16px;border-radius:8px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
+  #toast.show{opacity:1}
+  footer{text-align:center;font-size:11px;color:var(--muted2);font-family:var(--mono);margin-top:3rem}
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <div class="header-left">
+    <div class="lbl">// outil personnel</div>
+    <h1>Prompts <span>Dessinateur Indus</span></h1>
+    <div class="subtitle">Mise en plan SolidWorks · Charpente · Implantation · Méca · Tuyauterie</div>
+  </div>
+  <div class="header-actions">
+    <button class="hbtn hbtn-save" onclick="saveToLocal()">💾 Sauvegarder</button>
+    <button class="hbtn hbtn-load" onclick="document.getElementById('fi').click()">📂 Charger JSON</button>
+    <button class="hbtn hbtn-export" onclick="exportJSON()">⬇ Exporter JSON</button>
+    <input type="file" id="fi" accept=".json" style="display:none" onchange="loadFile(event)">
+  </div>
+</header>
+
+<!-- BARRE IA -->
+<div class="ia-bar" id="iaBar">
+  <div class="ia-bar-lbl">Ouvrir dans une IA →</div>
+  <a class="ia-link" href="https://chat.openai.com/" target="_blank"><span class="dot dot-chatgpt"></span>ChatGPT</a>
+  <a class="ia-link" href="https://claude.ai/" target="_blank"><span class="dot dot-claude"></span>Claude</a>
+  <a class="ia-link" href="https://grok.com/" target="_blank"><span class="dot dot-grok"></span>Grok</a>
+  <a class="ia-link" href="https://gemini.google.com/" target="_blank"><span class="dot dot-gemini"></span>Gemini</a>
+  <div class="ia-cw" id="iac1"><div class="ia-ci"><span class="dot dot-custom"></span><input type="text" id="ian1" placeholder="Nom de l'IA..." oninput="tuf(1,this.value);autoSave()"></div><div class="ia-uf" id="iau1"><input type="url" id="iah1" placeholder="https://..." oninput="autoSave()"></div></div>
+  <div class="ia-cw" id="iac2"><div class="ia-ci"><span class="dot dot-custom"></span><input type="text" id="ian2" placeholder="Nom de l'IA..." oninput="tuf(2,this.value);autoSave()"></div><div class="ia-uf" id="iau2"><input type="url" id="iah2" placeholder="https://..." oninput="autoSave()"></div></div>
+  <div class="ia-cw" id="iac3"><div class="ia-ci"><span class="dot dot-custom"></span><input type="text" id="ian3" placeholder="Nom de l'IA..." oninput="tuf(3,this.value);autoSave()"></div><div class="ia-uf" id="iau3"><input type="url" id="iah3" placeholder="https://..." oninput="autoSave()"></div></div>
+  <button class="add-ia-btn" onclick="addIA()">+ Ajouter une IA</button>
+</div>
+
+<!-- S1 MISE EN PLAN -->
+<div class="section open" id="s1">
+<div class="sec-hd" onclick="tSec('s1')"><span class="tri"></span><span class="sec-title">Mise en plan SolidWorks</span><span class="sec-line"></span><span class="sec-cnt">3 prompts</span></div>
+<div class="sec-body">
+  <div class="pcard" id="c1"><div class="ch" onclick="tCard('c1')"><div class="chl"><span class="cnum">01</span><div><div class="ctitle">Bloc de cartouche standard</div><div class="cdesc">Générer le contenu d'un cartouche complet</div></div></div><div class="chr"><span class="tag tp">Mise en plan</span><span class="ctri"></span></div></div>
+  <div class="cbody"><div class="pt" id="p1">Génère le contenu complet d'un cartouche de plan industriel pour SolidWorks :
+
+- Nom de l'affaire : <span class="ph">[nom]</span>
+- Numéro de plan : <span class="ph">[ex. MEC-2024-0042]</span>
+- Désignation pièce / ensemble : <span class="ph">[ex. Platine support capteur]</span>
+- Matière : <span class="ph">[ex. S235JR]</span>  — Traitement : <span class="ph">[ex. Galvanisation à chaud]</span>
+- Échelle : <span class="ph">[ex. 1:5]</span>  — Format : <span class="ph">[ex. A1]</span>
+- Dessiné par : <span class="ph">[initiales]</span>  — Vérifié par : <span class="ph">[initiales]</span>
+- Indice : <span class="ph">[ex. A]</span>  — Date : <span class="ph">[date]</span>
+- Tolérance générale : <span class="ph">[ex. ISO 2768-m]</span>
+
+Présente les données sous forme de tableau prêt à recopier dans le cartouche.</div>
+  <div class="acts" id="a1"><button class="bcopy" onclick="copyEl('p1',this)">📋 Copier</button></div></div></div>
+
+  <div class="pcard" id="c2"><div class="ch" onclick="tCard('c2')"><div class="chl"><span class="cnum">02</span><div><div class="ctitle">Notes générales d'un plan</div><div class="cdesc">Fabrication, tolérances, traitements de surface</div></div></div><div class="chr"><span class="tag tp">Mise en plan</span><span class="ctri"></span></div></div>
+  <div class="cbody"><div class="pt" id="p2">Rédige les notes générales à inscrire sur un plan industriel :
+
+- Type : <span class="ph">[ex. charpente soudée / pièce usinée / tôlerie pliée]</span>
+- Matière : <span class="ph">[ex. acier S355]</span>
+- Procédé : <span class="ph">[ex. découpe laser + pliage + soudage MIG]</span>
+- Traitement : <span class="ph">[ex. peinture époxy RAL 7035, 80µm]</span>
+- Normes : <span class="ph">[ex. EN ISO 5817 niveau B pour les soudures]</span>
+
+Notes numérotées, concises, style plan industriel français.</div>
+  <div class="acts" id="a2"><button class="bcopy" onclick="copyEl('p2',this)">📋 Copier</button></div></div></div>
+
+  <div class="pcard" id="c3"><div class="ch" onclick="tCard('c3')"><div class="chl"><span class="cnum">03</span><div><div class="ctitle">Choisir les vues et coupes</div><div class="cdesc">Stratégie de représentation pour l'atelier</div></div></div><div class="chr"><span class="tag tp">Mise en plan</span><span class="ctri"></span></div></div>
+  <div class="cbody"><div class="pt" id="p3">Aide-moi à choisir les vues et coupes pour une mise en plan SolidWorks complète et lisible par l'atelier.
+
+Description : <span class="ph">[ex. support métallique soudé avec platines perforées, renforts triangulaires, fixation 4 boulons M16]</span>
+Format : <span class="ph">[ex. A1]</span>  — Destiné à : <span class="ph">[ex. fabrication atelier / contrôle / client]</span>
+
+Propose : vue principale, vues complémentaires, coupes utiles, détails à agrandir. Justifie chaque choix.</div>
+  <div class="acts" id="a3"><button class="bcopy" onclick="copyEl('p3',this)">📋 Copier</button></div></div></div>
+</div></div>
+
+<!-- S2 REVISIONS -->
+<div class="section open" id="s2">
+<div class="sec-hd" onclick="tSec('s2')"><span class="tri"></span><span class="sec-title">Modifications &amp; révisions de plans</span><span class="sec-line"></span><span class="sec-cnt">3 prompts</span></div>
+<div class="sec-body">
+  <div class="pcard" id="c4"><div class="ch" onclick="tCard('c4')"><div class="chl"><span class="cnum">04</span><div><div class="ctitle">Rédiger un tableau des révisions</div><div class="cdesc">Historique des modifs à inscrire sur le plan</div></div></div><div class="chr"><span class="tag tr">Révision</span><span class="ctri"></span></div></div>
+  <div class="cbody"><div class="pt" id="p4">Rédige les lignes du tableau des révisions pour mon plan :
+
+Indice précédent : <span class="ph">[ex. A]</span>  →  Nouvel indice : <span class="ph">[ex. B]</span>
+Date : <span class="ph">[date]</span>
+Modifications : <span class="ph">[ex. cote X modifiée de 450 à 475mm, ajout trou taraudé M8 sur platine haute, suppression chanfrein côté gauche]</span>
+Demandé par : <span class="ph">[ex. client / BE interne / atelier]</span>
+
+Description concise et technique, 1-2 lignes max par modification, style cartouche industriel.</div>
+  <div class="acts" id="a4"><button class="bcopy" onclick="copyEl('p4',this)">📋 Copier</button></div></div></div>
+
+  <div class="pcard" id="c5"><div class="ch" onclick="tCard('c5')"><div class="chl"><span class="cnum">05</span><div><div class="ctitle">Email — transmission plan révisé</div><div class="cdesc">Informer client ou fournisseur de la révision</div></div></div><div class="chr"><span class="tag te">Email</span><span class="ctri"></span></div></div>
+  <div class="cbody"><div class="pt" id="p5">Rédige un email professionnel pour transmettre un plan révisé.
+
+Destinataire : <span class="ph">[client / fournisseur / atelier]</span>
+Plan : <span class="ph">[désignation + numéro]</span>
+Indice : <span class="ph">[ex. A → B]</span>
+Modifications principales : <span class="ph">[résumé rapide]</span>
+Action attendue : <span class="ph">[ex. prendre en compte pour fab / valider sous 5 jours / annuler l'indice A]</span>
+
+Ton professionnel, direct. Préciser que l'indice précédent est annulé et remplacé.</div>
+  <div class="acts" id="a5"><button class="bcopy" onclick="copyEl('p5',this)">📋 Copier</button></div></div></div>
+
+  <div class="pcard" id="c6"><div class="ch" onclick="tCard('c6')"><div class="chl"><span class="cnum">06</span><div><div class="ctitle">Email — clarification avant modification</div><div class="cdesc">Quand la demande de modif est floue</div></div></div><div class="chr"><span class="tag te">Email</span><span class="ctri"></span></div></div>
+  <div class="cbody"><div class="pt" id="p6">Rédige un email pour demander des clarifications avant d'effectuer une modification de plan.
+
+Contexte : <span class="ph">[ex. client demande de "déplacer la platine vers le haut" sans cote précise]</span>
+Plan : <span class="ph">[désignation + numéro]</span>
+Ce qui manque : <span class="ph">[ex. cote exacte, direction précise, contrainte à respecter]</span>
+Impact si mal interprété : <span class="ph">[ex. conflit avec structure porteuse]</span>
+
+Email court, professionnel. Questions listées clairement. Délai de réponse souhaité.</div>
+  <div class="acts" id="a6"><button class="bcopy" onclick="copyEl('p6',this)">📋 Copier</button></div></div></div>
+</div></div>
+
+<!-- S3 CHARPENTE -->
+<div class="section open" id="s3">
+<div class="sec-hd" onclick="tSec('s3')"><span class="tri"></span><span class="sec-title">Charpente métallique &amp; structure</span><span class="sec-line"></span><span class="sec-cnt">2 prompts</span></div>
+<div class="sec-body">
+  <div class="pcard" id="c7"><div class="ch" onclick="tCard('c7')"><div class="chl"><span class="cnum">07</span><div><div class="ctitle">Désignations normalisées des profilés</div><div class="cdesc">EN 10025 / EN 10034, masse linéique</div></div></div><div class="chr"><span class="tag tc">Charpente</span><span class="ctri"></span></div></div>
+  <div class="cbody"><div class="pt" id="p7">Donne la désignation normalisée complète (normes EN) pour les profilés suivants, tels qu'ils doivent apparaître sur un plan ou une nomenclature :
+
+<span class="ph">[ex. HEA 200, IPE 300, UPN 160, tube carré 100×100×5, cornière 80×80×8, plat 150×10]</span>
+
+Pour chacun : désignation normalisée, norme de référence, matière courante (ex. S235JR), masse linéique (kg/m).</div>
+  <div class="acts" id="a7"><button class="bcopy" onclick="copyEl('p7',this)">📋 Copier</button></div></div></div>
+
+  <div class="pcard" id="c8"><div class="ch" onclick="tCard('c8')"><div class="chl"><span class="cnum">08</span><div><div class="ctitle">Symboles de soudure ISO 2553</div><div class="cdesc">Quel symbole selon le type de soudure</div></div></div><div class="chr"><span class="tag tc">Charpente</span><span class="ctri"></span></div></div>
+  <div class="cbody"><div class="pt" id="p8">Je dois représenter les soudures suivantes sur mon plan selon ISO 2553 :
+
+<span class="ph">[ex. soudure d'angle 6mm continue sur pourtour, soudure bout à bout pleine pénétration, soudure d'angle en retour sur 50mm]</span>
+
+Pour chaque cas : symbole ISO 2553, position (flèche / côté opposé), dimensions à indiquer, exemple de lecture.</div>
+  <div class="acts" id="a8"><button class="bcopy" onclick="copyEl('p8',this)">📋 Copier</button></div></div></div>
+</div></div>
+
+<!-- S4 IMPLANTATION -->
+<div class="section open" id="s4">
+<div class="sec-hd" onclick="tSec('s4')"><span class="tri"></span><span class="sec-title">Plans d'implantation &amp; layout</span><span class="sec-line"></span><span class="sec-cnt">2 prompts</span></div>
+<div class="sec-body">
+  <div class="pcard" id="c9"><div class="ch" onclick="tCard('c9')"><div class="chl"><span class="cnum">09</span><div><div class="ctitle">Légende et nomenclature d'implantation</div><div class="cdesc">Structurer la légende équipements / zones</div></div></div><div class="chr"><span class="tag ti">Implantation</span><span class="ctri"></span></div></div>
+  <div class="cbody"><div class="pt" id="p9">Génère légende et nomenclature d'équipements pour un plan d'implantation industriel.
+
+Zone : <span class="ph">[ex. local TGBT, salle de contrôle, zone process, toiture technique]</span>
+Équipements : <span class="ph">[ex. TGBT-01, ARMOIRE-02, GROUPE FROID GF-01, CHEMINS DE CÂBLES CC-xx]</span>
+Colonnes souhaitées : <span class="ph">[ex. repère, désignation, H×L×P, masse, fournisseur, remarque]</span>
+
+Tableau prêt à intégrer dans le cartouche ou en note du plan.</div>
+  <div class="acts" id="a9"><button class="bcopy" onclick="copyEl('p9',this)">📋 Copier</button></div></div></div>
+
+  <div class="pcard" id="c10"><div class="ch" onclick="tCard('c10')"><div class="chl"><span class="cnum">10</span><div><div class="ctitle">Note technique contraintes de pose</div><div class="cdesc">Informer le client des exigences sur site</div></div></div><div class="chr"><span class="tag te">Email</span><span class="ctri"></span></div></div>
+  <div class="cbody"><div class="pt" id="p10">Rédige une note technique à joindre au plan d'implantation pour le client.
+
+Équipements : <span class="ph">[ex. 2 armoires électriques 2000×800×600mm]</span>
+Contraintes : <span class="ph">[ex. dégagement 800mm façade, charge sol max 500 kg/m², réservation dalle Ø150, arrivée câbles par le bas]</span>
+À la charge du client : <span class="ph">[ex. génie civil, fixation au sol, raccordement puissance]</span>
+
+Note numérotée, ton professionnel, max 15 lignes.</div>
+  <div class="acts" id="a10"><button class="bcopy" onclick="copyEl('p10',this)">📋 Copier</button></div></div></div>
+</div></div>
+
+<!-- S5 MECA -->
+<div class="section open" id="s5">
+<div class="sec-hd" onclick="tSec('s5')"><span class="tri"></span><span class="sec-title">Dessin de pièces mécaniques</span><span class="sec-line"></span><span class="sec-cnt">2 prompts</span></div>
+<div class="sec-body">
+  <div class="pcard" id="c11"><div class="ch" onclick="tCard('c11')"><div class="chl"><span class="cnum">11</span><div><div class="ctitle">Ajustements et tolérances ISO</div><div class="cdesc">Glissant, serré, tournant selon l'usage</div></div></div><div class="chr"><span class="tag tm">Méca</span><span class="ctri"></span></div></div>
+  <div class="cbody"><div class="pt" id="p11">Aide-moi à choisir l'ajustement ISO adapté pour les liaisons suivantes :
+
+<span class="ph">[ex.
+- Roulement à billes sur arbre Ø40, rotation, charge radiale modérée
+- Clavetage sur arbre Ø30, transmission couple, démontage fréquent
+- Goupille de centrage Ø8, positionnement fixe]</span>
+
+Pour chaque cas : ajustement recommandé (ex. H7/k6), type (glissant/serré/incertain), tolérances µm, justification courte.</div>
+  <div class="acts" id="a11"><button class="bcopy" onclick="copyEl('p11',this)">📋 Copier</button></div></div></div>
+
+  <div class="pcard" id="c12"><div class="ch" onclick="tCard('c12')"><div class="chl"><span class="cnum">12</span><div><div class="ctitle">État de surface Ra / Rz</div><div class="cdesc">Quel Ra indiquer selon le type de surface</div></div></div><div class="chr"><span class="tag tm">Méca</span><span class="ctri"></span></div></div>
+  <div class="cbody"><div class="pt" id="p12">Aide-moi à choisir les valeurs d'état de surface Ra pour les surfaces suivantes :
+
+<span class="ph">[ex.
+- Portée de roulement sur arbre
+- Face d'appui de joint torique
+- Surface brute de fonderie non fonctionnelle
+- Alésage guidage glissière
+- Filetage M12 fonctionnel]</span>
+
+Pour chaque surface : Ra recommandé (µm), symbole ISO 1302 pour le plan, procédé d'obtention typique.</div>
+  <div class="acts" id="a12"><button class="bcopy" onclick="copyEl('p12',this)">📋 Copier</button></div></div></div>
+</div></div>
+
+<!-- S6 TUYAUTERIE -->
+<div class="section open" id="s6">
+<div class="sec-hd" onclick="tSec('s6')"><span class="tri"></span><span class="sec-title">Tuyauterie &amp; fluides</span><span class="sec-line"></span><span class="sec-cnt">2 prompts</span></div>
+<div class="sec-body">
+  <div class="pcard" id="c13"><div class="ch" onclick="tCard('c13')"><div class="chl"><span class="cnum">13</span><div><div class="ctitle">Légende isométrique tuyauterie</div><div class="cdesc">Symboles ISO 10628 pour un isométrique</div></div></div><div class="chr"><span class="tag tt">Tuyauterie</span><span class="ctri"></span></div></div>
+  <div class="cbody"><div class="pt" id="p13">Génère la légende pour un isométrique de tuyauterie industrielle.
+
+Fluide : <span class="ph">[ex. eau glycolée, vapeur, air comprimé, huile hydraulique]</span>
+Pression : <span class="ph">[ex. 10 bar]</span>  — Température : <span class="ph">[ex. 80°C]</span>
+Composants : <span class="ph">[ex. vannes à soupape DN50, clapets anti-retour, compensateurs de dilatation, filtres en Y, capteurs de pression]</span>
+
+Pour chaque composant : symbole normalisé (ISO 10628), désignation complète, repère type.</div>
+  <div class="acts" id="a13"><button class="bcopy" onclick="copyEl('p13',this)">📋 Copier</button></div></div></div>
+
+  <div class="pcard" id="c14"><div class="ch" onclick="tCard('c14')"><div class="chl"><span class="cnum">14</span><div><div class="ctitle">Email — côtes de raccordement fournisseur</div><div class="cdesc">Demander données piquage / encombrement</div></div></div><div class="chr"><span class="tag te">Email</span><span class="ctri"></span></div></div>
+  <div class="cbody"><div class="pt" id="p14">Rédige un email à un fournisseur pour demander les informations de raccordement nécessaires aux plans de tuyauterie.
+
+Équipement : <span class="ph">[ex. échangeur à plaques, pompe centrifuge, vase d'expansion]</span>
+Référence commande : <span class="ph">[si connue]</span>
+Infos demandées : <span class="ph">[ex. DN et position piquages, hauteur axes / sol, sens écoulement, couple serrage brides, plan encombrement 3D ou 2D]</span>
+Délai souhaité : <span class="ph">[ex. avant le XX/XX]</span>
+
+Ton professionnel, concis. Préciser l'usage (intégration plan implantation et isométrique).</div>
+  <div class="acts" id="a14"><button class="bcopy" onclick="copyEl('p14',this)">📋 Copier</button></div></div></div>
+</div></div>
+
+<!-- S7 PERSO -->
+<div class="section open" id="s7">
+<div class="sec-hd" onclick="tSec('s7')"><span class="tri"></span><span class="sec-title">Mes prompts personnalisés</span><span class="sec-line"></span><span class="sec-cnt" id="ccnt">0 emplacement</span></div>
+<div class="sec-body">
+  <div id="cpc"></div>
+  <button class="add-btn" onclick="addCP()">+ Ajouter un emplacement</button>
+</div></div>
+
+<footer>// dessinateur-indus-prompts — usage personnel</footer>
+</div>
+<div id="toast">✓ Sauvegardé</div>
+
+<script>
+let nIA=3, nCP=0;
+
+/* ── IA ── */
+function tuf(i,v){document.getElementById('iau'+i).style.display=v.trim()?'flex':'none'}
+function addIA(){
+  nIA++;
+  const bar=document.getElementById('iaBar'),btn=bar.querySelector('.add-ia-btn');
+  const w=document.createElement('div');w.className='ia-cw';w.id='iac'+nIA;
+  w.innerHTML=`<div class="ia-ci"><span class="dot dot-custom"></span><input type="text" id="ian${nIA}" placeholder="Nom de l'IA..." oninput="tuf(${nIA},this.value);autoSave()"></div><div class="ia-uf" id="iau${nIA}"><input type="url" id="iah${nIA}" placeholder="https://..." oninput="autoSave()"></div>`;
+  bar.insertBefore(w,btn);autoSave();
+}
+function getIAs(){
+  const f=[{n:'ChatGPT',u:'https://chat.openai.com/',c:'#10a37f'},{n:'Claude',u:'https://claude.ai/',c:'#d97706'},{n:'Grok',u:'https://grok.com/',c:'#9b59b6'},{n:'Gemini',u:'https://gemini.google.com/',c:'#4285f4'}];
+  for(let i=1;i<=nIA;i++){const ne=document.getElementById('ian'+i),he=document.getElementById('iah'+i),n=ne?ne.value.trim():'',u=he?he.value.trim():'';if(n)f.push({n,u:u||'#',c:'#7a829c'});}
+  return f;
+}
+function addIABtns(container,delBtn){
+  container.querySelectorAll('.bia').forEach(b=>b.remove());
+  getIAs().forEach(ia=>{
+    const a=document.createElement('a');a.className='bia';a.href=ia.u;a.target='_blank';
+    a.innerHTML=`<span class="dsm" style="background:${ia.c}"></span>${ia.n} ↗`;
+    if(delBtn)container.insertBefore(a,delBtn);else container.appendChild(a);
+  });
+}
+
+/* ── SECTIONS ── */
+function tSec(id){document.getElementById(id).classList.toggle('open')}
+
+/* ── CARDS FIXES ── */
+function tCard(id){
+  const c=document.getElementById(id),was=c.classList.contains('open');
+  c.classList.toggle('open');
+  if(!was){const num=id.replace('c',''),ac=document.getElementById('a'+num);if(ac)addIABtns(ac,null);}
+}
+
+/* ── COPY ── */
+function copyEl(id,btn){
+  navigator.clipboard.writeText(document.getElementById(id).innerText).then(()=>{
+    const o=btn.textContent;btn.textContent='✓ Copié!';btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent=o;btn.classList.remove('copied');},2000);
+  });
+}
+function copyTA(id,btn){
+  navigator.clipboard.writeText(document.getElementById(id).value).then(()=>{
+    const o=btn.textContent;btn.textContent='✓ Copié!';btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent=o;btn.classList.remove('copied');},2000);
+  });
+}
+
+/* ── CUSTOM PROMPTS ── */
+const tagMap={'Mise en plan':'tp','Révision':'tr','Charpente':'tc','Implantation':'ti','Méca':'tm','Tuyauterie':'tt','Email':'te','Autre':'ta'};
+const tagOpts=['Mise en plan','Révision','Charpente','Implantation','Méca','Tuyauterie','Email','Autre'];
+
+function addCP(d){
+  nCP++;const cid='cp'+nCP;
+  const opts=tagOpts.map(o=>`<option${d&&d.tag===o?' selected':''}>${o}</option>`).join('');
+  const tit=d?d.title||'':'',bod=d?d.body||'':'';
+  const div=document.createElement('div');div.className='cblock open';div.id=cid;
+  div.innerHTML=`
+    <div class="cbhd" onclick="tCB('${cid}')">
+      <div class="cbhl">
+        <span class="cnum">${String(nCP).padStart(2,'0')}</span>
+        <span class="cprev${tit?' ok':''}" id="${cid}p">${tit||'Emplacement libre'}</span>
+      </div>
+      <div class="chr"><span class="tag ${tagMap[d&&d.tag||'Autre']||'ta'}" id="${cid}t">${d&&d.tag||'Autre'}</span><span class="ctri"></span></div>
+    </div>
+    <div class="cbbody">
+      <div class="clbl">Catégorie &amp; titre</div>
+      <div class="crow">
+        <select class="csel" id="${cid}s" onchange="upTag('${cid}');autoSave()">${opts}</select>
+        <input class="ctit" type="text" id="${cid}i" value="${tit.replace(/"/g,'&quot;')}" placeholder="Titre du prompt..." oninput="upPrev('${cid}');autoSave()">
+      </div>
+      <div class="clbl">Prompt</div>
+      <textarea class="cta" id="${cid}b" oninput="autoSave()" placeholder="Écris ton prompt ici...&#10;Tu peux utiliser [entre crochets] pour tes variables.">${bod}</textarea>
+      <div class="cacts" id="${cid}a">
+        <button class="bcopy" onclick="copyTA('${cid}b',this)">📋 Copier</button>
+        <button class="bdel" onclick="delCP('${cid}')">✕ Supprimer</button>
+      </div>
+    </div>`;
+  document.getElementById('cpc').appendChild(div);
+  addIABtns(document.getElementById(cid+'a'),document.getElementById(cid+'a').querySelector('.bdel'));
+  if(!d)div.scrollIntoView({behavior:'smooth',block:'center'});
+  upCCnt();autoSave();
+}
+function tCB(id){document.getElementById(id).classList.toggle('open')}
+function upPrev(id){const v=document.getElementById(id+'i').value.trim();const el=document.getElementById(id+'p');el.textContent=v||'Emplacement libre';el.className='cprev'+(v?' ok':'');}
+function upTag(id){const v=document.getElementById(id+'s').value;const el=document.getElementById(id+'t');el.textContent=v;el.className='tag '+(tagMap[v]||'ta');}
+function delCP(id){if(!confirm('Supprimer ce prompt ?'))return;document.getElementById(id).remove();upCCnt();autoSave();}
+function upCCnt(){const n=document.querySelectorAll('.cblock').length;document.getElementById('ccnt').textContent=n+' emplacement'+(n>1?'s':'');}
+
+/* ── SAUVEGARDE ── */
+function collect(){
+  const ias=[];for(let i=1;i<=nIA;i++){const n=document.getElementById('ian'+i),h=document.getElementById('iah'+i);ias.push({name:n?n.value:'',url:h?h.value:''});}
+  const prompts=[];document.querySelectorAll('.cblock').forEach(b=>{const id=b.id;prompts.push({tag:document.getElementById(id+'s')?.value||'',title:document.getElementById(id+'i')?.value||'',body:document.getElementById(id+'b')?.value||''});});
+  const secs={};document.querySelectorAll('.section[id]').forEach(s=>secs[s.id]=s.classList.contains('open'));
+  return{ias,prompts,secs,nIA,nCP};
+}
+function autoSave(){try{localStorage.setItem('pid2',JSON.stringify(collect()));}catch(e){}}
+function saveToLocal(){autoSave();toast('✓ Sauvegardé en local');}
+function exportJSON(){const b=new Blob([JSON.stringify(collect(),null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='prompts-dessinateur-indus.json';a.click();URL.revokeObjectURL(a.href);}
+function loadFile(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{applyData(JSON.parse(ev.target.result));toast('✓ Chargé depuis fichier');}catch{alert('Fichier JSON invalide.');}};r.readAsText(f);e.target.value='';}
+function applyData(d){
+  if(d.ias)d.ias.forEach((ia,i)=>{const idx=i+1;while(nIA<idx)addIA();const n=document.getElementById('ian'+idx),h=document.getElementById('iah'+idx);if(n){n.value=ia.name||'';tuf(idx,n.value);}if(h)h.value=ia.url||'';});
+  if(d.nIA&&d.nIA>nIA){for(let i=nIA+1;i<=d.nIA;i++)addIA();}
+  if(d.prompts){document.getElementById('cpc').innerHTML='';nCP=0;d.prompts.forEach(p=>addCP(p));}
+  if(d.secs)Object.entries(d.secs).forEach(([id,o])=>{const el=document.getElementById(id);if(el)el.classList.toggle('open',o);});
+}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+
+/* ── INIT ── */
+document.addEventListener('DOMContentLoaded',()=>{
+  // Rafraîchir boutons IA dans perso quand barre IA change
+  document.getElementById('iaBar').addEventListener('input',()=>{
+    document.querySelectorAll('.cblock').forEach(b=>{
+      const ac=document.getElementById(b.id+'a');if(ac)addIABtns(ac,ac.querySelector('.bdel'));
+    });
+  });
+  // Charger depuis localStorage
+  try{const raw=localStorage.getItem('pid2');if(raw){applyData(JSON.parse(raw));return;}}catch(e){}
+  // Sinon 3 blocs vides par défaut
+  addCP();addCP();addCP();
+});
+</script>
+</body>
+</html>

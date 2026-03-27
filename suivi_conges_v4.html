@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suivi Congés</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,600;1,300;1,500&family=Plus+Jakarta+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:         #FAF8F5;
+  --bg2:        #F2EFE9;
+  --surface:    #FFFFFF;
+  --border:     #E4DDD4;
+  --border2:    #CEC5BA;
+  --ink:        #1C1814;
+  --ink2:       #6B6259;
+  --ink3:       #A89E96;
+  --orange:     #E8621A;
+  --orange2:    #F07840;
+  --orange-dim: #FEF0E8;
+  --orange-mid: #FBDCCC;
+  --green:      #2E7D52;
+  --green-dim:  #E8F5EE;
+  --red:        #C0392B;
+  --red-dim:    #FDECEA;
+  --blue:       #1A6EBD;
+  --blue-dim:   #E8F1FB;
+  --gpt:        #10A37F;
+  --gpt-dim:    #E6F7F3;
+  --shadow:     0 1px 4px rgba(28,24,20,.06), 0 4px 16px rgba(28,24,20,.06);
+  --shadow-lg:  0 8px 40px rgba(28,24,20,.12);
+  --r: 10px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;}
+
+/* ── Layout ── */
+.app{display:flex;min-height:100vh;}
+
+.sidebar{
+  width:240px;flex-shrink:0;
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  padding:24px 14px;
+  display:flex;flex-direction:column;gap:3px;
+  position:sticky;top:0;height:100vh;overflow-y:auto;
+}
+
+.logo{display:flex;align-items:center;gap:10px;margin-bottom:22px;padding-bottom:18px;border-bottom:1px solid var(--border);}
+.logo-mark{
+  width:34px;height:34px;background:var(--orange);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;
+  box-shadow:0 2px 8px rgba(232,98,26,.3);
+}
+.logo-text{font-family:'Fraunces',serif;font-size:1.1rem;font-weight:600;color:var(--ink);line-height:1.1;}
+.logo-sub{font-size:0.66rem;color:var(--ink3);}
+
+.nav-sep{font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.13em;color:var(--ink3);margin:12px 0 3px 10px;}
+
+.nav-btn{
+  display:flex;align-items:center;gap:9px;
+  padding:9px 11px;border-radius:8px;border:none;
+  background:transparent;color:var(--ink2);
+  font-family:'Plus Jakarta Sans',sans-serif;font-size:0.83rem;font-weight:500;
+  cursor:pointer;text-align:left;width:100%;transition:all .14s;
+}
+.nav-btn .ico{font-size:.95rem;width:17px;text-align:center;}
+.nav-btn:hover{background:var(--bg2);color:var(--ink);}
+.nav-btn.active{background:var(--orange-dim);color:var(--orange);font-weight:600;}
+.nav-btn .badge{
+  margin-left:auto;background:var(--orange);color:#fff;
+  font-size:0.6rem;font-weight:700;border-radius:99px;padding:2px 6px;
+}
+
+/* Profile */
+.profile-panel{
+  margin-top:auto;padding-top:14px;
+  border-top:1px solid var(--border);
+  display:flex;flex-direction:column;gap:5px;
+}
+.plabel{font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);margin-bottom:1px;}
+.pinput{
+  background:var(--bg2);border:1px solid var(--border);border-radius:7px;
+  padding:7px 9px;color:var(--ink);
+  font-family:'Plus Jakarta Sans',sans-serif;font-size:0.76rem;
+  width:100%;outline:none;transition:border-color .14s;
+}
+.pinput:focus{border-color:var(--orange);}
+.btn-save{
+  width:100%;margin-top:3px;padding:8px;background:var(--orange);color:#fff;
+  border:none;border-radius:7px;
+  font-family:'Plus Jakarta Sans',sans-serif;font-size:0.76rem;font-weight:600;
+  cursor:pointer;transition:background .14s;
+}
+.btn-save:hover{background:var(--orange2);}
+.btn-json{
+  flex:1;padding:7px 5px;border-radius:7px;border:1px solid var(--border2);
+  background:var(--bg2);color:var(--ink2);
+  font-family:'Plus Jakarta Sans',sans-serif;font-size:0.72rem;font-weight:600;
+  cursor:pointer;transition:all .13s;text-align:center;
+}
+.btn-json:hover{background:var(--border);color:var(--ink);}
+.btn-json-imp{color:var(--blue);border-color:var(--blue-dim);}
+.btn-json-imp:hover{background:var(--blue-dim);}
+
+/* ── Main ── */
+.main{flex:1;padding:34px 38px;max-width:760px;}
+.section{display:none;}
+.section.active{display:block;animation:fin .2s ease;}
+@keyframes fin{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+.page-header{margin-bottom:26px;}
+.page-title{font-family:'Fraunces',serif;font-size:1.9rem;font-weight:600;color:var(--ink);line-height:1.1;}
+.page-title span{color:var(--orange);font-style:italic;font-weight:300;}
+.page-sub{color:var(--ink3);font-size:0.8rem;margin-top:4px;}
+
+/* ── Card ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:26px;box-shadow:var(--shadow);}
+
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:15px;}
+.fg{display:flex;flex-direction:column;gap:5px;}
+.fg label{font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);}
+.fg input,.fg select{
+  background:var(--bg);border:1.5px solid var(--border);border-radius:8px;
+  padding:9px 12px;color:var(--ink);
+  font-family:'Plus Jakarta Sans',sans-serif;font-size:0.85rem;
+  outline:none;transition:border-color .14s,box-shadow .14s;
+}
+.fg input:focus,.fg select:focus{border-color:var(--orange);box-shadow:0 0 0 3px rgba(232,98,26,.1);}
+
+.days-pill{
+  display:inline-flex;align-items:center;gap:7px;
+  background:var(--orange-dim);border:1.5px solid var(--orange-mid);
+  color:var(--orange);padding:6px 14px;border-radius:99px;
+  font-size:0.78rem;font-weight:600;
+  font-family:'JetBrains Mono',monospace;
+  margin-bottom:18px;
+}
+
+/* ── Mail box ── */
+.mail-box{
+  background:var(--bg);border:1.5px solid var(--border);
+  border-radius:10px;overflow:hidden;margin-bottom:18px;
+}
+.mail-meta{
+  background:var(--bg2);border-bottom:1px solid var(--border);
+  padding:11px 15px;display:flex;flex-direction:column;gap:4px;
+}
+.mail-meta-row{display:flex;align-items:baseline;gap:8px;font-size:0.79rem;}
+.mlabel{font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);width:38px;flex-shrink:0;}
+.mval{color:var(--ink2);}
+.mval.hi{color:var(--orange);font-weight:600;}
+
+.body-wrap{position:relative;}
+.body-tag{
+  position:absolute;top:9px;right:11px;
+  font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--ink3);pointer-events:none;
+  background:var(--bg2);padding:2px 7px;border-radius:4px;
+}
+#mail-edit{
+  width:100%;min-height:190px;
+  padding:14px 15px;padding-top:30px;
+  background:transparent;border:none;outline:none;
+  font-family:'Plus Jakarta Sans',sans-serif;font-size:0.84rem;line-height:1.75;
+  color:var(--ink);resize:vertical;
+}
+
+.mail-footer{
+  border-top:1px solid var(--border);background:var(--bg2);
+  padding:8px 13px;display:flex;align-items:center;justify-content:space-between;gap:10px;
+}
+.counter{
+  font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--ink3);
+  display:flex;gap:10px;
+}
+.counter .n{color:var(--orange);font-weight:600;}
+
+/* ── Copy button ── */
+.btn-copy-big{
+  display:flex;align-items:center;gap:9px;
+  padding:11px 20px;border-radius:var(--r);border:none;
+  background:var(--orange);color:#fff;
+  font-family:'Plus Jakarta Sans',sans-serif;font-size:0.88rem;font-weight:700;
+  cursor:pointer;transition:all .15s;
+  box-shadow:0 2px 10px rgba(232,98,26,.3);
+  position:relative;
+}
+.btn-copy-big:hover{background:var(--orange2);transform:translateY(-1px);box-shadow:0 4px 16px rgba(232,98,26,.4);}
+.btn-copy-big.ok{background:var(--green);}
+.copy-badge{
+  background:rgba(255,255,255,.25);
+  color:#fff;font-size:0.68rem;font-weight:700;
+  border-radius:99px;padding:2px 8px;min-width:22px;text-align:center;
+  display:none;
+}
+.copy-badge.show{display:inline;}
+
+/* ── IA buttons ── */
+.ia-bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+.btn-ia{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:8px 15px;border-radius:8px;border:1.5px solid;
+  font-family:'Plus Jakarta Sans',sans-serif;font-size:0.78rem;font-weight:600;
+  cursor:pointer;text-decoration:none;transition:all .14s;background:transparent;
+}
+.btn-claude{color:var(--orange);border-color:var(--orange-mid);}
+.btn-claude:hover{background:var(--orange-dim);}
+.btn-gpt{color:var(--gpt);border-color:#A8DDD1;}
+.btn-gpt:hover{background:var(--gpt-dim);}
+.ia-label{font-size:0.68rem;color:var(--ink3);margin-bottom:3px;text-transform:uppercase;letter-spacing:.08em;font-weight:600;}
+
+/* ── Send tip ── */
+.send-tip{
+  display:flex;align-items:flex-start;gap:10px;
+  background:var(--orange-dim);border:1px solid var(--orange-mid);
+  border-radius:9px;padding:11px 14px;font-size:0.79rem;color:var(--ink2);
+  margin-bottom:16px;
+}
+.send-tip .tip-ico{font-size:1.1rem;flex-shrink:0;margin-top:1px;}
+
+/* ── Action row ── */
+.action-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+
+/* ── Stats ── */
+.stats-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px;}
+.stat-tile{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:13px 15px;box-shadow:var(--shadow);}
+.stat-tile .sv{font-family:'Fraunces',serif;font-size:1.8rem;font-weight:600;line-height:1;color:var(--ink);}
+.stat-tile .sl{font-size:0.68rem;color:var(--ink3);margin-top:3px;text-transform:uppercase;letter-spacing:.07em;}
+
+/* ── Req card ── */
+.req-card{
+  background:var(--surface);border:1.5px solid var(--border);
+  border-radius:12px;padding:17px 19px;margin-bottom:9px;
+  box-shadow:var(--shadow);
+  display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;
+  transition:border-color .18s,box-shadow .18s;
+}
+.req-card:hover{border-color:var(--border2);box-shadow:0 4px 20px rgba(28,24,20,.08);}
+.req-card.archived{opacity:.5;}
+
+.req-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:5px;}
+.req-type-tag{background:var(--orange-dim);color:var(--orange);font-size:0.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;padding:3px 8px;border-radius:5px;}
+.req-dates{font-family:'JetBrains Mono',monospace;font-size:0.77rem;color:var(--ink2);}
+.req-dates .arr{color:var(--border2);margin:0 3px;}
+.req-days{background:var(--bg2);color:var(--ink3);font-family:'JetBrains Mono',monospace;font-size:0.7rem;padding:2px 7px;border-radius:4px;}
+.req-meta{font-size:0.73rem;color:var(--ink3);display:flex;gap:9px;flex-wrap:wrap;align-items:center;}
+.req-comment{border-left:2px solid var(--border2);padding-left:7px;font-style:italic;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.copies-info{display:inline-flex;align-items:center;gap:3px;font-size:0.68rem;background:var(--orange-dim);color:var(--orange);border-radius:4px;padding:2px 7px;font-weight:600;}
+
+.status-pill{
+  display:inline-flex;align-items:center;gap:5px;
+  border-radius:99px;padding:4px 11px;
+  font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;
+}
+.status-pill::before{content:'';width:5px;height:5px;border-radius:50%;}
+.s-wait{background:var(--orange-dim);color:var(--orange);}
+.s-wait::before{background:var(--orange);}
+.s-ok{background:var(--green-dim);color:var(--green);}
+.s-ok::before{background:var(--green);}
+.s-ko{background:var(--red-dim);color:var(--red);}
+.s-ko::before{background:var(--red);}
+.s-arch{background:var(--bg2);color:var(--ink3);}
+.s-arch::before{background:var(--ink3);}
+
+.req-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border-radius:8px;border:1.5px solid;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.75rem;font-weight:600;cursor:pointer;transition:all .13s;white-space:nowrap;background:transparent;}
+.btn-green{color:var(--green);border-color:var(--green);}
+.btn-green:hover{background:var(--green);color:#fff;}
+.btn-red{color:var(--red);border-color:var(--red);}
+.btn-red:hover{background:var(--red);color:#fff;}
+.btn-blue{color:var(--blue);border-color:var(--blue);}
+.btn-blue:hover{background:var(--blue);color:#fff;}
+.btn-ghost{color:var(--ink3);border-color:var(--border);}
+.btn-ghost:hover{background:var(--bg2);color:var(--ink);}
+.btn-outline{color:var(--ink2);border-color:var(--border2);}
+.btn-outline:hover{background:var(--bg2);color:var(--ink);}
+
+/* ── Empty ── */
+.empty{text-align:center;padding:52px 20px;color:var(--ink3);}
+.empty-icon{font-size:2.6rem;margin-bottom:10px;}
+.empty p{font-size:0.86rem;}
+
+/* ── Divider ── */
+.div{height:1px;background:var(--border);margin:18px 0;}
+
+/* ── Toast ── */
+.toast{
+  position:fixed;bottom:22px;right:22px;
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:11px 17px;font-size:0.82rem;color:var(--ink);
+  box-shadow:var(--shadow-lg);z-index:999;
+  transform:translateY(60px);opacity:0;
+  transition:all .3s cubic-bezier(.34,1.56,.64,1);
+  display:flex;align-items:center;gap:9px;max-width:310px;
+}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.t-ok{border-left:3px solid var(--green);}
+.toast.t-warn{border-left:3px solid var(--orange);}
+
+@media(max-width:660px){
+  .sidebar{display:none}
+  .main{padding:18px 14px;max-width:100%}
+  .form-row{grid-template-columns:1fr}
+  .req-card{grid-template-columns:1fr}
+  .stats-strip{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ── Sidebar ── -->
+<nav class="sidebar">
+  <div class="logo">
+    <div class="logo-mark">🌿</div>
+    <div>
+      <div class="logo-text">Congés</div>
+      <div class="logo-sub">Suivi personnel</div>
+    </div>
+  </div>
+
+  <div class="nav-sep">Menu</div>
+  <button class="nav-btn active" onclick="showSection('new')" id="nav-new">
+    <span class="ico">✏️</span> Rédiger
+  </button>
+  <button class="nav-btn" onclick="showSection('tracking')" id="nav-tracking">
+    <span class="ico">◎</span> Suivi
+    <span class="badge" id="badge-w" style="display:none">0</span>
+  </button>
+  <button class="nav-btn" onclick="showSection('archive')" id="nav-archive">
+    <span class="ico">▣</span> Archives
+  </button>
+  <button class="nav-btn" onclick="showSection('absence')" id="nav-absence">
+    <span class="ico">✉️</span> Réponse auto
+  </button>
+
+  <div class="profile-panel">
+    <div class="plabel">Mon profil</div>
+    <input class="pinput" id="p-name"    placeholder="Votre nom complet" />
+    <input class="pinput" id="p-dept"    placeholder="Service / Poste" />
+    <input class="pinput" id="p-manager" placeholder="Nom du responsable" />
+    <button class="btn-save" onclick="saveProfile()">Sauvegarder</button>
+    <div style="height:1px;background:var(--border);margin:8px 0 4px;"></div>
+    <div class="plabel">Données</div>
+    <div style="display:flex;gap:5px;">
+      <button class="btn-json" onclick="exportJSON()">↓ Export</button>
+      <button class="btn-json btn-json-imp" onclick="document.getElementById('json-import-input').click()">↑ Import</button>
+    </div>
+    <input type="file" id="json-import-input" accept=".json" style="display:none" onchange="importJSON(event)">
+  </div>
+</nav>
+
+<!-- ── Main ── -->
+<main class="main">
+
+  <!-- ══ RÉDIGER ══ -->
+  <div class="section active" id="sec-new">
+    <div class="page-header">
+      <div class="page-title">Rédiger ma <span>demande</span></div>
+      <div class="page-sub">Composez votre mail, copiez-le puis collez-le dans votre messagerie</div>
+    </div>
+
+    <div class="card">
+      <!-- Formulaire -->
+      <div class="form-row">
+        <div class="fg">
+          <label>Type de congé</label>
+          <select id="f-type" onchange="updatePreview()">
+            <option>Congés annuels</option><option>RTT</option><option>Congés Gelés</option><option>Maladie</option>
+            <option>Maternité / Paternité</option><option>Sans solde</option>
+            <option>Événement familial</option><option>Autre</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Motif (optionnel)</label>
+          <input type="text" id="f-motif" placeholder="Ex : vacances en famille" oninput="updatePreview()" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="fg">
+          <label>Date de début</label>
+          <input type="date" id="f-start" onchange="updateDays();updatePreview();" />
+        </div>
+        <div class="fg">
+          <label>Date de fin</label>
+          <input type="date" id="f-end" onchange="updateDays();updatePreview();" />
+        </div>
+      </div>
+
+      <div class="days-pill" id="days-pill">📅 Sélectionnez vos dates</div>
+      <div class="div"></div>
+
+      <!-- Conseil envoi -->
+      <div class="send-tip">
+        <span class="tip-ico">💡</span>
+        <span>Copiez le mail ci-dessous, puis collez-le directement dans votre messagerie (Outlook, Gmail…). Le nombre de copies est comptabilisé dans le suivi.</span>
+      </div>
+
+      <!-- Objet éditable -->
+      <div class="fg" style="margin-bottom:12px;">
+        <label>Objet du mail</label>
+        <input type="text" id="mail-subject" placeholder="Objet automatique" />
+      </div>
+
+      <!-- Corps mail -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+        <div style="font-size:0.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);">Corps du mail — modifiable</div>
+        <div class="ia-label">Corriger avec IA :</div>
+      </div>
+
+      <div class="mail-box">
+        <div class="mail-meta">
+          <div class="mail-meta-row">
+            <span class="mlabel">Objet</span>
+            <span class="mval hi" id="prev-subj">—</span>
+          </div>
+          <div class="mail-meta-row">
+            <span class="mlabel">De</span>
+            <span class="mval" id="prev-from">—</span>
+          </div>
+        </div>
+        <div class="body-wrap">
+          <span class="body-tag">Éditable</span>
+          <textarea id="mail-edit" oninput="countChars()" spellcheck="true"></textarea>
+        </div>
+        <div class="mail-footer">
+          <div class="counter">
+            <span><span class="n" id="cc">0</span> car.</span>
+            <span><span class="n" id="wc">0</span> mots</span>
+          </div>
+          <button class="btn-copy-big" id="btn-copy" onclick="doCopy()">
+            <span id="copy-ico">📋</span>
+            <span id="copy-lbl">Copier le mail</span>
+            <span class="copy-badge" id="copy-badge">0</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- IA bar -->
+      <div class="ia-bar">
+        <a class="btn-ia btn-claude" href="#" onclick="openIA(event,'claude')">
+          ✦ Corriger avec Claude
+        </a>
+        <a class="btn-ia btn-gpt" href="#" onclick="openIA(event,'gpt')">
+          ◆ Corriger avec ChatGPT
+        </a>
+      </div>
+      <div class="div"></div>
+      <!-- Actions -->
+      <div class="action-row">
+        <button class="btn btn-outline" onclick="resetForm()">↺ Réinitialiser</button>
+        <button class="btn btn-green" onclick="saveToTracking()">＋ Ajouter au suivi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SUIVI ══ -->
+  <div class="section" id="sec-tracking">
+    <div class="page-header">
+      <div class="page-title">Suivi des <span>demandes</span></div>
+      <div class="page-sub">Mettez à jour le statut après retour de votre N+1</div>
+    </div>
+    <div class="stats-strip" id="stats-strip"></div>
+    <div id="tracking-list"></div>
+  </div>
+
+  <!-- ══ ARCHIVES ══ -->
+  <div class="section" id="sec-archive">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:26px;flex-wrap:wrap;gap:12px;">
+      <div>
+        <div class="page-title"><span>Archives</span></div>
+        <div class="page-sub">Demandes clôturées</div>
+      </div>
+      <button class="btn btn-ghost" onclick="clearArchive()">🗑 Vider les archives</button>
+    </div>
+    <div id="archive-list"></div>
+  </div>
+
+
+
+  <!-- ══ RÉPONSE AUTO ══ -->
+  <div class="section" id="sec-absence">
+    <div class="page-header">
+      <div class="page-title">Réponse <span>automatique</span></div>
+      <div class="page-sub">Copiez ce texte dans votre messagerie comme réponse d'absence</div>
+    </div>
+    <div class="card">
+      <div class="send-tip" style="margin-bottom:18px;">
+        <span class="tip-ico">💡</span>
+        <span>Les dates se remplissent depuis la section <strong>Rédiger</strong>. Éditez librement le texte, puis copiez-le dans Outlook ou Gmail comme réponse d'absence automatique.</span>
+      </div>
+      <div class="fg" style="margin-bottom:15px;">
+        <label>Objet de la réponse automatique</label>
+        <input type="text" id="abs-subject" value="Absence du bureau" oninput="absSubjectChanged()" />
+      </div>
+      <div class="mail-box">
+        <div class="body-wrap">
+          <span class="body-tag">Éditable</span>
+          <textarea id="abs-edit" oninput="absCountChars()" spellcheck="true" style="width:100%;min-height:200px;padding:14px 15px;padding-top:30px;background:transparent;border:none;outline:none;font-family:'Plus Jakarta Sans',sans-serif;font-size:0.84rem;line-height:1.75;color:var(--ink);resize:vertical;"></textarea>
+        </div>
+        <div class="mail-footer">
+          <div class="counter"><span><span class="n" id="abs-cc">0</span> car.</span></div>
+          <button class="btn-copy-big" id="btn-abs-copy" onclick="copyAbsence()">
+            <span id="abs-copy-ico">📋</span>
+            <span id="abs-copy-lbl">Copier</span>
+          </button>
+        </div>
+      </div>
+      <div class="div"></div>
+      <div class="action-row">
+        <button class="btn btn-outline" onclick="resetAbsence()">↺ Réinitialiser</button>
+        <button class="btn btn-green"   onclick="saveAbsence()">💾 Sauvegarder</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <span id="t-ico">✓</span><span id="t-msg"></span>
+</div>
+
+<script>
+// ── Storage
+const load=(k,d)=>{ try{return JSON.parse(localStorage.getItem(k))??d}catch{return d} };
+const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+
+let requests = load('cv3_req',[]);
+let profile  = load('cv3_pro',{name:'',dept:''});
+let copyCount = 0; // session copy counter for current draft
+
+// ── Profile
+function loadProfile(){
+  document.getElementById('p-name').value    = profile.name||'';
+  document.getElementById('p-dept').value    = profile.dept||'';
+  document.getElementById('p-manager').value = profile.manager||'';
+}
+function saveProfile(){
+  profile.name    = document.getElementById('p-name').value.trim();
+  profile.dept    = document.getElementById('p-dept').value.trim();
+  profile.manager = document.getElementById('p-manager').value.trim();
+  save('cv3_pro',profile);
+  toast('✦','Profil sauvegardé','t-ok');
+  updatePreview();
+}
+
+// ── Nav
+function showSection(id){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('sec-'+id).classList.add('active');
+  document.getElementById('nav-'+id).classList.add('active');
+  if(id==='tracking') renderTracking();
+  if(id==='archive')  renderArchive();
+  if(id==='absence')  initAbsence();
+}
+
+// ── Utils
+function calcDays(s,e){
+  if(!s||!e)return 0;
+  let d=0,cur=new Date(s),end=new Date(e);
+  if(end<cur)return 0;
+  while(cur<=end){const w=cur.getDay();if(w!==0&&w!==6)d++;cur.setDate(cur.getDate()+1);}
+  return d;
+}
+function fmt(d){if(!d)return'—';const[y,m,j]=d.split('-');return`${j}/${m}/${y}`;}
+
+// ── Days pill
+function updateDays(){
+  const s=document.getElementById('f-start').value;
+  const e=document.getElementById('f-end').value;
+  const d=calcDays(s,e);
+  document.getElementById('days-pill').textContent=
+    (!s||!e||d===0)?'📅 Sélectionnez vos dates'
+    :`📅 ${fmt(s)} → ${fmt(e)}  ·  ${d} jour${d>1?'s':''} ouvré${d>1?'s':''}`;
+}
+
+// ── Build mail
+function buildSubject(){
+  const type=document.getElementById('f-type').value;
+  const s=document.getElementById('f-start').value;
+  const e=document.getElementById('f-end').value;
+  return (s&&e)?`Demande de ${type} – ${fmt(s)} au ${fmt(e)}`:`Demande de ${type}`;
+}
+function buildBody(){
+  const type  = document.getElementById('f-type').value;
+  const motif = document.getElementById('f-motif').value.trim();
+  const s     = document.getElementById('f-start').value;
+  const e     = document.getElementById('f-end').value;
+  const days  = calcDays(s,e);
+  const name  = profile.name||'[Votre nom]';
+  const dept  = profile.dept ? ` (${profile.dept})`:'';
+  const period= (s&&e)?`du ${fmt(s)} au ${fmt(e)}`:'[période à préciser]';
+  let b=`Bonjour Julien,\n\nCi-joint une nouvelle demande d'absence ${period}.`;
+  return b;
+}
+
+function updatePreview(){
+  const subj = buildSubject();
+  document.getElementById('mail-subject').value = subj;
+  document.getElementById('prev-subj').textContent = subj;
+  document.getElementById('prev-from').textContent = profile.name||'[Votre nom]';
+  const ta = document.getElementById('mail-edit');
+  if(!ta.dataset.edited) ta.value = buildBody();
+  countChars();
+
+}
+
+// Mark edited
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('mail-edit').addEventListener('input',function(){
+    this.dataset.edited='1';
+  });
+  document.getElementById('mail-subject').addEventListener('input',function(){
+    document.getElementById('prev-subj').textContent = this.value;
+  });
+
+});
+
+// ── Char / word counter
+function countChars(){
+  const v=document.getElementById('mail-edit').value;
+  document.getElementById('cc').textContent=v.length;
+  document.getElementById('wc').textContent=v.trim()?v.trim().split(/\s+/).length:0;
+}
+
+// ── COPY
+function doCopy(){
+  const subj = document.getElementById('mail-subject').value || buildSubject();
+  const body = document.getElementById('mail-edit').value;
+  const full = `Objet : ${subj}\n\n${body}`;
+  navigator.clipboard.writeText(full).then(()=>{
+    copyCount++;
+    const badge = document.getElementById('copy-badge');
+    badge.textContent = copyCount;
+    badge.classList.add('show');
+    document.getElementById('copy-lbl').textContent='Copié !';
+    document.getElementById('copy-ico').textContent='✓';
+    document.getElementById('btn-copy').classList.add('ok');
+    setTimeout(()=>{
+      document.getElementById('copy-lbl').textContent='Copier le mail';
+      document.getElementById('copy-ico').textContent='📋';
+      document.getElementById('btn-copy').classList.remove('ok');
+    },2000);
+    toast(`📋`,`Copié ! (×${copyCount} cette session)`,'t-ok');
+  }).catch(()=>toast('⚠','Impossible de copier','t-warn'));
+}
+
+// ── Correction inline avec Claude API
+async function correctWithClaude(){
+  const body = document.getElementById('mail-edit').value.trim();
+  const subj = document.getElementById('mail-subject').value || buildSubject();
+  if(!body){toast('⚠','Rédigez d\'abord votre mail','t-warn');return;}
+
+  const btn = document.getElementById('btn-ia-claude');
+  const spinner = document.getElementById('ia-spinner');
+  const status = document.getElementById('ia-status');
+  const lbl = document.getElementById('ia-lbl');
+
+  btn.disabled = true;
+  spinner.classList.add('active');
+  lbl.textContent = 'Correction…';
+  status.textContent = 'Claude analyse votre mail…';
+
+  const prompt = `Tu es un assistant RH. Corrige et améliore ce mail professionnel de demande de congé en français. Il doit être poli, clair, sans fautes, naturel. Retourne UNIQUEMENT le corps du mail corrigé, sans commentaire, sans ligne "Objet", sans balises markdown.\n\nObjet : ${subj}\n\n${body}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error?.message||'Erreur API');
+    const corrected = data.content?.find(b=>b.type==='text')?.text?.trim();
+    if(!corrected) throw new Error('Réponse vide');
+
+    const ta = document.getElementById('mail-edit');
+    ta.value = corrected;
+    ta.dataset.edited = '1';
+    countChars();
+    status.textContent = '✓ Corrigé — vous pouvez encore modifier';
+    status.style.color = 'var(--green)';
+    toast('✦','Mail corrigé par Claude','t-ok');
+  } catch(err){
+    status.textContent = '⚠ Erreur : '+err.message;
+    status.style.color = 'var(--red)';
+    toast('⚠','Échec de la correction','t-warn');
+  } finally {
+    btn.disabled = false;
+    spinner.classList.remove('active');
+    lbl.textContent = 'Corriger avec Claude';
+    setTimeout(()=>{status.textContent='';status.style.color='';},6000);
+  }
+}
+
+// ── Save to tracking (separate from copy)
+function saveToTracking(){
+  const s=document.getElementById('f-start').value;
+  const e=document.getElementById('f-end').value;
+  if(!s||!e){toast('⚠','Choisissez les dates avant d\'ajouter au suivi','t-warn');return;}
+  if(new Date(e)<new Date(s)){toast('⚠','Date de fin invalide','t-warn');return;}
+  const req={
+    id:Date.now(),
+    type:document.getElementById('f-type').value,
+    motif:document.getElementById('f-motif').value.trim(),
+    s,e,
+    days:calcDays(s,e),
+    subject:document.getElementById('mail-subject').value||buildSubject(),
+    body:document.getElementById('mail-edit').value,
+    sentAt:new Date().toISOString(),
+    copies:copyCount,
+    status:'waiting',
+    archived:false,
+    relances:0
+  };
+  requests.unshift(req);
+  save('cv3_req',requests);
+  copyCount=0; // reset session counter
+  document.getElementById('copy-badge').classList.remove('show');
+  updateBadge();
+  toast('✓','Demande ajoutée au suivi','t-ok');
+  setTimeout(()=>{resetForm();showSection('tracking');},1200);
+}
+
+function resetForm(){
+  document.getElementById('f-type').selectedIndex=0;
+  ['f-motif','f-start','f-end'].forEach(id=>document.getElementById(id).value='');
+  const ta=document.getElementById('mail-edit');
+  ta.value='';delete ta.dataset.edited;
+
+  copyCount=0;
+  document.getElementById('copy-badge').textContent='0';
+  document.getElementById('copy-badge').classList.remove('show');
+  updateDays();updatePreview();
+}
+
+// ── Tracking render
+function renderTracking(){
+  const active=requests.filter(r=>!r.archived);
+  const w=active.filter(r=>r.status==='waiting').length;
+  const ok=active.filter(r=>r.status==='ok').length;
+  const days=active.filter(r=>r.status==='ok').reduce((a,b)=>a+b.days,0);
+  const totalCopies=active.reduce((a,b)=>a+(b.copies||0),0);
+  document.getElementById('stats-strip').innerHTML=`
+    <div class="stat-tile"><div class="sv">${active.length}</div><div class="sl">Demandes</div></div>
+    <div class="stat-tile"><div class="sv" style="color:var(--orange)">${w}</div><div class="sl">En attente</div></div>
+    <div class="stat-tile"><div class="sv" style="color:var(--green)">${ok}</div><div class="sl">Acceptées</div></div>
+    <div class="stat-tile"><div class="sv" style="color:var(--orange)">${totalCopies}</div><div class="sl">Copies totales</div></div>
+  `;
+  const list=document.getElementById('tracking-list');
+  if(!active.length){
+    list.innerHTML=`<div class="empty"><div class="empty-icon">📭</div><p>Aucune demande en cours.<br>Rédigez-en une depuis "Rédiger".</p></div>`;
+    return;
+  }
+  list.innerHTML=active.map(r=>{
+    const pc=r.status==='waiting'?'s-wait':r.status==='ok'?'s-ok':'s-ko';
+    const pl=r.status==='waiting'?'En attente':r.status==='ok'?'Accepté ✓':'Refusé ✗';
+    const sd=new Date(r.sentAt).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'});
+    const rel=r.relances>0?`<span style="font-size:.68rem;background:var(--blue-dim);color:var(--blue);border-radius:4px;padding:2px 7px;font-weight:600;">↩ ${r.relances} relance${r.relances>1?'s':''}</span>`:'';
+    const actions=r.status==='waiting'
+      ?`<button class="btn btn-green" onclick="setStatus(${r.id},'ok')">✓ Accepté</button>
+        <button class="btn btn-red" onclick="setStatus(${r.id},'ko')">✗ Refusé</button>
+        <button class="btn btn-blue" onclick="doRelance(${r.id})">↩ Relancer</button>`
+      :`<button class="btn btn-outline" onclick="archiveReq(${r.id})">▣ Archiver</button>
+        <button class="btn btn-ghost" onclick="setStatus(${r.id},'waiting')">↺ Remettre</button>`;
+    return `
+    <div class="req-card">
+      <div>
+        <div class="req-row">
+          <span class="req-type-tag">${r.type}</span>
+          <span class="req-dates">${fmt(r.s)}<span class="arr">→</span>${fmt(r.e)}</span>
+          <span class="req-days">${r.days}j ouvrés</span>
+          <span class="status-pill ${pc}">${pl}</span>
+          ${rel}
+        </div>
+        <div class="req-meta">
+          <span>Ajouté le ${sd}</span>
+          ${r.copies?`<span class="copies-info">📋 ${r.copies} copie${r.copies>1?'s':''}</span>`:''}
+          ${r.motif?`<span class="req-comment">${r.motif}</span>`:''}
+        </div>
+      </div>
+      <div class="req-actions">${actions}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Archive render
+function renderArchive(){
+  const archived=requests.filter(r=>r.archived);
+  const list=document.getElementById('archive-list');
+  if(!archived.length){
+    list.innerHTML=`<div class="empty"><div class="empty-icon">🗂</div><p>Aucune archive pour l'instant.</p></div>`;
+    return;
+  }
+  list.innerHTML=archived.map(r=>{
+    const pc=r.status==='ok'?'s-ok':r.status==='ko'?'s-ko':'s-arch';
+    const pl=r.status==='ok'?'Accepté':r.status==='ko'?'Refusé':'Archivé';
+    const sd=new Date(r.sentAt).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'});
+    return `
+    <div class="req-card archived">
+      <div>
+        <div class="req-row">
+          <span class="req-type-tag">${r.type}</span>
+          <span class="req-dates">${fmt(r.s)}<span class="arr">→</span>${fmt(r.e)}</span>
+          <span class="req-days">${r.days}j ouvrés</span>
+          <span class="status-pill ${pc}">${pl}</span>
+        </div>
+        <div class="req-meta">
+          <span>Ajouté le ${sd}</span>
+          ${r.copies?`<span class="copies-info">📋 ${r.copies} copie${r.copies>1?'s':''}</span>`:''}
+          ${r.motif?`<span class="req-comment">${r.motif}</span>`:''}
+        </div>
+      </div>
+      <div class="req-actions">
+        <button class="btn btn-outline" onclick="unarchive(${r.id})">↺ Restaurer</button>
+        <button class="btn btn-ghost" style="color:var(--red);border-color:var(--red)" onclick="deleteReq(${r.id})">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Status actions
+function setStatus(id,status){
+  const r=requests.find(r=>r.id===id);if(!r)return;
+  r.status=status;save('cv3_req',requests);updateBadge();renderTracking();
+  toast(status==='ok'?'✓':status==='ko'?'✗':'↺',status==='ok'?'Marqué accepté':status==='ko'?'Marqué refusé':'Remis en attente','t-ok');
+}
+function archiveReq(id){
+  const r=requests.find(r=>r.id===id);if(r){r.archived=true;save('cv3_req',requests);updateBadge();renderTracking();toast('▣','Archivé','t-ok');}
+}
+function unarchive(id){
+  const r=requests.find(r=>r.id===id);if(r){r.archived=false;save('cv3_req',requests);updateBadge();renderArchive();toast('↺','Restauré','t-ok');}
+}
+function deleteReq(id){
+  requests=requests.filter(r=>r.id!==id);save('cv3_req',requests);renderArchive();toast('🗑','Supprimé','t-ok');
+}
+function clearArchive(){
+  if(!confirm('Supprimer toutes les archives ?'))return;
+  requests=requests.filter(r=>!r.archived);save('cv3_req',requests);renderArchive();toast('🗑','Archives vidées','t-ok');
+}
+function doRelance(id){
+  const r=requests.find(r=>r.id===id);if(!r)return;
+  r.relances=(r.relances||0)+1;save('cv3_req',requests);
+  // Copy relance mail
+  const body=`Bonjour,\n\nJe me permets de vous relancer au sujet de ma demande de ${r.type.toLowerCase()} pour la période du ${fmt(r.s)} au ${fmt(r.e)}.\n\nPourriez-vous me confirmer votre décision ?\n\nCordialement,\n${profile.name||''}`;
+  const full=`Objet : Relance – ${r.subject}\n\n${body}`;
+  navigator.clipboard.writeText(full).then(()=>{
+    renderTracking();
+    toast('📋',`Mail de relance #${r.relances} copié !`,'t-ok');
+  }).catch(()=>{renderTracking();toast('↩',`Relance #${r.relances} enregistrée`,'t-ok');});
+}
+
+// ── Badge
+function updateBadge(){
+  const n=requests.filter(r=>!r.archived&&r.status==='waiting').length;
+  const b=document.getElementById('badge-w');
+  b.style.display=n>0?'':'none';b.textContent=n;
+}
+
+// ── Toast
+let tt;
+function toast(ico,msg,cls='t-ok'){
+  const el=document.getElementById('toast');
+  document.getElementById('t-ico').textContent=ico;
+  document.getElementById('t-msg').textContent=msg;
+  el.className=`toast ${cls} show`;
+  clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('show'),3000);
+}
+
+// ── Réponse automatique absence
+function buildAbsenceBody(){
+  const s = document.getElementById('f-start')?.value;
+  const e = document.getElementById('f-end')?.value;
+  const manager = profile.manager || '[nom du responsable]';
+  let period = '';
+  if(s && e && calcDays(s,e) > 0){
+    period = `du ${fmt(s)} au ${fmt(e)}`;
+  } else {
+    period = '[date de congé]';
+  }
+  return `Bonjour,\n\nJe suis absent du bureau ${period}.\n\nJe n'ai pas accès à ma messagerie durant cette période.\nVotre message sera traité à mon retour.\n\nPour toute urgence, veuillez contacter ${manager}.`;
+}
+
+function initAbsence(){
+  const saved = load('cv3_abs', null);
+  const ta = document.getElementById('abs-edit');
+  if(!ta) return;
+  const subjEl = document.getElementById('abs-subject');
+  if(saved){
+    if(saved.body) ta.value = saved.body;
+    if(saved.subject && subjEl) subjEl.value = saved.subject;
+  } else {
+    ta.value = buildAbsenceBody();
+  }
+  absCountChars();
+}
+
+function absCountChars(){
+  const v = document.getElementById('abs-edit').value;
+  document.getElementById('abs-cc').textContent = v.length;
+}
+
+function copyAbsence(){
+  const subjEl = document.getElementById('abs-subject');
+  const subj = subjEl ? subjEl.value : '';
+  const body = document.getElementById('abs-edit').value;
+  const full = subj ? `Objet : ${subj}\n\n${body}` : body;
+  navigator.clipboard.writeText(full).then(()=>{
+    document.getElementById('abs-copy-lbl').textContent = 'Copié !';
+    document.getElementById('abs-copy-ico').textContent = '✓';
+    document.getElementById('btn-abs-copy').classList.add('ok');
+    setTimeout(()=>{
+      document.getElementById('abs-copy-lbl').textContent = 'Copier';
+      document.getElementById('abs-copy-ico').textContent = '📋';
+      document.getElementById('btn-abs-copy').classList.remove('ok');
+    },2000);
+    toast('📋','Réponse automatique copiée','t-ok');
+  }).catch(()=>toast('⚠','Impossible de copier','t-warn'));
+}
+
+function saveAbsence(){
+  const subjEl = document.getElementById('abs-subject');
+  const data = {
+    body: document.getElementById('abs-edit').value,
+    subject: subjEl ? subjEl.value : 'Absence du bureau'
+  };
+  save('cv3_abs', data);
+  toast('💾','Réponse auto sauvegardée','t-ok');
+}
+
+function resetAbsence(){
+  const ta = document.getElementById('abs-edit');
+  delete ta.dataset.edited;
+  ta.value = buildAbsenceBody();
+  localStorage.removeItem('cv3_abs');
+  absCountChars();
+  toast('↺','Réinitialisé','t-ok');
+}
+
+
+function absSubjectChanged(){
+  const ta = document.getElementById('abs-subject');
+  if(ta) ta.dataset.edited='1';
+}
+
+function openAbsIA(e, which){
+  e.preventDefault();
+  const body = document.getElementById('abs-edit').value.trim();
+  const subj = document.getElementById('abs-subject').value;
+  if(!body){toast('⚠',"Rédigez d'abord votre réponse automatique",'t-warn');return;}
+  const prompt = `Améliore cette réponse automatique d'absence professionnelle en français. Elle doit être polie, claire, sans fautes. Retourne uniquement le corps du message corrigé, sans commentaire.\n\nObjet : ${subj}\n\n${body}`;
+  let url = which==='claude'
+    ? `https://claude.ai/new?q=${encodeURIComponent(prompt)}`
+    : `https://chatgpt.com/?q=${encodeURIComponent(prompt)}`;
+  window.open(url,'_blank');
+  toast(which==='claude'?'✦':'◆', `Ouverture ${which==='claude'?'Claude':'ChatGPT'}…`,'t-ok');
+}
+
+// ── JSON Export / Import
+function exportJSON(){
+  const data = {
+    version: 3,
+    exportedAt: new Date().toISOString(),
+    profile: load('cv3_pro',{}),
+    requests: load('cv3_req',[]),
+    absence: load('cv3_abs', null)
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  const d = new Date();
+  a.download = `conges_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('↓','Données exportées','t-ok');
+}
+
+function importJSON(e){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if(!data.requests && !data.profile) throw new Error('Format invalide');
+      if(data.profile){ save('cv3_pro', data.profile); profile = data.profile; loadProfile(); }
+      if(data.requests){ save('cv3_req', data.requests); requests = data.requests; updateBadge(); }
+      if(data.absence){ save('cv3_abs', data.absence); }
+      toast('↑','Données importées','t-ok');
+      showSection('tracking');
+    } catch(err){
+      toast('⚠','Fichier invalide : '+err.message,'t-warn');
+    }
+    e.target.value='';
+  };
+  reader.readAsText(file);
+}
+
+// ── Init
+loadProfile();
+const today=new Date(),pad=n=>String(n).padStart(2,'0');
+const td=`${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
+document.getElementById('f-start').value=td;
+document.getElementById('f-end').value=td;
+updateDays();updatePreview();updateBadge();
+</script>
+</body>
+</html>

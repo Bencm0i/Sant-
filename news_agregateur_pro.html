@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FEED_AGG // TERMINAL</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Share+Tech+Mono&display=swap');
+
+  :root {
+    --bg:       #e8e0d0;
+    --bg2:      #dfd7c6;
+    --bg3:      #d6ccb8;
+    --bg4:      #ccc2ac;
+    --line:     #b8ae9a;
+    --line2:    #a89e8a;
+    --text:     #1c1810;
+    --text-dim: #4a4035;
+    --text-hi:  #0e0c08;
+    --accent:   #5a3a1a;
+    --accent2:  #7a4e28;
+    --amber:    #8a5a18;
+    --red:      #7a2518;
+    --green:    #2a4a28;
+    --font-mono: 'Share Tech Mono', monospace;
+    --font-disp: 'UnifrakturMaguntia', cursive;
+    --font-body: 'Libre Baskerville', serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 13px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grain papier journal via SVG inline filter */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    opacity: 0.55;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    background-size: 300px 300px;
+    pointer-events: none; z-index: 9999;
+    mix-blend-mode: multiply;
+  }
+
+  /* Légères lignes horizontales type papier journal */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px, transparent 22px,
+      rgba(0,0,0,0.03) 22px, rgba(0,0,0,0.03) 23px
+    );
+    pointer-events: none; z-index: 9998;
+  }
+
+  #header {
+    border-bottom: 3px double var(--line2);
+    padding: 10px 20px 8px;
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--bg2);
+    position: sticky; top: 0; z-index: 100;
+  }
+  #header-title {
+    font-family: var(--font-disp);
+    font-size: 34px; letter-spacing: 0.04em;
+    color: var(--text-hi);
+    line-height: 1;
+  }
+  #header-title .sep { color: var(--text-dim); font-family: var(--font-body); }
+  #header-title .ver { font-size: 11px; color: var(--text-dim); margin-left: 8px; font-family: var(--font-mono); letter-spacing: 0.05em; }
+  #header-meta { font-size: 11px; color: var(--text-dim); text-align: right; line-height: 1.6; font-family: var(--font-mono); }
+  #clock { color: var(--text); font-size: 11px; font-family: var(--font-mono); }
+
+  /* STATUS BAR */
+  #statusbar {
+    display: flex; gap: 5px; padding: 5px 20px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--line);
+    flex-wrap: wrap; align-items: center;
+    font-family: var(--font-mono);
+  }
+  .status-badge {
+    font-size: 10px; padding: 1px 7px;
+    border: 1px solid var(--line2); border-radius: 1px;
+    letter-spacing: 0.04em; user-select: none;
+    color: var(--text-dim); font-family: var(--font-mono);
+  }
+  .status-badge.loading { color: var(--amber); border-color: var(--amber); opacity: 0.7; }
+  .status-badge.error   { color: var(--red);   border-color: var(--red); }
+  .status-badge.ok      { color: var(--text-dim); border-color: var(--line); }
+
+  #ctrl-right { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+  .ctrl-btn {
+    background: var(--bg3); border: 1px solid var(--line2);
+    color: var(--text); font-family: var(--font-mono);
+    font-size: 11px; padding: 2px 11px;
+    cursor: pointer; letter-spacing: 0.05em; transition: all 0.15s;
+    border-radius: 1px;
+  }
+  .ctrl-btn:hover { background: var(--bg4); border-color: var(--accent); color: var(--text-hi); }
+
+  /* FILTERS */
+  #filters {
+    display: flex; gap: 3px; padding: 6px 20px;
+    border-bottom: 2px solid var(--line2);
+    background: var(--bg); flex-wrap: wrap;
+  }
+  .filter-btn {
+    background: none; border: 1px solid transparent;
+    color: var(--text-dim); font-family: var(--font-mono);
+    font-size: 11px; padding: 2px 11px;
+    cursor: pointer; letter-spacing: 0.06em; transition: all 0.12s;
+    border-radius: 1px;
+  }
+  .filter-btn:hover { border-color: var(--line2); color: var(--text); background: var(--bg3); }
+  .filter-btn.active { border-color: var(--line2); color: var(--text-hi); background: var(--bg3); font-style: italic; }
+
+  /* GRID */
+  #main {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 1px; background: var(--line);
+  }
+
+  /* COLUMN */
+  .col { background: var(--bg); display: flex; flex-direction: column; }
+  .col-header {
+    padding: 6px 14px;
+    border-bottom: 2px solid var(--line2);
+    background: var(--bg2);
+    display: flex; align-items: center; gap: 8px;
+    position: sticky; top: 68px; z-index: 10;
+  }
+  .col-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--text-dim); flex-shrink: 0;
+  }
+  .col-dot.live    { background: var(--green); animation: pulse 2.5s ease-in-out infinite; }
+  .col-dot.dead    { background: var(--red); }
+  .col-dot.loading { background: var(--amber); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+  .col-name { font-size: 12px; letter-spacing: 0.06em; color: var(--text-hi); text-transform: uppercase; font-family: var(--font-body); font-weight: 700; }
+  .col-lang { font-size: 9px; color: var(--text-dim); padding: 0 4px; border: 1px solid var(--line); border-radius: 1px; font-family: var(--font-mono); }
+  .col-count { margin-left: auto; font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); }
+
+  /* ITEMS */
+  .items { flex: 1; overflow-y: auto; max-height: calc(100vh - 180px); }
+  .items::-webkit-scrollbar { width: 3px; }
+  .items::-webkit-scrollbar-track { background: var(--bg); }
+  .items::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 1px; }
+
+  .item {
+    padding: 9px 14px;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+    cursor: pointer; transition: background 0.1s;
+    animation: fadeIn 0.25s ease forwards; opacity: 0;
+  }
+  .item:hover { background: rgba(0,0,0,0.06); }
+  @keyframes fadeIn { to { opacity: 1; } }
+
+  .item-title {
+    font-size: 13px; line-height: 1.5;
+    color: var(--text-hi); margin-bottom: 5px;
+    word-break: break-word;
+    font-family: var(--font-body);
+  }
+  .item:hover .item-title { color: var(--accent); text-decoration: underline; text-decoration-color: rgba(90,58,26,0.3); }
+
+  .item-meta {
+    display: flex; gap: 8px; font-size: 10px;
+    color: var(--text-dim); flex-wrap: wrap; align-items: center;
+    font-family: var(--font-mono);
+  }
+  .item-score { color: var(--amber); }
+  .item-tag {
+    padding: 0 4px; border: 1px solid var(--line);
+    border-radius: 1px; font-size: 9px;
+    letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--text-dim); font-family: var(--font-mono);
+  }
+
+  .msg { padding: 20px 14px; font-size: 11px; color: var(--text-dim); text-align: center; font-family: var(--font-mono); font-style: italic; }
+  .msg.error { color: var(--red); }
+
+  .skeleton {
+    height: 11px; background: var(--line); border-radius: 1px;
+    margin: 7px 14px; animation: shimmer 1.4s ease-in-out infinite;
+  }
+  .skeleton.short { width: 45%; }
+  @keyframes shimmer { 0%,100%{opacity:0.3} 50%{opacity:0.6} }
+
+  /* TICKER */
+  #ticker {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    height: 24px; background: var(--bg2);
+    border-top: 2px solid var(--line2);
+    overflow: hidden; z-index: 200;
+    display: flex; align-items: center;
+  }
+  #ticker-label {
+    padding: 0 10px; font-size: 10px;
+    color: var(--bg); background: var(--text-hi);
+    height: 100%; display: flex; align-items: center;
+    letter-spacing: 0.1em; white-space: nowrap; flex-shrink: 0;
+    font-family: var(--font-mono);
+  }
+  #ticker-inner {
+    white-space: nowrap; font-size: 11px; color: var(--text-dim);
+    animation: scroll-ticker 80s linear infinite;
+    padding-left: 24px; font-family: var(--font-mono);
+  }
+  @keyframes scroll-ticker { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+  #ticker-inner span { margin: 0 36px; }
+  #ticker-inner span::before { content: '— '; color: var(--line2); }
+
+  body { padding-bottom: 28px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="header">
+  <div id="header-title">
+    Le Feed<span class="ver">// dépêches</span>
+  </div>
+  <div id="header-meta">
+    <div id="clock"></div>
+    <div>ACTU FR · SCIENCE · TECH · DEV</div>
+  </div>
+</div>
+
+<!-- STATUS BAR -->
+<div id="statusbar">
+  <div id="ctrl-right">
+    <button class="ctrl-btn" onclick="refreshAll()">↺ REFRESH</button>
+  </div>
+</div>
+
+<!-- FILTERS -->
+<div id="filters">
+  <button class="filter-btn active" onclick="setFilter('all',this)">TOUT</button>
+  <button class="filter-btn" onclick="setFilter('actu',this)">ACTU FR</button>
+  <button class="filter-btn" onclick="setFilter('science',this)">SCIENCE</button>
+  <button class="filter-btn" onclick="setFilter('tech',this)">TECH</button>
+  <button class="filter-btn" onclick="setFilter('dev',this)">DEV</button>
+</div>
+
+<div id="main"></div>
+
+<!-- TICKER -->
+<div id="ticker">
+  <div id="ticker-label">DÉPÊCHES</div>
+  <div id="ticker-inner"></div>
+</div>
+
+<script>
+const CORS = url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+
+const SOURCES = [
+  { id:'hn-top',             name:'Hacker News',      tag:'dev',     lang:'EN', fetch: fetchHN },
+  { id:'reddit-france',      name:'r/france',          tag:'actu',    lang:'FR', fetch: fetchReddit('france',20) },
+  { id:'reddit-science',     name:'r/science',         tag:'science', lang:'EN', fetch: fetchReddit('science',20) },
+  { id:'reddit-programming', name:'r/programming',     tag:'dev',     lang:'EN', fetch: fetchReddit('programming',20) },
+  { id:'lm-sciences',        name:'Le Monde Sciences', tag:'science', lang:'FR', fetch: fetchRSS('https://www.lemonde.fr/sciences/rss_full.xml') },
+  { id:'lm-tech',            name:'Le Monde Tech',     tag:'tech',    lang:'FR', fetch: fetchRSS('https://www.lemonde.fr/pixels/rss_full.xml') },
+  { id:'01net',              name:'01net',             tag:'tech',    lang:'FR', fetch: fetchRSS('https://www.01net.com/rss/news.xml') },
+  { id:'futura',             name:'Futura Sciences',   tag:'science', lang:'FR', fetch: fetchRSS('https://www.futura-sciences.com/rss/actualites.xml') },
+];
+
+let activeFilter = 'all';
+let tickerTitles = [];
+
+// ── FETCH ────────────────────────────────────────────
+async function fetchHN() {
+  const ids = await fetch('https://hacker-news.firebaseio.com/v0/topstories.json').then(r=>r.json());
+  const items = await Promise.all(
+    ids.slice(0,25).map(id =>
+      fetch(`https://hacker-news.firebaseio.com/v0/item/${id}.json`).then(r=>r.json()).catch(()=>null)
+    )
+  );
+  return items.filter(i=>i&&i.url).map(i=>({
+    title: i.title,
+    url: i.url || `https://news.ycombinator.com/item?id=${i.id}`,
+    score: i.score,
+    date: i.time ? new Date(i.time*1000) : null,
+    meta: `▲${i.score}  💬${i.descendants||0}  ${i.by}`
+  }));
+}
+
+function fetchReddit(sub, limit=20) {
+  return async () => {
+    const data = await fetch(`https://www.reddit.com/r/${sub}/hot.json?limit=${limit}`).then(r=>r.json());
+    return data.data.children.map(c=>c.data).map(p=>({
+      title: p.title,
+      url: p.url.startsWith('/r/') ? `https://reddit.com${p.url}` : p.url,
+      score: p.score,
+      date: new Date(p.created_utc*1000),
+      meta: `▲${p.score}  💬${p.num_comments}  ${p.domain}`
+    }));
+  };
+}
+
+function fetchRSS(url) {
+  return async () => {
+    const res = await fetch(CORS(url)).then(r=>r.json());
+    const xml  = new DOMParser().parseFromString(res.contents, 'text/xml');
+    return [...xml.querySelectorAll('item')].slice(0,25).map(item=>({
+      title: item.querySelector('title')?.textContent?.trim() || '(sans titre)',
+      url: item.querySelector('link')?.textContent?.trim()
+           || item.querySelector('guid')?.textContent?.trim() || '#',
+      date: item.querySelector('pubDate') ? new Date(item.querySelector('pubDate').textContent) : null,
+      meta: item.querySelector('pubDate')?.textContent?.trim()?.slice(0,16) || ''
+    }));
+  };
+}
+
+// ── BUILD GRID ───────────────────────────────────────
+function buildGrid() {
+  document.getElementById('main').innerHTML = '';
+  const sb   = document.getElementById('statusbar');
+  [...sb.querySelectorAll('.status-badge')].forEach(b=>b.remove());
+  const ctrl = document.getElementById('ctrl-right');
+
+  SOURCES.filter(s => activeFilter==='all' || s.tag===activeFilter).forEach(src => {
+    const b = document.createElement('div');
+    b.className = 'status-badge loading';
+    b.id = `badge-${src.id}`;
+    b.textContent = src.name;
+    sb.insertBefore(b, ctrl);
+
+    const col = document.createElement('div');
+    col.className = 'col'; col.id = `col-${src.id}`;
+    col.innerHTML = `
+      <div class="col-header">
+        <div class="col-dot loading" id="dot-${src.id}"></div>
+        <div class="col-name">${src.name}</div>
+        <span class="col-lang">${src.lang}</span>
+        <div class="col-count" id="count-${src.id}"></div>
+      </div>
+      <div class="items" id="items-${src.id}">
+        ${[...Array(5)].map(()=>`<div class="skeleton"></div><div class="skeleton short"></div>`).join('')}
+      </div>`;
+    document.getElementById('main').appendChild(col);
+  });
+}
+
+// ── LOAD SOURCE ──────────────────────────────────────
+async function loadSource(src) {
+  const dot    = document.getElementById(`dot-${src.id}`);
+  const badge  = document.getElementById(`badge-${src.id}`);
+  const count  = document.getElementById(`count-${src.id}`);
+  const box    = document.getElementById(`items-${src.id}`);
+
+  try {
+    const items = await src.fetch();
+    box.innerHTML = '';
+
+    if (!items.length) {
+      box.innerHTML = '<div class="msg">— aucun résultat —</div>';
+    }
+
+    items.forEach((item, i) => {
+      const el = document.createElement('div');
+      el.className = 'item';
+      el.style.animationDelay = `${i*20}ms`;
+      el.innerHTML = `
+        <div class="item-title">${escHtml(item.title)}</div>
+        <div class="item-meta">
+          <span class="item-tag">${src.tag}</span>
+          ${item.score ? `<span class="item-score">▲${item.score}</span>` : ''}
+          <span>${item.meta || formatDate(item.date)}</span>
+        </div>`;
+      el.onclick = () => window.open(item.url, '_blank');
+      box.appendChild(el);
+    });
+
+    count.textContent   = `[${items.length}]`;
+    dot.className       = 'col-dot live';
+    badge.className     = 'status-badge ok';
+    badge.textContent   = src.name;
+    tickerTitles.push(...items.slice(0,3).map(it=>it.title));
+
+  } catch(e) {
+    console.error(src.id, e);
+    if (box)   box.innerHTML = `<div class="msg error">ERR: ${escHtml(e.message)}</div>`;
+    if (dot)   dot.className   = 'col-dot dead';
+    if (badge) { badge.className = 'status-badge error'; badge.textContent = `${src.name} ✗`; }
+  }
+}
+
+async function refreshAll() {
+  buildGrid();
+  tickerTitles = [];
+  const filtered = SOURCES.filter(s => activeFilter==='all' || s.tag===activeFilter);
+  await Promise.all(filtered.map(src => loadSource(src)));
+  updateTicker();
+}
+
+// ── FILTER ───────────────────────────────────────────
+function setFilter(tag, btn) {
+  activeFilter = tag;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  refreshAll();
+}
+
+// ── TICKER ───────────────────────────────────────────
+function updateTicker() {
+  const content = tickerTitles
+    .sort(()=>Math.random()-0.5).slice(0,30)
+    .map(t=>`<span>${escHtml(t)}</span>`).join('');
+  document.getElementById('ticker-inner').innerHTML = content + content;
+}
+
+// ── CLOCK ────────────────────────────────────────────
+function startClock() {
+  const tick = () => {
+    const n = new Date();
+    document.getElementById('clock').textContent =
+      n.toLocaleDateString('fr-FR') + '  ' + n.toLocaleTimeString('fr-FR');
+  };
+  tick(); setInterval(tick, 1000);
+}
+
+// ── UTILS ────────────────────────────────────────────
+function escHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function formatDate(d) {
+  if (!d||isNaN(d)) return '';
+  const diff = Math.floor((Date.now()-d)/60000);
+  if (diff<1) return 'à l\'instant';
+  if (diff<60) return `il y a ${diff} min`;
+  if (diff<1440) return `il y a ${Math.floor(diff/60)}h`;
+  return d.toLocaleDateString('fr-FR');
+}
+
+// ── BOOT ─────────────────────────────────────────────
+startClock();
+refreshAll();
+</script>
+</body>
+</html>

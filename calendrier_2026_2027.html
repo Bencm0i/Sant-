@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calendrier 2026 – 2027</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23ffffff'/%3E%3Crect x='2' y='2' width='28' height='28' rx='5' fill='%23f0f2f5'/%3E%3Crect x='2' y='2' width='28' height='8' rx='5' fill='%23d97706'/%3E%3Crect x='2' y='7' width='28' height='3' fill='%23d97706'/%3E%3Ccircle cx='9' cy='6' r='2' fill='%23ffffff' opacity='0.7'/%3E%3Ccircle cx='23' cy='6' r='2' fill='%23ffffff' opacity='0.7'/%3E%3Crect x='4' y='13' width='5' height='4' rx='1' fill='%23ddd6fe'/%3E%3Crect x='11' y='13' width='5' height='4' rx='1' fill='%23dbeafe'/%3E%3Crect x='18' y='13' width='5' height='4' rx='1' fill='%23dbeafe'/%3E%3Crect x='25' y='13' width='3' height='4' rx='1' fill='%23ddd6fe'/%3E%3Crect x='4' y='19' width='5' height='4' rx='1' fill='%23dbeafe'/%3E%3Crect x='11' y='19' width='5' height='4' rx='1' fill='%23fef3c7'/%3E%3Crect x='18' y='19' width='5' height='4' rx='1' fill='%23fef3c7'/%3E%3Crect x='25' y='19' width='3' height='4' rx='1' fill='%23ddd6fe'/%3E%3Crect x='4' y='25' width='5' height='4' rx='1' fill='%23dbeafe'/%3E%3Crect x='11' y='25' width='5' height='4' rx='1' fill='%23dcfce7'/%3E%3Crect x='18' y='25' width='5' height='4' rx='1' fill='%23fee2e2'/%3E%3Crect x='25' y='25' width='3' height='4' rx='1' fill='%23ddd6fe'/%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f0f2f5;
+    --surface: #ffffff;
+    --border: #d1d5db;
+    --text: #111827;
+    --muted: #6b7280;
+    --accent-cp: #d97706;
+    /* Weekend : violet contrasté */
+    --we-bg: #ede9fe;
+    --we-day-bg: #ddd6fe;
+    --we-text: #5b21b6;
+    --today: #dcfce7;
+    --month-headers: #f8f9fb;
+    --col-width: 140px;
+    --day-col: 36px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    min-height: 100vh;
+    overflow-x: auto;
+  }
+
+  /* ---- HEADER ---- */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .header h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 19px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+  .header h1 span { color: var(--accent-cp); }
+
+  /* ---- CP COUNTER ---- */
+  .cp-bar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: #fffbeb;
+    border: 1.5px solid #fcd34d;
+    border-radius: 8px;
+    padding: 7px 14px;
+    flex-shrink: 0;
+  }
+
+  .cp-bar-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: #92400e;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+
+  .cp-period-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .cp-period-lbl {
+    font-size: 8px;
+    color: #b45309;
+    font-weight: 700;
+    white-space: nowrap;
+    margin-bottom: 1px;
+  }
+
+  .cp-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    color: #d97706;
+    line-height: 1;
+    min-width: 28px;
+    text-align: right;
+  }
+  .cp-unit { font-size: 9px; color: #b45309; }
+  .cp-sep { color: #fcd34d; font-size: 14px; padding: 0 2px; }
+  .cp-breakdown {
+    font-size: 9px;
+    color: #b45309;
+    line-height: 1.6;
+    max-width: 240px;
+    white-space: pre;
+  }
+
+  /* ---- LEGEND ---- */
+  .legend {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .legend-item { display: flex; align-items: center; gap: 4px; font-size: 9px; color: var(--muted); }
+  .legend-dot { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
+
+  .btn-group { display: flex; gap: 6px; flex-shrink: 0; }
+
+  .btn {
+    background: #f3f4f6;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 5px 11px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    transition: background 0.13s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: #e5e7eb; }
+
+  /* ---- CONTROLS ---- */
+  .controls {
+    padding: 7px 24px;
+    background: var(--month-headers);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .controls label { color: var(--muted); font-size: 10px; }
+  .ctrl-input {
+    background: #fff;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    width: 148px;
+  }
+  .ctrl-select { width: 108px; }
+  .ctrl-date { width: 128px; }
+
+  /* ---- CALENDAR ---- */
+  .calendar-wrap { overflow-x: auto; padding: 14px 24px 40px; }
+  .year-section { margin-bottom: 30px; }
+  .year-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: #9ca3af;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+    padding-left: 2px;
+  }
+
+  .cal-grid {
+    display: grid;
+    grid-template-columns: var(--day-col) repeat(12, var(--col-width));
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    min-width: max-content;
+  }
+
+  .cell-month-header {
+    font-family: 'Syne', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: var(--month-headers);
+    padding: 7px 5px;
+    border-right: 1px solid var(--border);
+    border-bottom: 2px solid var(--border);
+    text-align: center;
+  }
+  .cell-month-header.jan { color: #2563eb; } .cell-month-header.fev { color: #7c3aed; }
+  .cell-month-header.mar { color: #059669; } .cell-month-header.avr { color: #0d9488; }
+  .cell-month-header.mai { color: #d97706; } .cell-month-header.juin { color: #ea580c; }
+  .cell-month-header.juil { color: #dc2626; } .cell-month-header.aout { color: #9333ea; }
+  .cell-month-header.sept { color: #0284c7; } .cell-month-header.oct { color: #b45309; }
+  .cell-month-header.nov { color: #6d28d9; } .cell-month-header.dec { color: #be185d; }
+
+  .cell-corner { background: var(--month-headers); border-right: 1px solid var(--border); border-bottom: 2px solid var(--border); }
+
+  .cell {
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid #e5e7eb;
+    padding: 2px 3px;
+    min-height: 22px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px;
+    position: relative;
+    transition: background 0.08s;
+  }
+  .cell:not(.empty):hover { background-color: #eef2ff !important; }
+
+  .cell-day-num {
+    background: var(--surface);
+    justify-content: center;
+    font-size: 10px;
+    color: var(--muted);
+    font-weight: 600;
+    border-right: 2px solid var(--border);
+    flex-wrap: nowrap;
+    min-height: 22px;
+  }
+
+  /* ===== WEEKEND : couleur violette contrastée ===== */
+  .cell.we {
+    background: var(--we-bg);
+  }
+  .cell-day-num.we {
+    background: var(--we-day-bg);
+    color: var(--we-text) !important;
+    font-weight: 700;
+  }
+  .cell.we .day-label {
+    color: var(--we-text);
+    font-weight: 700;
+  }
+
+  .cell.empty { background: #e4e6e9; cursor: default; }
+  .cell.ferie { background: #fff5f5; }
+  .cell.cp-band { background: #fffdf0; }
+  .cell.today { background: var(--today) !important; }
+  .cell-day-num.today { background: #bbf7d0 !important; color: #065f46 !important; font-weight: 700; }
+
+  .day-label { font-size: 9px; color: var(--muted); margin-right: 2px; min-width: 14px; font-weight: 600; flex-shrink: 0; }
+
+  .week-num { font-size: 8px; color: #9ca3af; position: absolute; right: 2px; top: 1px; }
+
+  /* ---- EVENT TAGS ---- */
+  .event-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    max-width: 124px;
+    cursor: pointer;
+    position: relative;
+  }
+  .tag-cp     { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+  .tag-ferie  { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; cursor: default; }
+  .tag-event  { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+  .tag-rdv    { background: #fce7f3; color: #9d174d; border: 1px solid #f9a8d4; }
+  .tag-note   { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+  .tag-perso  { background: #ede9fe; color: #4338ca; border: 1px solid #c4b5fd; }
+
+  .tag-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 90px; }
+
+  .tag-del {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.12);
+    font-size: 8px;
+    line-height: 1;
+    cursor: pointer;
+    flex-shrink: 0;
+    font-style: normal;
+    transition: background 0.1s;
+  }
+  .event-tag:hover .tag-del { display: flex; }
+  .tag-del:hover { background: rgba(220,38,38,0.35) !important; }
+
+  .add-btn {
+    font-size: 13px;
+    color: #cbd5e1;
+    cursor: pointer;
+    display: none;
+    margin-left: auto;
+    line-height: 1;
+    padding: 0 2px;
+    transition: color 0.13s;
+    flex-shrink: 0;
+    align-self: center;
+  }
+  .cell:hover .add-btn { display: block; }
+  .add-btn:hover { color: var(--accent-cp); }
+
+  /* ---- MODAL ---- */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.38);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    width: 360px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.16);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ---- PERIOD MODAL ---- */
+  #modal-period .modal { width: 430px; }
+  .period-dates { display: flex; gap: 10px; }
+  .period-dates > div { flex: 1; }
+  .period-preview {
+    margin-top: 12px;
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 10px;
+    color: #92400e;
+    min-height: 40px;
+    line-height: 1.7;
+  }
+  .period-preview strong { font-size: 16px; color: #d97706; font-family: 'Syne', sans-serif; }
+  .period-skip-list { font-size: 9px; color: #b45309; margin-top: 2px; line-height: 1.5; }
+
+  .btn-period { background: #f0fdf4; border: 1px solid #86efac; color: #166534; font-weight: 700; white-space: nowrap; }
+  .btn-period:hover { background: #dcfce7; }
+
+  .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .modal h3 { font-family: 'Syne', sans-serif; font-size: 14px; color: var(--text); }
+  .modal-x { background: none; border: none; font-size: 17px; color: var(--muted); cursor: pointer; padding: 2px 6px; border-radius: 4px; line-height: 1; }
+  .modal-x:hover { background: #f3f4f6; color: var(--text); }
+
+  .modal label { font-size: 10px; color: var(--muted); display: block; margin-bottom: 3px; margin-top: 10px; }
+  .modal input, .modal select, .modal textarea {
+    width: 100%;
+    background: #f9fafb;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+  }
+  .modal textarea { resize: vertical; min-height: 48px; }
+
+  .modal-actions { display: flex; gap: 8px; margin-top: 16px; justify-content: space-between; align-items: center; }
+  .modal-right { display: flex; gap: 8px; }
+
+  .btn-del-modal {
+    background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b;
+    font-weight: 700; padding: 5px 12px; border-radius: 4px; cursor: pointer;
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; transition: background 0.13s;
+  }
+  .btn-del-modal:hover { background: #fecaca; }
+  .btn-cancel-modal { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+  .btn-save-modal { background: var(--accent-cp); border: none; color: #fff; font-weight: 700; }
+
+  /* ---- PRINT ---- */
+  @media print {
+    .header .btn-group, .controls, .modal-overlay, .cp-bar { display: none !important; }
+    body { background: white; }
+    .cal-grid { border-color: #ccc; }
+    .cell { border-color: #ddd; min-height: 18px; }
+    .cell-month-header { background: #f0f0f0; color: #333 !important; }
+    .cell-day-num { background: #f8f8f8; }
+    .cell.we { background: #ede9fe; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .cell-day-num.we { background: #ddd6fe; color: #5b21b6 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .event-tag { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .tag-del, .add-btn { display: none !important; }
+    .year-label { color: #666; }
+  }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #f0f2f5; }
+  ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <h1>Calendrier <span>2026</span> — 2027</h1>
+
+  <!-- CP COUNTER BAR -->
+  <div class="cp-bar">
+    <span class="cp-bar-title">☀️ Congés payés</span>
+    <!-- Période juin 2025 → mai 2026 -->
+    <div class="cp-period-block">
+      <span class="cp-period-lbl">juin 25 → mai 26</span>
+      <span class="cp-num" id="cp-p1">0</span>
+      <span class="cp-unit">j ouvrés</span>
+    </div>
+    <span class="cp-sep">|</span>
+    <!-- Période juin 2026 → mai 2027 -->
+    <div class="cp-period-block">
+      <span class="cp-period-lbl">juin 26 → mai 27</span>
+      <span class="cp-num" id="cp-p2">0</span>
+      <span class="cp-unit">j ouvrés</span>
+    </div>
+    <span class="cp-sep">|</span>
+    <!-- Période juin 2027 → mai 2028 -->
+    <div class="cp-period-block">
+      <span class="cp-period-lbl">juin 27 → mai 28</span>
+      <span class="cp-num" id="cp-p3">0</span>
+      <span class="cp-unit">j ouvrés</span>
+    </div>
+    <div class="cp-breakdown" id="cp-bd"></div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#ddd6fe;border:1px solid #a78bfa"></div>Sam / Dim</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#fef3c7;border:1px solid #fcd34d"></div>Congé payé</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#fee2e2;border:1px solid #fca5a5"></div>Férié</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#dbeafe;border:1px solid #93c5fd"></div>Événement</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#fce7f3;border:1px solid #f9a8d4"></div>RDV</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#dcfce7;border:1px solid #86efac"></div>Note</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ede9fe;border:1px solid #c4b5fd"></div>Perso</div>
+  </div>
+
+  <div class="btn-group">
+    <button class="btn" onclick="window.print()">🖨 Imprimer</button>
+    <button class="btn" style="background:#fef3c7;border-color:#fcd34d;color:#92400e;font-weight:700" onclick="exportRapportCP()">📄 Rapport CP</button>
+    <button class="btn" onclick="exportJSON()">💾 Export</button>
+    <button class="btn" onclick="importJSON()">📂 Import</button>
+    <span id="last-modif-label" style="font-size:11px;opacity:0.5;white-space:nowrap;font-family:monospace;"></span>
+  </div>
+</div>
+
+<!-- QUICK ADD BAR -->
+<div class="controls">
+  <label>Ajouter :</label>
+  <input class="ctrl-input" type="text" id="quick-text" placeholder="Texte de l'événement…">
+  <select class="ctrl-input ctrl-select" id="quick-type">
+    <option value="event">Événement</option>
+    <option value="cp">Congé payé</option>
+    <option value="ferie">Férié</option>
+    <option value="rdv">RDV</option>
+    <option value="note">Note</option>
+    <option value="perso">Perso</option>
+  </select>
+  <label>Date :</label>
+  <input class="ctrl-input ctrl-date" type="date" id="quick-date">
+  <button class="btn" style="background:#d97706;color:#fff;border-color:#d97706" onclick="addQuickEvent()">+ Ajouter</button>
+  <button class="btn btn-period" onclick="openPeriodModal()">📅 Poser une période</button>
+  <button class="btn" style="color:#dc2626;border-color:#fca5a5" onclick="clearAllEvents()">🗑 Tout effacer</button>
+</div>
+
+<!-- CALENDAR -->
+<div class="calendar-wrap" id="calendar-wrap"></div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-title">Ajouter un événement</h3>
+      <button class="modal-x" onclick="closeModal()">✕</button>
+    </div>
+    <label>Libellé</label>
+    <input type="text" id="m-label" placeholder="Ex: Réunion équipe">
+    <label>Type</label>
+    <select id="m-type">
+      <option value="event">Événement</option>
+      <option value="cp">Congé payé</option>
+      <option value="ferie">Férié</option>
+      <option value="rdv">RDV</option>
+      <option value="note">Note</option>
+      <option value="perso">Perso</option>
+    </select>
+    <label>Note (optionnel)</label>
+    <textarea id="m-note" placeholder="Détails…"></textarea>
+    <div class="modal-actions">
+      <button class="btn-del-modal" id="btn-del" style="display:none" onclick="deleteEventModal()">🗑 Supprimer</button>
+      <div class="modal-right">
+        <button class="btn btn-cancel-modal" onclick="closeModal()">Annuler</button>
+        <button class="btn btn-save-modal" onclick="saveModal()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PÉRIODE -->
+<div class="modal-overlay" id="modal-period">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>📅 Poser une période de congés</h3>
+      <button class="modal-x" onclick="closePeriodModal()">✕</button>
+    </div>
+    <label>Libellé</label>
+    <input type="text" id="p-label" placeholder="Ex: Vacances été, RTT…" value="Congés">
+    <label>Type</label>
+    <select id="p-type">
+      <option value="cp">Congé payé</option>
+      <option value="rdv">RDV</option>
+      <option value="event">Événement</option>
+      <option value="perso">Perso</option>
+      <option value="note">Note</option>
+    </select>
+    <label>Dates de la période</label>
+    <div class="period-dates">
+      <div>
+        <div style="font-size:9px;color:var(--muted);margin-bottom:3px">Du</div>
+        <input type="date" id="p-start" oninput="updatePeriodPreview()">
+      </div>
+      <div>
+        <div style="font-size:9px;color:var(--muted);margin-bottom:3px">Au</div>
+        <input type="date" id="p-end" oninput="updatePeriodPreview()">
+      </div>
+    </div>
+    <label style="display:flex;align-items:center;gap:6px;margin-top:10px;cursor:pointer">
+      <input type="checkbox" id="p-skip-we" checked onchange="updatePeriodPreview()" style="width:auto">
+      Exclure week-ends
+    </label>
+    <label style="display:flex;align-items:center;gap:6px;margin-top:6px;cursor:pointer">
+      <input type="checkbox" id="p-skip-hol" checked onchange="updatePeriodPreview()" style="width:auto">
+      Exclure jours fériés
+    </label>
+    <div class="period-preview" id="p-preview">Sélectionnez les dates pour voir l'aperçu.</div>
+    <div class="modal-actions">
+      <span></span>
+      <div class="modal-right">
+        <button class="btn btn-cancel-modal" onclick="closePeriodModal()">Annuler</button>
+        <button class="btn btn-save-modal" onclick="savePeriod()">✓ Appliquer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── CONSTANTS ───────────────────────────────────────────
+const MONTHS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const MONTH_SHORT = ['jan','fev','mar','avr','mai','juin','juil','aout','sept','oct','nov','dec'];
+const DAYS_FR = ['DI','LU','MA','ME','JE','VE','SA'];
+
+// ─── HOLIDAYS ────────────────────────────────────────────
+function getHolidays(year) {
+  const h = {};
+  const add = (m, d, label) => { h[`${year}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`] = label; };
+  add(1,1,"Jour de l'An"); add(5,1,'Fête du Travail'); add(5,8,'Victoire 1945');
+  add(7,14,'Fête Nationale'); add(8,15,'Assomption'); add(11,1,'Toussaint');
+  add(11,11,'Armistice'); add(12,25,'Noël');
+  const easter = getEaster(year);
+  [[1,'Lundi de Pâques'],[39,'Ascension'],[49,'Pentecôte'],[50,'Lundi Pentecôte']].forEach(([offset, name]) => {
+    const d = new Date(easter); d.setDate(d.getDate() + offset);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    h[key] = name;
+  });
+  return h;
+}
+
+function getEaster(Y) {
+  const a=Y%19,b=Math.floor(Y/100),c=Y%100,d=Math.floor(b/4),e=b%4,
+    f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,
+    i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,
+    m=Math.floor((a+11*h+22*l)/451),
+    month=Math.floor((h+l-7*m+114)/31),
+    day=((h+l-7*m+114)%31)+1;
+  return new Date(Y, month-1, day);
+}
+
+const holidays2025 = getHolidays(2025);
+const holidays2026 = getHolidays(2026);
+const holidays2027 = getHolidays(2027);
+const holidays2028 = getHolidays(2028);
+
+function getHolidaysForYear(year) {
+  if (year === 2025) return holidays2025;
+  if (year === 2026) return holidays2026;
+  if (year === 2027) return holidays2027;
+  if (year === 2028) return holidays2028;
+  return getHolidays(year);
+}
+
+// ─── STORAGE ─────────────────────────────────────────────
+let events = {};
+try { events = JSON.parse(localStorage.getItem('cal2026_events') || '{}'); } catch(e) {}
+function saveEvents() { try { localStorage.setItem('cal2026_events', JSON.stringify(events)); } catch(e){} }
+
+// ─── LAST MODIFIED ───────────────────────────────────────
+function fmtLastModif(iso) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  const dd = String(d.getDate()).padStart(2,'0');
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const yy = d.getFullYear();
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mn = String(d.getMinutes()).padStart(2,'0');
+  return `${dd}/${mm}/${yy} ${hh}:${mn}`;
+}
+function updateLastModifDisplay() {
+  const iso = events.__meta__ && events.__meta__.lastModified;
+  const el = document.getElementById('last-modif-label');
+  if (el) el.textContent = iso ? 'date du json : ' + fmtLastModif(iso) : '';
+}
+function saveLastModif() {
+  if (!events.__meta__) events.__meta__ = {};
+  events.__meta__.lastModified = new Date().toISOString();
+  saveEvents();
+  updateLastModifDisplay();
+}
+
+// ─── CP COUNTER — Période française : 1er juin → 31 mai ──
+//  Période 1 : 01/06/2025 → 31/05/2026
+//  Période 2 : 01/06/2026 → 31/05/2027
+//  Période 3 : 01/06/2027 → 31/05/2028
+
+function isWorkingDay(dateKey) {
+  const d = new Date(dateKey + 'T12:00:00');
+  const dow = d.getDay();
+  if (dow === 0 || dow === 6) return false;
+  const hols = getHolidaysForYear(d.getFullYear());
+  return !hols[dateKey];
+}
+
+// Retourne le numéro de période CP (1, 2, 3) pour une date donnée
+// Période 1 : juin 2025 – mai 2026
+// Période 2 : juin 2026 – mai 2027
+// Période 3 : juin 2027 – mai 2028
+function getCPPeriod(dateKey) {
+  const [y, m] = dateKey.split('-').map(Number);
+  // juin (m=6) ou plus → période de l'année en cours
+  // janvier–mai → période de l'année précédente
+  const periodYear = m >= 6 ? y : y - 1;
+  if (periodYear === 2025) return 1;
+  if (periodYear === 2026) return 2;
+  if (periodYear === 2027) return 3;
+  return null;
+}
+
+function updateCPCounter() {
+  const counts = { 1: 0, 2: 0, 3: 0 };
+  const byMonth = { 1: {}, 2: {}, 3: {} };
+
+  Object.keys(events).filter(dk => dk !== '__meta__' && Array.isArray(events[dk])).forEach(dk => {
+    if (!events[dk].some(ev => ev.type === 'cp')) return;
+    if (!isWorkingDay(dk)) return;
+    const period = getCPPeriod(dk);
+    if (!period) return;
+    counts[period]++;
+    const [, m] = dk.split('-').map(Number);
+    byMonth[period][m] = (byMonth[period][m] || 0) + 1;
+  });
+
+  document.getElementById('cp-p1').textContent = counts[1];
+  document.getElementById('cp-p2').textContent = counts[2];
+  document.getElementById('cp-p3').textContent = counts[3];
+
+  const periodLabels = {
+    1: 'juin 25→mai 26',
+    2: 'juin 26→mai 27',
+    3: 'juin 27→mai 28',
+  };
+
+  let bd = '';
+  [1, 2, 3].forEach(p => {
+    const months = Object.keys(byMonth[p]).sort((a,b) => {
+      // Trier dans l'ordre de la période : juin, juil, ..., mai
+      const order = m => m >= 6 ? m - 6 : m + 6;
+      return order(+a) - order(+b);
+    });
+    if (months.length) {
+      bd += `${periodLabels[p]} : ` + months.map(m => `${MONTHS[+m-1].slice(0,3)}. ×${byMonth[p][m]}`).join('  ') + '\n';
+    }
+  });
+
+  const el = document.getElementById('cp-bd');
+  el.textContent = bd.trim();
+  el.style.display = bd.trim() ? 'block' : 'none';
+}
+
+// ─── BUILD CALENDAR ──────────────────────────────────────
+function getWeekNum(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  const y = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil((((d - y) / 86400000) + 1) / 7);
+}
+
+function buildYear(year) {
+  const wrap = document.createElement('div');
+  wrap.className = 'year-section';
+
+  const yl = document.createElement('div');
+  yl.className = 'year-label';
+  yl.textContent = `── ${year} ─────────────────────────────────`;
+  wrap.appendChild(yl);
+
+  const grid = document.createElement('div');
+  grid.className = 'cal-grid';
+
+  const corner = document.createElement('div');
+  corner.className = 'cell-corner';
+  grid.appendChild(corner);
+
+  for (let m = 0; m < 12; m++) {
+    const mh = document.createElement('div');
+    mh.className = `cell-month-header ${MONTH_SHORT[m]}`;
+    mh.textContent = MONTHS[m];
+    grid.appendChild(mh);
+  }
+
+  const hols = getHolidaysForYear(year);
+  const today = new Date();
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+
+  for (let d = 1; d <= 31; d++) {
+    const dn = document.createElement('div');
+    dn.className = 'cell cell-day-num';
+    dn.textContent = d;
+
+    // Vérifier si ce numéro de jour correspond à aujourd'hui dans cette année
+    const todayDate = new Date(todayKey + 'T12:00:00');
+    if (todayDate.getDate() === d && todayDate.getFullYear() === year) {
+      dn.classList.add('today');
+    }
+    grid.appendChild(dn);
+
+    for (let m = 0; m < 12; m++) {
+      const date = new Date(year, m, d);
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+
+      if (date.getMonth() !== m) {
+        cell.classList.add('empty');
+        grid.appendChild(cell);
+        continue;
+      }
+
+      const dow = date.getDay();
+      const dateKey = `${year}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+
+      // Weekend — classe 'we' sur la cellule ET sur la colonne jour
+      if (dow === 0 || dow === 6) {
+        cell.classList.add('we');
+        // Marquer aussi le numéro de jour de la ligne si c'est un WE
+        // (on le fait via CSS sur .cell-day-num.we, mais la colonne jour est commune)
+      }
+      if (dateKey === todayKey) cell.classList.add('today');
+      if (hols[dateKey]) cell.classList.add('ferie');
+      if (events[dateKey] && events[dateKey].some(ev => ev.type === 'cp')) cell.classList.add('cp-band');
+
+      // Day label
+      const dl = document.createElement('span');
+      dl.className = 'day-label';
+      dl.textContent = DAYS_FR[dow];
+      cell.appendChild(dl);
+
+      // Week number (lundi uniquement)
+      if (dow === 1) {
+        const wn = document.createElement('span');
+        wn.className = 'week-num';
+        wn.textContent = 'S' + getWeekNum(date);
+        cell.appendChild(wn);
+      }
+
+      // Férié tag
+      if (hols[dateKey]) {
+        cell.appendChild(buildTag('ferie', hols[dateKey], null, null));
+      }
+
+      // User events
+      if (events[dateKey]) {
+        events[dateKey].forEach((ev, idx) => {
+          cell.appendChild(buildTag(ev.type, ev.label, dateKey, idx));
+        });
+      }
+
+      // Add button
+      const addBtn = document.createElement('span');
+      addBtn.className = 'add-btn';
+      addBtn.textContent = '+';
+      addBtn.title = `Ajouter le ${d} ${MONTHS[m]} ${year}`;
+      addBtn.addEventListener('click', e => { e.stopPropagation(); openModal(dateKey, null); });
+      cell.appendChild(addBtn);
+
+      cell.dataset.date = dateKey;
+      grid.appendChild(cell);
+    }
+  }
+
+  wrap.appendChild(grid);
+  document.getElementById('calendar-wrap').appendChild(wrap);
+}
+
+// Marquer les numéros de jours WE dans la colonne gauche
+// La colonne jour est partagée entre tous les mois, donc on se base sur
+// la présence d'au moins une cellule .we dans la même ligne
+function markWeekendDayNums() {
+  document.querySelectorAll('.cal-grid').forEach(grid => {
+    const cells = Array.from(grid.children);
+    // Première ligne = headers (13 cells), puis 31 lignes de 13 cells
+    const totalCols = 13; // 1 day-num + 12 months
+    for (let row = 1; row <= 31; row++) {
+      const startIdx = row * totalCols;
+      const dayNumCell = cells[startIdx];
+      if (!dayNumCell || !dayNumCell.classList.contains('cell-day-num')) continue;
+      // Vérifier si au moins une cellule de cette ligne est un WE non vide
+      let isWE = false;
+      for (let col = 1; col < totalCols; col++) {
+        const c = cells[startIdx + col];
+        if (c && c.classList.contains('we') && !c.classList.contains('empty')) {
+          isWE = true;
+          break;
+        }
+      }
+      if (isWE) dayNumCell.classList.add('we');
+    }
+  });
+}
+
+function buildTag(type, text, dateKey, idx) {
+  const tag = document.createElement('span');
+  tag.className = `event-tag tag-${type}`;
+  tag.title = text;
+
+  const textEl = document.createElement('span');
+  textEl.className = 'tag-text';
+  textEl.textContent = text;
+  tag.appendChild(textEl);
+
+  if (dateKey !== null) {
+    textEl.addEventListener('click', e => { e.stopPropagation(); openModal(dateKey, idx); });
+
+    const del = document.createElement('i');
+    del.className = 'tag-del';
+    del.textContent = '✕';
+    del.title = 'Supprimer cet événement';
+    del.addEventListener('click', e => {
+      e.stopPropagation();
+      deleteEventDirect(dateKey, idx);
+    });
+    tag.appendChild(del);
+  }
+
+  return tag;
+}
+
+// ─── DELETE ──────────────────────────────────────────────
+function deleteEventDirect(dateKey, idx) {
+  if (!events[dateKey]) return;
+  events[dateKey].splice(idx, 1);
+  if (events[dateKey].length === 0) delete events[dateKey];
+  saveEvents();
+  rebuildCalendar();
+}
+
+// ─── MODAL ───────────────────────────────────────────────
+let modalDate = null, modalIdx = null;
+
+function openModal(dateKey, idx) {
+  modalDate = dateKey;
+  modalIdx = idx;
+  const [y, m, d] = dateKey.split('-');
+  document.getElementById('modal-title').textContent =
+    idx !== null ? `Modifier — ${d} ${MONTHS[parseInt(m)-1]} ${y}` : `Ajouter — ${d} ${MONTHS[parseInt(m)-1]} ${y}`;
+  const ev = (idx !== null && events[dateKey]) ? events[dateKey][idx] : null;
+  document.getElementById('m-label').value = ev ? ev.label : '';
+  document.getElementById('m-type').value = ev ? ev.type : 'event';
+  document.getElementById('m-note').value = ev ? (ev.note || '') : '';
+  document.getElementById('btn-del').style.display = idx !== null ? 'inline-block' : 'none';
+  document.getElementById('modal').classList.add('open');
+  setTimeout(() => document.getElementById('m-label').focus(), 40);
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  modalDate = null;
+  modalIdx = null;
+}
+
+function saveModal() {
+  const label = document.getElementById('m-label').value.trim();
+  if (!label) { document.getElementById('m-label').focus(); return; }
+  const ev = { label, type: document.getElementById('m-type').value, note: document.getElementById('m-note').value };
+  if (!events[modalDate]) events[modalDate] = [];
+  if (modalIdx !== null) events[modalDate][modalIdx] = ev;
+  else events[modalDate].push(ev);
+  saveEvents();
+  closeModal();
+  rebuildCalendar();
+}
+
+function deleteEventModal() {
+  if (modalIdx === null || !events[modalDate]) return;
+  events[modalDate].splice(modalIdx, 1);
+  if (events[modalDate].length === 0) delete events[modalDate];
+  saveEvents();
+  closeModal();
+  rebuildCalendar();
+}
+
+// ─── QUICK ADD ───────────────────────────────────────────
+function addQuickEvent() {
+  const label = document.getElementById('quick-text').value.trim();
+  const type = document.getElementById('quick-type').value;
+  const date = document.getElementById('quick-date').value;
+  if (!label || !date) { alert('Veuillez remplir le texte et la date.'); return; }
+  if (!events[date]) events[date] = [];
+  events[date].push({ label, type });
+  saveEvents();
+  document.getElementById('quick-text').value = '';
+  rebuildCalendar();
+}
+
+function clearAllEvents() {
+  if (confirm('Effacer TOUS les événements personnalisés ?')) {
+    events = {};
+    saveEvents();
+    rebuildCalendar();
+  }
+}
+
+// ─── EXPORT / IMPORT ─────────────────────────────────────
+function exportJSON() {
+  const now = new Date();
+  const pad2 = n => String(n).padStart(2,'0');
+  const dateStr = `${now.getFullYear()}-${pad2(now.getMonth()+1)}-${pad2(now.getDate())}`;
+  const timeStr = `${pad2(now.getHours())}${pad2(now.getMinutes())}`;
+  const exportedAt = `${dateStr}T${pad2(now.getHours())}:${pad2(now.getMinutes())}:${pad2(now.getSeconds())}`;
+
+  const payload = {
+    exportedAt,
+    ...events
+  };
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `calendrier_events_${dateStr}_${timeStr}.json`;
+  a.click();
+}
+
+function importJSON() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = '.json,.txt';
+  input.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const r = new FileReader();
+    r.onload = function(ev) {
+      try {
+        const raw = ev.target.result.trim();
+        const parsed = JSON.parse(raw);
+        // Accepte { events: {...}, __meta__: {...} } ou directement { "2026-...": [...], __meta__: ... }
+        if (parsed.events && typeof parsed.events === 'object') {
+          events = parsed.events;
+          if (parsed.__meta__) events.__meta__ = parsed.__meta__;
+        } else {
+          // Supprimer les clés de métadonnées d'export avant d'importer
+          const clean = Object.assign({}, parsed);
+          delete clean.exportedAt;
+          events = clean;
+        }
+        // Lire exportedAt du JSON et l'injecter dans __meta__.lastModified
+        if (parsed.exportedAt) {
+          if (!events.__meta__) events.__meta__ = {};
+          events.__meta__.lastModified = parsed.exportedAt;
+        }
+        saveEvents();
+        rebuildCalendar();
+        updateLastModifDisplay();
+      } catch(err) {
+        alert('Fichier JSON invalide.\n' + err.message);
+      }
+    };
+    r.readAsText(file, 'UTF-8');
+  });
+  input.click();
+}
+
+// ─── RAPPORT CONGÉS PAYÉS ────────────────────────────────
+function exportRapportCP() {
+  const now = new Date();
+  const nowStr = now.toLocaleDateString('fr-FR', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+  const nowTime = now.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+
+  const SEP   = '═'.repeat(72);
+  const SEP2  = '─'.repeat(72);
+  const SEP3  = '·'.repeat(72);
+
+  // ── Collecte de tous les jours CP ──────────────────────
+  // Structure : { periodKey: { label: { dates: [], workingDays: 0, skippedWE: [], skippedHol: [] } } }
+  // On regroupe par période (P1/P2/P3) puis par libellé (séquences consécutives = blocs)
+
+  const PERIOD_LABELS = {
+    1: 'Période  juin 2025 → mai 2026',
+    2: 'Période  juin 2026 → mai 2027',
+    3: 'Période  juin 2027 → mai 2028',
+  };
+
+  // Tous les jours CP triés
+  const allCPDays = Object.keys(events)
+    .filter(dk => dk !== '__meta__' && Array.isArray(events[dk]) && events[dk].some(ev => ev.type === 'cp'))
+    .sort();
+
+  if (allCPDays.length === 0) {
+    alert('Aucun congé payé à exporter.');
+    return;
+  }
+
+  // Regrouper en blocs consécutifs par libellé
+  // Un bloc = suite de jours où un même libellé CP apparaît sans interruption (hors WE/fériés)
+  function buildBlocs() {
+    // On collecte tous les (dateKey, label) paires CP
+    const entries = [];
+    allCPDays.forEach(dk => {
+      events[dk].filter(ev => ev.type === 'cp').forEach(ev => {
+        entries.push({ dk, label: ev.label, note: ev.note || '' });
+      });
+    });
+
+    // Regrouper par label en blocs consécutifs
+    // Deux jours sont "consécutifs" si entre eux il n'y a que WE et/ou fériés
+    const blocs = [];
+
+    // Pour chaque label unique, chercher les séquences
+    const labels = [...new Set(entries.map(e => e.label))];
+    labels.forEach(lbl => {
+      const days = entries.filter(e => e.label === lbl).map(e => e.dk).sort();
+      if (!days.length) return;
+
+      let bloc = { label: lbl, note: entries.find(e => e.label === lbl)?.note || '', days: [days[0]] };
+      for (let i = 1; i < days.length; i++) {
+        const prev = new Date(days[i-1] + 'T12:00:00');
+        const cur  = new Date(days[i]   + 'T12:00:00');
+        // Vérifier si tous les jours entre prev+1 et cur-1 sont WE ou fériés
+        let gap = false;
+        const check = new Date(prev); check.setDate(check.getDate() + 1);
+        while (check < cur) {
+          const ck = toDateKey(check);
+          const dow = check.getDay();
+          const hols = getHolidaysForYear(check.getFullYear());
+          if (dow !== 0 && dow !== 6 && !hols[ck]) { gap = true; break; }
+          check.setDate(check.getDate() + 1);
+        }
+        if (!gap) {
+          bloc.days.push(days[i]);
+        } else {
+          blocs.push(bloc);
+          bloc = { label: lbl, note: entries.find(e => e.label === lbl)?.note || '', days: [days[i]] };
+        }
+      }
+      blocs.push(bloc);
+    });
+
+    // Trier les blocs par date de début
+    blocs.sort((a, b) => a.days[0].localeCompare(b.days[0]));
+    return blocs;
+  }
+
+  const blocs = buildBlocs();
+
+  // ── Statistiques globales ───────────────────────────────
+  const totalCP = allCPDays.filter(dk => isWorkingDay(dk)).length;
+  const byPeriod = { 1: [], 2: [], 3: [] };
+  blocs.forEach(b => {
+    const p = getCPPeriod(b.days[0]);
+    if (p) byPeriod[p].push(b);
+  });
+
+  // ── Formatage dates ─────────────────────────────────────
+  function fmtDate(dk) {
+    const d = new Date(dk + 'T12:00:00');
+    return d.toLocaleDateString('fr-FR', { weekday:'short', day:'2-digit', month:'long', year:'numeric' });
+  }
+  function fmtDateShort(dk) {
+    const d = new Date(dk + 'T12:00:00');
+    return d.toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric' });
+  }
+  function countWorking(days) { return days.filter(dk => isWorkingDay(dk)).length; }
+  function countCalendar(firstDay, lastDay) {
+    const a = new Date(firstDay + 'T12:00:00');
+    const b = new Date(lastDay  + 'T12:00:00');
+    return Math.round((b - a) / 86400000) + 1;
+  }
+  function listSkipped(firstDay, lastDay, cpDays) {
+    const skWE = [], skHol = [];
+    const cur = new Date(firstDay + 'T12:00:00');
+    const end = new Date(lastDay  + 'T12:00:00');
+    while (cur <= end) {
+      const dk = toDateKey(cur);
+      const dow = cur.getDay();
+      const hols = getHolidaysForYear(cur.getFullYear());
+      if (!cpDays.includes(dk)) {
+        if (dow === 0 || dow === 6) skWE.push(dk);
+        else if (hols[dk]) skHol.push(`${fmtDateShort(dk)} ${hols[dk]}`);
+      }
+      cur.setDate(cur.getDate() + 1);
+    }
+    return { skWE, skHol };
+  }
+
+  // ── Construction du texte ───────────────────────────────
+  const lines = [];
+  const pad = (str, len) => str.length >= len ? str : str + ' '.repeat(len - str.length);
+
+  lines.push(SEP);
+  lines.push('  RAPPORT CONGÉS PAYÉS');
+  lines.push(`  Généré le ${nowStr} à ${nowTime}`);
+  lines.push(SEP);
+  lines.push('');
+
+  // RÉSUMÉ GLOBAL
+  lines.push('  RÉSUMÉ GLOBAL');
+  lines.push(SEP2);
+  lines.push(`  Total jours ouvrés posés    :  ${totalCP} jour${totalCP > 1 ? 's' : ''}`);
+  lines.push(`  Nombre de blocs de congés   :  ${blocs.length}`);
+  lines.push('');
+  lines.push('  Répartition par période légale (1er juin → 31 mai) :');
+  lines.push('');
+  [1, 2, 3].forEach(p => {
+    const nb = byPeriod[p].reduce((s, b) => s + countWorking(b.days), 0);
+    const bar = nb > 0 ? '█'.repeat(Math.min(nb, 30)) + ` ${nb}j` : '—';
+    lines.push(`  ${pad(PERIOD_LABELS[p], 36)}  ${bar}`);
+  });
+  lines.push('');
+
+  // TABLEAU RÉCAPITULATIF
+  lines.push('  TABLEAU RÉCAPITULATIF DES BLOCS');
+  lines.push(SEP2);
+  const COL = [22, 12, 12, 6, 6, 6];
+  const HDR = ['Libellé', 'Du', 'Au', 'Cal.', 'Ouv.', 'Pér.'];
+  lines.push('  ' + HDR.map((h, i) => pad(h, COL[i])).join('  '));
+  lines.push('  ' + COL.map(c => '─'.repeat(c)).join('  '));
+  blocs.forEach(b => {
+    const first = b.days[0], last = b.days[b.days.length - 1];
+    const cal = countCalendar(first, last);
+    const ouv = countWorking(b.days);
+    const per = getCPPeriod(first) || '?';
+    const lbl = b.label.length > 20 ? b.label.slice(0, 19) + '…' : b.label;
+    lines.push('  ' + [
+      pad(lbl, COL[0]),
+      pad(fmtDateShort(first), COL[1]),
+      pad(fmtDateShort(last), COL[2]),
+      pad(cal + 'j', COL[3]),
+      pad(ouv + 'j', COL[4]),
+      pad('P' + per, COL[5]),
+    ].join('  '));
+  });
+  lines.push('');
+
+  // DÉTAIL PAR PÉRIODE
+  [1, 2, 3].forEach(p => {
+    const pBlocs = byPeriod[p];
+    const pTotal = pBlocs.reduce((s, b) => s + countWorking(b.days), 0);
+    if (pBlocs.length === 0) return;
+
+    lines.push('');
+    lines.push(SEP);
+    lines.push(`  ${PERIOD_LABELS[p].toUpperCase()}`);
+    lines.push(`  ${pBlocs.length} bloc${pBlocs.length > 1 ? 's' : ''} · ${pTotal} jour${pTotal > 1 ? 's' : ''} ouvrés`);
+    lines.push(SEP);
+
+    // Calendrier mensuel de la période
+    lines.push('');
+    lines.push('  Calendrier mensuel :');
+    lines.push('');
+
+    // Mois de la période : juin N → mai N+1
+    const periodYear = p === 1 ? 2025 : p === 2 ? 2026 : 2027;
+    const periodMonths = [6,7,8,9,10,11,12,1,2,3,4,5]; // juin→mai
+    periodMonths.forEach(m => {
+      const yr = m >= 6 ? periodYear : periodYear + 1;
+      // Jours CP de ce mois
+      const mKey = `${yr}-${String(m).padStart(2,'0')}`;
+      const mDays = allCPDays.filter(dk => dk.startsWith(mKey) && events[dk].some(ev => ev.type === 'cp' && getCPPeriod(dk) === p));
+      if (!mDays.length) return;
+      const mWorking = mDays.filter(dk => isWorkingDay(dk)).length;
+      const mName = MONTHS[m - 1] + ' ' + yr;
+      lines.push(`  ${pad(mName, 18)}  ${mWorking} j. ouvrés`);
+      // Mini-calendrier horizontal : numéros des jours CP
+      const nums = mDays.map(dk => parseInt(dk.slice(8))).sort((a,b)=>a-b);
+      const chunks = [];
+      for (let i = 0; i < nums.length; i += 10) chunks.push(nums.slice(i, i + 10));
+      chunks.forEach(chunk => {
+        lines.push('    Jours : ' + chunk.map(n => String(n).padStart(2, ' ')).join('  '));
+      });
+      // Labels des jours (WE + fériés exclus = ouvrés)
+      mDays.forEach(dk => {
+        const d = new Date(dk + 'T12:00:00');
+        const dow = DAYS_FR[d.getDay()];
+        const hols = getHolidaysForYear(d.getFullYear());
+        const flag = !isWorkingDay(dk) ? (hols[dk] ? ` ⚑ ${hols[dk]}` : ' [WE]') : '';
+        const lblsOnDay = events[dk].filter(ev => ev.type === 'cp').map(ev => ev.label).join(', ');
+        lines.push(`    ${dow} ${fmtDateShort(dk)}  ${pad(lblsOnDay, 20)}${flag}`);
+      });
+      lines.push('');
+    });
+
+    // Détail de chaque bloc
+    lines.push('  Détail des blocs :');
+    lines.push('');
+    pBlocs.forEach((b, i) => {
+      const first = b.days[0], last = b.days[b.days.length - 1];
+      const cal = countCalendar(first, last);
+      const ouv = countWorking(b.days);
+      const { skWE, skHol } = listSkipped(first, last, b.days);
+
+      lines.push(`  ${i+1}. ${b.label}`);
+      lines.push(SEP3);
+      lines.push(`     Du      : ${fmtDate(first)}`);
+      lines.push(`     Au      : ${fmtDate(last)}`);
+      lines.push(`     Durée   : ${cal} jour${cal>1?'s':''} calendaires  ·  ${ouv} jour${ouv>1?'s':''} ouvrés`);
+      if (skWE.length) {
+        lines.push(`     WE      : ${skWE.length} jour${skWE.length>1?'s':''} (${skWE.map(fmtDateShort).join(', ')})`);
+      }
+      if (skHol.length) {
+        lines.push(`     Fériés  : ${skHol.join(' / ')}`);
+      }
+      if (b.note) {
+        lines.push(`     Note    : ${b.note}`);
+      }
+      // Tous les jours du bloc
+      lines.push(`     Jours   :`);
+      b.days.forEach(dk => {
+        const d = new Date(dk + 'T12:00:00');
+        const hols = getHolidaysForYear(d.getFullYear());
+        const flag = !isWorkingDay(dk) ? (hols[dk] ? ` ← ${hols[dk]}` : ' ← WE') : '';
+        lines.push(`       • ${fmtDate(dk)}${flag}`);
+      });
+      lines.push('');
+    });
+  });
+
+  // PIED DE PAGE
+  lines.push(SEP);
+  lines.push('  Calendrier 2026–2027  ·  Rapport généré automatiquement');
+  lines.push(`  ${nowStr} ${nowTime}`);
+  lines.push(SEP);
+  lines.push('');
+
+  // ── Téléchargement ──────────────────────────────────────
+  const txt = lines.join('\n');
+  const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const dateStr = now.toISOString().slice(0,10);
+  a.download = `rapport_CP_${dateStr}.txt`;
+  a.click();
+}
+
+
+
+function openPeriodModal() {
+  // Pré-remplir avec aujourd'hui et +7 jours
+  const today = new Date();
+  const next = new Date(today);
+  next.setDate(next.getDate() + 6);
+  document.getElementById('p-start').value = toDateKey(today);
+  document.getElementById('p-end').value = toDateKey(next);
+  updatePeriodPreview();
+  document.getElementById('modal-period').classList.add('open');
+  setTimeout(() => document.getElementById('p-label').focus(), 40);
+}
+
+function closePeriodModal() {
+  document.getElementById('modal-period').classList.remove('open');
+}
+
+function toDateKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function getDatesInRange(startKey, endKey, skipWE, skipHol) {
+  const result = [];
+  const skipped = { we: [], hol: [] };
+  const cur = new Date(startKey + 'T12:00:00');
+  const end = new Date(endKey + 'T12:00:00');
+  if (isNaN(cur) || isNaN(end) || cur > end) return { result, skipped };
+
+  while (cur <= end) {
+    const dk = toDateKey(cur);
+    const dow = cur.getDay();
+    const isWE = dow === 0 || dow === 6;
+    const hols = getHolidaysForYear(cur.getFullYear());
+    const isHol = !!hols[dk];
+
+    if (skipWE && isWE) {
+      skipped.we.push(dk);
+    } else if (skipHol && isHol) {
+      skipped.hol.push(dk);
+    } else {
+      result.push(dk);
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+  return { result, skipped };
+}
+
+function updatePeriodPreview() {
+  const start = document.getElementById('p-start').value;
+  const end = document.getElementById('p-end').value;
+  const skipWE = document.getElementById('p-skip-we').checked;
+  const skipHol = document.getElementById('p-skip-hol').checked;
+  const preview = document.getElementById('p-preview');
+
+  if (!start || !end) { preview.innerHTML = 'Sélectionnez les dates pour voir l\'aperçu.'; return; }
+  if (start > end) { preview.innerHTML = '<span style="color:#dc2626">⚠ La date de fin doit être après la date de début.</span>'; return; }
+
+  const { result, skipped } = getDatesInRange(start, end, skipWE, skipHol);
+  const total = result.length;
+
+  // Calculer les jours ouvrés CP parmi les jours retenus
+  const cpDays = result.filter(dk => isWorkingDay(dk)).length;
+
+  let html = `<strong>${total}</strong> jour${total > 1 ? 's' : ''} ajouté${total > 1 ? 's' : ''}`;
+  if (total !== cpDays) html += ` · <strong>${cpDays}</strong> j. ouvrés CP`;
+
+  const skipParts = [];
+  if (skipped.we.length) skipParts.push(`${skipped.we.length} WE ignoré${skipped.we.length > 1 ? 's' : ''}`);
+  if (skipped.hol.length) {
+    const holNames = skipped.hol.map(dk => {
+      const hols = getHolidaysForYear(new Date(dk+'T12:00:00').getFullYear());
+      return hols[dk] || dk;
+    });
+    skipParts.push(`${skipped.hol.length} férié${skipped.hol.length > 1 ? 's' : ''} : ${holNames.join(', ')}`);
+  }
+  if (skipParts.length) {
+    html += `<div class="period-skip-list">⛔ ${skipParts.join(' · ')}</div>`;
+  }
+  if (total === 0) html = '<span style="color:#dc2626">⚠ Aucun jour à ajouter avec ces critères.</span>';
+
+  preview.innerHTML = html;
+}
+
+function savePeriod() {
+  const start = document.getElementById('p-start').value;
+  const end = document.getElementById('p-end').value;
+  const label = document.getElementById('p-label').value.trim() || 'Congés';
+  const type = document.getElementById('p-type').value;
+  const skipWE = document.getElementById('p-skip-we').checked;
+  const skipHol = document.getElementById('p-skip-hol').checked;
+
+  if (!start || !end || start > end) {
+    alert('Veuillez saisir des dates valides.');
+    return;
+  }
+
+  const { result } = getDatesInRange(start, end, skipWE, skipHol);
+  if (result.length === 0) {
+    alert('Aucun jour à ajouter avec ces critères.');
+    return;
+  }
+
+  result.forEach(dk => {
+    if (!events[dk]) events[dk] = [];
+    // Éviter les doublons : ne pas ajouter si le même label+type existe déjà
+    if (!events[dk].some(ev => ev.label === label && ev.type === type)) {
+      events[dk].push({ label, type });
+    }
+  });
+
+  saveEvents();
+  closePeriodModal();
+  rebuildCalendar();
+}
+
+// ─── REBUILD ─────────────────────────────────────────────
+function rebuildCalendar() {
+  document.getElementById('calendar-wrap').innerHTML = '';
+  buildYear(2026);
+  buildYear(2027);
+  markWeekendDayNums();
+  updateCPCounter();
+}
+
+// ─── INIT ────────────────────────────────────────────────
+const preloaded = {
+  '2026-02-14': [{ label: 'Saint-Valentin 💕', type: 'perso' }],
+  '2026-03-20': [{ label: 'Printemps', type: 'note' }],
+  '2026-06-21': [{ label: 'Fête de la Musique', type: 'event' }],
+  '2026-09-01': [{ label: 'Rentrée', type: 'event' }],
+  '2026-12-31': [{ label: 'Réveillon', type: 'perso' }],
+};
+Object.keys(preloaded).forEach(k => { if (!events[k]) events[k] = preloaded[k]; });
+
+document.getElementById('modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
+document.getElementById('modal-period').addEventListener('click', e => { if (e.target.id === 'modal-period') closePeriodModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closePeriodModal(); } });
+
+rebuildCalendar();
+updateLastModifDisplay();
+</script>
+</body>
+</html>

@@ -1,0 +1,2083 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conversions — Dessin Industriel</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #3a3c3f;
+  --bg2:      #424547;
+  --bg3:      #4a4d50;
+  --border:   #585b5e;
+  --border2:  #686b6e;
+  --text:     #e0ddd8;
+  --dim:      #909090;
+  --faint:    #505356;
+  --orange:   #f07030;
+  --orange-d: rgba(240,112,48,0.15);
+  --cyan:     #30b8d8;
+  --cyan-d:   rgba(48,184,216,0.12);
+  --green:    #38c870;
+  --green-d:  rgba(56,200,112,0.10);
+  --yellow:   #e8c040;
+  --yellow-d: rgba(232,192,64,0.10);
+  --red:      #e04858;
+  --red-d:    rgba(224,72,88,0.10);
+  --purple:   #9878e8;
+  --purple-d: rgba(152,120,232,0.10);
+  --steel:    #a0b0b8;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Share Tech Mono', monospace;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── GRID BG ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(var(--faint) 1px, transparent 1px),
+    linear-gradient(90deg, var(--faint) 1px, transparent 1px);
+  background-size: 40px 40px;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ── HEADER ── */
+header {
+  position: relative; z-index: 10;
+  background: var(--bg2);
+  border-bottom: 2px solid var(--orange);
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  height: 58px;
+}
+
+.header-logo {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: 0.06em;
+  color: var(--orange);
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+.header-logo::before {
+  content: '';
+  display: block;
+  width: 8px; height: 28px;
+  background: var(--orange);
+  flex-shrink: 0;
+}
+
+.header-sub {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--dim);
+  border-left: 1px solid var(--border2);
+  padding-left: 20px;
+}
+
+.header-tags {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+.htag {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border: 1px solid var(--border2);
+  border-radius: 2px;
+  color: var(--dim);
+}
+
+/* ── NAV TABS ── */
+.tab-nav {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tab-nav::-webkit-scrollbar { display: none; }
+
+.tab {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 14px 18px;
+  color: var(--dim);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all .2s;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  position: relative;
+  bottom: -1px;
+  user-select: none;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--text); border-bottom-color: var(--orange); }
+.tab .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: currentColor; opacity: 0.5;
+}
+.tab.active .dot { opacity: 1; }
+
+/* ── MAIN CONTENT ── */
+.content {
+  position: relative; z-index: 1;
+  padding: 28px 24px 48px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.section { display: none; }
+.section.active { display: block; }
+
+/* ── SECTION TITLE ── */
+.section-title {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: 22px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text);
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.section-title::before {
+  content: '';
+  display: block;
+  width: 4px; height: 24px;
+  background: var(--orange);
+  border-radius: 1px;
+}
+.section-title span { color: var(--dim); font-weight: 300; font-size: 14px; }
+
+/* ── CONVERTER CARD ── */
+.converter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.conv-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  transition: border-color .2s;
+}
+.conv-card:hover { border-color: var(--border2); }
+
+.conv-header {
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.conv-header-accent {
+  width: 3px; height: 16px; border-radius: 1px; flex-shrink: 0;
+}
+.conv-title {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 500;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.conv-unit-hint {
+  margin-left: auto;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.conv-body { padding: 16px; }
+
+.input-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  align-items: center;
+}
+
+.inp-wrap {
+  flex: 1;
+  position: relative;
+}
+.inp-wrap input {
+  width: 100%;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 16px;
+  font-weight: 400;
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  border-radius: 3px;
+  padding: 9px 12px;
+  outline: none;
+  transition: border-color .15s;
+  -moz-appearance: textfield;
+}
+.inp-wrap input::-webkit-inner-spin-button,
+.inp-wrap input::-webkit-outer-spin-button { -webkit-appearance: none; }
+.inp-wrap input:focus { border-color: var(--orange); }
+.inp-wrap .unit-tag {
+  position: absolute;
+  right: 10px; top: 50%; transform: translateY(-50%);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dim);
+  pointer-events: none;
+}
+
+.swap-btn {
+  width: 32px; height: 32px; flex-shrink: 0;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  color: var(--dim);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  transition: all .15s;
+}
+.swap-btn:hover { border-color: var(--orange); color: var(--orange); background: var(--orange-d); }
+
+.results-grid {
+  display: grid;
+  gap: 4px;
+}
+.result-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-radius: 3px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all .15s;
+  gap: 8px;
+}
+.result-row:hover { border-color: var(--border2); background: var(--faint); }
+.result-row.highlight { border-color: var(--orange); background: var(--orange-d); }
+
+.result-label {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dim);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.result-value {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 14px;
+  color: var(--text);
+  text-align: right;
+  word-break: break-all;
+}
+.result-value.accent-orange { color: var(--orange); }
+.result-value.accent-cyan   { color: var(--cyan); }
+.result-value.accent-green  { color: var(--green); }
+
+/* ── TABLE CARD ── */
+.table-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.table-card-header {
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 18px;
+  display: flex; align-items: center; gap: 8px;
+}
+.table-card-header h3 {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 500;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.table-search {
+  margin-left: auto;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  border-radius: 3px;
+  padding: 4px 10px;
+  outline: none;
+  width: 180px;
+  transition: border-color .15s;
+}
+.table-search:focus { border-color: var(--orange); }
+.table-search::placeholder { color: var(--dim); }
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+}
+.data-table th {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 400;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dim);
+  padding: 8px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg3);
+  white-space: nowrap;
+}
+.data-table td {
+  padding: 7px 16px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: var(--bg3); }
+.data-table .highlight-col { color: var(--orange); font-weight: 600; }
+.data-table .dim-col { color: var(--dim); }
+.data-table .badge {
+  display: inline-block;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 2px;
+}
+
+/* ── FORMULA BOX ── */
+.formula-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.formula-box {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 16px;
+}
+.formula-box h4 {
+  font-family: 'Oswald', sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: 10px;
+}
+.formula {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  color: var(--cyan);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  letter-spacing: 0.04em;
+}
+.formula .fo { color: var(--orange); }
+.formula .fg { color: var(--green); }
+.formula .fy { color: var(--yellow); }
+.formula-note {
+  font-size: 10px;
+  color: var(--dim);
+  letter-spacing: 0.06em;
+  line-height: 1.5;
+}
+
+/* ── TUYAUTERIE SPECIFIC ── */
+.pipe-visual {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+}
+.pipe-svg { flex-shrink: 0; }
+
+/* ── COPY TOAST ── */
+#toast {
+  position: fixed;
+  bottom: 28px; right: 28px;
+  background: var(--orange);
+  color: #0e1014;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 8px 16px;
+  border-radius: 3px;
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity .2s;
+  pointer-events: none;
+}
+#toast.show { opacity: 1; }
+
+/* ── COUPE-FEU SPECIFIC ── */
+.cf-intro {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--red);
+  border-radius: 4px;
+  padding: 18px 20px;
+  margin-bottom: 24px;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--text);
+}
+.cf-intro strong { color: var(--red); font-family: 'Oswald', sans-serif; font-size: 13px; letter-spacing: 0.08em; }
+.cf-intro .cf-note { color: var(--dim); font-size: 11px; margin-top: 8px; }
+
+.cf-classification {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.cf-class-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.cf-class-head {
+  padding: 10px 16px;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.cf-class-badge {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 0.04em;
+  min-width: 60px;
+}
+.cf-class-head h4 {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 400;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dim);
+  line-height: 1.4;
+}
+.cf-class-body { padding: 14px 16px; }
+.cf-class-body p { font-size: 11.5px; color: var(--text); line-height: 1.7; margin-bottom: 6px; }
+.cf-class-body .cf-detail { font-size: 10.5px; color: var(--dim); line-height: 1.6; }
+
+.cf-letter {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px;
+  border-radius: 3px;
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  margin-right: 3px;
+}
+.cf-R { background: rgba(224,72,88,0.15); color: var(--red); border: 1px solid rgba(224,72,88,0.3); }
+.cf-E { background: rgba(232,192,64,0.12); color: var(--yellow); border: 1px solid rgba(232,192,64,0.3); }
+.cf-I { background: rgba(48,184,216,0.1); color: var(--cyan); border: 1px solid rgba(48,184,216,0.3); }
+.cf-W { background: rgba(152,120,232,0.1); color: var(--purple); border: 1px solid rgba(152,120,232,0.3); }
+.cf-M { background: rgba(56,200,112,0.08); color: var(--green); border: 1px solid rgba(56,200,112,0.25); }
+.cf-S { background: rgba(240,112,48,0.1); color: var(--orange); border: 1px solid rgba(240,112,48,0.3); }
+.cf-C { background: rgba(120,160,192,0.1); color: var(--steel); border: 1px solid rgba(120,160,192,0.3); }
+
+.cf-timeline {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.cf-tl-item {
+  flex: 1;
+  padding: 14px 16px;
+  border-right: 1px solid var(--border);
+  position: relative;
+}
+.cf-tl-item:last-child { border-right: none; }
+.cf-tl-time {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: 0.02em;
+  margin-bottom: 4px;
+}
+.cf-tl-label {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: 6px;
+}
+.cf-tl-note { font-size: 10.5px; color: var(--text); line-height: 1.5; }
+
+.cf-highlight-box {
+  background: var(--red-d);
+  border: 1px solid rgba(224,72,88,0.25);
+  border-left: 3px solid var(--red);
+  border-radius: 4px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+}
+.cf-highlight-box h4 {
+  font-family: 'Oswald', sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--red);
+  margin-bottom: 8px;
+}
+.cf-highlight-box p { font-size: 11.5px; color: var(--text); line-height: 1.7; }
+
+.cf-warn {
+  background: rgba(232,192,64,0.07);
+  border: 1px solid rgba(232,192,64,0.2);
+  border-left: 3px solid var(--yellow);
+  border-radius: 4px;
+  padding: 12px 16px;
+  margin-top: 16px;
+  font-size: 11px;
+  color: var(--text);
+  line-height: 1.7;
+}
+.cf-warn strong { color: var(--yellow); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 600px) {
+  header { padding: 0 16px; }
+  .header-tags { display: none; }
+  .content { padding: 16px 12px 40px; }
+  .converter-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div id="toast">Copié !</div>
+
+<!-- HEADER -->
+<header>
+  <div class="header-logo">ConvPro</div>
+  <div class="header-sub">Conversions · Dessin Industriel &amp; Tuyauterie</div>
+  <div class="header-tags">
+    <span class="htag">ISO 1</span>
+    <span class="htag">EN 13480</span>
+    <span class="htag">ASME B36</span>
+    <span class="htag">NF E 04-015</span>
+    <span class="htag">NF S 61-937</span>
+    <span class="htag">EN 13501</span>
+  </div>
+</header>
+
+<!-- NAV -->
+<div class="tab-nav" id="tabNav">
+  <div class="tab active" data-tab="longueur"><span class="dot"></span>Longueur</div>
+  <div class="tab" data-tab="surface"><span class="dot"></span>Surface</div>
+  <div class="tab" data-tab="volume"><span class="dot"></span>Volume</div>
+  <div class="tab" data-tab="pression"><span class="dot"></span>Pression</div>
+  <div class="tab" data-tab="temperature"><span class="dot"></span>Température</div>
+  <div class="tab" data-tab="masse"><span class="dot"></span>Masse &amp; Force</div>
+  <div class="tab" data-tab="angles"><span class="dot"></span>Angles</div>
+  <div class="tab" data-tab="tuyauterie"><span class="dot" style="background:var(--orange)"></span>Tuyauterie</div>
+  <div class="tab" data-tab="tolerances"><span class="dot"></span>Tolérances</div>
+  <div class="tab" data-tab="visserie"><span class="dot"></span>Visserie &amp; Filetage</div>
+  <div class="tab" data-tab="coupefeu"><span class="dot" style="background:var(--red)"></span>Coupe-Feu</div>
+</div>
+
+<div class="content">
+
+<!-- ══════════════ LONGUEUR ══════════════ -->
+<div class="section active" id="section-longueur">
+  <div class="section-title">Longueur <span>Unités métriques · impériales · typographiques</span></div>
+
+  <div class="converter-grid">
+    <!-- mm ↔ pouces -->
+    <div class="conv-card">
+      <div class="conv-header">
+        <div class="conv-header-accent" style="background:var(--orange)"></div>
+        <div class="conv-title">Millimètres ↔ Pouces</div>
+      </div>
+      <div class="conv-body">
+        <div class="input-row">
+          <div class="inp-wrap"><input type="number" id="mm" placeholder="0" oninput="conv_mm_in(this)"><span class="unit-tag">mm</span></div>
+          <button class="swap-btn" onclick="swapMmIn()">⇄</button>
+          <div class="inp-wrap"><input type="number" id="inch" placeholder="0" oninput="conv_in_mm(this)"><span class="unit-tag">in</span></div>
+        </div>
+        <div class="results-grid" id="res-mm-in"></div>
+      </div>
+    </div>
+
+    <!-- mm → autres -->
+    <div class="conv-card">
+      <div class="conv-header">
+        <div class="conv-header-accent" style="background:var(--cyan)"></div>
+        <div class="conv-title">Longueur — Multimètre</div>
+      </div>
+      <div class="conv-body">
+        <div class="input-row">
+          <div class="inp-wrap"><input type="number" id="mm2" placeholder="0" oninput="conv_longueur(this)"><span class="unit-tag">mm</span></div>
+        </div>
+        <div class="results-grid" id="res-longueur"></div>
+      </div>
+    </div>
+
+    <!-- pouces fractionnaires -->
+    <div class="conv-card">
+      <div class="conv-header">
+        <div class="conv-header-accent" style="background:var(--yellow)"></div>
+        <div class="conv-title">Pouces fractionnaires → mm</div>
+      </div>
+      <div class="conv-body">
+        <div class="input-row">
+          <div class="inp-wrap" style="flex:1">
+            <select id="frac-sel" onchange="conv_frac()" style="width:100%;font-family:'Share Tech Mono',monospace;font-size:13px;background:var(--bg);border:1px solid var(--border2);color:var(--text);border-radius:3px;padding:9px 10px;outline:none;cursor:pointer;">
+              <option value="">-- Choisir la fraction --</option>
+              <option value="0.015625">1/64"</option><option value="0.03125">1/32"</option>
+              <option value="0.046875">3/64"</option><option value="0.0625">1/16"</option>
+              <option value="0.078125">5/64"</option><option value="0.09375">3/32"</option>
+              <option value="0.109375">7/64"</option><option value="0.125">1/8"</option>
+              <option value="0.140625">9/64"</option><option value="0.15625">5/32"</option>
+              <option value="0.171875">11/64"</option><option value="0.1875">3/16"</option>
+              <option value="0.203125">13/64"</option><option value="0.21875">7/32"</option>
+              <option value="0.234375">15/64"</option><option value="0.25">1/4"</option>
+              <option value="0.3125">5/16"</option><option value="0.375">3/8"</option>
+              <option value="0.4375">7/16"</option><option value="0.5">1/2"</option>
+              <option value="0.5625">9/16"</option><option value="0.625">5/8"</option>
+              <option value="0.6875">11/16"</option><option value="0.75">3/4"</option>
+              <option value="0.8125">13/16"</option><option value="0.875">7/8"</option>
+              <option value="0.9375">15/16"</option><option value="1">1"</option>
+            </select>
+          </div>
+        </div>
+        <div class="results-grid" id="res-frac"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ SURFACE ══════════════ -->
+<div class="section" id="section-surface">
+  <div class="section-title">Surface <span>Métriques · impériales</span></div>
+  <div class="converter-grid">
+    <div class="conv-card">
+      <div class="conv-header">
+        <div class="conv-header-accent" style="background:var(--cyan)"></div>
+        <div class="conv-title">Surface métriques</div>
+      </div>
+      <div class="conv-body">
+        <div class="input-row">
+          <div class="inp-wrap"><input type="number" id="mm2s" placeholder="0" oninput="conv_surface(this)"><span class="unit-tag">mm²</span></div>
+        </div>
+        <div class="results-grid" id="res-surface"></div>
+      </div>
+    </div>
+    <div class="conv-card">
+      <div class="conv-header">
+        <div class="conv-header-accent" style="background:var(--orange)"></div>
+        <div class="conv-title">Surface cm² / m² / in² / ft²</div>
+      </div>
+      <div class="conv-body">
+        <div class="input-row">
+          <div class="inp-wrap"><input type="number" id="cm2s" placeholder="0" oninput="conv_surface2(this)"><span class="unit-tag">cm²</span></div>
+        </div>
+        <div class="results-grid" id="res-surface2"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ VOLUME ══════════════ -->
+<div class="section" id="section-volume">
+  <div class="section-title">Volume &amp; Débit <span>Fluides · gaz · liquides</span></div>
+  <div class="converter-grid">
+    <div class="conv-card">
+      <div class="conv-header">
+        <div class="conv-header-accent" style="background:var(--cyan)"></div>
+        <div class="conv-title">Volume</div>
+      </div>
+      <div class="conv-body">
+        <div class="input-row">
+          <div class="inp-wrap"><input type="number" id="litre" placeholder="0" oninput="conv_volume(this)"><span class="unit-tag">L</span></div>
+        </div>
+        <div class="results-grid" id="res-volume"></div>
+      </div>
+    </div>
+    <div class="conv-card">
+      <div class="conv-header">
+        <div class="conv-header-accent" style="background:var(--orange)"></div>
+        <div class="conv-title">Débit volumique</div>
+      </div>
+      <div class="conv-body">
+        <div class="input-row">
+          <div class="inp-wrap"><input type="number" id="m3h" placeholder="0" oninput="conv_debit(this)"><span class="unit-tag">m³/h</span></div>
+        </div>
+        <div class="results-grid" id="res-debit"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ PRESSION ══════════════ -->
+<div class="section" id="section-pression">
+  <div class="section-title">Pression <span>bar · Pa · psi · kgf/cm²</span></div>
+  <div class="converter-grid">
+    <div class="conv-card">
+      <div class="conv-header">
+        <div class="conv-header-accent" style="background:var(--orange)"></div>
+        <div class="conv-title">Pression</div>
+      </div>
+      <div class="conv-body">
+        <div class="input-row">
+          <div class="inp-wrap"><input type="number" id="bar" placeholder="0" oninput="conv_pression(this)"><span class="unit-tag">bar</span></div>
+        </div>
+        <div class="results-grid" id="res-pression"></div>
+      </div>
+    </div>
+    <div class="conv-card">
+      <div class="conv-header">
+        <div class="conv-header-accent" style="background:var(--red)"></div>
+        <div class="conv-title">Pression depuis PSI</div>
+      </div>
+      <div class="conv-body">
+        <div class="input-row">
+          <div class="inp-wrap"><input type="number" id="psi" placeholder="0" oninput="conv_psi(this)"><span class="unit-tag">psi</span></div>
+        </div>
+        <div class="results-grid" id="res-psi"></div>
+      </div>
+    </div>
+  </div>
+  <div class="formula-grid">
+    <div class="formula-box">
+      <h4>Relations pression</h4>
+      <div class="formula">1 <span class="fo">bar</span> = 100 000 <span class="fg">Pa</span></div>
+      <div class="formula">1 <span class="fo">bar</span> = 14,5038 <span class="fy">psi</span></div>
+      <div class="formula">1 <span class="fo">bar</span> = 1,01972 <span class="fg">kgf/cm²</span></div>
+      <div class="formula-note">1 atm = 1,01325 bar = 101 325 Pa = 14,696 psi</div>
+    </div>
+    <div class="formula-box">
+      <h4>Classes pression tuyauterie (ASME)</h4>
+      <div class="formula">Class 150 → <span class="fo">~20 bar</span> (285 psi)</div>
+      <div class="formula">Class 300 → <span class="fo">~51 bar</span> (740 psi)</div>
+      <div class="formula">Class 600 → <span class="fo">~102 bar</span> (1 480 psi)</div>
+      <div class="formula">Class 900 → <span class="fo">~153 bar</span> (2 220 psi)</div>
+      <div class="formula">Class 1500 → <span class="fo">~255 bar</span> (3 705 psi)</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ TEMPERATURE ══════════════ -->
+<div class="section" id="section-temperature">
+  <div class="section-title">Température <span>°C · °F · K · °R</span></div>
+  <div class="converter-grid">
+    <div class="conv-card">
+      <div class="conv-header">
+        <div class="conv-header-accent" style="background:var(--red)"></div>
+        <div class="conv-title">Celsius → tout</div>
+      </div>
+      <div class="conv-body">
+        <div class="input-row">
+          <div class="inp-wrap"><input type="number" id="celsius" placeholder="0" oninput="conv_temp_c(this)"><span class="unit-tag">°C</span></div>
+        </div>
+        <div class="results-grid" id="res-temp-c"></div>
+      </div>
+    </div>
+    <div class="conv-card">
+      <div class="conv-header">
+        <div class="conv-header-accent" style="background:var(--yellow)"></div>
+        <div class="conv-title">Fahrenheit → tout</div>
+      </div>
+      <div class="conv-body">
+        <div class="input-row">
+          <div class="inp-wrap"><input type="number" id="fahrenheit" placeholder="0" oninput="conv_temp_f(this)"><span class="unit-tag">°F</span></div>
+        </div>
+        <div class="results-grid" id="res-temp-f"></div>
+      </div>
+    </div>
+  </div>
+  <div class="formula-grid">
+    <div class="formula-box">
+      <h4>Formules de conversion</h4>
+      <div class="formula">°F = (°C × <span class="fo">9/5</span>) + <span class="fy">32</span></div>
+      <div class="formula">°C = (°F − <span class="fy">32</span>) × <span class="fo">5/9</span></div>
+      <div class="formula">K = °C + <span class="fg">273.15</span></div>
+      <div class="formula">°R = °F + <span class="fg">459.67</span></div>
+    </div>
+    <div class="formula-box">
+      <h4>Repères industriels</h4>
+      <div class="formula">Eau ébullition : <span class="fo">100°C</span> = 212°F</div>
+      <div class="formula">Eau congélation : <span class="fo">0°C</span> = 32°F</div>
+      <div class="formula">Acier recu. : <span class="fo">~730°C</span></div>
+      <div class="formula">Vapeur haute P : <span class="fo">~540°C</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ MASSE ══════════════ -->
+<div class="section" id="section-masse">
+  <div class="section-title">Masse &amp; Force <span>kg · lb · N · kN · kgf</span></div>
+  <div class="converter-grid">
+    <div class="conv-card">
+      <div class="conv-header">
+        <div class="conv-header-accent" style="background:var(--green)"></div>
+        <div class="conv-title">Masse</div>
+      </div>
+      <div class="conv-body">
+        <div class="input-row">
+          <div class="inp-wrap"><input type="number" id="kg" placeholder="0" oninput="conv_masse(this)"><span class="unit-tag">kg</span></div>
+        </div>
+        <div class="results-grid" id="res-masse"></div>
+      </div>
+    </div>
+    <div class="conv-card">
+      <div class="conv-header">
+        <div class="conv-header-accent" style="background:var(--orange)"></div>
+        <div class="conv-title">Force</div>
+      </div>
+      <div class="conv-body">
+        <div class="input-row">
+          <div class="inp-wrap"><input type="number" id="newton" placeholder="0" oninput="conv_force(this)"><span class="unit-tag">N</span></div>
+        </div>
+        <div class="results-grid" id="res-force"></div>
+      </div>
+    </div>
+    <div class="conv-card">
+      <div class="conv-header">
+        <div class="conv-header-accent" style="background:var(--cyan)"></div>
+        <div class="conv-title">Couple (Torque)</div>
+      </div>
+      <div class="conv-body">
+        <div class="input-row">
+          <div class="inp-wrap"><input type="number" id="nm" placeholder="0" oninput="conv_couple(this)"><span class="unit-tag">N·m</span></div>
+        </div>
+        <div class="results-grid" id="res-couple"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ ANGLES ══════════════ -->
+<div class="section" id="section-angles">
+  <div class="section-title">Angles &amp; Pentes <span>degrés · radians · % · permille</span></div>
+  <div class="converter-grid">
+    <div class="conv-card">
+      <div class="conv-header">
+        <div class="conv-header-accent" style="background:var(--purple)"></div>
+        <div class="conv-title">Angle</div>
+      </div>
+      <div class="conv-body">
+        <div class="input-row">
+          <div class="inp-wrap"><input type="number" id="deg" placeholder="0" oninput="conv_angle(this)"><span class="unit-tag">°</span></div>
+        </div>
+        <div class="results-grid" id="res-angle"></div>
+      </div>
+    </div>
+    <div class="conv-card">
+      <div class="conv-header">
+        <div class="conv-header-accent" style="background:var(--cyan)"></div>
+        <div class="conv-title">Pente % → angle</div>
+      </div>
+      <div class="conv-body">
+        <div class="input-row">
+          <div class="inp-wrap"><input type="number" id="pente" placeholder="0" oninput="conv_pente(this)"><span class="unit-tag">%</span></div>
+        </div>
+        <div class="results-grid" id="res-pente"></div>
+      </div>
+    </div>
+  </div>
+  <div class="formula-grid">
+    <div class="formula-box">
+      <h4>Pentes standard tuyauterie</h4>
+      <div class="formula">Min. gravité : <span class="fo">1 %</span> = 0.573°</div>
+      <div class="formula">Condensats : <span class="fo">2 à 5 mm/m</span></div>
+      <div class="formula">Vapeur (aller) : <span class="fo">2 à 4 mm/m</span></div>
+      <div class="formula">Égouts : <span class="fo">min 1 cm/m</span></div>
+    </div>
+    <div class="formula-box">
+      <h4>Angles plans fréquents</h4>
+      <div class="formula">30° = <span class="fo">π/6</span> rad = 0.5236</div>
+      <div class="formula">45° = <span class="fo">π/4</span> rad = 0.7854</div>
+      <div class="formula">60° = <span class="fo">π/3</span> rad = 1.0472</div>
+      <div class="formula">90° = <span class="fo">π/2</span> rad = 1.5708</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ TUYAUTERIE ══════════════ -->
+<div class="section" id="section-tuyauterie">
+  <div class="section-title">Tuyauterie <span>DN · NPS · schedule · épaisseurs · débit</span></div>
+
+  <!-- DN / NPS converter -->
+  <div class="converter-grid" style="margin-bottom:20px">
+    <div class="conv-card">
+      <div class="conv-header">
+        <div class="conv-header-accent" style="background:var(--orange)"></div>
+        <div class="conv-title">DN ↔ NPS (pouces nominaux)</div>
+      </div>
+      <div class="conv-body">
+        <div class="input-row">
+          <div class="inp-wrap"><input type="number" id="dn-val" placeholder="ex: 50" oninput="conv_dn(this)"><span class="unit-tag">DN</span></div>
+        </div>
+        <div class="results-grid" id="res-dn"></div>
+      </div>
+    </div>
+
+    <div class="conv-card">
+      <div class="conv-header">
+        <div class="conv-header-accent" style="background:var(--cyan)"></div>
+        <div class="conv-title">Calcul vitesse fluide en conduite</div>
+        <div class="conv-unit-hint">v = Q / A</div>
+      </div>
+      <div class="conv-body">
+        <div style="display:grid;gap:8px;margin-bottom:12px">
+          <div class="input-row" style="margin:0">
+            <div class="inp-wrap"><input type="number" id="v-dn" placeholder="DN ex: 100" oninput="conv_vitesse()"><span class="unit-tag">DN</span></div>
+            <div class="inp-wrap"><input type="number" id="v-debit" placeholder="débit" oninput="conv_vitesse()"><span class="unit-tag">m³/h</span></div>
+          </div>
+        </div>
+        <div class="results-grid" id="res-vitesse"></div>
+      </div>
+    </div>
+
+    <div class="conv-card">
+      <div class="conv-header">
+        <div class="conv-header-accent" style="background:var(--green)"></div>
+        <div class="conv-title">Section de passage</div>
+      </div>
+      <div class="conv-body">
+        <div class="input-row">
+          <div class="inp-wrap"><input type="number" id="de-val" placeholder="Ø extérieur" oninput="conv_section()"><span class="unit-tag">mm DE</span></div>
+          <div class="inp-wrap"><input type="number" id="ep-val" placeholder="épaisseur" oninput="conv_section()"><span class="unit-tag">mm ep</span></div>
+        </div>
+        <div class="results-grid" id="res-section"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table DN / NPS -->
+  <div class="table-card">
+    <div class="table-card-header">
+      <div class="conv-header-accent" style="width:3px;height:16px;border-radius:1px;background:var(--orange)"></div>
+      <h3>Table DN / NPS / DE référence (ASME B36.10 / EN 10220)</h3>
+      <input class="table-search" type="text" id="search-dn" placeholder="Filtrer DN / NPS…" oninput="filterTable('dn-table', this.value)">
+    </div>
+    <div style="overflow-x:auto">
+      <table class="data-table" id="dn-table">
+        <thead><tr>
+          <th>DN</th><th>NPS (pouces)</th><th>DE réel (mm)</th><th>SCH 40 ép. (mm)</th><th>SCH 80 ép. (mm)</th><th>SCH 160 ép. (mm)</th><th>DI SCH40 (mm)</th>
+        </tr></thead>
+        <tbody id="dn-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Table Schedule -->
+  <div class="table-card" style="margin-top:16px">
+    <div class="table-card-header">
+      <div class="conv-header-accent" style="width:3px;height:16px;border-radius:1px;background:var(--cyan)"></div>
+      <h3>Désignation Schedule → Épaisseur (extrait, acier carbone)</h3>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="data-table">
+        <thead><tr>
+          <th>Schedule</th><th>Ancien nom</th><th>Domaine usage</th><th>Note</th>
+        </tr></thead>
+        <tbody>
+          <tr><td class="highlight-col">SCH 5</td><td>—</td><td>Très faible pression, eau</td><td><span class="badge" style="background:var(--green-d);color:var(--green)">LP</span></td></tr>
+          <tr><td class="highlight-col">SCH 10</td><td>—</td><td>Faible pression, gaz</td><td><span class="badge" style="background:var(--green-d);color:var(--green)">LP</span></td></tr>
+          <tr><td class="highlight-col">SCH 20</td><td>—</td><td>Eau, ventilation</td><td></td></tr>
+          <tr><td class="highlight-col">SCH 40</td><td>Standard (STD)</td><td>Référence courante eau, vapeur BP</td><td><span class="badge" style="background:var(--orange-d);color:var(--orange)">STD</span></td></tr>
+          <tr><td class="highlight-col">SCH 80</td><td>Extra-Strong (XS)</td><td>Vapeur MP, corrosifs</td><td><span class="badge" style="background:var(--yellow-d);color:var(--yellow)">XS</span></td></tr>
+          <tr><td class="highlight-col">SCH 120</td><td>—</td><td>HP</td><td></td></tr>
+          <tr><td class="highlight-col">SCH 160</td><td>—</td><td>Très HP, hydrocarbures</td><td><span class="badge" style="background:var(--red-d);color:var(--red)">HP</span></td></tr>
+          <tr><td class="highlight-col">XXS</td><td>Double Extra-Strong</td><td>Extrême pression</td><td><span class="badge" style="background:var(--red-d);color:var(--red)">XXS</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Formules tuyauterie -->
+  <div class="section-title" style="margin-top:28px">Formules tuyauterie <span>calculs courants</span></div>
+  <div class="formula-grid">
+    <div class="formula-box">
+      <h4>Diamètre intérieur</h4>
+      <div class="formula">DI = DE − <span class="fo">2 × ep</span></div>
+      <div class="formula-note">DE = diamètre extérieur · ep = épaisseur paroi</div>
+    </div>
+    <div class="formula-box">
+      <h4>Section passage</h4>
+      <div class="formula">S = π × <span class="fo">DI²</span> / 4</div>
+      <div class="formula-note">S en mm² si DI en mm</div>
+    </div>
+    <div class="formula-box">
+      <h4>Vitesse fluide</h4>
+      <div class="formula">v = Q / <span class="fo">S</span></div>
+      <div class="formula-note">Q en m³/s · S en m² → v en m/s</div>
+    </div>
+    <div class="formula-box">
+      <h4>Épaisseur min. (EN 13480)</h4>
+      <div class="formula">e = (P × DE) / (2×<span class="fo">f</span>×z + P)</div>
+      <div class="formula-note">P = pression · f = contrainte admissible · z = facteur soudure</div>
+    </div>
+    <div class="formula-box">
+      <h4>Développé coude 90°</h4>
+      <div class="formula">L = π × <span class="fo">R</span> / 2</div>
+      <div class="formula-note">R = rayon de cintrage (axe)</div>
+    </div>
+    <div class="formula-box">
+      <h4>Rayon de cintrage usuel</h4>
+      <div class="formula">R ≥ <span class="fo">1.5 × DN</span> (court)</div>
+      <div class="formula">R ≥ <span class="fo">3 × DN</span> (long)</div>
+      <div class="formula-note">Long radius recommandé pour faible perte de charge</div>
+    </div>
+  </div>
+
+  <!-- Vitesses recommandées -->
+  <div class="table-card" style="margin-top:16px">
+    <div class="table-card-header">
+      <div class="conv-header-accent" style="width:3px;height:16px;border-radius:1px;background:var(--green)"></div>
+      <h3>Vitesses recommandées en conduite</h3>
+    </div>
+    <table class="data-table">
+      <thead><tr><th>Fluide</th><th>Vmin (m/s)</th><th>Vmax (m/s)</th><th>Recommandée</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td>Eau froide</td><td>0.5</td><td>3</td><td class="highlight-col">1 – 2</td><td class="dim-col">Distribution</td></tr>
+        <tr><td>Eau chaude</td><td>0.5</td><td>2.5</td><td class="highlight-col">1 – 1.5</td><td class="dim-col">Chauffage</td></tr>
+        <tr><td>Vapeur saturée BP</td><td>10</td><td>30</td><td class="highlight-col">20 – 25</td><td class="dim-col">< 5 bar</td></tr>
+        <tr><td>Vapeur saturée HP</td><td>20</td><td>60</td><td class="highlight-col">30 – 50</td><td class="dim-col">> 15 bar</td></tr>
+        <tr><td>Air comprimé</td><td>5</td><td>20</td><td class="highlight-col">8 – 15</td><td class="dim-col">Réseau usine</td></tr>
+        <tr><td>Gaz naturel (BP)</td><td>5</td><td>20</td><td class="highlight-col">8 – 12</td><td class="dim-col">Distribution</td></tr>
+        <tr><td>Huile hydraulique</td><td>1</td><td>6</td><td class="highlight-col">2 – 4</td><td class="dim-col">Refoulement</td></tr>
+        <tr><td>Huile aspiration</td><td>0.5</td><td>1.5</td><td class="highlight-col">0.5 – 1</td><td class="dim-col">Aspiration pompe</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══════════════ TOLERANCES ══════════════ -->
+<div class="section" id="section-tolerances">
+  <div class="section-title">Tolérances ISO <span>IT · ajustements · rugosité</span></div>
+
+  <div class="converter-grid">
+    <div class="conv-card">
+      <div class="conv-header">
+        <div class="conv-header-accent" style="background:var(--purple)"></div>
+        <div class="conv-title">Calcul IT (Tolérance fondamentale)</div>
+      </div>
+      <div class="conv-body">
+        <div class="input-row">
+          <div class="inp-wrap"><input type="number" id="tol-dim" placeholder="Ø ou dim (mm)" oninput="calc_it()"><span class="unit-tag">mm</span></div>
+          <div class="inp-wrap">
+            <select id="tol-grade" onchange="calc_it()" style="width:100%;font-family:'Share Tech Mono',monospace;font-size:13px;background:var(--bg);border:1px solid var(--border2);color:var(--text);border-radius:3px;padding:9px 10px;outline:none;">
+              <option value="">Grade IT</option>
+              <option value="5">IT5</option><option value="6">IT6</option>
+              <option value="7">IT7</option><option value="8">IT8</option>
+              <option value="9">IT9</option><option value="10">IT10</option>
+              <option value="11">IT11</option><option value="12">IT12</option>
+            </select>
+          </div>
+        </div>
+        <div class="results-grid" id="res-it"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table IT -->
+  <div class="table-card">
+    <div class="table-card-header">
+      <div class="conv-header-accent" style="width:3px;height:16px;border-radius:1px;background:var(--purple)"></div>
+      <h3>Grades de tolérance IT (µm) — Extrait ISO 286</h3>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="data-table">
+        <thead><tr>
+          <th>Plage dim. (mm)</th><th>IT5</th><th>IT6</th><th>IT7</th><th>IT8</th><th>IT9</th><th>IT10</th><th>IT11</th><th>IT12</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>> 0 – 3</td><td>4</td><td>6</td><td class="highlight-col">10</td><td>14</td><td>25</td><td>40</td><td>60</td><td>100</td></tr>
+          <tr><td>> 3 – 6</td><td>5</td><td>8</td><td class="highlight-col">12</td><td>18</td><td>30</td><td>48</td><td>75</td><td>120</td></tr>
+          <tr><td>> 6 – 10</td><td>6</td><td>9</td><td class="highlight-col">15</td><td>22</td><td>36</td><td>58</td><td>90</td><td>150</td></tr>
+          <tr><td>> 10 – 18</td><td>8</td><td>11</td><td class="highlight-col">18</td><td>27</td><td>43</td><td>70</td><td>110</td><td>180</td></tr>
+          <tr><td>> 18 – 30</td><td>9</td><td>13</td><td class="highlight-col">21</td><td>33</td><td>52</td><td>84</td><td>130</td><td>210</td></tr>
+          <tr><td>> 30 – 50</td><td>11</td><td>16</td><td class="highlight-col">25</td><td>39</td><td>62</td><td>100</td><td>160</td><td>250</td></tr>
+          <tr><td>> 50 – 80</td><td>13</td><td>19</td><td class="highlight-col">30</td><td>46</td><td>74</td><td>120</td><td>190</td><td>300</td></tr>
+          <tr><td>> 80 – 120</td><td>15</td><td>22</td><td class="highlight-col">35</td><td>54</td><td>87</td><td>140</td><td>220</td><td>350</td></tr>
+          <tr><td>> 120 – 180</td><td>18</td><td>25</td><td class="highlight-col">40</td><td>63</td><td>100</td><td>160</td><td>250</td><td>400</td></tr>
+          <tr><td>> 180 – 250</td><td>20</td><td>29</td><td class="highlight-col">46</td><td>72</td><td>115</td><td>185</td><td>290</td><td>460</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Rugosité -->
+  <div class="table-card" style="margin-top:16px">
+    <div class="table-card-header">
+      <div class="conv-header-accent" style="width:3px;height:16px;border-radius:1px;background:var(--cyan)"></div>
+      <h3>Rugosité Ra (ISO 1302) — Correspondances procédés</h3>
+    </div>
+    <table class="data-table">
+      <thead><tr><th>Ra (µm)</th><th>N (classe)</th><th>Procédé</th><th>Application typique</th></tr></thead>
+      <tbody>
+        <tr><td class="highlight-col">50</td><td>N12</td><td>Sciage, oxycoupage</td><td class="dim-col">Ébauche brute</td></tr>
+        <tr><td class="highlight-col">25</td><td>N11</td><td>Tournage ébauche</td><td class="dim-col">Brut d'usinage</td></tr>
+        <tr><td class="highlight-col">12.5</td><td>N10</td><td>Fraisage ébauche</td><td class="dim-col">Surfaces non ajustées</td></tr>
+        <tr><td class="highlight-col">6.3</td><td>N9</td><td>Tournage demi-finition</td><td class="dim-col">Ajustement libre</td></tr>
+        <tr><td class="highlight-col">3.2</td><td>N8</td><td>Tournage finition</td><td class="dim-col">Guidages, portées</td></tr>
+        <tr><td class="highlight-col">1.6</td><td>N7</td><td>Rectification ébauche</td><td class="dim-col">Roulements, brides</td></tr>
+        <tr><td class="highlight-col">0.8</td><td>N6</td><td>Rectification fine</td><td class="dim-col">Portées étanchéité</td></tr>
+        <tr><td class="highlight-col">0.4</td><td>N5</td><td>Rectification très fine</td><td class="dim-col">Surfaces de joint</td></tr>
+        <tr><td class="highlight-col">0.2</td><td>N4</td><td>Rodage, superfinition</td><td class="dim-col">Chemises, pistons</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══════════════ VISSERIE ══════════════ -->
+<div class="section" id="section-visserie">
+  <div class="section-title">Visserie &amp; Filetages <span>Métrique · BSP · NPT · UNC · UNF</span></div>
+
+  <div class="table-card">
+    <div class="table-card-header">
+      <div class="conv-header-accent" style="width:3px;height:16px;border-radius:1px;background:var(--orange)"></div>
+      <h3>Filetages métriques ISO (M) — pas courants</h3>
+      <input class="table-search" type="text" id="search-vis" placeholder="Filtrer M…" oninput="filterTable('vis-table', this.value)">
+    </div>
+    <div style="overflow-x:auto">
+      <table class="data-table" id="vis-table">
+        <thead><tr>
+          <th>Désig.</th><th>Ø nominal (mm)</th><th>Pas gros (mm)</th><th>Ø fond (mm)</th><th>Clé (mm)</th><th>Perçage (mm)</th><th>Équiv. pouce</th>
+        </tr></thead>
+        <tbody id="vis-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="table-card" style="margin-top:16px">
+    <div class="table-card-header">
+      <div class="conv-header-accent" style="width:3px;height:16px;border-radius:1px;background:var(--cyan)"></div>
+      <h3>Filetages tuyauterie — BSP (Whitworth) / NPT</h3>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="data-table">
+        <thead><tr>
+          <th>DN / NPS</th><th>BSP (G)</th><th>NPT</th><th>Ø DE tube (mm)</th><th>Pas (filets/pouce)</th><th>Note</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>DN 8</td><td class="highlight-col">G 1/4"</td><td>NPT 1/4"</td><td>13.72</td><td>19</td><td class="dim-col">Instrumentation</td></tr>
+          <tr><td>DN 10</td><td class="highlight-col">G 3/8"</td><td>NPT 3/8"</td><td>17.15</td><td>19</td><td class="dim-col">Petite robinetterie</td></tr>
+          <tr><td>DN 15</td><td class="highlight-col">G 1/2"</td><td>NPT 1/2"</td><td>21.34</td><td>14</td><td class="dim-col">Eau, gaz domestique</td></tr>
+          <tr><td>DN 20</td><td class="highlight-col">G 3/4"</td><td>NPT 3/4"</td><td>26.67</td><td>14</td><td class="dim-col">Distribution</td></tr>
+          <tr><td>DN 25</td><td class="highlight-col">G 1"</td><td>NPT 1"</td><td>33.40</td><td>11</td><td class="dim-col">Standard</td></tr>
+          <tr><td>DN 32</td><td class="highlight-col">G 1" 1/4</td><td>NPT 1" 1/4</td><td>42.16</td><td>11</td><td class="dim-col">Standard</td></tr>
+          <tr><td>DN 40</td><td class="highlight-col">G 1" 1/2</td><td>NPT 1" 1/2</td><td>48.26</td><td>11</td><td class="dim-col">Standard</td></tr>
+          <tr><td>DN 50</td><td class="highlight-col">G 2"</td><td>NPT 2"</td><td>60.33</td><td>11</td><td class="dim-col">Standard</td></tr>
+          <tr><td>DN 65</td><td class="highlight-col">G 2" 1/2</td><td>NPT 2" 1/2</td><td>73.03</td><td>8</td><td class="dim-col">Industriel</td></tr>
+          <tr><td>DN 80</td><td class="highlight-col">G 3"</td><td>NPT 3"</td><td>88.90</td><td>8</td><td class="dim-col">Industriel</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="formula-grid" style="margin-top:16px">
+    <div class="formula-box">
+      <h4>Perçage taraudage ISO</h4>
+      <div class="formula">Ø perçage ≈ d − <span class="fo">p</span></div>
+      <div class="formula-note">d = diamètre nominal · p = pas<br>Ex : M10 × 1.5 → Ø 8.5 mm</div>
+    </div>
+    <div class="formula-box">
+      <h4>BSP vs NPT</h4>
+      <div class="formula">BSP (G) : <span class="fo">cylindrique</span></div>
+      <div class="formula">NPT : <span class="fo">conique 1°47'</span></div>
+      <div class="formula-note">BSP = British Standard Pipe<br>NPT = National Pipe Thread (US)</div>
+    </div>
+    <div class="formula-box">
+      <h4>Couple serrage indicatif</h4>
+      <div class="formula">M8 acier : <span class="fo">20 – 25 N·m</span></div>
+      <div class="formula">M10 acier : <span class="fo">40 – 50 N·m</span></div>
+      <div class="formula">M12 acier : <span class="fo">70 – 80 N·m</span></div>
+      <div class="formula-note">Classe 8.8, sans lubrification</div>
+    </div>
+  </div>
+</div>
+<!-- ══════════════ COUPE-FEU ══════════════ -->
+<div class="section" id="section-coupefeu">
+  <div class="section-title">Résistance au Feu <span>EN 13501-2 · NF S 61-937 · DTU · réglementation française</span></div>
+
+  <!-- INTRO -->
+  <div class="cf-intro">
+    <strong>Qu'est-ce que la résistance au feu ?</strong><br>
+    La résistance au feu est l'aptitude d'un élément de construction à conserver ses fonctions (portance, étanchéité, isolation thermique) pendant une durée déterminée lorsqu'il est soumis à un incendie normalisé. Elle est définie par la norme européenne <strong>EN 13501-2</strong> et la norme française <strong>NF P 92-501</strong>. En France, la réglementation incendie est fixée par l'arrêté du <strong>25 juin 1980</strong> (ERP) et les textes sur les IGH, ICPE, Code du Travail…
+    <div class="cf-note">⚠ Ces données sont indicatives. Tout projet doit être validé par un bureau de contrôle agréé (Socotec, Bureau Veritas, Apave…) et un coordonnateur sécurité incendie.</div>
+  </div>
+
+  <!-- CLASSEMENT REI : les 3 critères fondamentaux -->
+  <div class="section-title" style="font-size:16px;margin-bottom:16px">Les critères de performance <span>R · E · I · W · M · S · C</span></div>
+
+  <div class="cf-classification">
+
+    <div class="cf-class-card">
+      <div class="cf-class-head">
+        <span class="cf-class-badge" style="color:var(--red)">R</span>
+        <h4>Résistance mécanique<br>Stabilité au feu</h4>
+      </div>
+      <div class="cf-class-body">
+        <p>Capacité d'un élément porteur à <strong style="color:var(--text)">maintenir sa stabilité et sa résistance mécanique</strong> sous l'action du feu sans s'effondrer.</p>
+        <p class="cf-detail">S'applique aux : poteaux, poutres, planchers porteurs, murs porteurs, charpentes.<br>
+        Vérification : l'élément ne doit pas s'effondrer pendant toute la durée requise.<br>
+        Ex : <strong style="color:var(--red)">R 60</strong> = résiste mécaniquement 60 min sans s'effondrer.</p>
+      </div>
+    </div>
+
+    <div class="cf-class-card">
+      <div class="cf-class-head">
+        <span class="cf-class-badge" style="color:var(--yellow)">E</span>
+        <h4>Étanchéité aux flammes<br>et gaz chauds</h4>
+      </div>
+      <div class="cf-class-body">
+        <p>Capacité à <strong style="color:var(--text)">empêcher le passage des flammes, gaz chauds et fumées chaudes</strong> d'un côté à l'autre de la paroi.</p>
+        <p class="cf-detail">S'applique aux : cloisons, portes, volets, trappes coupe-feu.<br>
+        Vérification : pas de flamme ni gaz inflammable de l'autre côté, pas de fissures > 150 mm de long ou 25 mm de large.<br>
+        Ex : <strong style="color:var(--yellow)">EI 30</strong> = étanche aux flammes ET isolante 30 min.</p>
+      </div>
+    </div>
+
+    <div class="cf-class-card">
+      <div class="cf-class-head">
+        <span class="cf-class-badge" style="color:var(--cyan)">I</span>
+        <h4>Isolation thermique</h4>
+      </div>
+      <div class="cf-class-body">
+        <p>Capacité à <strong style="color:var(--text)">limiter l'élévation de température</strong> sur la face non exposée pour éviter l'inflammation de matières proches.</p>
+        <p class="cf-detail">Critère : élévation moyenne ≤ <strong style="color:var(--cyan)">140 K</strong> au-dessus de la température initiale, et élévation maximale ≤ <strong style="color:var(--cyan)">180 K</strong> en tout point.<br>
+        S'applique aux : cloisons séparatives, planchers, portes coupe-feu.<br>
+        Sous-classe I₁ (≤ 140 K) ou I₂ (≤ 180 K).</p>
+      </div>
+    </div>
+
+    <div class="cf-class-card">
+      <div class="cf-class-head">
+        <span class="cf-class-badge" style="color:var(--purple)">W</span>
+        <h4>Rayonnement thermique</h4>
+      </div>
+      <div class="cf-class-body">
+        <p>Capacité à <strong style="color:var(--text)">limiter le flux de chaleur rayonné</strong> transmis à travers l'élément ou en bordure de vitrage.</p>
+        <p class="cf-detail">Critère : flux thermique ≤ <strong style="color:var(--purple)">15 kW/m²</strong> à 1 m de la face non exposée.<br>
+        S'applique principalement aux : façades vitrées, cloisons vitrées, portes vitrées coupe-feu.<br>
+        Complète le critère E quand l'isolation I n'est pas atteinte.</p>
+      </div>
+    </div>
+
+    <div class="cf-class-card">
+      <div class="cf-class-head">
+        <span class="cf-class-badge" style="color:var(--green)">M</span>
+        <h4>Action mécanique<br>(choc)</h4>
+      </div>
+      <div class="cf-class-body">
+        <p>Résistance à un <strong style="color:var(--text)">impact mécanique</strong> (choc de bille de 100 g à 1,5 m) simulant un effondrement partiel de construction adjacente.</p>
+        <p class="cf-detail">Essai selon EN 1363-2.<br>
+        Surtout applicable aux : portes, cloisons légères, vitrages.<br>
+        Ex : <strong style="color:var(--green)">EI 60-M</strong> = EI 60 + résistance au choc.</p>
+      </div>
+    </div>
+
+    <div class="cf-class-card">
+      <div class="cf-class-head">
+        <span class="cf-class-badge" style="color:var(--orange)">S</span>
+        <h4>Étanchéité aux fumées<br>(Sa / S200 / S)</h4>
+      </div>
+      <div class="cf-class-body">
+        <p>Capacité à <strong style="color:var(--text)">s'opposer au passage des fumées froides (Sa) ou chaudes (S 200°C)</strong> à travers les joints, jours et interstices.</p>
+        <p class="cf-detail"><strong style="color:var(--orange)">Sa</strong> : fumées à température ambiante (≤ 25°C) — portes et volets dans couloirs d'évacuation.<br>
+        <strong style="color:var(--orange)">S 200</strong> : fumées à 200°C — canalisations, trappes.<br>
+        Débit de fuite ≤ 3 m³/h par mètre de joint (Sa) ou selon EN 1634-3.</p>
+      </div>
+    </div>
+
+    <div class="cf-class-card">
+      <div class="cf-class-head">
+        <span class="cf-class-badge" style="color:var(--steel)">C</span>
+        <h4>Fermeture automatique<br>(Self-closing)</h4>
+      </div>
+      <div class="cf-class-body">
+        <p>Aptitude d'une porte ou d'un volet à <strong style="color:var(--text)">se fermer automatiquement</strong> après ouverture, ou à se fermer à partir d'une position ouverte sur signal.</p>
+        <p class="cf-detail"><strong style="color:var(--steel)">C₀</strong> : pas de capacité de fermeture automatique.<br>
+        <strong style="color:var(--steel)">C₁ à C₅</strong> : nombre de cycles de fermeture testés (ex : C₅ = 200 000 cycles).<br>
+        Ex : <strong style="color:var(--steel)">EI₂ 60-C₅-S₂₀₀</strong> = porte coupe-feu haute performance.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- DURÉES RÉGLEMENTAIRES -->
+  <div class="section-title" style="font-size:16px;margin-bottom:16px">Durées normalisées <span>classification temporelle</span></div>
+
+  <div class="cf-timeline">
+    <div class="cf-tl-item">
+      <div class="cf-tl-time" style="color:var(--green)">15 min</div>
+      <div class="cf-tl-label">CF 1/4 h</div>
+      <div class="cf-tl-note">Peu fréquent. Sas, locaux techniques de faible risque.</div>
+    </div>
+    <div class="cf-tl-item">
+      <div class="cf-tl-time" style="color:var(--cyan)">30 min</div>
+      <div class="cf-tl-label">CF 1/2 h</div>
+      <div class="cf-tl-note">Logements entre appartements, parois de faible surface, blocs-portes légers.</div>
+    </div>
+    <div class="cf-tl-item">
+      <div class="cf-tl-time" style="color:var(--yellow)">60 min</div>
+      <div class="cf-tl-label">CF 1 h</div>
+      <div class="cf-tl-note">Planchers entre niveaux ERP, IGH, bâtiments industriels catégorie A/B.</div>
+    </div>
+    <div class="cf-tl-item">
+      <div class="cf-tl-time" style="color:var(--orange)">90 min</div>
+      <div class="cf-tl-label">CF 1 h 30</div>
+      <div class="cf-tl-note">IGH de grande hauteur, ICPE à fort risque.</div>
+    </div>
+    <div class="cf-tl-item">
+      <div class="cf-tl-time" style="color:var(--red)">120 min</div>
+      <div class="cf-tl-label">CF 2 h</div>
+      <div class="cf-tl-note">Structures porteuses d'IGH, tunnels, infrastructures critiques.</div>
+    </div>
+    <div class="cf-tl-item">
+      <div class="cf-tl-time" style="color:var(--red)">240 min</div>
+      <div class="cf-tl-label">CF 4 h</div>
+      <div class="cf-tl-note">Stockages dangereux, silos, locaux très spéciaux. Rare en pratique courante.</div>
+    </div>
+  </div>
+
+  <!-- CORRESPONDANCE ANCIEN / NOUVEAU -->
+  <div class="table-card" style="margin-bottom:20px">
+    <div class="table-card-header">
+      <div class="conv-header-accent" style="width:3px;height:16px;border-radius:1px;background:var(--red)"></div>
+      <h3>Correspondance ancienne / nouvelle classification (France)</h3>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="data-table">
+        <thead><tr>
+          <th>Ancienne désignation (NF P 92-xxx)</th>
+          <th>Nouvelle désignation (EN 13501-2)</th>
+          <th>Critères</th>
+          <th>Durée type</th>
+          <th>Application courante</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td class="dim-col">Stable au feu (SF)</td>
+            <td class="highlight-col">R</td>
+            <td>Stabilité mécanique uniquement</td>
+            <td>R 30 / R 60 / R 120</td>
+            <td class="dim-col">Poteaux, poutres, charpentes métalliques</td>
+          </tr>
+          <tr>
+            <td class="dim-col">Pare-flammes (PF)</td>
+            <td class="highlight-col">E (ou RE)</td>
+            <td>Étanchéité aux flammes</td>
+            <td>E 30 / E 60</td>
+            <td class="dim-col">Volets, cloisons légères non portantes</td>
+          </tr>
+          <tr>
+            <td class="dim-col">Coupe-feu (CF)</td>
+            <td class="highlight-col">EI (ou REI)</td>
+            <td>Étanchéité + Isolation thermique</td>
+            <td>EI 30 / EI 60 / EI 120</td>
+            <td class="dim-col">Murs, cloisons, planchers, portes CF</td>
+          </tr>
+          <tr>
+            <td class="dim-col">Coupe-feu porteur</td>
+            <td class="highlight-col">REI</td>
+            <td>Stabilité + Étanchéité + Isolation</td>
+            <td>REI 60 / REI 120</td>
+            <td class="dim-col">Planchers porteurs, murs porteurs CF</td>
+          </tr>
+          <tr>
+            <td class="dim-col">Porte coupe-feu</td>
+            <td class="highlight-col">EI₂ 30-C / EI₂ 60-C</td>
+            <td>E + I + fermeture auto</td>
+            <td>30 ou 60 min</td>
+            <td class="dim-col">Portes entre locaux à risques</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ÉLÉMENTS DE CONSTRUCTION : EXIGENCES PAR TYPE -->
+  <div class="section-title" style="font-size:16px;margin-bottom:16px">Exigences par type d'élément <span>réglementation française ERP / Code du travail</span></div>
+
+  <div class="table-card" style="margin-bottom:20px">
+    <div class="table-card-header">
+      <div class="conv-header-accent" style="width:3px;height:16px;border-radius:1px;background:var(--orange)"></div>
+      <h3>Éléments de construction — classement requis (indicatif)</h3>
+      <input class="table-search" type="text" id="search-cf" placeholder="Filtrer…" oninput="filterTable('cf-table', this.value)">
+    </div>
+    <div style="overflow-x:auto">
+      <table class="data-table" id="cf-table">
+        <thead><tr>
+          <th>Élément</th>
+          <th>Classement minimal</th>
+          <th>Réglementation / norme</th>
+          <th>Remarque</th>
+        </tr></thead>
+        <tbody>
+          <!-- Structures -->
+          <tr><td><strong>Plancher entre niveaux (non porteur)</strong></td><td class="highlight-col">EI 60</td><td class="dim-col">Arrêté 25/06/1980 ERP</td><td class="dim-col">EI 120 pour IGH > 50 m</td></tr>
+          <tr><td><strong>Plancher porteur entre niveaux</strong></td><td class="highlight-col">REI 60</td><td class="dim-col">ERP / Code du travail</td><td class="dim-col">REI 120 en IGH</td></tr>
+          <tr><td><strong>Mur de compartimentage</strong></td><td class="highlight-col">REI 60 / REI 120</td><td class="dim-col">ERP type U, L…</td><td class="dim-col">Selon risque et surface</td></tr>
+          <tr><td><strong>Cloison entre locaux à risques</strong></td><td class="highlight-col">EI 30</td><td class="dim-col">Code du travail R4216</td><td class="dim-col">EI 60 si local > 300 m²</td></tr>
+          <tr><td><strong>Structure métallique (poteau acier)</strong></td><td class="highlight-col">R 60 / R 120</td><td class="dim-col">EC3, NF EN 1993-1-2</td><td class="dim-col">Protection par intumescent, plâtre ou flocage</td></tr>
+          <tr><td><strong>Charpente bois</strong></td><td class="highlight-col">R 30 / R 60</td><td class="dim-col">EC5, NF EN 1995-1-2</td><td class="dim-col">Calcul par réduction de section</td></tr>
+          <!-- Portes -->
+          <tr><td><strong>Porte entre couloir et local</strong></td><td class="highlight-col">EI₂ 30-C</td><td class="dim-col">ERP, logements collectifs</td><td class="dim-col">Fermeture automatique obligatoire</td></tr>
+          <tr><td><strong>Porte de compartiment (ERP)</strong></td><td class="highlight-col">EI₂ 60-C</td><td class="dim-col">Arrêté ERP</td><td class="dim-col">+ étanchéité fumée Sa recommandée</td></tr>
+          <tr><td><strong>Porte de local à risques importants</strong></td><td class="highlight-col">EI₂ 60-C-Sa</td><td class="dim-col">Code du travail</td><td class="dim-col">Local chaufferie, stockage</td></tr>
+          <tr><td><strong>Porte coupe-feu logement (entre appartements)</strong></td><td class="highlight-col">EI₂ 30-C</td><td class="dim-col">CCH R.111-11</td><td class="dim-col">Immeuble collectif &ge; 3 étages</td></tr>
+          <!-- Gaines / trappes -->
+          <tr><td><strong>Trappe de visite (gaine technique)</strong></td><td class="highlight-col">EI 30 / EI 60</td><td class="dim-col">NF S 61-937</td><td class="dim-col">Selon degré de la paroi traversée</td></tr>
+          <tr><td><strong>Volet coupe-feu (CVC)</strong></td><td class="highlight-col">EI 60-S</td><td class="dim-col">NF EN 15650</td><td class="dim-col">Gaines de ventilation traversant paroi CF</td></tr>
+          <tr><td><strong>Clapet coupe-feu (conduit aéraulique)</strong></td><td class="highlight-col">EI 60 (ou 120)</td><td class="dim-col">NF EN 15650</td><td class="dim-col">Déclenchement thermo-fusible ou électrique</td></tr>
+          <tr><td><strong>Manchon coupe-feu (passage tuyauterie)</strong></td><td class="highlight-col">EI selon paroi</td><td class="dim-col">NF EN 14135</td><td class="dim-col">Permet passage tuyau plastique en paroi CF</td></tr>
+          <!-- Vitrages -->
+          <tr><td><strong>Vitrage coupe-feu (cloison)</strong></td><td class="highlight-col">EI 30 / EI 60</td><td class="dim-col">NF EN 13501-2</td><td class="dim-col">Verre feuilleté anti-feu (ex : Pyrobel, Contraflam)</td></tr>
+          <tr><td><strong>Vitrage pare-flammes (façade)</strong></td><td class="highlight-col">E 30-W</td><td class="dim-col">NF EN 13501-2</td><td class="dim-col">Vitrage simple feuilleté + limitation rayonnement</td></tr>
+          <!-- Plafonds -->
+          <tr><td><strong>Plafond suspendu coupe-feu</strong></td><td class="highlight-col">EI 30 / EI 60</td><td class="dim-col">NF EN 13964</td><td class="dim-col">Protection structure porteuse en sous-face</td></tr>
+          <!-- Conduits -->
+          <tr><td><strong>Conduit de désenfumage</strong></td><td class="highlight-col">EI 60 (E 300)</td><td class="dim-col">NF EN 1366-1</td><td class="dim-col">600°C pendant 30 min (essai E 300)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TUYAUTERIE : traversées de paroi -->
+  <div class="section-title" style="font-size:16px;margin-bottom:16px">Traversées de parois — Tuyauterie <span>manchons · fourreaux · obturations</span></div>
+
+  <div class="cf-highlight-box">
+    <h4>⚠ Principe fondamental : continuité de la résistance au feu</h4>
+    <p>Toute traversée d'une paroi coupe-feu (mur, plancher, cloison) par une canalisation <strong>rompt la continuité de la résistance au feu</strong> de cette paroi. Il est obligatoire de rétablir cette continuité par un <strong>dispositif de protection</strong> adapté à la nature de la canalisation (acier, plastique, cuivre, composite) et au degré coupe-feu de la paroi traversée.</p>
+  </div>
+
+  <div class="table-card" style="margin-bottom:20px">
+    <div class="table-card-header">
+      <div class="conv-header-accent" style="width:3px;height:16px;border-radius:1px;background:var(--cyan)"></div>
+      <h3>Dispositifs de protection des traversées — selon type de canalisation</h3>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="data-table">
+        <thead><tr>
+          <th>Type canalisation</th>
+          <th>Risque</th>
+          <th>Dispositif requis</th>
+          <th>Principe</th>
+          <th>Norme essai</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Tube acier (eau, chauffage)</strong></td>
+            <td><span class="badge" style="background:var(--green-d);color:var(--green)">FAIBLE</span></td>
+            <td class="highlight-col">Fourreau + mortier ou laine CF</td>
+            <td class="dim-col">L'acier ne fond pas ; le fourreau comble le vide annulaire</td>
+            <td class="dim-col">EN 1366-3</td>
+          </tr>
+          <tr>
+            <td><strong>Tube cuivre (plomberie)</strong></td>
+            <td><span class="badge" style="background:var(--yellow-d);color:var(--yellow)">MOYEN</span></td>
+            <td class="highlight-col">Manchon intumescent ou mortier CF</td>
+            <td class="dim-col">Le cuivre fond à 1085°C ; le manchon gonfle pour obturer</td>
+            <td class="dim-col">EN 1366-3 / NF EN 14135</td>
+          </tr>
+          <tr>
+            <td><strong>Tube PVC / PER / PP (eaux usées)</strong></td>
+            <td><span class="badge" style="background:var(--red-d);color:var(--red)">ÉLEVÉ</span></td>
+            <td class="highlight-col">Manchon intumescent obligatoire</td>
+            <td class="dim-col">Le plastique fond rapidement et laisse un trou ; le manchon se dilate ×4 pour obturer</td>
+            <td class="dim-col">NF EN 14135</td>
+          </tr>
+          <tr>
+            <td><strong>Gaine électrique (câble seul)</strong></td>
+            <td><span class="badge" style="background:var(--yellow-d);color:var(--yellow)">MOYEN</span></td>
+            <td class="highlight-col">Mortier coupe-feu ou bourrage enduit CF</td>
+            <td class="dim-col">Obsturation du passage des flammes et gaz chauds</td>
+            <td class="dim-col">EN 1366-3</td>
+          </tr>
+          <tr>
+            <td><strong>Conduit aéraulique (ventilation)</strong></td>
+            <td><span class="badge" style="background:var(--red-d);color:var(--red)">ÉLEVÉ</span></td>
+            <td class="highlight-col">Clapet coupe-feu EI 60 ou 120</td>
+            <td class="dim-col">Clapet à lame déclenchée par thermo-fusible ou actionneur électrique. Interdit de traverser sans clapet.</td>
+            <td class="dim-col">NF EN 15650</td>
+          </tr>
+          <tr>
+            <td><strong>Gaine multi-tubes (chemin de câbles)</strong></td>
+            <td><span class="badge" style="background:var(--yellow-d);color:var(--yellow)">MOYEN</span></td>
+            <td class="highlight-col">Système modulaire coupe-feu (ex : STI)</td>
+            <td class="dim-col">Blocs modulaires intumescents + écran rigide CF</td>
+            <td class="dim-col">EN 1366-3</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Manchons intumescents -->
+  <div class="section-title" style="font-size:16px;margin-bottom:16px">Manchons intumescents <span>dimensionnement et pose</span></div>
+
+  <div class="cf-classification" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr))">
+    <div class="formula-box">
+      <h4>Principe du manchon intumescent</h4>
+      <div class="formula">T°C &uarr; → matériau <span class="fo">× 4 à × 8</span> volume</div>
+      <p style="font-size:11px;color:var(--dim);margin-top:8px;line-height:1.6">Le manchon contient un matériau intumescent (graphite expansé ou résine) qui gonfle sous l'effet de la chaleur (dès ~150°C) pour obturer l'espace laissé par le tube fondu ou brûlé.</p>
+    </div>
+    <div class="formula-box">
+      <h4>Dimensionnement</h4>
+      <div class="formula">Choisir manchon ≥ <span class="fo">Ø ext. tube</span></div>
+      <div class="formula-note">
+        • Vérifier la compatibilité : PVC / PP / PER / multicouche<br>
+        • Épaisseur paroi : min. 100 mm béton, 75 mm blocs, 12.5 mm plaques de plâtre (double)<br>
+        • Maxi DN traversé selon fiche technique (souvent DN 15 à DN 160)<br>
+        • Espacement entre manchons : min. 3× Ø
+      </div>
+    </div>
+    <div class="formula-box">
+      <h4>Pose — règles générales</h4>
+      <div class="formula-note">
+        ✓ Manchon centré sur l'épaisseur de paroi<br>
+        ✓ Fixation selon prescription fabricant<br>
+        ✓ Joint annulaire comblé (mortier ou mousse CF)<br>
+        ✓ Marquage CE + PV d'essai à fournir<br>
+        ✓ Fiche technique conservée pour le DOE<br>
+        ✗ Ne pas peindre sur le manchon<br>
+        ✗ Ne pas superposer deux manchons
+      </div>
+    </div>
+    <div class="formula-box">
+      <h4>Marques / références courantes</h4>
+      <div class="formula-note">
+        • <strong style="color:var(--text)">Hilti</strong> — CFS-C IFC (manchon + collier)<br>
+        • <strong style="color:var(--text)">Rockwool / CONLIT</strong> — gamme SL<br>
+        • <strong style="color:var(--text)">STI Firestop</strong> — SpecSeal<br>
+        • <strong style="color:var(--text)">NULLIFIRE</strong> — FC série<br>
+        • <strong style="color:var(--text)">3M</strong> — FireDam 235+<br>
+        Toujours exiger le <strong style="color:var(--orange)">PV d'essai EN 14135</strong> et la fiche technique fabricant.
+      </div>
+    </div>
+  </div>
+
+  <!-- Tableau récapitulatif réglementation bâtiments -->
+  <div class="section-title" style="font-size:16px;margin-bottom:16px;margin-top:12px">Exigences réglementaires par type de bâtiment <span>France — ERP · IGH · Code du travail</span></div>
+
+  <div class="table-card" style="margin-bottom:20px">
+    <div class="table-card-header">
+      <div class="conv-header-accent" style="width:3px;height:16px;border-radius:1px;background:var(--yellow)"></div>
+      <h3>Synthèse des degrés coupe-feu requis</h3>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="data-table">
+        <thead><tr>
+          <th>Type de bâtiment</th>
+          <th>Plancher entre niveaux</th>
+          <th>Mur porteur/compartimentage</th>
+          <th>Structure (R seul)</th>
+          <th>Texte réglementaire</th>
+        </tr></thead>
+        <tbody>
+          <tr><td><strong>ERP 1ʳᵉ catégorie (&gt; 1500 pers.)</strong></td><td class="highlight-col">REI 120</td><td class="highlight-col">REI 120</td><td class="highlight-col">R 120</td><td class="dim-col">Arr. 25/06/1980</td></tr>
+          <tr><td><strong>ERP 2ᵉ / 3ᵉ catégorie</strong></td><td class="highlight-col">REI 60</td><td class="highlight-col">REI 60</td><td class="highlight-col">R 60</td><td class="dim-col">Arr. 25/06/1980</td></tr>
+          <tr><td><strong>ERP 4ᵉ / 5ᵉ catégorie (&lt; 200 pers.)</strong></td><td class="highlight-col">REI 30</td><td class="highlight-col">REI 30</td><td class="highlight-col">R 30</td><td class="dim-col">Arr. 25/06/1980</td></tr>
+          <tr><td><strong>IGH (Imm. de Grande Hauteur) &gt; 50 m</strong></td><td class="highlight-col">REI 120</td><td class="highlight-col">REI 120</td><td class="highlight-col">R 120</td><td class="dim-col">Arr. 30/12/2011</td></tr>
+          <tr><td><strong>Logement collectif R+3 et +</strong></td><td class="highlight-col">REI 60</td><td class="highlight-col">EI 60</td><td class="highlight-col">R 60</td><td class="dim-col">CCH R111-13</td></tr>
+          <tr><td><strong>Maison individuelle</strong></td><td>Non requis (R+1)</td><td>—</td><td>—</td><td class="dim-col">—</td></tr>
+          <tr><td><strong>Bâtiment industriel (Code du travail)</strong></td><td class="highlight-col">REI 60</td><td class="highlight-col">REI 60</td><td class="highlight-col">R 60</td><td class="dim-col">R.4216-2</td></tr>
+          <tr><td><strong>ICPE (Installation classée)</strong></td><td class="highlight-col">REI 120</td><td class="highlight-col">REI 120</td><td class="highlight-col">R 120</td><td class="dim-col">Arr. selon rubrique</td></tr>
+          <tr><td><strong>Parc de stationnement couvert</strong></td><td class="highlight-col">REI 120</td><td class="highlight-col">REI 120</td><td class="highlight-col">R 120</td><td class="dim-col">Arr. 09/05/2006</td></tr>
+          <tr><td><strong>Tunnel routier (&gt; 300 m)</strong></td><td>—</td><td class="highlight-col">EI 120 (parois)</td><td class="highlight-col">R 120–240</td><td class="dim-col">Circ. 2000-82</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Matériaux et leurs caractéristiques -->
+  <div class="section-title" style="font-size:16px;margin-bottom:16px">Matériaux — comportement au feu <span>point de fusion · tenue thermique</span></div>
+
+  <div class="table-card" style="margin-bottom:20px">
+    <div class="table-card-header">
+      <div class="conv-header-accent" style="width:3px;height:16px;border-radius:1px;background:var(--steel)"></div>
+      <h3>Températures critiques des matériaux de construction</h3>
+    </div>
+    <table class="data-table">
+      <thead><tr>
+        <th>Matériau</th><th>T° critique (perte résistance)</th><th>T° fusion/dégrad.</th><th>Comportement</th><th>Protection nécessaire</th>
+      </tr></thead>
+      <tbody>
+        <tr><td><strong>Acier de structure</strong></td><td class="highlight-col" style="color:var(--red)">~500–550°C</td><td class="dim-col">1 535°C</td><td class="dim-col">Perd 50% résistance à 500°C</td><td>Peinture intumescente, flocage, plâtre projeté</td></tr>
+        <tr><td><strong>Béton armé</strong></td><td class="highlight-col" style="color:var(--yellow)">~300–400°C (acier)</td><td class="dim-col">&gt; 1 200°C</td><td class="dim-col">Béton résiste ; armatures perdent résistance</td><td>Enrobage suffisant (min. 30 mm)</td></tr>
+        <tr><td><strong>Béton précontraint</strong></td><td class="highlight-col" style="color:var(--red)">~250–350°C (câbles)</td><td class="dim-col">Idem</td><td class="dim-col">Plus sensible que BA (câbles HP)</td><td>Enrobage renforcé (min. 40 mm)</td></tr>
+        <tr><td><strong>Bois massif</strong></td><td class="highlight-col" style="color:var(--green)">Carbonisation ~0.6 mm/min</td><td class="dim-col">~300°C</td><td class="dim-col">Comportement prédictible par calcul réduction section</td><td>Surdimensionnement, peinture CF</td></tr>
+        <tr><td><strong>Aluminium</strong></td><td class="highlight-col" style="color:var(--red)">~150–200°C</td><td class="dim-col">660°C</td><td class="dim-col">Perd rapidement sa résistance</td><td>Protection systématique si CF &ge; 30</td></tr>
+        <tr><td><strong>PVC</strong></td><td class="highlight-col" style="color:var(--red)">~80°C</td><td class="dim-col">~160–200°C</td><td class="dim-col">Ramollit, fond, laisse passage</td><td>Manchon intumescent obligatoire</td></tr>
+        <tr><td><strong>Fonte (tuyauterie)</strong></td><td class="highlight-col" style="color:var(--green)">~800°C</td><td class="dim-col">1 200°C</td><td class="dim-col">Très bonne tenue — utilisée en descente EU</td><td>Fourreau + mortier suffit généralement</td></tr>
+        <tr><td><strong>Verre ordinaire</strong></td><td class="highlight-col" style="color:var(--red)">~250–300°C</td><td class="dim-col">~700°C</td><td class="dim-col">Casse, laisse ouverture</td><td>Verre feuilleté coupe-feu (ex : Pyrobel)</td></tr>
+        <tr><td><strong>Plâtre (BA13)</strong></td><td class="highlight-col" style="color:var(--cyan)">~600°C</td><td class="dim-col">&gt; 800°C</td><td class="dim-col">Bon isolant thermique CF ; double couche pour EI 60</td><td>—</td></tr>
+        <tr><td><strong>Laine de roche (haute densité)</strong></td><td class="highlight-col" style="color:var(--green)">&gt; 1 000°C</td><td class="dim-col">&gt; 1 000°C</td><td class="dim-col">Excellente tenue ; non combustible</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Avertissement final -->
+  <div class="cf-warn">
+    <strong>⚠ Rappel réglementaire :</strong> Le classement de résistance au feu doit être attesté par des <strong>procès-verbaux (PV) d'essais</strong> délivrés par des laboratoires agréés (CNPP, LNE, CSTB, etc.) selon les méthodes EN 1363, EN 1364, EN 1365, EN 1366, EN 1634... Le projeteur doit s'assurer que les PV correspondent exactement au système mis en œuvre (dimensions, fixations, matériaux de jointoiement). En France, le classement est reconnu via <strong>l'ATEX ou l'ATEx</strong> ou un <strong>Avis Technique</strong> du CSTB pour les systèmes innovants. Toute modification non prévue par le PV invalide le classement.
+  </div>
+
+</div>
+
+</div><!-- /content -->
+
+<script>
+// ── TABS ──
+document.getElementById('tabNav').addEventListener('click', e => {
+  const tab = e.target.closest('.tab[data-tab]');
+  if (!tab) return;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  tab.classList.add('active');
+  document.getElementById('section-' + tab.dataset.tab).classList.add('active');
+});
+
+// ── TOAST ──
+function showToast(msg = 'Copié !') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1500);
+}
+
+// ── COPY ON CLICK ──
+document.addEventListener('click', e => {
+  const row = e.target.closest('.result-row');
+  if (!row) return;
+  const val = row.querySelector('.result-value')?.textContent?.trim();
+  if (val) { navigator.clipboard.writeText(val).catch(() => {}); showToast('Copié : ' + val); }
+});
+
+// ── HELPERS ──
+function R(label, val, cls = '', decimals = 4) {
+  if (val === null || isNaN(val)) return '';
+  const disp = typeof val === 'string' ? val : smartNum(val);
+  return `<div class="result-row"><span class="result-label">${label}</span><span class="result-value ${cls}">${disp}</span></div>`;
+}
+function smartNum(v) {
+  if (Math.abs(v) >= 1000000) return v.toLocaleString('fr-FR', {maximumFractionDigits: 0});
+  if (Math.abs(v) >= 1000)    return v.toLocaleString('fr-FR', {maximumFractionDigits: 2});
+  if (Math.abs(v) >= 0.01)    return v.toLocaleString('fr-FR', {maximumFractionDigits: 4});
+  return v.toExponential(3);
+}
+function setR(id, html) { document.getElementById(id).innerHTML = html; }
+function v(id) { return parseFloat(document.getElementById(id).value); }
+
+// ══ LONGUEUR ══
+function conv_mm_in(el) {
+  const mm = parseFloat(el.value);
+  const inch = mm / 25.4;
+  document.getElementById('inch').value = isNaN(inch) ? '' : +inch.toFixed(6);
+  const h = isNaN(mm) ? '' :
+    R('mm',mm,'accent-orange') +
+    R('cm', mm/10) + R('m', mm/1000) +
+    R('pouces (décimal)', inch, 'accent-cyan') +
+    R('pieds', inch/12) + R('yards', inch/36) +
+    R('µm (microns)', mm*1000);
+  setR('res-mm-in', h);
+}
+function conv_in_mm(el) {
+  const inch = parseFloat(el.value);
+  const mm = inch * 25.4;
+  document.getElementById('mm').value = isNaN(mm) ? '' : +mm.toFixed(4);
+  const h = isNaN(inch) ? '' :
+    R('pouces',inch,'accent-orange') +
+    R('mm', mm, 'accent-cyan') + R('cm', mm/10) + R('m', mm/1000) + R('pieds', inch/12);
+  setR('res-mm-in', h);
+}
+function swapMmIn() {
+  const a = document.getElementById('mm').value;
+  document.getElementById('mm').value = document.getElementById('inch').value;
+  document.getElementById('inch').value = a;
+  conv_mm_in(document.getElementById('mm'));
+}
+function conv_longueur(el) {
+  const mm = parseFloat(el.value);
+  if (isNaN(mm)) { setR('res-longueur',''); return; }
+  setR('res-longueur',
+    R('µm', mm*1000) + R('cm', mm/10) + R('dm', mm/100) + R('m', mm/1000,'accent-orange') +
+    R('km', mm/1e6) + R('pouces', mm/25.4,'accent-cyan') + R('pieds', mm/304.8) +
+    R('yards', mm/914.4) + R('thou (mil)', mm*1000/25.4)
+  );
+}
+function conv_frac() {
+  const val = parseFloat(document.getElementById('frac-sel').value);
+  if (isNaN(val)) { setR('res-frac',''); return; }
+  const mm = val * 25.4;
+  setR('res-frac',
+    R('Décimal pouces', val, 'accent-orange') +
+    R('mm', mm, 'accent-cyan') +
+    R('µm', mm*1000)
+  );
+}
+
+// ══ SURFACE ══
+function conv_surface(el) {
+  const mm2 = parseFloat(el.value);
+  if (isNaN(mm2)) { setR('res-surface',''); return; }
+  setR('res-surface',
+    R('mm²', mm2,'accent-orange') + R('cm²', mm2/100) + R('dm²', mm2/10000) +
+    R('m²', mm2/1e6,'accent-cyan') + R('in²', mm2/645.16) + R('ft²', mm2/92903)
+  );
+}
+function conv_surface2(el) {
+  const cm2 = parseFloat(el.value);
+  if (isNaN(cm2)) { setR('res-surface2',''); return; }
+  setR('res-surface2',
+    R('mm²', cm2*100) + R('cm²', cm2,'accent-orange') + R('m²', cm2/10000,'accent-cyan') +
+    R('in²', cm2/6.4516) + R('ft²', cm2/929.03) + R('yd²', cm2/8361.27)
+  );
+}
+
+// ══ VOLUME ══
+function conv_volume(el) {
+  const L = parseFloat(el.value);
+  if (isNaN(L)) { setR('res-volume',''); return; }
+  setR('res-volume',
+    R('mL / cm³', L*1000) + R('dL', L*10) + R('L', L,'accent-orange') +
+    R('m³', L/1000,'accent-cyan') + R('gallons (US)', L/3.78541) +
+    R('gallons (UK)', L/4.54609) + R('in³', L/0.016387) + R('ft³', L/28.3168)
+  );
+}
+function conv_debit(el) {
+  const m3h = parseFloat(el.value);
+  if (isNaN(m3h)) { setR('res-debit',''); return; }
+  setR('res-debit',
+    R('m³/h', m3h,'accent-orange') + R('m³/min', m3h/60) + R('m³/s', m3h/3600,'accent-cyan') +
+    R('L/h', m3h*1000) + R('L/min', m3h*1000/60) + R('L/s', m3h*1000/3600) +
+    R('GPM (US)', m3h*4.40287)
+  );
+}
+
+// ══ PRESSION ══
+function conv_pression(el) {
+  const bar = parseFloat(el.value);
+  if (isNaN(bar)) { setR('res-pression',''); return; }
+  setR('res-pression',
+    R('bar', bar,'accent-orange') + R('Pa', bar*1e5) + R('kPa', bar*100) +
+    R('MPa', bar/10,'accent-cyan') + R('psi', bar*14.5038) +
+    R('atm', bar/1.01325) + R('kgf/cm²', bar/0.980665) +
+    R('mbar', bar*1000) + R('mmHg / torr', bar*750.062) + R('mmH₂O', bar*10197.2)
+  );
+}
+function conv_psi(el) {
+  const psi = parseFloat(el.value);
+  if (isNaN(psi)) { setR('res-psi',''); return; }
+  setR('res-psi',
+    R('psi', psi,'accent-orange') + R('bar', psi/14.5038,'accent-cyan') +
+    R('kPa', psi*6.89476) + R('MPa', psi/145.038) +
+    R('atm', psi/14.6959) + R('kgf/cm²', psi/14.2233)
+  );
+}
+
+// ══ TEMPERATURE ══
+function conv_temp_c(el) {
+  const c = parseFloat(el.value);
+  if (isNaN(c)) { setR('res-temp-c',''); return; }
+  setR('res-temp-c',
+    R('°C', c,'accent-orange') + R('°F', c*9/5+32,'accent-cyan') +
+    R('K', c+273.15) + R('°R (Rankine)', (c+273.15)*9/5)
+  );
+}
+function conv_temp_f(el) {
+  const f = parseFloat(el.value);
+  if (isNaN(f)) { setR('res-temp-f',''); return; }
+  const c = (f-32)*5/9;
+  setR('res-temp-f',
+    R('°F', f,'accent-orange') + R('°C', c,'accent-cyan') +
+    R('K', c+273.15) + R('°R', f+459.67)
+  );
+}
+
+// ══ MASSE / FORCE / COUPLE ══
+function conv_masse(el) {
+  const kg = parseFloat(el.value);
+  if (isNaN(kg)) { setR('res-masse',''); return; }
+  setR('res-masse',
+    R('kg', kg,'accent-orange') + R('g', kg*1000) + R('t (tonne)', kg/1000) +
+    R('lb (livres)', kg*2.20462,'accent-cyan') + R('oz', kg*35.274) + R('kgf (~N)', kg*9.80665)
+  );
+}
+function conv_force(el) {
+  const n = parseFloat(el.value);
+  if (isNaN(n)) { setR('res-force',''); return; }
+  setR('res-force',
+    R('N', n,'accent-orange') + R('kN', n/1000,'accent-cyan') +
+    R('kgf', n/9.80665) + R('lbf', n/4.44822) + R('daN', n/10)
+  );
+}
+function conv_couple(el) {
+  const nm = parseFloat(el.value);
+  if (isNaN(nm)) { setR('res-couple',''); return; }
+  setR('res-couple',
+    R('N·m', nm,'accent-orange') + R('kN·m', nm/1000) +
+    R('N·cm', nm*100) + R('kgf·m', nm/9.80665,'accent-cyan') +
+    R('kgf·cm', nm*100/9.80665) + R('lbf·ft', nm/1.35582) + R('lbf·in', nm/0.113)
+  );
+}
+
+// ══ ANGLES ══
+function conv_angle(el) {
+  const deg = parseFloat(el.value);
+  if (isNaN(deg)) { setR('res-angle',''); return; }
+  const rad = deg * Math.PI / 180;
+  const grad = deg * 400 / 360;
+  const pct = Math.tan(rad) * 100;
+  setR('res-angle',
+    R('°', deg,'accent-orange') + R('rad', rad,'accent-cyan') +
+    R('grad (gon)', grad) + R('% pente', pct) + R('‰ pente', pct*10) +
+    R('sin', Math.sin(rad)) + R('cos', Math.cos(rad)) + R('tan', Math.tan(rad))
+  );
+}
+function conv_pente(el) {
+  const pct = parseFloat(el.value);
+  if (isNaN(pct)) { setR('res-pente',''); return; }
+  const rad = Math.atan(pct/100);
+  const deg = rad * 180 / Math.PI;
+  setR('res-pente',
+    R('% pente', pct,'accent-orange') + R('°', deg,'accent-cyan') +
+    R('mm/m', pct*10) + R('rad', rad) + R('‰', pct*10)
+  );
+}
+
+// ══ TUYAUTERIE ══
+const DN_TABLE = [
+  [6,   '1/8"',  10.29,  1.73,  2.41,  null,   6.83],
+  [8,   '1/4"',  13.72,  2.24,  3.02,  null,   9.24],
+  [10,  '3/8"',  17.15,  2.31,  3.20,  null,  12.53],
+  [15,  '1/2"',  21.34,  2.77,  3.73,  4.78,  15.80],
+  [20,  '3/4"',  26.67,  2.87,  3.91,  5.56,  20.93],
+  [25,  '1"',    33.40,  3.38,  4.55,  6.35,  26.64],
+  [32,  '1"¼',   42.16,  3.56,  4.85,  6.35,  35.04],
+  [40,  '1"½',   48.26,  3.68,  5.08,  7.14,  40.90],
+  [50,  '2"',    60.33,  3.91,  5.54,  8.74,  52.51],
+  [65,  '2"½',   73.03,  5.16,  7.01,  9.53,  62.71],
+  [80,  '3"',    88.90,  5.49,  7.62, 11.13,  77.92],
+  [100, '4"',   114.30,  6.02,  8.56, 13.49, 102.26],
+  [125, '5"',   141.30,  6.55,  9.53, 15.88, 128.20],
+  [150, '6"',   168.28,  7.11, 10.97, 18.26, 154.06],
+  [200, '8"',   219.08,  8.18, 12.70, 23.01, 202.72],
+  [250, '10"',  273.05,  9.27, 15.09, 28.58, 254.51],
+  [300, '12"',  323.85,  9.53, 17.48, 33.32, 304.79],
+  [350, '14"',  355.60,  9.53, 19.05, 35.71, 336.54],
+  [400, '16"',  406.40,  9.53, 21.44, 40.49, 387.34],
+  [450, '18"',  457.20,  9.53, 23.83, 45.24, 438.14],
+  [500, '20"',  508.00,  9.53, 26.19, 50.01, 488.94],
+  [600, '24"',  609.60,  9.53, 30.96, 59.54, 590.54],
+];
+
+function buildDnTable() {
+  const tbody = document.getElementById('dn-tbody');
+  tbody.innerHTML = DN_TABLE.map(r => {
+    const [dn,nps,de,s40,s80,s160,di] = r;
+    return `<tr>
+      <td class="highlight-col">DN ${dn}</td>
+      <td>${nps}</td>
+      <td>${de}</td>
+      <td>${s40}</td>
+      <td>${s80}</td>
+      <td>${s160 || '—'}</td>
+      <td>${di}</td>
+    </tr>`;
+  }).join('');
+}
+buildDnTable();
+
+function conv_dn(el) {
+  const dn = parseFloat(el.value);
+  if (isNaN(dn)) { setR('res-dn',''); return; }
+  const row = DN_TABLE.find(r => r[0] === dn);
+  if (!row) { setR('res-dn', R('Résultat','DN non standard dans la table','accent-orange')); return; }
+  const [,nps,de,s40,s80,s160,di] = row;
+  setR('res-dn',
+    R('NPS', nps,'accent-orange') + R('DE réel (mm)', de,'accent-cyan') +
+    R('SCH 40 ép. (mm)', s40) + R('SCH 80 ép. (mm)', s80) +
+    R('SCH 160 ép. (mm)', s160 || 'N/A') + R('DI SCH40 (mm)', di,'accent-green')
+  );
+}
+
+function conv_vitesse() {
+  const dn = parseFloat(document.getElementById('v-dn').value);
+  const m3h = parseFloat(document.getElementById('v-debit').value);
+  if (isNaN(dn) || isNaN(m3h)) { setR('res-vitesse',''); return; }
+  const row = DN_TABLE.find(r => r[0] === dn);
+  const di = row ? row[6] / 1000 : dn / 1000; // m
+  const di_mm = di * 1000;
+  const S = Math.PI * di * di / 4;  // m²
+  const Q = m3h / 3600; // m³/s
+  const v = Q / S;
+  const S_mm2 = S * 1e6;
+  setR('res-vitesse',
+    R('DI (mm)', di_mm) + R('Section (mm²)', S_mm2) +
+    R('Débit (m³/s)', Q) + R('Vitesse (m/s)', v, v < 0.5 ? 'accent-orange' : v <= 4 ? 'accent-green' : 'accent-orange') +
+    R('Vitesse (m/min)', v*60) +
+    (v < 0.5 ? R('⚠ Trop lent','risque dépôts','accent-orange') :
+     v > 6   ? R('⚠ Trop rapide','risque érosion','accent-orange') :
+               R('✓ Vitesse','acceptable','accent-green'))
+  );
+}
+
+function conv_section() {
+  const de = parseFloat(document.getElementById('de-val').value);
+  const ep = parseFloat(document.getElementById('ep-val').value);
+  if (isNaN(de)) { setR('res-section',''); return; }
+  const di = isNaN(ep) ? de : de - 2*ep;
+  const S = Math.PI * di * di / 4;
+  setR('res-section',
+    R('DE (mm)', de,'accent-orange') + R('ep (mm)', isNaN(ep)?'—':ep) +
+    R('DI (mm)', di,'accent-cyan') + R('Section passage (mm²)', S,'accent-green') +
+    R('Section passage (cm²)', S/100) + R('Section passage (m²)', S/1e6)
+  );
+}
+
+// ══ TOLERANCES ══
+// IT grades approximation per ISO 286
+const IT_VALS = [
+  [0,3,     [4,6,10,14,25,40,60,100]],
+  [3,6,     [5,8,12,18,30,48,75,120]],
+  [6,10,    [6,9,15,22,36,58,90,150]],
+  [10,18,   [8,11,18,27,43,70,110,180]],
+  [18,30,   [9,13,21,33,52,84,130,210]],
+  [30,50,   [11,16,25,39,62,100,160,250]],
+  [50,80,   [13,19,30,46,74,120,190,300]],
+  [80,120,  [15,22,35,54,87,140,220,350]],
+  [120,180, [18,25,40,63,100,160,250,400]],
+  [180,250, [20,29,46,72,115,185,290,460]],
+  [250,315, [23,32,52,81,130,210,320,520]],
+  [315,400, [25,36,57,89,140,230,360,570]],
+  [400,500, [27,40,63,97,155,250,400,630]],
+];
+const GRADES = [5,6,7,8,9,10,11,12];
+
+function calc_it() {
+  const dim = v('tol-dim');
+  const gIdx = GRADES.indexOf(parseInt(document.getElementById('tol-grade').value));
+  if (isNaN(dim) || gIdx < 0) { setR('res-it',''); return; }
+  const row = IT_VALS.find(r => dim > r[0] && dim <= r[1]);
+  if (!row) { setR('res-it', R('Hors plage','dim > 500 mm : calcul direct','accent-orange')); return; }
+  const it_um = row[2][gIdx];
+  setR('res-it',
+    R('Dimension', dim + ' mm','accent-orange') +
+    R('Grade IT' + GRADES[gIdx], it_um + ' µm','accent-cyan') +
+    R('Tolérance', (it_um/1000).toFixed(3) + ' mm','accent-green') +
+    R('Plage', '> ' + row[0] + ' – ' + row[1] + ' mm')
+  );
+}
+
+// ══ VISSERIE ══
+const VIS_DATA = [
+  ['M1.6',  1.6,  0.35, 1.171, 3.2,  1.25,  '0.063"'],
+  ['M2',    2,    0.40, 1.509, 4,    1.60,  '0.079"'],
+  ['M2.5',  2.5,  0.45, 1.948, 5,    2.05,  '0.098"'],
+  ['M3',    3,    0.5,  2.387, 5.5,  2.50,  '0.118"'],
+  ['M4',    4,    0.7,  3.141, 7,    3.30,  '0.157"'],
+  ['M5',    5,    0.8,  4.019, 8,    4.20,  '0.197"'],
+  ['M6',    6,    1.0,  4.773, 10,   5.00,  '0.236"'],
+  ['M8',    8,    1.25, 6.466, 13,   6.80,  '0.315"'],
+  ['M10',   10,   1.5,  8.160, 16,   8.50,  '0.394"'],
+  ['M12',   12,   1.75, 9.853, 18,  10.20,  '0.472"'],
+  ['M14',   14,   2.0, 11.546, 21,  12.00,  '0.551"'],
+  ['M16',   16,   2.0, 13.546, 24,  14.00,  '0.630"'],
+  ['M20',   20,   2.5, 16.933, 30,  17.50,  '0.787"'],
+  ['M24',   24,   3.0, 20.319, 36,  21.00,  '0.945"'],
+  ['M27',   27,   3.0, 23.319, 41,  24.00,  '1.063"'],
+  ['M30',   30,   3.5, 25.706, 46,  26.50,  '1.181"'],
+  ['M36',   36,   4.0, 31.093, 55,  32.00,  '1.417"'],
+  ['M42',   42,   4.5, 36.479, 65,  37.50,  '1.654"'],
+  ['M48',   48,   5.0, 41.866, 75,  43.00,  '1.890"'],
+];
+
+function buildVisTable() {
+  const tbody = document.getElementById('vis-tbody');
+  tbody.innerHTML = VIS_DATA.map(r => {
+    const [des,dn,pas,fond,cle,perc,pouce] = r;
+    return `<tr>
+      <td class="highlight-col">${des}</td>
+      <td>${dn}</td>
+      <td>${pas}</td>
+      <td>${fond}</td>
+      <td>${cle}</td>
+      <td class="highlight-col" style="color:var(--cyan)">${perc}</td>
+      <td class="dim-col">${pouce}</td>
+    </tr>`;
+  }).join('');
+}
+buildVisTable();
+
+// ── TABLE FILTER ──
+function filterTable(tableId, query) {
+  const q = query.toLowerCase();
+  document.querySelectorAll(`#${tableId} tbody tr`).forEach(tr => {
+    tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+</script>
+</body>
+</html>

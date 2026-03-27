@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MindMap</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Fraunces:opsz,wght@9..144,300;9..144,600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f2eb;
+  --ink:#1a1612;
+  --muted:#8a8070;
+  --muted2:#b8af9e;
+  --line:#cdc5b4;
+  --accent:#c0392b;
+  --accent2:#e8d5b0;
+  --surface:#edeae0;
+  --surface2:#e4e0d4;
+  --shadow:rgba(26,22,18,0.12);
+  --mono:'DM Mono',monospace;
+  --serif:'Fraunces',serif;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);}
+body{font-family:var(--mono);color:var(--ink);user-select:none;}
+
+/* TOOLBAR */
+#toolbar{
+  position:fixed;top:0;left:0;right:0;height:48px;
+  background:rgba(245,242,235,0.92);
+  border-bottom:1px solid var(--line);
+  backdrop-filter:blur(10px);
+  display:flex;align-items:center;gap:6px;padding:0 12px;
+  z-index:100;
+}
+.tool-title{font-family:var(--serif);font-size:15px;font-weight:600;color:var(--ink);margin-right:4px;letter-spacing:-.02em;}
+.tool-sep{width:1px;height:24px;background:var(--line);margin:0 2px;flex-shrink:0;}
+.tbtn{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:5px 10px;border-radius:4px;
+  border:1px solid var(--line);background:transparent;
+  font-family:var(--mono);font-size:11px;color:var(--muted);
+  cursor:pointer;transition:all .15s;white-space:nowrap;
+}
+.tbtn:hover{border-color:var(--muted);color:var(--ink);background:var(--surface);}
+.tbtn.danger:hover{border-color:var(--accent);color:var(--accent);}
+.tbtn svg{flex-shrink:0}
+#zoomVal{font-size:11px;color:var(--muted);min-width:36px;text-align:center;}
+.tool-hint{margin-left:auto;font-size:10px;color:var(--muted2);font-style:italic;white-space:nowrap;}
+
+/* CANVAS */
+#canvas{
+  position:fixed;top:48px;left:0;right:0;bottom:0;
+  overflow:hidden;cursor:grab;
+}
+#canvas.grabbing{cursor:grabbing;}
+#world{
+  position:absolute;transform-origin:0 0;
+  will-change:transform;
+}
+
+/* SVG CONNECTIONS */
+#svg-layer{position:absolute;top:0;left:0;pointer-events:none;overflow:visible;}
+.conn-line{stroke:var(--line);stroke-width:1.5;fill:none;stroke-linecap:round;}
+
+/* NODES */
+.node{
+  position:absolute;
+  display:flex;flex-direction:column;align-items:center;
+}
+.node-box{
+  position:relative;
+  background:var(--surface);
+  border:1.5px solid var(--line);
+  border-radius:6px;
+  padding:8px 14px;
+  cursor:pointer;
+  transition:border-color .15s, box-shadow .15s, background .15s;
+  min-width:80px;max-width:220px;
+  text-align:center;
+}
+.node-box:hover{border-color:var(--muted);box-shadow:0 2px 12px var(--shadow);}
+.node-box.selected{border-color:var(--accent);box-shadow:0 0 0 3px rgba(192,57,43,.12);}
+.node-text{
+  font-family:var(--mono);font-size:12px;font-weight:400;
+  color:var(--ink);line-height:1.4;word-break:break-word;
+  outline:none;min-width:40px;
+}
+.node-text:empty::before{content:attr(data-ph);color:var(--muted2);}
+.node-text[contenteditable="true"]{cursor:text;user-select:text;}
+
+/* ROOT */
+.node.root .node-box{
+  background:var(--ink);border-color:var(--ink);
+  padding:10px 20px;border-radius:8px;
+}
+.node.root .node-text{color:#f5f2eb;font-family:var(--serif);font-size:14px;font-weight:600;}
+
+/* LEVEL 1 */
+.node.lv1 .node-box{background:var(--accent2);border-color:#c8b890;}
+.node.lv1 .node-text{font-weight:500;font-size:12px;}
+
+/* NODE CONTROLS */
+.node-ctrl{
+  display:none;position:absolute;
+  top:50%;right:-26px;transform:translateY(-50%);
+  flex-direction:column;gap:3px;
+}
+.node-box:hover .node-ctrl,.node-box.selected .node-ctrl{display:flex;}
+.nctrl-btn{
+  width:20px;height:20px;border-radius:3px;
+  background:var(--surface2);border:1px solid var(--line);
+  cursor:pointer;font-size:11px;color:var(--muted);
+  display:flex;align-items:center;justify-content:center;
+  transition:all .12s;
+}
+.nctrl-btn:hover{background:var(--ink);color:#fff;border-color:var(--ink);}
+.nctrl-btn.del:hover{background:var(--accent);border-color:var(--accent);}
+
+/* ADD CHILD BTN */
+.add-child-btn{
+  margin-top:6px;
+  width:22px;height:22px;border-radius:50%;
+  background:transparent;border:1.5px dashed var(--muted2);
+  cursor:pointer;font-size:14px;color:var(--muted2);
+  display:flex;align-items:center;justify-content:center;
+  transition:all .15s;opacity:0;
+}
+.node:hover .add-child-btn,.node.selected .add-child-btn{opacity:1;}
+.add-child-btn:hover{background:var(--ink);border-color:var(--ink);color:#fff;opacity:1;}
+
+/* COLLAPSE TOGGLE */
+.collapse-btn{
+  position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);
+  width:18px;height:18px;border-radius:50%;
+  background:var(--bg);border:1.5px solid var(--line);
+  cursor:pointer;font-size:9px;color:var(--muted);
+  display:flex;align-items:center;justify-content:center;
+  transition:all .12s;z-index:2;
+  box-shadow:0 1px 4px var(--shadow);
+}
+.collapse-btn:hover{background:var(--ink);color:#fff;border-color:var(--ink);}
+.node.collapsed .collapse-btn{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+/* collapsed count badge */
+.collapsed-badge{
+  position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);
+  font-size:9px;color:var(--muted2);font-family:var(--mono);white-space:nowrap;
+  pointer-events:none;
+}
+
+/* CONTEXT MENU */
+#ctx{
+  position:fixed;display:none;
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:6px;padding:4px 0;
+  box-shadow:0 8px 24px var(--shadow);
+  z-index:200;min-width:170px;
+}
+.ctx-item{
+  padding:7px 14px;font-family:var(--mono);font-size:11px;
+  color:var(--ink);cursor:pointer;display:flex;align-items:center;gap:8px;
+  transition:background .1s;
+}
+.ctx-item:hover{background:var(--surface2);}
+.ctx-item.danger{color:var(--accent);}
+.ctx-sep{height:1px;background:var(--line);margin:3px 0;}
+
+/* COLOR PICKER PANEL in ctx */
+#ctx-color-picker{
+  padding:6px 14px 8px;
+  display:flex;gap:5px;flex-wrap:wrap;
+}
+.color-dot{
+  width:16px;height:16px;border-radius:50%;cursor:pointer;
+  border:2px solid transparent;transition:transform .1s, border-color .1s;
+  flex-shrink:0;
+}
+.color-dot:hover{transform:scale(1.2);}
+.color-dot.active{border-color:var(--ink);}
+
+/* TOAST */
+#toast{
+  position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(10px);
+  background:var(--ink);color:#f5f2eb;font-size:11px;font-family:var(--mono);
+  padding:7px 16px;border-radius:4px;opacity:0;transition:all .25s;pointer-events:none;
+  white-space:nowrap;z-index:300;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* Hidden file input */
+#file-import{display:none;}
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <span class="tool-title">MindMap</span>
+  <div class="tool-sep"></div>
+  <button class="tbtn" onclick="zoomBy(0.15)">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+    Zoom +
+  </button>
+  <span id="zoomVal">100%</span>
+  <button class="tbtn" onclick="zoomBy(-0.15)">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+    Zoom −
+  </button>
+  <button class="tbtn" onclick="resetView()">↺ Recentrer</button>
+  <div class="tool-sep"></div>
+  <button class="tbtn" onclick="exportJSON()">⬇ Export JSON</button>
+  <button class="tbtn" onclick="document.getElementById('file-import').click()">⬆ Import JSON</button>
+  <button class="tbtn" onclick="exportSVG()">⬇ Export SVG</button>
+  <div class="tool-sep"></div>
+  <button class="tbtn danger" onclick="clearAll()">✕ Tout effacer</button>
+  <span class="tool-hint">Tab → enfant · Enter → frère · Del → supprimer · F2 → éditer</span>
+</div>
+
+<input type="file" id="file-import" accept=".json" onchange="importJSON(event)">
+
+<div id="canvas">
+  <div id="world">
+    <svg id="svg-layer"></svg>
+  </div>
+</div>
+
+<div id="ctx">
+  <div class="ctx-item" id="ctx-edit">✎ &nbsp;Éditer</div>
+  <div class="ctx-item" id="ctx-add-child">+ &nbsp;Ajouter enfant</div>
+  <div class="ctx-item" id="ctx-add-sibling">⊕ &nbsp;Ajouter frère</div>
+  <div class="ctx-item" id="ctx-collapse">▾ &nbsp;Replier / Déplier</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" id="ctx-color-label">🎨 &nbsp;Couleur</div>
+  <div id="ctx-color-picker"></div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item danger" id="ctx-del">✕ &nbsp;Supprimer</div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  COLOR PALETTE
+// ═══════════════════════════════════════════════════
+const COLORS = [
+  { id:'default', bg:null,       border:null,        label:'Défaut' },
+  { id:'red',     bg:'#fde8e8',  border:'#e08080',   label:'Rouge' },
+  { id:'orange',  bg:'#fdecd8',  border:'#e0a060',   label:'Orange' },
+  { id:'yellow',  bg:'#fdf7d0',  border:'#d4c050',   label:'Jaune' },
+  { id:'green',   bg:'#dff2e0',  border:'#70b87a',   label:'Vert' },
+  { id:'teal',    bg:'#d8f0ed',  border:'#50a89a',   label:'Teal' },
+  { id:'blue',    bg:'#dceaf8',  border:'#6090d0',   label:'Bleu' },
+  { id:'purple',  bg:'#ede0f8',  border:'#9870c8',   label:'Violet' },
+  { id:'pink',    bg:'#fce0ee',  border:'#d870a0',   label:'Rose' },
+  { id:'gray',    bg:'#e0ddd8',  border:'#8a8070',   label:'Gris' },
+];
+
+// Build color picker UI
+const picker = document.getElementById('ctx-color-picker');
+COLORS.forEach(c => {
+  const dot = document.createElement('div');
+  dot.className = 'color-dot';
+  dot.title = c.label;
+  dot.dataset.colorId = c.id;
+  dot.style.background = c.bg || '#edeae0';
+  dot.style.borderColor = c.border || '#cdc5b4';
+  dot.addEventListener('click', e => {
+    e.stopPropagation();
+    if(ctxTarget) setNodeColor(ctxTarget, c.id);
+    hideCtx();
+  });
+  picker.appendChild(dot);
+});
+
+// ═══════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════
+const SAVE_KEY = 'mindmap_v4';
+let nodes = {};   // id → {id, text, parentId, children:[id], color:'default', collapsed:false}
+let rootId = null;
+let selected = null;
+let ctxTarget = null;
+
+// Layout
+const NODE_W = 160, NODE_H = 44;
+const H_GAP = 36, V_GAP = 70;
+
+// Pan / zoom
+let panX = 0, panY = 0, scale = 1;
+let isPanning = false, panStart = {x:0,y:0}, panOrigin = {x:0,y:0};
+
+// DOM refs
+const world = document.getElementById('world');
+const canvas = document.getElementById('canvas');
+const ctx = document.getElementById('ctx');
+
+// ═══════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════
+function init(){
+  const saved = tryLoad();
+  if(saved){
+    nodes = saved.nodes;
+    rootId = saved.rootId;
+    // migrate old nodes without color/collapsed
+    Object.values(nodes).forEach(n => {
+      if(!n.color) n.color = 'default';
+      if(n.collapsed === undefined) n.collapsed = false;
+    });
+  } else {
+    rootId = makeId();
+    nodes[rootId] = {id:rootId, text:'Idée principale', parentId:null, children:[], color:'default', collapsed:false};
+    const c1 = addNodeData(rootId,'Branche 1');
+    const c2 = addNodeData(rootId,'Branche 2');
+    const c3 = addNodeData(rootId,'Branche 3');
+    addNodeData(c1,'Sous-idée');
+    addNodeData(c2,'Sous-idée');
+  }
+  render();
+  resetView();
+}
+
+function addNodeData(parentId, text){
+  const id = makeId();
+  nodes[id] = {id, text, parentId, children:[], color:'default', collapsed:false};
+  nodes[parentId].children.push(id);
+  return id;
+}
+
+function makeId(){ return '_'+Math.random().toString(36).slice(2,9); }
+
+// ═══════════════════════════════════════════════════
+//  COLLAPSE HELPERS
+// ═══════════════════════════════════════════════════
+// Returns set of node ids that should be hidden (collapsed ancestors)
+function getHiddenIds(){
+  const hidden = new Set();
+  function walk(id){
+    const n = nodes[id];
+    if(!n) return;
+    if(n.collapsed){
+      // hide all descendants
+      function hideDesc(nid){
+        nodes[nid].children.forEach(cid => {
+          hidden.add(cid);
+          hideDesc(cid);
+        });
+      }
+      hideDesc(id);
+    } else {
+      n.children.forEach(cid => walk(cid));
+    }
+  }
+  walk(rootId);
+  return hidden;
+}
+
+function countDescendants(id){
+  let count = 0;
+  function walk(nid){ nodes[nid].children.forEach(c => { count++; walk(c); }); }
+  walk(id);
+  return count;
+}
+
+function toggleCollapse(id){
+  if(id === rootId) return;
+  const n = nodes[id];
+  if(!n.children.length) return;
+  n.collapsed = !n.collapsed;
+  render();
+  save();
+  toast(n.collapsed ? 'Branche repliée' : 'Branche dépliée');
+}
+
+// ═══════════════════════════════════════════════════
+//  COLOR
+// ═══════════════════════════════════════════════════
+function setNodeColor(id, colorId){
+  nodes[id].color = colorId;
+  render();
+  save();
+  toast('Couleur appliquée');
+}
+
+function getColorStyle(id){
+  const n = nodes[id];
+  const depth = getDepth(id);
+  if(depth === 0) return null; // root keeps its style
+  const c = COLORS.find(x => x.id === (n.color || 'default'));
+  if(!c || c.id === 'default') return null;
+  return { bg: c.bg, border: c.border };
+}
+
+// ═══════════════════════════════════════════════════
+//  LAYOUT (tree top→bottom, skips hidden nodes)
+// ═══════════════════════════════════════════════════
+function computeLayout(){
+  const pos = {};
+  const hidden = getHiddenIds();
+
+  function subW(id){
+    const n = nodes[id];
+    if(n.collapsed || !n.children.length) return Math.max(NODE_W, 80);
+    const visible = n.children.filter(c => !hidden.has(c));
+    if(!visible.length) return Math.max(NODE_W, 80);
+    const childrenW = visible.reduce((s,c)=>s+subW(c),0) + H_GAP*(visible.length-1);
+    return Math.max(NODE_W, childrenW);
+  }
+
+  function place(id, x, y){
+    if(hidden.has(id)) return;
+    const n = nodes[id];
+    pos[id] = {x, y};
+    if(n.collapsed || !n.children.length) return;
+    const visible = n.children.filter(c => !hidden.has(c));
+    const totalW = visible.reduce((s,c)=>s+subW(c),0) + H_GAP*(visible.length-1);
+    let cx = x - totalW/2;
+    visible.forEach(cid=>{
+      const cw = subW(cid);
+      place(cid, cx + cw/2, y + V_GAP + NODE_H);
+      cx += cw + H_GAP;
+    });
+  }
+  place(rootId, 0, 0);
+  return pos;
+}
+
+// ═══════════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════════
+function render(){
+  const pos = computeLayout();
+  const hidden = getHiddenIds();
+  world.innerHTML = '';
+  const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.id='svg-layer';svg.style.cssText='position:absolute;top:0;left:0;overflow:visible;pointer-events:none;';
+  world.appendChild(svg);
+
+  // Draw connections
+  Object.values(nodes).forEach(n=>{
+    if(!n.parentId) return;
+    if(hidden.has(n.id)) return;
+    const p = pos[n.parentId], c = pos[n.id];
+    if(!p || !c) return;
+    const x1 = p.x, y1 = p.y + NODE_H;
+    const x2 = c.x, y2 = c.y;
+    const my = (y1+y2)/2;
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',`M${x1},${y1} C${x1},${my} ${x2},${my} ${x2},${y2}`);
+    path.setAttribute('class','conn-line');
+    svg.appendChild(path);
+  });
+
+  // Draw nodes
+  Object.values(nodes).forEach(n=>{
+    if(hidden.has(n.id)) return;
+    const p = pos[n.id];
+    if(!p) return;
+    const depth = getDepth(n.id);
+    const el = document.createElement('div');
+    el.className = 'node'+(depth===0?' root':depth===1?' lv1':'');
+    if(n.collapsed) el.classList.add('collapsed');
+    el.id = 'node-'+n.id;
+    el.style.cssText = `left:${p.x}px;top:${p.y}px;transform:translate(-50%,0);`;
+
+    const box = document.createElement('div');
+    box.className = 'node-box'+(selected===n.id?' selected':'');
+
+    // Apply custom color (non-root only)
+    if(depth > 0){
+      const cs = getColorStyle(n.id);
+      if(cs){
+        box.style.background = cs.bg;
+        box.style.borderColor = cs.border;
+      }
+    }
+
+    const txt = document.createElement('div');
+    txt.className = 'node-text';
+    txt.contentEditable = 'false';
+    txt.dataset.ph = 'Texte…';
+    txt.textContent = n.text;
+
+    // Controls
+    const ctrl = document.createElement('div');
+    ctrl.className = 'node-ctrl';
+    const delBtn = document.createElement('div');
+    delBtn.className='nctrl-btn del';delBtn.title='Supprimer';delBtn.textContent='×';
+    delBtn.addEventListener('click',e=>{e.stopPropagation();deleteNode(n.id);});
+    ctrl.appendChild(delBtn);
+
+    box.appendChild(txt);
+    box.appendChild(ctrl);
+
+    // Collapse toggle button (only on nodes with children, non-root)
+    if(n.children.length > 0 && depth > 0){
+      const colBtn = document.createElement('div');
+      colBtn.className = 'collapse-btn';
+      colBtn.title = n.collapsed ? 'Déplier' : 'Replier';
+      colBtn.textContent = n.collapsed ? '+' : '−';
+      colBtn.addEventListener('click', e => { e.stopPropagation(); toggleCollapse(n.id); });
+      box.appendChild(colBtn);
+
+      if(n.collapsed){
+        const badge = document.createElement('div');
+        badge.className = 'collapsed-badge';
+        const cnt = countDescendants(n.id);
+        badge.textContent = `${cnt} nœud${cnt>1?'s':''}`;
+        el.appendChild(badge);
+      }
+    }
+
+    el.appendChild(box);
+
+    // Add child btn (below, only if not collapsed)
+    if(!n.collapsed){
+      const addBtn = document.createElement('div');
+      addBtn.className='add-child-btn';addBtn.title='Ajouter un enfant';addBtn.textContent='+';
+      addBtn.addEventListener('click',e=>{e.stopPropagation();addChild(n.id);});
+      el.appendChild(addBtn);
+    }
+
+    world.appendChild(el);
+
+    // Events
+    box.addEventListener('click',e=>{
+      e.stopPropagation();
+      if(txt.contentEditable==='true') return;
+      selectNode(n.id);
+    });
+    box.addEventListener('dblclick',e=>{
+      e.stopPropagation();
+      startEdit(n.id, txt);
+    });
+    box.addEventListener('contextmenu',e=>{
+      e.preventDefault();e.stopPropagation();
+      showCtx(e.clientX, e.clientY, n.id);
+    });
+  });
+
+  save();
+}
+
+function getDepth(id){
+  let d=0, cur=nodes[id];
+  while(cur.parentId){d++;cur=nodes[cur.parentId];}
+  return d;
+}
+
+// ═══════════════════════════════════════════════════
+//  SELECT / EDIT
+// ═══════════════════════════════════════════════════
+function selectNode(id){
+  selected = id;
+  document.querySelectorAll('.node-box').forEach(b=>b.classList.remove('selected'));
+  const box = document.querySelector('#node-'+id+' .node-box');
+  if(box) box.classList.add('selected');
+}
+
+function startEdit(id, txtEl){
+  selectNode(id);
+  txtEl.contentEditable='true';
+  txtEl.focus();
+  const range=document.createRange(),sel=window.getSelection();
+  range.selectNodeContents(txtEl);sel.removeAllRanges();sel.addRange(range);
+  txtEl.addEventListener('blur',()=>finishEdit(id,txtEl),{once:true});
+  txtEl.addEventListener('keydown',e=>{
+    if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();txtEl.blur();}
+    if(e.key==='Escape'){txtEl.textContent=nodes[id].text;txtEl.blur();}
+  });
+}
+
+function finishEdit(id, txtEl){
+  txtEl.contentEditable='false';
+  const t=txtEl.textContent.trim()||nodes[id].text;
+  nodes[id].text=t;txtEl.textContent=t;
+  save();
+}
+
+// ═══════════════════════════════════════════════════
+//  TREE OPS
+// ═══════════════════════════════════════════════════
+function addChild(parentId){
+  // auto-expand if collapsed
+  if(nodes[parentId].collapsed){
+    nodes[parentId].collapsed = false;
+  }
+  const id = addNodeData(parentId, 'Nouvelle idée');
+  render();
+  selectNode(id);
+  setTimeout(()=>{
+    const el = document.querySelector('#node-'+id+' .node-text');
+    if(el) startEdit(id, el);
+  },30);
+  toast('Nœud ajouté');
+}
+
+function addSibling(id){
+  const n = nodes[id];
+  if(!n.parentId){ addChild(rootId); return; }
+  const sid = addNodeData(n.parentId, 'Nouvelle idée');
+  render();selectNode(sid);
+  setTimeout(()=>{
+    const el=document.querySelector('#node-'+sid+' .node-text');
+    if(el)startEdit(sid,el);
+  },30);
+  toast('Nœud frère ajouté');
+}
+
+function deleteNode(id){
+  if(id===rootId){ toast('Impossible de supprimer la racine'); return; }
+  function delRec(nid){
+    nodes[nid].children.forEach(c=>delRec(c));
+    delete nodes[nid];
+  }
+  const parent=nodes[nodes[id].parentId];
+  parent.children=parent.children.filter(c=>c!==id);
+  delRec(id);
+  if(selected===id)selected=null;
+  render();toast('Nœud supprimé');
+}
+
+function clearAll(){
+  if(!confirm('Tout effacer et recommencer ?')) return;
+  localStorage.removeItem(SAVE_KEY);
+  nodes={};
+  rootId=makeId();
+  nodes[rootId]={id:rootId,text:'Idée principale',parentId:null,children:[],color:'default',collapsed:false};
+  selected=null;
+  render();resetView();toast('Carte réinitialisée');
+}
+
+// ═══════════════════════════════════════════════════
+//  CONTEXT MENU
+// ═══════════════════════════════════════════════════
+function showCtx(x,y,id){
+  ctxTarget=id;
+  // update collapse label
+  const n = nodes[id];
+  const colItem = document.getElementById('ctx-collapse');
+  if(n.children.length === 0 || id === rootId){
+    colItem.style.display = 'none';
+  } else {
+    colItem.style.display = 'flex';
+    colItem.innerHTML = (n.collapsed ? '▸' : '▾') + ' &nbsp;' + (n.collapsed ? 'Déplier' : 'Replier');
+  }
+  // update color dots active state
+  document.querySelectorAll('.color-dot').forEach(dot => {
+    dot.classList.toggle('active', dot.dataset.colorId === (n.color || 'default'));
+  });
+  // hide color for root
+  const depth = getDepth(id);
+  document.getElementById('ctx-color-label').style.display = depth === 0 ? 'none' : 'flex';
+  document.getElementById('ctx-color-picker').style.display = depth === 0 ? 'none' : 'flex';
+
+  ctx.style.display='block';
+  ctx.style.left=Math.min(x,window.innerWidth-180)+'px';
+  ctx.style.top=Math.min(y,window.innerHeight-200)+'px';
+}
+function hideCtx(){ctx.style.display='none';}
+
+document.getElementById('ctx-edit').onclick=()=>{
+  if(!ctxTarget)return;hideCtx();
+  const el=document.querySelector('#node-'+ctxTarget+' .node-text');
+  if(el)startEdit(ctxTarget,el);
+};
+document.getElementById('ctx-add-child').onclick=()=>{ if(ctxTarget){hideCtx();addChild(ctxTarget);} };
+document.getElementById('ctx-add-sibling').onclick=()=>{ if(ctxTarget){hideCtx();addSibling(ctxTarget);} };
+document.getElementById('ctx-collapse').onclick=()=>{ if(ctxTarget){hideCtx();toggleCollapse(ctxTarget);} };
+document.getElementById('ctx-del').onclick=()=>{ if(ctxTarget){hideCtx();deleteNode(ctxTarget);} };
+
+document.addEventListener('click',e=>{
+  if(!ctx.contains(e.target)) hideCtx();
+  if(!e.target.closest('.node-box')) { selected=null; document.querySelectorAll('.node-box').forEach(b=>b.classList.remove('selected')); }
+});
+document.addEventListener('contextmenu',e=>{
+  if(!e.target.closest('.node-box')){ e.preventDefault(); hideCtx(); }
+});
+
+// ═══════════════════════════════════════════════════
+//  PAN / ZOOM
+// ═══════════════════════════════════════════════════
+function applyTransform(){
+  world.style.transform=`translate(${panX}px,${panY}px) scale(${scale})`;
+  document.getElementById('zoomVal').textContent=Math.round(scale*100)+'%';
+}
+
+canvas.addEventListener('mousedown',e=>{
+  if(e.target.closest('.node-box')||e.target.closest('.add-child-btn')||e.target.closest('.collapse-btn')) return;
+  isPanning=true;
+  panStart={x:e.clientX,y:e.clientY};
+  panOrigin={x:panX,y:panY};
+  canvas.classList.add('grabbing');
+});
+window.addEventListener('mousemove',e=>{
+  if(!isPanning)return;
+  panX=panOrigin.x+(e.clientX-panStart.x);
+  panY=panOrigin.y+(e.clientY-panStart.y);
+  applyTransform();
+});
+window.addEventListener('mouseup',()=>{isPanning=false;canvas.classList.remove('grabbing');});
+
+canvas.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const factor=e.deltaY<0?1.08:0.93;
+  const rect=canvas.getBoundingClientRect();
+  const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+  panX=(panX-mx)*factor+mx;
+  panY=(panY-my)*factor+my;
+  scale=Math.max(0.2,Math.min(3,scale*factor));
+  applyTransform();
+},{passive:false});
+
+function zoomBy(d){
+  const ns=Math.max(0.2,Math.min(3,scale+d));
+  const cx=canvas.clientWidth/2, cy=canvas.clientHeight/2;
+  panX=(panX-cx)*(ns/scale)+cx;
+  panY=(panY-cy)*(ns/scale)+cy;
+  scale=ns;applyTransform();
+}
+
+function resetView(){
+  const cw=canvas.clientWidth, ch=canvas.clientHeight;
+  panX=cw/2; panY=ch*0.12; scale=1;
+  applyTransform();
+}
+
+// ═══════════════════════════════════════════════════
+//  KEYBOARD
+// ═══════════════════════════════════════════════════
+document.addEventListener('keydown',e=>{
+  if(document.querySelector('[contenteditable="true"]')) return;
+  if(e.key==='Tab'&&selected){ e.preventDefault(); addChild(selected); }
+  if(e.key==='Enter'&&selected){ e.preventDefault(); addSibling(selected); }
+  if((e.key==='Delete'||e.key==='Backspace')&&selected&&selected!==rootId){
+    e.preventDefault();deleteNode(selected);
+  }
+  if(e.key==='F2'&&selected){
+    const el=document.querySelector('#node-'+selected+' .node-text');
+    if(el)startEdit(selected,el);
+  }
+  // Space → collapse/expand selected
+  if(e.key===' '&&selected&&selected!==rootId){
+    e.preventDefault();
+    toggleCollapse(selected);
+  }
+});
+
+// ═══════════════════════════════════════════════════
+//  SAVE / LOAD (localStorage)
+// ═══════════════════════════════════════════════════
+function save(){
+  try{localStorage.setItem(SAVE_KEY,JSON.stringify({nodes,rootId}));}catch(e){}
+}
+function tryLoad(){
+  try{const d=localStorage.getItem(SAVE_KEY);return d?JSON.parse(d):null;}catch{return null;}
+}
+
+// ═══════════════════════════════════════════════════
+//  IMPORT / EXPORT JSON
+// ═══════════════════════════════════════════════════
+function exportJSON(){
+  const data = JSON.stringify({nodes, rootId}, null, 2);
+  const blob = new Blob([data], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'mindmap.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('JSON exporté');
+}
+
+function importJSON(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      const data = JSON.parse(e.target.result);
+      if(!data.nodes || !data.rootId) throw new Error('Format invalide');
+      // migrate
+      Object.values(data.nodes).forEach(n => {
+        if(!n.color) n.color = 'default';
+        if(n.collapsed === undefined) n.collapsed = false;
+      });
+      nodes = data.nodes;
+      rootId = data.rootId;
+      selected = null;
+      render();
+      resetView();
+      toast('JSON importé ✓');
+    } catch(err){
+      toast('Erreur : JSON invalide');
+    }
+  };
+  reader.readAsText(file);
+  // reset so same file can be re-imported
+  event.target.value = '';
+}
+
+// ═══════════════════════════════════════════════════
+//  EXPORT SVG
+// ═══════════════════════════════════════════════════
+function exportSVG(){
+  const pos = computeLayout();
+  const hidden = getHiddenIds();
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  Object.entries(pos).forEach(([id,p])=>{
+    if(hidden.has(id)) return;
+    minX=Math.min(minX,p.x-NODE_W/2);minY=Math.min(minY,p.y);
+    maxX=Math.max(maxX,p.x+NODE_W/2);maxY=Math.max(maxY,p.y+NODE_H);
+  });
+  const pad=40,W=maxX-minX+pad*2,H=maxY-minY+pad*2;
+  const ox=pad-minX,oy=pad-minY;
+
+  let svgStr=`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="background:#f5f2eb;font-family:monospace;">`;
+  // connections
+  Object.values(nodes).forEach(n=>{
+    if(!n.parentId || hidden.has(n.id)) return;
+    const p=pos[n.parentId],c=pos[n.id];
+    if(!p||!c) return;
+    const x1=p.x+ox,y1=p.y+oy+NODE_H,x2=c.x+ox,y2=c.y+oy,my=(y1+y2)/2;
+    svgStr+=`<path d="M${x1},${y1} C${x1},${my} ${x2},${my} ${x2},${y2}" stroke="#cdc5b4" stroke-width="1.5" fill="none" stroke-linecap="round"/>`;
+  });
+  // nodes
+  Object.values(nodes).forEach(n=>{
+    if(hidden.has(n.id)) return;
+    const p=pos[n.id];
+    if(!p) return;
+    const depth=getDepth(n.id);
+    const x=p.x+ox-NODE_W/2,y=p.y+oy;
+    let fill,strokeCol;
+    if(depth===0){fill='#1a1612';strokeCol='#1a1612';}
+    else {
+      const cs = getColorStyle(n.id);
+      fill = cs ? cs.bg : (depth===1?'#e8d5b0':'#edeae0');
+      strokeCol = cs ? cs.border : '#cdc5b4';
+    }
+    const textFill=depth===0?'#f5f2eb':'#1a1612';
+    svgStr+=`<rect x="${x}" y="${y}" width="${NODE_W}" height="${NODE_H}" rx="6" fill="${fill}" stroke="${strokeCol}" stroke-width="1.5"/>`;
+    svgStr+=`<text x="${p.x+ox}" y="${y+NODE_H/2+4}" text-anchor="middle" fill="${textFill}" font-size="12" font-weight="${depth<2?'600':'400'}">${escXml(n.text)}</text>`;
+  });
+  svgStr+='</svg>';
+  const blob=new Blob([svgStr],{type:'image/svg+xml'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='mindmap.svg';a.click();URL.revokeObjectURL(a.href);
+  toast('SVG exporté');
+}
+
+function escXml(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ═══════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════
+let toastTimer;
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2000);
+}
+
+// ═══════════════════════════════════════════════════
+//  GO
+// ═══════════════════════════════════════════════════
+init();
+</script>
+</body>
+</html>
