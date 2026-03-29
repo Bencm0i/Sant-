@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📻 NotebookLM Tracker</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📻</text></svg>">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap');
+
+:root {
+  --bg:       #1a1c14;
+  --bg2:      #22251a;
+  --bg3:      #2a2e20;
+  --border:   #3a3f2a;
+  --border2:  #4a5135;
+  --olive:    #7a8c3a;
+  --olive2:   #9aad4a;
+  --khaki:    #c8b882;
+  --rust:     #c0522a;
+  --rust2:    #e06030;
+  --amber:    #d4a020;
+  --green:    #4a9a5a;
+  --green2:   #5ab86a;
+  --text:     #d8d4c0;
+  --muted:    #7a7860;
+  --mono:     'Share Tech Mono', monospace;
+  --head:     'Barlow Condensed', sans-serif;
+  --body:     'Barlow', sans-serif;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+
+body {
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--body);
+  min-height:100vh;
+  position:relative;
+  overflow-x:hidden;
+}
+
+/* GRID BG */
+body::before {
+  content:'';
+  position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:
+    linear-gradient(rgba(122,140,58,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(122,140,58,0.06) 1px, transparent 1px);
+  background-size:32px 32px;
+}
+
+/* SCANLINE */
+body::after {
+  content:'';
+  position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:repeating-linear-gradient(0deg,
+    transparent, transparent 2px,
+    rgba(0,0,0,0.06) 2px, rgba(0,0,0,0.06) 4px
+  );
+}
+
+.wrap {
+  position:relative;z-index:1;
+  max-width:900px;margin:0 auto;
+  padding:24px 16px 60px;
+  display:flex;flex-direction:column;gap:20px;
+}
+
+/* ── HEADER ── */
+.header {
+  display:flex;align-items:flex-start;justify-content:space-between;
+  gap:16px;flex-wrap:wrap;
+  border-bottom:2px solid var(--border2);
+  padding-bottom:16px;
+}
+.header-left {}
+.header-title {
+  font-family:var(--head);
+  font-size:2.2rem;font-weight:800;
+  letter-spacing:0.08em;text-transform:uppercase;
+  color:var(--khaki);
+  line-height:1;
+}
+.header-sub {
+  font-family:var(--mono);
+  font-size:0.62rem;color:var(--muted);
+  letter-spacing:0.18em;margin-top:4px;
+}
+.header-stats {
+  display:flex;gap:16px;align-items:center;flex-wrap:wrap;
+}
+.stat-chip {
+  display:flex;flex-direction:column;align-items:center;
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:6px;padding:6px 14px;
+  font-family:var(--mono);
+}
+.stat-val { font-size:1.4rem;color:var(--olive2);font-weight:700;line-height:1; }
+.stat-label { font-size:0.55rem;letter-spacing:0.12em;color:var(--muted);text-transform:uppercase;margin-top:1px; }
+
+/* ── TOOLBAR ── */
+.toolbar {
+  display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+}
+.btn {
+  font-family:var(--mono);font-size:0.72rem;
+  padding:7px 14px;border-radius:4px;cursor:pointer;
+  border:1px solid var(--border2);background:var(--bg2);color:var(--text);
+  letter-spacing:0.06em;transition:all 0.15s;
+  text-transform:uppercase;
+}
+.btn:hover{background:var(--bg3);border-color:var(--olive);color:var(--olive2);}
+.btn.primary{background:var(--olive);border-color:var(--olive2);color:#fff;}
+.btn.primary:hover{background:var(--olive2);}
+.btn.danger{border-color:rgba(192,82,42,0.4);color:var(--rust);}
+.btn.danger:hover{background:rgba(192,82,42,0.12);}
+
+.filter-group {
+  display:flex;gap:4px;margin-left:auto;
+}
+.filter-btn {
+  font-family:var(--mono);font-size:0.65rem;letter-spacing:0.08em;
+  padding:5px 12px;border-radius:4px;cursor:pointer;
+  border:1px solid var(--border);background:transparent;color:var(--muted);
+  text-transform:uppercase;transition:all 0.15s;
+}
+.filter-btn:hover{border-color:var(--olive);color:var(--olive2);}
+.filter-btn.active{background:var(--bg3);border-color:var(--olive2);color:var(--olive2);}
+
+/* ── ADD FORM ── */
+.add-form {
+  background:var(--bg2);border:1px solid var(--border2);border-radius:6px;
+  padding:18px 20px;display:none;flex-direction:column;gap:12px;
+  animation:slideDown 0.2s ease;
+}
+.add-form.open{display:flex;}
+@keyframes slideDown{from{opacity:0;transform:translateY(-8px);}to{opacity:1;transform:translateY(0);}}
+
+.form-row {
+  display:grid;grid-template-columns:1fr 1fr;gap:12px;
+}
+@media(max-width:600px){.form-row{grid-template-columns:1fr;}}
+.form-row.full{grid-template-columns:1fr;}
+
+.field {
+  display:flex;flex-direction:column;gap:5px;
+}
+.field label {
+  font-family:var(--mono);font-size:0.6rem;letter-spacing:0.14em;
+  color:var(--muted);text-transform:uppercase;
+}
+.field input, .field textarea, .field select {
+  background:var(--bg);border:1px solid var(--border);border-radius:4px;
+  padding:8px 10px;font-family:var(--body);font-size:0.82rem;color:var(--text);
+  outline:none;transition:border-color 0.15s;
+  width:100%;
+}
+.field input:focus, .field textarea:focus, .field select:focus {
+  border-color:var(--olive);
+}
+.field textarea{resize:vertical;min-height:60px;line-height:1.5;}
+.field select option{background:var(--bg);}
+
+.form-actions{display:flex;gap:8px;justify-content:flex-end;}
+
+/* ── LIST ── */
+.list {
+  display:flex;flex-direction:column;gap:10px;
+}
+
+.empty-state {
+  text-align:center;padding:60px 20px;
+  font-family:var(--mono);color:var(--muted);
+  font-size:0.78rem;letter-spacing:0.1em;
+  border:1px dashed var(--border);border-radius:6px;
+}
+.empty-state .big{font-size:2.5rem;display:block;margin-bottom:12px;opacity:0.4;}
+
+/* ── ENTRY CARD ── */
+.entry {
+  background:var(--bg2);border:1px solid var(--border);border-radius:6px;
+  overflow:hidden;transition:border-color 0.15s;
+  position:relative;
+}
+.entry:hover{border-color:var(--border2);}
+.entry.status-done { border-left:3px solid var(--green); }
+.entry.status-progress { border-left:3px solid var(--amber); }
+.entry.status-todo { border-left:3px solid var(--muted); }
+.entry.status-error { border-left:3px solid var(--rust); }
+
+.entry-head {
+  display:flex;align-items:center;gap:10px;
+  padding:12px 14px 10px;cursor:pointer;
+  user-select:none;
+}
+.entry-icon {
+  width:34px;height:34px;border-radius:4px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1rem;
+  background:var(--bg3);border:1px solid var(--border);
+}
+.entry-info{flex:1;min-width:0;}
+.entry-title {
+  font-family:var(--head);font-size:1.05rem;font-weight:700;
+  color:var(--khaki);letter-spacing:0.03em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.entry-meta {
+  display:flex;gap:10px;align-items:center;margin-top:2px;flex-wrap:wrap;
+}
+.entry-date {
+  font-family:var(--mono);font-size:0.6rem;color:var(--muted);letter-spacing:0.08em;
+}
+.entry-pages {
+  font-family:var(--mono);font-size:0.6rem;color:var(--muted);
+}
+.tag {
+  font-family:var(--mono);font-size:0.55rem;letter-spacing:0.1em;
+  padding:2px 7px;border-radius:3px;text-transform:uppercase;
+  border:1px solid;
+}
+.tag-done   {color:var(--green2);border-color:rgba(74,154,90,0.35);background:rgba(74,154,90,0.1);}
+.tag-progress{color:var(--amber);border-color:rgba(212,160,32,0.35);background:rgba(212,160,32,0.1);}
+.tag-todo   {color:var(--muted);border-color:rgba(122,120,96,0.3);background:rgba(122,120,96,0.07);}
+.tag-error  {color:var(--rust2);border-color:rgba(192,82,42,0.35);background:rgba(192,82,42,0.1);}
+.tag-cat    {color:var(--olive2);border-color:rgba(122,140,58,0.3);background:rgba(122,140,58,0.07);}
+
+.entry-chevron {
+  font-size:0.7rem;color:var(--muted);transition:transform 0.2s;flex-shrink:0;
+}
+.entry.open .entry-chevron{transform:rotate(180deg);}
+
+/* ENTRY BODY */
+.entry-body {
+  display:none;padding:0 14px 14px;
+  border-top:1px solid var(--border);
+  background:var(--bg);
+  flex-direction:column;gap:12px;
+}
+.entry.open .entry-body{display:flex;}
+
+.detail-grid {
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;
+  padding-top:12px;
+}
+.detail-item{display:flex;flex-direction:column;gap:3px;}
+.detail-label{font-family:var(--mono);font-size:0.55rem;letter-spacing:0.12em;color:var(--muted);text-transform:uppercase;}
+.detail-val{font-size:0.82rem;color:var(--text);font-weight:500;}
+.detail-val a{color:var(--olive2);text-decoration:none;}
+.detail-val a:hover{text-decoration:underline;}
+
+.notes-block {
+  background:var(--bg2);border:1px solid var(--border);border-radius:4px;
+  padding:10px 12px;font-size:0.8rem;line-height:1.6;color:var(--text);opacity:0.85;
+  white-space:pre-wrap;word-break:break-word;
+}
+
+.progress-bar-wrap {
+  display:flex;flex-direction:column;gap:4px;
+}
+.progress-label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:0.6rem;color:var(--muted);}
+.progress-track {
+  width:100%;height:5px;border-radius:3px;background:var(--bg3);overflow:hidden;
+}
+.progress-fill {
+  height:100%;border-radius:3px;
+  background:linear-gradient(90deg,var(--olive),var(--olive2));
+  transition:width 0.5s ease;
+}
+
+.entry-actions {
+  display:flex;gap:6px;flex-wrap:wrap;padding-top:4px;
+}
+
+/* STATUS SELECT inline */
+.status-select {
+  font-family:var(--mono);font-size:0.62rem;letter-spacing:0.08em;
+  background:var(--bg2);border:1px solid var(--border);color:var(--text);
+  padding:5px 8px;border-radius:4px;cursor:pointer;outline:none;
+  text-transform:uppercase;
+}
+
+/* ── SEARCH ── */
+.search-wrap{position:relative;}
+.search-wrap input {
+  background:var(--bg2);border:1px solid var(--border);border-radius:4px;
+  padding:7px 10px 7px 32px;font-family:var(--mono);font-size:0.72rem;
+  color:var(--text);outline:none;width:220px;letter-spacing:0.05em;
+  transition:border-color 0.15s;
+}
+.search-wrap input:focus{border-color:var(--olive);}
+.search-wrap::before{
+  content:'🔍';position:absolute;left:8px;top:50%;transform:translateY(-50%);
+  font-size:0.7rem;pointer-events:none;
+}
+
+/* ── MODAL CONFIRM ── */
+#confirmModal {
+  position:fixed;inset:0;z-index:500;
+  background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);
+  display:none;align-items:center;justify-content:center;
+}
+#confirmModal.open{display:flex;}
+.confirm-box {
+  background:var(--bg2);border:1px solid var(--border2);border-radius:8px;
+  padding:28px 26px 20px;max-width:320px;width:90%;text-align:center;
+  display:flex;flex-direction:column;gap:14px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.6);
+}
+.confirm-icon{font-size:2rem;}
+.confirm-title{font-family:var(--head);font-size:1.1rem;font-weight:700;color:var(--khaki);letter-spacing:0.06em;}
+.confirm-sub{font-size:0.78rem;color:var(--muted);}
+.confirm-actions{display:flex;gap:8px;}
+.confirm-actions .btn{flex:1;text-align:center;}
+
+/* ── EDIT OVERLAY ── */
+.edit-overlay {
+  position:fixed;inset:0;z-index:400;
+  background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);
+  display:none;align-items:center;justify-content:center;padding:20px;
+}
+.edit-overlay.open{display:flex;}
+.edit-box {
+  background:var(--bg2);border:1px solid var(--border2);border-radius:8px;
+  padding:24px;width:100%;max-width:540px;max-height:88vh;overflow-y:auto;
+  display:flex;flex-direction:column;gap:14px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.6);
+}
+.edit-title{font-family:var(--head);font-size:1.2rem;font-weight:800;color:var(--khaki);letter-spacing:0.08em;text-transform:uppercase;}
+
+/* ── PROGRESS RING (mini) ── */
+.ring-wrap{flex-shrink:0;position:relative;width:36px;height:36px;}
+.ring-wrap svg{transform:rotate(-90deg);}
+.ring-bg{fill:none;stroke:var(--bg3);stroke-width:4;}
+.ring-fill{fill:none;stroke-width:4;stroke-linecap:round;transition:stroke-dashoffset 0.5s ease;}
+.ring-pct{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:0.5rem;color:var(--text);
+}
+
+/* ── PODCAST PLAYER MOCK ── */
+.player-bar {
+  display:flex;align-items:center;gap:10px;
+  background:var(--bg3);border:1px solid var(--border);border-radius:6px;
+  padding:8px 12px;
+}
+.player-btn {
+  width:28px;height:28px;border-radius:50%;
+  background:var(--olive);border:none;color:#fff;
+  font-size:0.8rem;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:background 0.15s;
+}
+.player-btn:hover{background:var(--olive2);}
+.player-info{flex:1;min-width:0;}
+.player-name{font-family:var(--mono);font-size:0.62rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.player-wave{display:flex;align-items:center;gap:1.5px;height:16px;margin-top:3px;}
+.player-wave span{
+  width:2px;border-radius:1px;background:var(--olive);opacity:0.5;
+  animation:wave 1.2s ease-in-out infinite;
+}
+.player-wave span:nth-child(2){animation-delay:0.1s;height:60%;}
+.player-wave span:nth-child(3){animation-delay:0.2s;height:80%;}
+.player-wave span:nth-child(4){animation-delay:0.3s;height:50%;}
+.player-wave span:nth-child(5){animation-delay:0.4s;height:90%;}
+.player-wave span:nth-child(6){animation-delay:0.5s;height:40%;}
+.player-wave span:nth-child(7){animation-delay:0.6s;height:70%;}
+.player-wave span:nth-child(8){animation-delay:0.7s;height:55%;}
+@keyframes wave{0%,100%{height:30%;opacity:0.4;}50%{height:100%;opacity:0.9;}}
+
+.notebooklm-link {
+  display:inline-flex;align-items:center;gap:6px;
+  font-family:var(--mono);font-size:0.65rem;letter-spacing:0.08em;
+  padding:5px 12px;border-radius:4px;text-decoration:none;
+  border:1px solid rgba(122,140,58,0.4);color:var(--olive2);
+  background:rgba(122,140,58,0.07);transition:all 0.15s;
+}
+.notebooklm-link:hover{background:rgba(122,140,58,0.15);border-color:var(--olive2);}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <div class="header-title">📻 NotebookLM Tracker</div>
+      <div class="header-sub">// SUIVI PDF → PODCAST · NOTEBOOKLM</div>
+    </div>
+    <div class="header-stats">
+      <div class="stat-chip"><span class="stat-val" id="statTotal">0</span><span class="stat-label">Total</span></div>
+      <div class="stat-chip"><span class="stat-val" id="statDone" style="color:var(--green2)">0</span><span class="stat-label">Terminés</span></div>
+      <div class="stat-chip"><span class="stat-val" id="statProgress" style="color:var(--amber)">0</span><span class="stat-label">En cours</span></div>
+      <div class="stat-chip"><span class="stat-val" id="statTodo" style="color:var(--muted)">0</span><span class="stat-label">À faire</span></div>
+    </div>
+  </div>
+
+  <!-- TOOLBAR -->
+  <div class="toolbar">
+    <button class="btn primary" onclick="toggleForm()">＋ Ajouter</button>
+    <div class="search-wrap">
+      <input type="text" id="searchInput" placeholder="Rechercher..." oninput="renderList()">
+    </div>
+    <div class="filter-group">
+      <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">Tous</button>
+      <button class="filter-btn" data-filter="todo" onclick="setFilter('todo',this)">À faire</button>
+      <button class="filter-btn" data-filter="progress" onclick="setFilter('progress',this)">En cours</button>
+      <button class="filter-btn" data-filter="done" onclick="setFilter('done',this)">Terminés</button>
+    </div>
+    <button class="btn" onclick="exportJSON()" style="margin-left:auto">⬇ Export</button>
+    <label class="btn" style="cursor:pointer">⬆ Import<input type="file" accept=".json" style="display:none" onchange="importJSON(event)"></label>
+  </div>
+
+  <!-- ADD FORM -->
+  <div class="add-form" id="addForm">
+    <div class="form-row">
+      <div class="field">
+        <label>Titre du document</label>
+        <input type="text" id="fTitle" placeholder="Ex: Machine Learning - Stanford 2024">
+      </div>
+      <div class="field">
+        <label>Catégorie</label>
+        <input type="text" id="fCat" placeholder="Ex: IA, Finance, Technique…">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label>Nombre de pages</label>
+        <input type="number" id="fPages" placeholder="Ex: 48" min="1">
+      </div>
+      <div class="field">
+        <label>Statut</label>
+        <select id="fStatus">
+          <option value="todo">À faire</option>
+          <option value="progress">En cours</option>
+          <option value="done">Terminé</option>
+          <option value="error">Erreur</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label>Lien NotebookLM</label>
+        <input type="url" id="fLink" placeholder="https://notebooklm.google.com/notebook/...">
+      </div>
+      <div class="field">
+        <label>Durée podcast (min)</label>
+        <input type="number" id="fDuration" placeholder="Ex: 22" min="0">
+      </div>
+    </div>
+    <div class="form-row full">
+      <div class="field">
+        <label>Notes</label>
+        <textarea id="fNotes" placeholder="Résumé, remarques sur la qualité du podcast…"></textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="toggleForm()">Annuler</button>
+      <button class="btn primary" onclick="addEntry()">✓ Enregistrer</button>
+    </div>
+  </div>
+
+  <!-- LIST -->
+  <div class="list" id="entryList"></div>
+
+</div>
+
+<!-- CONFIRM MODAL -->
+<div id="confirmModal">
+  <div class="confirm-box">
+    <div class="confirm-icon">🗑️</div>
+    <div class="confirm-title">Supprimer ?</div>
+    <div class="confirm-sub" id="confirmSub">Cette entrée sera définitivement supprimée.</div>
+    <div class="confirm-actions">
+      <button class="btn" onclick="closeConfirm()">Annuler</button>
+      <button class="btn danger" onclick="confirmDelete()">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT OVERLAY -->
+<div class="edit-overlay" id="editOverlay">
+  <div class="edit-box">
+    <div class="edit-title">✏️ Modifier l'entrée</div>
+    <div class="form-row">
+      <div class="field">
+        <label>Titre</label>
+        <input type="text" id="eTitle">
+      </div>
+      <div class="field">
+        <label>Catégorie</label>
+        <input type="text" id="eCat">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label>Pages</label>
+        <input type="number" id="ePages" min="1">
+      </div>
+      <div class="field">
+        <label>Statut</label>
+        <select id="eStatus">
+          <option value="todo">À faire</option>
+          <option value="progress">En cours</option>
+          <option value="done">Terminé</option>
+          <option value="error">Erreur</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field">
+        <label>Lien NotebookLM</label>
+        <input type="url" id="eLink">
+      </div>
+      <div class="field">
+        <label>Durée podcast (min)</label>
+        <input type="number" id="eDuration" min="0">
+      </div>
+    </div>
+    <div class="form-row full">
+      <div class="field">
+        <label>Notes</label>
+        <textarea id="eNotes"></textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeEdit()">Annuler</button>
+      <button class="btn primary" onclick="saveEdit()">✓ Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const KEY = 'notebooklm_tracker_v1';
+let entries = [];
+let filterActive = 'all';
+let confirmId = null;
+let editId = null;
+
+// ── PERSIST ──
+function save(){ localStorage.setItem(KEY, JSON.stringify(entries)); }
+function load(){
+  try{ entries = JSON.parse(localStorage.getItem(KEY)||'[]'); }catch(e){ entries=[]; }
+}
+
+// ── STATUS ──
+const STATUS_LABELS = { todo:'À faire', progress:'En cours', done:'Terminé', error:'Erreur' };
+const STATUS_TAG    = { todo:'tag-todo', progress:'tag-progress', done:'tag-done', error:'tag-error' };
+const STATUS_ICONS  = { todo:'📄', progress:'🎙️', done:'✅', error:'⚠️' };
+const RING_COLORS   = { todo:'#7a7860', progress:'#d4a020', done:'#5ab86a', error:'#e06030' };
+
+// ── IDS ──
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+// ── RING SVG ──
+function ringHTML(pct, status){
+  const r=14, c=18, circ=2*Math.PI*r;
+  const offset = circ - (pct/100)*circ;
+  const col = RING_COLORS[status]||'#7a7860';
+  return `<div class="ring-wrap">
+    <svg width="36" height="36" viewBox="0 0 36 36">
+      <circle class="ring-bg" cx="${c}" cy="${c}" r="${r}"/>
+      <circle class="ring-fill" cx="${c}" cy="${c}" r="${r}"
+        stroke="${col}" stroke-dasharray="${circ}" stroke-dashoffset="${offset}"/>
+    </svg>
+    <div class="ring-pct">${pct>0?pct+'%':''}</div>
+  </div>`;
+}
+
+// ── FILTER & SEARCH ──
+function setFilter(val, btn){
+  filterActive = val;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderList();
+}
+
+function getFiltered(){
+  const q = (document.getElementById('searchInput')?.value||'').toLowerCase().trim();
+  return entries.filter(e=>{
+    const matchF = filterActive==='all' || e.status===filterActive;
+    const matchQ = !q || e.title.toLowerCase().includes(q) || (e.cat||'').toLowerCase().includes(q) || (e.notes||'').toLowerCase().includes(q);
+    return matchF && matchQ;
+  });
+}
+
+// ── STATS ──
+function updateStats(){
+  document.getElementById('statTotal').textContent = entries.length;
+  document.getElementById('statDone').textContent  = entries.filter(e=>e.status==='done').length;
+  document.getElementById('statProgress').textContent = entries.filter(e=>e.status==='progress').length;
+  document.getElementById('statTodo').textContent  = entries.filter(e=>e.status==='todo').length;
+}
+
+// ── RENDER ──
+function renderList(){
+  updateStats();
+  const list = document.getElementById('entryList');
+  const filtered = getFiltered();
+  if(!filtered.length){
+    list.innerHTML = `<div class="empty-state"><span class="big">📻</span>Aucun podcast trouvé.<br>Clique sur <strong>+ Ajouter</strong> pour commencer.</div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(e=>{
+    const pct = e.status==='done'?100:e.status==='todo'?0:(e.progressPct||50);
+    const waveHTML = e.status==='done'?`<div class="player-wave">${'<span></span>'.repeat(8)}</div>`:'';
+    const durationTxt = e.duration ? `🎧 ${e.duration} min` : '';
+    const pagesText = e.pages ? `📄 ${e.pages} p.` : '';
+
+    return `<div class="entry status-${e.status}" id="entry-${e.id}">
+      <div class="entry-head" onclick="toggleEntry('${e.id}')">
+        ${ringHTML(pct, e.status)}
+        <div class="entry-info">
+          <div class="entry-title">${esc(e.title||'Sans titre')}</div>
+          <div class="entry-meta">
+            <span class="entry-date">${e.date||''}</span>
+            ${pagesText?`<span class="entry-pages">${pagesText}</span>`:''}
+            ${durationTxt?`<span class="entry-date">${durationTxt}</span>`:''}
+            <span class="tag ${STATUS_TAG[e.status]}">${STATUS_LABELS[e.status]}</span>
+            ${e.cat?`<span class="tag tag-cat">${esc(e.cat)}</span>`:''}
+          </div>
+        </div>
+        <div class="entry-chevron">▼</div>
+      </div>
+      <div class="entry-body">
+        <div class="detail-grid">
+          ${e.link?`<div class="detail-item"><div class="detail-label">Lien NotebookLM</div><div class="detail-val"><a href="${esc(e.link)}" target="_blank" rel="noopener">🔗 Ouvrir dans NotebookLM</a></div></div>`:''}
+          ${e.pages?`<div class="detail-item"><div class="detail-label">Pages</div><div class="detail-val">${e.pages} pages</div></div>`:''}
+          ${e.duration?`<div class="detail-item"><div class="detail-label">Durée podcast</div><div class="detail-val">🎧 ${e.duration} min</div></div>`:''}
+          ${e.cat?`<div class="detail-item"><div class="detail-label">Catégorie</div><div class="detail-val">${esc(e.cat)}</div></div>`:''}
+        </div>
+        ${e.status==='done'?`
+        <div class="player-bar">
+          <button class="player-btn" title="Podcast terminé">▶</button>
+          <div class="player-info">
+            <div class="player-name">${esc(e.title)} — Podcast AI</div>
+            ${waveHTML}
+          </div>
+        </div>`:''}
+        ${e.notes?`<div><div class="detail-label" style="margin-bottom:4px">Notes</div><div class="notes-block">${esc(e.notes)}</div></div>`:''}
+        <div class="entry-actions">
+          <select class="status-select" onchange="quickStatus('${e.id}', this.value)">
+            <option value="todo"  ${e.status==='todo'   ?'selected':''}>📄 À faire</option>
+            <option value="progress" ${e.status==='progress'?'selected':''}>🎙️ En cours</option>
+            <option value="done"  ${e.status==='done'   ?'selected':''}>✅ Terminé</option>
+            <option value="error" ${e.status==='error'  ?'selected':''}>⚠️ Erreur</option>
+          </select>
+          ${e.status==='progress'?`<input type="range" min="0" max="100" value="${e.progressPct||50}" style="width:100px;accent-color:var(--amber)" title="Progression" oninput="setProgress('${e.id}',this.value)">`:''}
+          <button class="btn" onclick="openEdit('${e.id}')">✏️ Modifier</button>
+          <button class="btn danger" onclick="askDelete('${e.id}', '${esc(e.title||'cette entrée')}')">🗑 Supprimer</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Restore open state
+  openEntries.forEach(id=>{
+    const el=document.getElementById('entry-'+id);
+    if(el) el.classList.add('open');
+  });
+}
+
+// ── TOGGLE OPEN ──
+const openEntries = new Set();
+function toggleEntry(id){
+  const el = document.getElementById('entry-'+id);
+  if(!el) return;
+  if(el.classList.contains('open')){ el.classList.remove('open'); openEntries.delete(id); }
+  else { el.classList.add('open'); openEntries.add(id); }
+}
+
+// ── FORM ──
+function toggleForm(){
+  const f = document.getElementById('addForm');
+  f.classList.toggle('open');
+  if(f.classList.contains('open')) document.getElementById('fTitle').focus();
+}
+
+function addEntry(){
+  const title = document.getElementById('fTitle').value.trim();
+  if(!title){ document.getElementById('fTitle').focus(); return; }
+  const e = {
+    id:uid(),
+    title,
+    cat:document.getElementById('fCat').value.trim(),
+    pages:document.getElementById('fPages').value||'',
+    status:document.getElementById('fStatus').value,
+    link:document.getElementById('fLink').value.trim(),
+    duration:document.getElementById('fDuration').value||'',
+    notes:document.getElementById('fNotes').value.trim(),
+    date: new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}),
+    progressPct:0
+  };
+  entries.unshift(e);
+  save();
+  // Reset form
+  ['fTitle','fCat','fPages','fLink','fDuration','fNotes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fStatus').value='todo';
+  document.getElementById('addForm').classList.remove('open');
+  renderList();
+}
+
+// ── QUICK STATUS ──
+function quickStatus(id, val){
+  const e = entries.find(e=>e.id===id);
+  if(!e) return;
+  e.status=val;
+  if(val==='done') e.progressPct=100;
+  if(val==='todo') e.progressPct=0;
+  save(); renderList();
+  openEntries.add(id);
+}
+
+function setProgress(id, val){
+  const e=entries.find(e=>e.id===id);
+  if(!e) return;
+  e.progressPct=parseInt(val);
+  save();
+  // update ring visually without full re-render
+  const el=document.getElementById('entry-'+id);
+  if(el){
+    const ring=el.querySelector('.ring-wrap');
+    if(ring) ring.outerHTML=ringHTML(parseInt(val),e.status);
+  }
+}
+
+// ── DELETE CONFIRM ──
+function askDelete(id, title){
+  confirmId=id;
+  document.getElementById('confirmSub').textContent=`"${title}" sera définitivement supprimé.`;
+  document.getElementById('confirmModal').classList.add('open');
+}
+function closeConfirm(){
+  confirmId=null;
+  document.getElementById('confirmModal').classList.remove('open');
+}
+function confirmDelete(){
+  if(!confirmId) return;
+  entries=entries.filter(e=>e.id!==confirmId);
+  save(); renderList();
+  closeConfirm();
+}
+
+// ── EDIT ──
+function openEdit(id){
+  editId=id;
+  const e=entries.find(e=>e.id===id);
+  if(!e) return;
+  document.getElementById('eTitle').value=e.title||'';
+  document.getElementById('eCat').value=e.cat||'';
+  document.getElementById('ePages').value=e.pages||'';
+  document.getElementById('eStatus').value=e.status||'todo';
+  document.getElementById('eLink').value=e.link||'';
+  document.getElementById('eDuration').value=e.duration||'';
+  document.getElementById('eNotes').value=e.notes||'';
+  document.getElementById('editOverlay').classList.add('open');
+}
+function closeEdit(){
+  editId=null;
+  document.getElementById('editOverlay').classList.remove('open');
+}
+function saveEdit(){
+  const e=entries.find(e=>e.id===editId);
+  if(!e) return;
+  e.title   = document.getElementById('eTitle').value.trim()||'Sans titre';
+  e.cat     = document.getElementById('eCat').value.trim();
+  e.pages   = document.getElementById('ePages').value;
+  e.status  = document.getElementById('eStatus').value;
+  e.link    = document.getElementById('eLink').value.trim();
+  e.duration= document.getElementById('eDuration').value;
+  e.notes   = document.getElementById('eNotes').value.trim();
+  if(e.status==='done') e.progressPct=100;
+  if(e.status==='todo') e.progressPct=0;
+  save(); renderList();
+  openEntries.add(editId);
+  closeEdit();
+}
+
+// ── EXPORT / IMPORT ──
+function exportJSON(){
+  const blob=new Blob([JSON.stringify(entries,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='notebooklm_tracker.json';
+  a.click();
+}
+function importJSON(evt){
+  const f=evt.target.files[0];
+  if(!f) return;
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      if(Array.isArray(data)){ entries=data; save(); renderList(); }
+    }catch(err){ alert('Fichier JSON invalide.'); }
+  };
+  r.readAsText(f);
+  evt.target.value='';
+}
+
+// ── ESCAPE ──
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── CLOSE MODALS ON BACKDROP ──
+document.getElementById('confirmModal').addEventListener('click', e=>{
+  if(e.target===e.currentTarget) closeConfirm();
+});
+document.getElementById('editOverlay').addEventListener('click', e=>{
+  if(e.target===e.currentTarget) closeEdit();
+});
+
+// ── INIT ──
+load();
+renderList();
+</script>
+</body>
+</html>
