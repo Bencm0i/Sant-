@@ -11,19 +11,19 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg: #1a1c1e;
-    --surface: #212426;
-    --border: #2e3235;
-    --border-active: #4a5058;
-    --accent: #8fa8c8;
-    --accent2: #b0bec5;
-    --accent3: #78909c;
-    --text: #cfd8dc;
-    --text-muted: #78909c;
-    --text-dim: #90a4ae;
-    --calc-btn: #272b2e;
-    --calc-op: #2c333a;
-    --calc-eq: #455a64;
+    --bg: #f5f4f0;
+    --surface: #eeece7;
+    --border: #d6d2c8;
+    --border-active: #b0aa9e;
+    --accent: #e07a20;
+    --accent2: #c46010;
+    --accent3: #b85a08;
+    --text: #2a2520;
+    --text-muted: #7a7268;
+    --text-dim: #5a5248;
+    --calc-btn: #e8e5df;
+    --calc-op: #ddd8ce;
+    --calc-eq: #e07a20;
     --radius: 10px;
     --mono: 'DM Mono', monospace;
     --sans: 'Sora', sans-serif;
@@ -118,7 +118,7 @@
   .calc-wrap { padding: 14px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; flex: 1; }
 
   .calc-display {
-    background: #1e2224;
+    background: #e8e5df;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 14px 16px;
@@ -163,8 +163,8 @@
   .cbtn:active { transform: scale(0.94); }
   .cbtn.op { background: var(--calc-op); color: var(--accent); border-color: #3a444c; }
   .cbtn.op:hover { background: #343d45; }
-  .cbtn.eq { background: var(--calc-eq); color: #eceff1; border-color: #546e7a; font-size: 18px; }
-  .cbtn.eq:hover { background: #546e7a; }
+  .cbtn.eq { background: var(--calc-eq); color: #fff; border-color: #c46010; font-size: 18px; }
+  .cbtn.eq:hover { background: #c46010; }
   .cbtn.ac { color: #b0bec5; }
   .cbtn.span2 { grid-column: span 2; }
 
@@ -179,7 +179,7 @@
     font-family: var(--mono);
     font-size: 11px;
     color: var(--accent2);
-    background: #252a2d;
+    background: #e2dfd8;
     letter-spacing: 0.08em;
     border-bottom: 1px solid var(--border);
   }
@@ -187,7 +187,7 @@
   .conv-row { display: flex; align-items: center; gap: 6px; }
   .conv-row input {
     flex: 1;
-    background: #1e2224;
+    background: #f0ede6;
     border: 1px solid var(--border);
     border-radius: 6px;
     color: var(--text);
@@ -200,7 +200,7 @@
   }
   .conv-row input:focus { border-color: var(--accent); }
   .conv-row select {
-    background: #1e2224;
+    background: #f0ede6;
     border: 1px solid var(--border);
     border-radius: 6px;
     color: var(--text-dim);
@@ -256,7 +256,7 @@
     transition: background 0.12s, color 0.12s;
     line-height: 1;
   }
-  .tab-close:hover { background: #2c2f3a; color: var(--accent2); }
+  .tab-close:hover { background: #e8e0d8; color: var(--accent2); }
   .tab-add {
     padding: 9px 10px;
     cursor: pointer;
@@ -306,18 +306,18 @@
     align-items: center;
     gap: 5px;
   }
-  .ai-btn:hover { background: #1e222e; border-color: var(--accent); color: var(--accent); }
+  .ai-btn:hover { background: #f5ede0; border-color: var(--accent); color: var(--accent); }
   .ai-btn.loading { opacity: 0.5; pointer-events: none; }
-  .ai-btn.save-btn { color: #c8a96e; border-color: #4a3e2a; background: #2a2418; }
-  .ai-btn.save-btn:hover { background: #33301f; border-color: #c8a96e; color: #e2c98e; }
+  .ai-btn.save-btn { color: #7a4a10; border-color: #c8a060; background: #f0e8d8; }
+  .ai-btn.save-btn:hover { background: #e8d8c0; border-color: #a06820; color: #7a4a10; }
 
   /* Bouton copier orange IA */
   .copy-ia-btn {
     padding: 4px 7px;
     border-radius: 5px;
-    border: 1px solid #7a4a1a;
-    background: #2a1e0e;
-    color: #e07a20;
+    border: 1px solid #c46010;
+    background: #fce8d0;
+    color: #c46010;
     font-family: var(--mono);
     font-size: 10px;
     cursor: pointer;
@@ -328,8 +328,8 @@
     letter-spacing: 0.03em;
     flex-shrink: 0;
   }
-  .copy-ia-btn:hover { background: #3a2a10; border-color: #e07a20; color: #f09540; }
-  .copy-ia-btn.copied { color: #78c87a; border-color: #2a5a2a; background: #162016; }
+  .copy-ia-btn:hover { background: #f5d8b0; border-color: #e07a20; color: #e07a20; }
+  .copy-ia-btn.copied { color: #2a7a2a; border-color: #2a7a2a; background: #d8f0d8; }
 
   .sep { width: 1px; height: 18px; background: var(--border); flex-shrink: 0; margin: 0 2px; }
 
@@ -342,7 +342,7 @@
   }
   .note-editor {
     flex: 1;
-    background: #1e2224;
+    background: #f8f6f1;
     color: var(--text);
     border: none;
     outline: none;
@@ -355,13 +355,13 @@
     caret-color: var(--accent);
     overflow-y: auto;
   }
-  .note-editor::placeholder { color: #3a4044; }
+  .note-editor::placeholder { color: #c0bab0; }
 
   /* AI Response overlay */
   .ai-response {
     position: absolute;
     inset: 0;
-    background: #1e2224;
+    background: #f8f6f1;
     padding: 20px;
     overflow-y: auto;
     font-family: var(--mono);
@@ -478,8 +478,27 @@
   .ai-link svg { flex-shrink: 0; }
 
   /* Thinking animation */
+  .ai-btn-clear {
+    padding: 5px 10px;
+    border-radius: 6px;
+    border: 1px solid #d0c8be;
+    background: transparent;
+    color: #a09088;
+    font-family: var(--mono);
+    font-size: 11px;
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s, color 0.12s;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .ai-btn-clear:hover { background: #fde8e0; border-color: #d0604a; color: #c04030; }
+
+  /* Thinking animation */
   @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
   .thinking::after { content: '▋'; display: inline-block; animation: blink 0.8s infinite; margin-left: 2px; color: var(--accent); }
+
 </style>
 </head>
 <body>
@@ -697,6 +716,9 @@
       <button class="ai-btn" onclick="aiAction('explain')">? Expliquer</button>
       <button class="ai-btn" onclick="aiAction('tone')">◈ Ton pro</button>
       <div class="sep"></div>
+      <button class="ai-btn" onclick="aiAction('correctcomment')">✦ Corriger + commenter</button>
+      <button class="ai-btn-clear" onclick="clearActiveNote()" title="Effacer tout le contenu de la note active">⌫ Effacer</button>
+      <div class="sep"></div>
       <button class="copy-ia-btn" id="copy-note-btn" onclick="copyNote()" title="Copier la sélection ou toute la note">⎘ Copier</button>
     </div>
 
@@ -712,6 +734,7 @@
         </div>
         <textarea id="ai-response-content" class="prompt-textarea"></textarea>
       </div>
+
     </div>
 
     <div class="statusbar">
@@ -1059,19 +1082,20 @@ const aiResponseEl  = document.getElementById('ai-response');
 const aiContentEl   = document.getElementById('ai-response-content');
 
 const prompts = {
-  resume:    (t) => `Résume le texte suivant de manière concise et claire :\n\n${t}`,
-  correct:   (t) => `Corrige les fautes d'orthographe, de grammaire et de ponctuation dans ce texte. Retourne uniquement le texte corrigé, sans commentaire :\n\n${t}`,
-  rephrase:  (t) => `Reformule ce texte de manière différente tout en conservant le sens :\n\n${t}`,
-  expand:    (t) => `Développe et enrichis ce texte en ajoutant des détails pertinents :\n\n${t}`,
-  translate: (t) => `Traduis ce texte en anglais de manière naturelle :\n\n${t}`,
-  bullets:   (t) => `Transforme ce texte en liste de points clés au format bullet points (•) :\n\n${t}`,
-  explain:   (t) => `Explique ce texte simplement, comme si tu t'adressais à quelqu'un qui ne connaît pas le sujet :\n\n${t}`,
-  tone:      (t) => `Réécris ce texte avec un ton professionnel et formel, adapté à un contexte d'entreprise :\n\n${t}`,
+  resume:         (t) => `Résume le texte suivant de manière concise et claire :\n\n${t}`,
+  correct:        (t) => `Corrige les fautes d'orthographe, de grammaire et de ponctuation dans ce texte. Retourne uniquement le texte corrigé, sans commentaire :\n\n${t}`,
+  correctcomment: (t) => `Corrige les fautes d'orthographe, de grammaire et de ponctuation dans ce texte.\n\nPrésente d'abord le texte corrigé intégralement, puis liste chaque correction apportée avec une brève explication (format : "faute → correction : raison"). Si le texte est déjà correct, indique-le.\n\n${t}`,
+  rephrase:       (t) => `Reformule ce texte de manière différente tout en conservant le sens :\n\n${t}`,
+  expand:         (t) => `Développe et enrichis ce texte en ajoutant des détails pertinents :\n\n${t}`,
+  translate:      (t) => `Traduis ce texte en anglais de manière naturelle :\n\n${t}`,
+  bullets:        (t) => `Transforme ce texte en liste de points clés au format bullet points (•) :\n\n${t}`,
+  explain:        (t) => `Explique ce texte simplement, comme si tu t'adressais à quelqu'un qui ne connaît pas le sujet :\n\n${t}`,
+  tone:           (t) => `Réécris ce texte avec un ton professionnel et formel, adapté à un contexte d'entreprise :\n\n${t}`,
 };
 
 const labelNames = {
-  resume: '✦ Résumer', correct: '✎ Corriger', rephrase: '↻ Reformuler',
-  expand: '⊕ Développer', translate: '⇄ Traduire EN',
+  resume: '✦ Résumer', correct: '✎ Corriger', correctcomment: '✦ Corriger + commenter',
+  rephrase: '↻ Reformuler', expand: '⊕ Développer', translate: '⇄ Traduire EN',
   bullets: '≡ → Bullets', explain: '? Expliquer', tone: '◈ Ton pro',
 };
 
@@ -1105,6 +1129,21 @@ function closeAiResponse() {
   aiResponseEl.classList.remove('visible');
   aiContentEl.value = '';
 }
+
+// ════════════════════════════════════════
+// EFFACER NOTE ACTIVE
+// ════════════════════════════════════════
+function clearActiveNote() {
+  if (!noteEditor.value.trim()) return;
+  if (!confirm('Effacer tout le contenu de la note active ?')) return;
+  noteEditor.value = '';
+  const cur = tabs.find(t => t.id === activeTab);
+  if (cur) cur.content = '';
+  updateStatus();
+  saveToStorage();
+  noteEditor.focus();
+}
+
 </script>
 </body>
 </html>
