@@ -1,0 +1,237 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+#app{font-family:var(--font-sans);padding:.75rem}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.topbar-title{font-size:16px;font-weight:500;color:var(--color-text-primary)}
+.btn-reset{font-size:12px;padding:6px 12px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-secondary);cursor:pointer;font-family:var(--font-sans)}
+
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-bottom:.875rem}
+.kpi{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:.625rem .25rem;text-align:center}
+.kpi-n{font-size:22px;font-weight:500;display:block}
+.kpi-l{font-size:10px;color:var(--color-text-secondary);margin-top:2px;display:block;line-height:1.2}
+
+.prog-wrap{margin-bottom:1rem}
+.prog-track{height:10px;background:var(--color-border-tertiary);border-radius:99px;overflow:hidden}
+.prog-fill{height:100%;border-radius:99px;background:#1D9E75;transition:width .3s}
+.prog-row{display:flex;justify-content:space-between;margin-top:4px;font-size:11px;color:var(--color-text-secondary)}
+
+.filters{display:flex;gap:6px;margin-bottom:.875rem;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.filters::-webkit-scrollbar{display:none}
+.flt{font-size:12px;padding:6px 14px;border-radius:99px;border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-secondary);cursor:pointer;white-space:nowrap;flex-shrink:0}
+.flt.on{background:#E6F1FB;color:#185FA5;border-color:#85B7EB}
+
+.section{margin-bottom:8px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:hidden}
+.sec-hdr{display:flex;align-items:center;padding:13px 14px;background:var(--color-background-secondary);cursor:pointer;gap:10px;border-bottom:0.5px solid var(--color-border-tertiary);min-height:52px}
+.sec-icon{font-size:11px;color:var(--color-text-secondary);width:20px;text-align:center;flex-shrink:0}
+.sec-name{font-size:14px;font-weight:500;color:var(--color-text-primary);flex:1;line-height:1.3}
+.sec-right{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.sec-pct{font-size:12px;font-weight:500;min-width:32px;text-align:right}
+.sec-chev{font-size:11px;color:var(--color-text-secondary);transition:transform .2s}
+.sec-chev.open{transform:rotate(90deg)}
+
+.item{border-bottom:0.5px solid var(--color-border-tertiary);transition:background .1s}
+.item:last-child{border-bottom:none}
+.item.st-ok{background:#E1F5EE}
+.item.st-ko{background:#FCEBEB}
+.item.st-na{background:#F1EFE8}
+.item-top{display:flex;align-items:center;padding:12px 14px;gap:10px;min-height:58px}
+.item-texts{flex:1;min-width:0}
+.item-lbl{font-size:14px;font-weight:500;color:var(--color-text-primary);line-height:1.35}
+.item-sub{font-size:11px;color:var(--color-text-secondary);margin-top:2px;line-height:1.35}
+.item-btns{display:flex;gap:5px;flex-shrink:0}
+.ib{font-size:13px;font-weight:500;width:44px;height:44px;border-radius:10px;border:1.5px solid transparent;cursor:pointer;font-family:var(--font-sans);display:flex;align-items:center;justify-content:center;transition:all .12s;touch-action:manipulation}
+.ib.ok{background:#E1F5EE;color:#0F6E56;border-color:#5DCAA5}
+.ib.ok.on{background:#1D9E75;color:white;border-color:#0F6E56}
+.ib.ko{background:#FCEBEB;color:#A32D2D;border-color:#F09595}
+.ib.ko.on{background:#E24B4A;color:white;border-color:#A32D2D}
+.ib.na{background:#F1EFE8;color:#5F5E5A;border-color:#B4B2A9;font-size:11px}
+.ib.na.on{background:#888780;color:white;border-color:#5F5E5A}
+.note-wrap{padding:0 14px 12px 14px}
+.note-wrap input{font-size:13px;padding:9px 12px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary);font-family:var(--font-sans);width:100%}
+
+.fab{position:sticky;bottom:16px;display:flex;justify-content:flex-end;padding-top:12px}
+.fab-btn{font-size:13px;padding:12px 20px;border-radius:99px;border:none;background:#185FA5;color:white;cursor:pointer;font-family:var(--font-sans);font-weight:500;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+</style>
+
+<div id="app">
+  <div class="topbar">
+    <span class="topbar-title">Mise en plan — SolidWorks</span>
+    <button class="btn-reset" onclick="resetAll()">Réinit.</button>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+  <div class="prog-wrap">
+    <div class="prog-track"><div class="prog-fill" id="pf" style="width:0%"></div></div>
+    <div class="prog-row"><span id="pl">0 / 0 validés</span><span id="pp">0 %</span></div>
+  </div>
+  <div class="filters">
+    <span class="flt on" onclick="setFilter(this,'all')">Tous</span>
+    <span class="flt" onclick="setFilter(this,'none')">Non traités</span>
+    <span class="flt" onclick="setFilter(this,'ko')">Non conformes</span>
+    <span class="flt" onclick="setFilter(this,'ok')">Conformes</span>
+  </div>
+  <div id="secs"></div>
+  <div class="fab">
+    <button class="fab-btn" onclick="sendPrompt('Génère un rapport de contrôle mise en plan SolidWorks avec les non-conformités détaillées')">Rapport ↗</button>
+  </div>
+</div>
+
+<script>
+const D=[
+  {id:"ca",icon:"[]",label:"Cartouche & identification",items:[
+    {id:"c1",l:"Numéro de plan",s:"Format normalisé, indice de révision à jour"},
+    {id:"c2",l:"Désignation de la pièce",s:"Nom exact selon la nomenclature projet"},
+    {id:"c3",l:"Matière",s:"S235JR, 316L, PA6-GF30…"},
+    {id:"c4",l:"Traitement de surface / thermique",s:"HRC, cémentation, zingage, peinture RAL…"},
+    {id:"c5",l:"Échelle",s:"Mentionnée et cohérente avec la représentation"},
+    {id:"c6",l:"Format & orientation de feuille",s:"A0 à A4, paysage ou portrait adapté"},
+    {id:"c7",l:"Normes applicables",s:"ISO, ANSI, EN… dans le cartouche"},
+    {id:"c8",l:"Indice de révision & historique",s:"Tableau des révisions renseigné et signé"},
+    {id:"c9",l:"Créateur / vérificateur / approbateur",s:"Noms, dates et visa présents"},
+  ]},
+  {id:"vi",icon:"◫",label:"Vues & représentation",items:[
+    {id:"v1",l:"Vues suffisantes",s:"Face, dessus, profil — géométrie complète"},
+    {id:"v2",l:"Projection cohérente",s:"1er ou 3e dièdre uniforme sur tout le plan"},
+    {id:"v3",l:"Coupes & sections",s:"A-A, B-B… identifiés, hachures normes"},
+    {id:"v4",l:"Vues de détail agrandies",s:"Identifiées avec leur propre échelle"},
+    {id:"v5",l:"Lignes cachées",s:"Tiretées uniquement si indispensables"},
+    {id:"v6",l:"Axes & lignes d'axe",s:"Révolutions, alésages, symétries"},
+    {id:"v7",l:"Vue 3D / isométrique",s:"Informative uniquement, non cotée"},
+  ]},
+  {id:"co",icon:"↔",label:"Cotation dimensionnelle",items:[
+    {id:"d1",l:"Cotation complète",s:"Toutes les dimensions nécessaires"},
+    {id:"d2",l:"Sans redondance",s:"Aucune cote double, pas de sur-cotation"},
+    {id:"d3",l:"Tolérances générales",s:"ISO 2768-m/f ou tableau personnalisé"},
+    {id:"d4",l:"Tolérances spécifiques",s:"Mentionnées sur chaque cote critique"},
+    {id:"d5",l:"Cotes de référence",s:"Entre parenthèses si informatives"},
+    {id:"d6",l:"Lisibilité",s:"Pas de croisement, texte orienté"},
+    {id:"d7",l:"Unités",s:"mm par défaut, cohérentes sur tout le plan"},
+  ]},
+  {id:"gd",icon:"⊙",label:"Tolérances géométriques (GD&T)",items:[
+    {id:"g1",l:"Références (datums) définies",s:"A, B, C clairement identifiées"},
+    {id:"g2",l:"Cadres de tolérance corrects",s:"Symbole, valeur, référence dans l'ordre"},
+    {id:"g3",l:"Planéité / rectitude",s:"Surfaces fonctionnelles d'appui"},
+    {id:"g4",l:"Circularité / cylindricité",s:"Portées d'alésage ou d'arbre"},
+    {id:"g5",l:"Perpendicularité / parallélisme",s:"Par rapport à un datum défini"},
+    {id:"g6",l:"Localisation / concentricité",s:"Préférés aux cotes +/− pour positions"},
+    {id:"g7",l:"Battement / battement total",s:"Surfaces rotatives si nécessaire"},
+  ]},
+  {id:"es",icon:"Ra",label:"État de surface",items:[
+    {id:"s1",l:"Ra / Rz sur surfaces fonctionnelles",s:"Paliers, joints, glissières, portées…"},
+    {id:"s2",l:"État de surface général",s:"Symbole en coin sup. droit, valeur défaut"},
+    {id:"s3",l:"Cohérence avec le procédé",s:"Ra compatible tournage, rectif, fraisage…"},
+  ]},
+  {id:"fi",icon:"///",label:"Filetages, alésages & ajustements",items:[
+    {id:"f1",l:"Désignation filetage normalisée",s:"M10×1.5-6H, G1/2, UNC…"},
+    {id:"f2",l:"Profondeur de filetage",s:"Longueur utile + longueur de perçage"},
+    {id:"f3",l:"Alésages avec tolérance ISO",s:"Ø20 H7 / h6 / k6…"},
+    {id:"f4",l:"Ajustements précisés",s:"Jeu / serrage pour assemblages fonctionnels"},
+    {id:"f5",l:"Chanfreins & rayons",s:"Sur toutes les arêtes saillantes"},
+  ]},
+  {id:"no",icon:"≡",label:"Nomenclature & assemblage",items:[
+    {id:"n1",l:"Repères sur chaque composant",s:"Bulles numérotées, lignes de rappel"},
+    {id:"n2",l:"Tableau de nomenclature complet",s:"Repère, désignation, qté, matière, réf."},
+    {id:"n3",l:"Pièces standard référencées",s:"Vis, roulements, joints — norme/fournisseur"},
+  ]},
+  {id:"an",icon:"T",label:"Annotations & notes techniques",items:[
+    {id:"a1",l:"Notes générales",s:"Débavurage, marquage, protection…"},
+    {id:"a2",l:"Symboles de soudure",s:"ISO 2553 corrects si soudures présentes"},
+    {id:"a3",l:"Cohérence modèle 3D / plan 2D",s:"Cotes plan = cotes SolidWorks"},
+    {id:"a4",l:"Instructions assemblage critiques",s:"Sens, couples de serrage si nécessaires"},
+  ]},
+];
+
+let ST={}, EX={};
+D.forEach(s=>{EX[s.id]=true; s.items.forEach(it=>ST[it.id]={v:"none",n:""})});
+let filter="all";
+
+function resetAll(){Object.keys(ST).forEach(k=>ST[k]={v:"none",n:""});render();}
+function setFilter(el,f){filter=f;document.querySelectorAll(".flt").forEach(x=>x.classList.remove("on"));el.classList.add("on");render();}
+function toggleSec(id){EX[id]=!EX[id];render();}
+function setV(id,v){ST[id].v=(ST[id].v===v?"none":v);render();}
+function setN(id,v){ST[id].n=v;}
+
+function render(){
+  const all=D.flatMap(s=>s.items);
+  const tot=all.length;
+  const nok=all.filter(i=>ST[i.id].v==="ok").length;
+  const nko=all.filter(i=>ST[i.id].v==="ko").length;
+  const nnone=all.filter(i=>ST[i.id].v==="none").length;
+  const pct=tot>0?Math.round(nok/tot*100):0;
+
+  document.getElementById("kpis").innerHTML=
+    `<div class="kpi"><span class="kpi-n" style="color:var(--color-text-primary)">${tot}</span><span class="kpi-l">Total</span></div>`+
+    `<div class="kpi"><span class="kpi-n" style="color:#1D9E75">${nok}</span><span class="kpi-l">Con-formes</span></div>`+
+    `<div class="kpi"><span class="kpi-n" style="color:#E24B4A">${nko}</span><span class="kpi-l">Non conf.</span></div>`+
+    `<div class="kpi"><span class="kpi-n" style="color:var(--color-text-secondary)">${nnone}</span><span class="kpi-l">En attente</span></div>`;
+
+  document.getElementById("pf").style.width=pct+"%";
+  document.getElementById("pl").textContent=nok+" / "+tot+" validés";
+  document.getElementById("pp").textContent=pct+" %";
+
+  const wrap=document.getElementById("secs");
+  wrap.innerHTML="";
+
+  D.forEach(s=>{
+    const vis=s.items.filter(it=>{
+      const v=ST[it.id].v;
+      if(filter==="all") return true;
+      if(filter==="none") return v==="none";
+      if(filter==="ko") return v==="ko";
+      if(filter==="ok") return v==="ok";
+      return true;
+    });
+    if(filter!=="all"&&vis.length===0) return;
+
+    const sok=s.items.filter(i=>ST[i.id].v==="ok").length;
+    const sko=s.items.filter(i=>ST[i.id].v==="ko").length;
+    const spct=Math.round(sok/s.items.length*100);
+    const pc=sko>0?"#E24B4A":sok===s.items.length?"#1D9E75":"#BA7517";
+
+    const sec=document.createElement("div");
+    sec.className="section";
+
+    const hdr=document.createElement("div");
+    hdr.className="sec-hdr";
+    hdr.innerHTML=`<span class="sec-icon">${s.icon}</span><span class="sec-name">${s.label}</span><div class="sec-right"><span class="sec-pct" style="color:${pc}">${spct}%</span><span class="sec-chev ${EX[s.id]?"open":""}">&#9654;</span></div>`;
+    hdr.onclick=()=>toggleSec(s.id);
+    sec.appendChild(hdr);
+
+    if(EX[s.id]){
+      const iw=document.createElement("div");
+      (filter==="all"?s.items:vis).forEach(it=>{
+        const v=ST[it.id].v;
+        const item=document.createElement("div");
+        item.className="item st-"+v;
+
+        const top=document.createElement("div");
+        top.className="item-top";
+        top.innerHTML=`
+          <div class="item-texts">
+            <div class="item-lbl">${it.l}</div>
+            <div class="item-sub">${it.s}</div>
+          </div>
+          <div class="item-btns">
+            <button class="ib ok ${v==="ok"?"on":""}" onclick="setV('${it.id}','ok')">OK</button>
+            <button class="ib ko ${v==="ko"?"on":""}" onclick="setV('${it.id}','ko')">NC</button>
+            <button class="ib na ${v==="na"?"on":""}" onclick="setV('${it.id}','na')">N/A</button>
+          </div>`;
+        item.appendChild(top);
+
+        if(v==="ko"){
+          const nw=document.createElement("div");
+          nw.className="note-wrap";
+          nw.innerHTML=`<input placeholder="Observation sur la non-conformité…" value="${ST[it.id].n}" oninput="setN('${it.id}',this.value)">`;
+          item.appendChild(nw);
+        }
+        iw.appendChild(item);
+      });
+      sec.appendChild(iw);
+    }
+    wrap.appendChild(sec);
+  });
+}
+
+render();
+</script>
