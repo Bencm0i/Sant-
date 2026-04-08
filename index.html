@@ -351,6 +351,30 @@
   .wk-aic-toggle{width:16px;height:16px;border-radius:2px;border:1px solid var(--border2);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:9px;transition:all .15s;flex-shrink:0;}
   .wk-aic-toggle.on{background:rgba(26,92,204,0.2);border-color:rgba(26,92,204,0.5);color:var(--blue);}
   .wk-aic-toggle:hover{border-color:var(--blue);}
+
+  /* ── BANDE DÉFILANTE ── */
+  #ticker-bar{position:sticky;top:141px;z-index:97;background:rgba(185,192,200,0.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);height:26px;overflow:hidden;display:flex;align-items:center;}
+  #ticker-bar.hidden{display:none;}
+  .ticker-track{display:flex;align-items:center;white-space:nowrap;animation:ticker-scroll 60s linear infinite;padding-left:100%;}
+  .ticker-track:hover{animation-play-state:paused;}
+  @keyframes ticker-scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+  .ticker-sep{color:var(--border2);margin:0 18px;opacity:0.6;font-size:10px;}
+  .ticker-item{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:9px;letter-spacing:0.5px;white-space:nowrap;}
+  .ticker-item .tk-icon{font-size:11px;flex-shrink:0;}
+  .ticker-item .tk-label{color:var(--muted2);text-transform:uppercase;letter-spacing:1px;font-size:8px;}
+  .ticker-item .tk-val{font-weight:700;}
+  .ticker-item.tk-conge .tk-val{color:var(--blue);}
+  .ticker-item.tk-conge-link{cursor:pointer;text-decoration:none;}
+  .ticker-item.tk-conge-link .tk-val{color:var(--blue);text-decoration:underline;text-underline-offset:2px;}
+  .ticker-item.tk-conge-link:hover .tk-val{color:#2a7cfc;}
+  .ticker-item.tk-velo-go .tk-val{color:var(--green);}
+  .ticker-item.tk-velo-warn .tk-val{color:var(--gold);}
+  .ticker-item.tk-velo-nogo .tk-val{color:var(--red);}
+  .ticker-item.tk-btc .tk-val{color:var(--gold);}
+  .ticker-item.tk-affaire .tk-val{color:var(--orange);}
+  /* Éléments cachés pour data */
+  #congesBody{display:none;}
+  #veloBody{display:none;}
 </style>
 </head>
 <body>
@@ -640,6 +664,17 @@
   </div>
 </div>
 
+<!-- ════ BANDE DÉFILANTE ════════════════════════════════════════ -->
+<div id="ticker-bar">
+  <div class="ticker-track" id="tickerTrack">
+    <!-- contenu injecté par JS -->
+  </div>
+</div>
+
+<!-- Éléments cachés pour data vélotaf & congés -->
+<div id="congesBody" style="display:none"></div>
+<div class="velo-panel" style="display:none"><div id="veloBody"></div></div>
+
 <!-- ════════════════════════════════════════════════════════════════
      MAIN
 ════════════════════════════════════════════════════════════════════ -->
@@ -725,31 +760,6 @@
       <div class="notes-body" id="notesBody"></div>
     </div>
 
-    <!-- Congés -->
-    <div class="slabel" style="margin-top:14px">Congés</div>
-    <div class="conges-panel">
-      <div class="conges-header">
-        <div class="conges-title">🏖 CONGÉS & ABSENCES</div>
-        <button class="conges-open-btn" onclick="openConges()" title="Ouvrir le suivi congés">↗ OUVRIR</button>
-      </div>
-      <div class="conges-body" id="congesBody">
-        <div style="text-align:center;padding:12px 0;color:var(--muted);font-size:9px;letter-spacing:1px;">Chargement…</div>
-      </div>
-    </div>
-
-    <!-- Velotaf -->
-    <div class="slabel" style="margin-top:14px">Velotaf</div>
-    <div class="velo-panel">
-      <div class="velo-header">
-        <div class="velo-title">🚴 VELOTAF 16h–17h30 · ~10 km</div>
-        <button class="velo-refresh" onclick="veloRefresh()" title="Actualiser">⟳ MAJ</button>
-      </div>
-      <div class="velo-body" id="veloBody">
-        <div style="text-align:center;padding:16px 0;color:var(--muted);font-size:10px;letter-spacing:1px;">
-          <span class="velo-spinning">⟳</span> Chargement météo…
-        </div>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -1634,6 +1644,8 @@ function veloRender(data) {
   `;
   // Mettre à jour le score vélo dans la barre du haut
   updateWorkBar(new Date());
+  // Mettre à jour le ticker
+  setTimeout(renderTicker, 200);
 }
 
 function veloError(msg) {
@@ -1727,6 +1739,136 @@ function congesRender() {
 
 // ── INIT ───────────────────────────────────────────────────────
 updateToggleUI();buildApps();buildFavs();buildClips();loadTodos();renderTodos();loadNotes();renderNotes();congesRender();
+
+// ── BANDE DÉFILANTE ────────────────────────────────────────────
+let tickerBtc = null;
+let tickerBtcTs = 0;
+
+async function fetchBtc() {
+  // Cache 2 min
+  if (tickerBtc && Date.now() - tickerBtcTs < 120000) return tickerBtc;
+  try {
+    const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=eur&include_24hr_change=true');
+    const d = await r.json();
+    tickerBtc = { price: d.bitcoin.eur, change: d.bitcoin.eur_24h_change };
+    tickerBtcTs = Date.now();
+    return tickerBtc;
+  } catch { return null; }
+}
+
+function getAffairesEnCours() {
+  // Lit les affaires depuis localStorage (clé utilisée par affaire_tracker.html)
+  let affaires = [];
+  try { affaires = JSON.parse(localStorage.getItem('affaire_tracker_data') || localStorage.getItem('affaires') || '[]'); } catch {}
+  if (!Array.isArray(affaires)) affaires = [];
+  const enCours = affaires.filter(a => a.statut && !['terminé','annulé','clôturé'].includes((a.statut||'').toLowerCase()));
+  return enCours;
+}
+
+function getCongesEnAttente() {
+  let reqs = [];
+  try { reqs = JSON.parse(localStorage.getItem('cv3_req')) || []; } catch {}
+  return reqs.filter(r => !r.archived && r.status === 'waiting');
+}
+
+function getVeloScore() {
+  const sc = document.querySelector('.velo-score-circle .sc-num');
+  const cl = document.querySelector('.velo-score-circle');
+  if (!sc || !cl) return null;
+  const score = sc.textContent.trim();
+  if (!score || score === '—') return null;
+  const cls = cl.classList.contains('go') ? 'go' : cl.classList.contains('warn') ? 'warn' : cl.classList.contains('nogo') ? 'nogo' : null;
+  const label = cl.classList.contains('go') ? 'GO' : cl.classList.contains('warn') ? 'ATTENTION' : 'DÉCONSEILLÉ';
+  return { score, cls, label };
+}
+
+function buildTickerItem(cls, icon, label, val, extra) {
+  return `<span class="ticker-item ${cls}"><span class="tk-icon">${icon}</span><span class="tk-label">${label}</span><span class="tk-val">${val}</span>${extra||''}</span>`;
+}
+
+async function renderTicker() {
+  const sep = `<span class="ticker-sep">◆</span>`;
+  let parts = [];
+
+  // 1. CONGÉS EN ATTENTE
+  const waiting = getCongesEnAttente();
+  if (waiting.length > 0) {
+    const w = waiting[0];
+    const fmt = d => { if(!d) return ''; const [y,m,j]=d.split('-'); return `${j}/${m}`; };
+    const datesStr = w.s ? ` ${fmt(w.s)}→${fmt(w.e)}` : '';
+    parts.push(
+      `<a class="ticker-item tk-conge-link" onclick="openConges()" style="cursor:pointer;text-decoration:none;">` +
+      `<span class="tk-icon">🏖</span><span class="tk-label">CONGÉ EN ATTENTE</span>` +
+      `<span class="tk-val">${waiting.length} demande${waiting.length>1?'s':''} — ${datesStr}</span>` +
+      `<span style="margin-left:8px;font-size:8px;color:var(--blue);letter-spacing:1px;border:1px solid rgba(26,92,204,0.3);padding:1px 5px;border-radius:2px;">+ NOUVEAU ↗</span>` +
+      `</a>`
+    );
+  } else {
+    parts.push(
+      `<a class="ticker-item tk-conge-link" onclick="openConges()" style="cursor:pointer;text-decoration:none;">` +
+      `<span class="tk-icon">🏖</span><span class="tk-label">CONGÉS</span>` +
+      `<span class="tk-val">Aucune demande en attente</span>` +
+      `<span style="margin-left:8px;font-size:8px;color:var(--blue);letter-spacing:1px;border:1px solid rgba(26,92,204,0.3);padding:1px 5px;border-radius:2px;">+ CRÉER ↗</span>` +
+      `</a>`
+    );
+  }
+
+  // 2. VÉLO TAFF
+  const velo = getVeloScore();
+  if (velo) {
+    parts.push(buildTickerItem(`tk-velo-${velo.cls}`, '🚴', 'VÉLO TAFF', `${velo.score}/100 — ${velo.label}`));
+  } else {
+    parts.push(buildTickerItem('tk-velo-warn', '🚴', 'VÉLO TAFF', 'Chargement…'));
+  }
+
+  // 3. BTC
+  const btc = await fetchBtc();
+  if (btc) {
+    const sign = btc.change >= 0 ? '+' : '';
+    const chgColor = btc.change >= 0 ? 'var(--green)' : 'var(--red)';
+    const fmt = n => n.toLocaleString('fr-FR', {minimumFractionDigits:0, maximumFractionDigits:0});
+    parts.push(
+      `<span class="ticker-item tk-btc"><span class="tk-icon">₿</span><span class="tk-label">BTC/EUR</span>` +
+      `<span class="tk-val">${fmt(btc.price)} €</span>` +
+      `<span style="margin-left:6px;font-size:9px;color:${chgColor};font-family:var(--font-mono);">(${sign}${btc.change.toFixed(1)}%)</span></span>`
+    );
+  } else {
+    parts.push(buildTickerItem('tk-btc', '₿', 'BTC/EUR', '—'));
+  }
+
+  // 4. TÂCHES EN COURS
+  let taches = [];
+  try { taches = JSON.parse(localStorage.getItem('launcher_todos') || '[]'); } catch {}
+  const tachesActives = taches.filter(t => !t.done);
+  if (tachesActives.length > 0) {
+    const noms = tachesActives.map(t => t.text).join('  ·  ');
+    parts.push(
+      `<span class="ticker-item" style="color:var(--text);">` +
+      `<span class="tk-icon">📋</span><span class="tk-label">TÂCHES</span>` +
+      `<span class="tk-val" style="color:var(--text);">${tachesActives.length} restante${tachesActives.length > 1 ? 's' : ''} — ${noms}</span></span>`
+    );
+  } else {
+    parts.push(
+      `<span class="ticker-item" style="color:var(--muted);">` +
+      `<span class="tk-icon">📋</span><span class="tk-label">TÂCHES</span>` +
+      `<span class="tk-val" style="color:var(--green);">Toutes les tâches terminées ✓</span></span>`
+    );
+  }
+
+  // Dupliquer pour boucle seamless
+  const content = parts.join(sep);
+  const full = content + sep + content;
+  const track = document.getElementById('tickerTrack');
+  if (track) track.innerHTML = full;
+
+  // Ajuster vitesse selon longueur
+  const totalLen = parts.reduce((a,p)=>a+p.length,0);
+  const speed = Math.max(30, Math.min(90, totalLen / 4));
+  if (track) track.style.animationDuration = speed + 's';
+}
+
+renderTicker();
+setInterval(renderTicker, 60000); // rafraîchir chaque minute
 
 // ══════════════════════════════════════════════════════════════
 // MÉTÉO WIDGET INTÉGRÉ
