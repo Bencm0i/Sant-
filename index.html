@@ -353,16 +353,17 @@
   .wk-aic-toggle:hover{border-color:var(--blue);}
 
   /* ── BANDE DÉFILANTE ── */
-  #ticker-bar{position:sticky;top:141px;z-index:97;background:rgba(185,192,200,0.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);height:26px;overflow:hidden;display:flex;align-items:center;}
+  #ticker-bar{position:sticky;top:141px;z-index:97;background:rgba(185,192,200,0.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);height:34px;overflow:hidden;display:flex;align-items:center;}
   #ticker-bar.hidden{display:none;}
-  .ticker-track{display:flex;align-items:center;white-space:nowrap;animation:ticker-scroll 60s linear infinite;padding-left:100%;}
+  .ticker-wrap{display:flex;align-items:center;width:100%;overflow:hidden;position:relative;}
+  .ticker-track{display:flex;align-items:center;white-space:nowrap;animation:ticker-scroll 22s linear infinite;will-change:transform;}
   .ticker-track:hover{animation-play-state:paused;}
   @keyframes ticker-scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
-  .ticker-sep{color:var(--border2);margin:0 18px;opacity:0.6;font-size:10px;}
-  .ticker-item{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:9px;letter-spacing:0.5px;white-space:nowrap;}
-  .ticker-item .tk-icon{font-size:11px;flex-shrink:0;}
-  .ticker-item .tk-label{color:var(--muted2);text-transform:uppercase;letter-spacing:1px;font-size:8px;}
-  .ticker-item .tk-val{font-weight:700;}
+  .ticker-sep{color:var(--border2);margin:0 24px;opacity:0.6;font-size:13px;}
+  .ticker-item{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-mono);font-size:12px;letter-spacing:0.5px;white-space:nowrap;}
+  .ticker-item .tk-icon{font-size:14px;flex-shrink:0;}
+  .ticker-item .tk-label{color:var(--muted2);text-transform:uppercase;letter-spacing:1px;font-size:10px;}
+  .ticker-item .tk-val{font-weight:700;font-size:13px;}
   .ticker-item.tk-conge .tk-val{color:var(--blue);}
   .ticker-item.tk-conge-link{cursor:pointer;text-decoration:none;}
   .ticker-item.tk-conge-link .tk-val{color:var(--blue);text-decoration:underline;text-underline-offset:2px;}
@@ -666,8 +667,10 @@
 
 <!-- ════ BANDE DÉFILANTE ════════════════════════════════════════ -->
 <div id="ticker-bar">
-  <div class="ticker-track" id="tickerTrack">
-    <!-- contenu injecté par JS -->
+  <div class="ticker-wrap">
+    <div class="ticker-track" id="tickerTrack">
+      <!-- contenu injecté par JS, dupliqué pour scroll infini -->
+    </div>
   </div>
 </div>
 
@@ -1861,10 +1864,8 @@ async function renderTicker() {
   const track = document.getElementById('tickerTrack');
   if (track) track.innerHTML = full;
 
-  // Ajuster vitesse selon longueur
-  const totalLen = parts.reduce((a,p)=>a+p.length,0);
-  const speed = Math.max(30, Math.min(90, totalLen / 4));
-  if (track) track.style.animationDuration = speed + 's';
+  // Vitesse rapide fixe (plus le nombre est bas, plus c'est rapide)
+  if (track) track.style.animationDuration = '18s';
 }
 
 renderTicker();
