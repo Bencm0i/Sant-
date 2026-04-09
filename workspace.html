@@ -63,7 +63,7 @@
   /* LAYOUT */
   .layout {
     display: grid;
-    grid-template-columns: var(--panel-width, 420px) 1fr;
+    grid-template-columns: var(--panel-width, 300px) 1fr var(--conv-width, 270px);
     flex: 1;
     overflow: hidden;
     gap: 0;
@@ -706,6 +706,49 @@
   .modal-btn.secondary:hover { border-color: var(--border-active); color: var(--text); }
 
   @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+  /* ──────── PANNEAU CONVERSIONS DROITE ──────── */
+  .conv-panel {
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    background: var(--bg);
+  }
+  .conv-panel-body {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    flex: 1;
+  }
+  .resize-handle-right {
+    position: absolute;
+    left: -4px;
+    top: 0;
+    bottom: 0;
+    width: 8px;
+    cursor: col-resize;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .resize-handle-right::after {
+    content: '';
+    display: block;
+    width: 2px;
+    height: 40px;
+    background: var(--border-active);
+    border-radius: 2px;
+    transition: background 0.15s, height 0.15s;
+  }
+  .resize-handle-right:hover::after, .resize-handle-right.dragging::after {
+    background: var(--accent);
+    height: 60px;
+  }
   .thinking::after { content: '▋'; display: inline-block; animation: blink 0.8s infinite; margin-left: 2px; color: var(--accent); }
 
   /* Keyboard shortcut hint */
@@ -750,7 +793,7 @@
   <!-- ════ LEFT: CALCULATRICE ════ -->
   <div class="panel" id="left-panel">
     <div class="resize-handle" id="resize-handle" title="Redimensionner"></div>
-    <div class="panel-header">Calculatrice + Conversions</div>
+    <div class="panel-header">Calculatrice</div>
     <div class="calc-wrap">
 
       <div class="calc-display">
@@ -789,7 +832,98 @@
         <button class="cbtn op span2" onclick="calcInput('^2')">x²</button>
       </div>
 
-      <!-- Conversions -->
+    </div>
+  </div>
+
+  <!-- ════ CENTER: BLOC-NOTES ════ -->
+  <div class="note-panel">
+    <div class="panel-header" style="border-right:none;">Bloc-Notes</div>
+
+    <div class="tabs-bar" id="tabs-bar">
+      <div class="tab-add" onclick="addTab()" title="Nouvelle note (Ctrl+T)">+</div>
+    </div>
+
+    <div class="note-toolbar">
+      <span class="ai-label">IA →</span>
+      <button class="ai-btn" onclick="aiAction('resume')">✦ Résumer</button>
+      <button class="ai-btn" onclick="aiAction('correct')">✎ Corriger</button>
+      <button class="ai-btn" onclick="aiAction('rephrase')">↻ Reformuler</button>
+      <button class="ai-btn" onclick="aiAction('expand')">⊕ Développer</button>
+      <div style="display:flex;align-items:center;gap:4px;">
+        <button class="ai-btn" onclick="aiTranslate()">⇄ Traduire →</button>
+        <select class="translate-select" id="translate-lang">
+          <option value="anglais">EN</option>
+          <option value="espagnol">ES</option>
+          <option value="allemand">DE</option>
+          <option value="italien">IT</option>
+          <option value="portugais">PT</option>
+          <option value="néerlandais">NL</option>
+          <option value="japonais">JA</option>
+          <option value="chinois">ZH</option>
+          <option value="arabe">AR</option>
+          <option value="russe">RU</option>
+          <option value="français">FR</option>
+        </select>
+      </div>
+      <div class="sep"></div>
+      <button class="ai-btn" onclick="aiAction('bullets')">≡ → Bullets</button>
+      <button class="ai-btn" onclick="aiAction('explain')">? Expliquer</button>
+      <button class="ai-btn" onclick="aiAction('tone')">◈ Ton pro</button>
+      <div class="sep"></div>
+      <button class="ai-btn" onclick="aiAction('correctcomment')">✦ Corriger + commenter</button>
+      <button class="ai-btn-clear" onclick="clearActiveNote()" title="Effacer tout le contenu de la note active">⌫ Effacer</button>
+      <div class="sep"></div>
+      <button class="ai-btn" onclick="insertTimestamp()" title="Insérer la date et l'heure à la position du curseur">⏱ Horodater</button>
+      <div class="sep"></div>
+      <button class="copy-ia-btn" id="copy-note-btn" onclick="copyNote()" title="Copier la sélection ou toute la note">⎘ Copier</button>
+    </div>
+
+    <!-- Prompt personnalisé -->
+    <div class="custom-prompt-row">
+      <span class="ai-label" style="flex-shrink:0;">✎ Perso →</span>
+      <input class="custom-prompt-input" id="custom-prompt-input" type="text" placeholder="Ex: Traduis en français soutenu, reformule en 3 phrases max, liste les arguments…" />
+      <button class="custom-prompt-btn" onclick="aiCustom()">Générer ↗</button>
+    </div>
+
+    <div class="editor-area">
+      <textarea class="note-editor" id="note-editor" placeholder="Écris ici…&#10;&#10;Sélectionne du texte ou laisse vide puis clique sur un raccourci IA."></textarea>
+      <div class="markdown-preview" id="markdown-preview"></div>
+      <div class="ai-response" id="ai-response">
+        <div class="ai-response-header">
+          <span class="ai-response-label" id="ai-response-label">⬡ Prompt généré</span>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <button class="ai-close-btn" id="copy-btn" onclick="copyPrompt()">⎘ Copier</button>
+            <button class="ai-close-btn" onclick="closeAiResponse()">← Retour (Échap)</button>
+          </div>
+        </div>
+        <textarea id="ai-response-content" class="prompt-textarea"></textarea>
+      </div>
+    </div>
+
+    <div class="statusbar">
+      <span id="status-words">0 mot</span>
+      <span>·</span>
+      <span id="status-chars">0 car.</span>
+      <span>·</span>
+      <span id="status-lines">1 ligne</span>
+      <span>·</span>
+      <span class="status-accent" id="status-tab">Note 1</span>
+      <span id="status-unsaved" class="status-unsaved" style="display:none;">● non sauvegardé</span>
+      <span style="margin-left:auto;display:flex;align-items:center;gap:6px;">
+        <span id="save-indicator" style="font-size:10px;opacity:0;transition:opacity 0.4s;color:var(--accent3);">✓ sauvegardé</span>
+        <button class="view-toggle-btn" id="view-toggle-btn" onclick="toggleMarkdownPreview()" title="Aperçu Markdown">MD</button>
+        <button class="status-btn" onclick="openExportModal()" title="Exporter">⬇ Exporter</button>
+        <label class="status-btn" title="Importer JSON" style="cursor:pointer;">⬆ JSON<input type="file" accept=".json" onchange="importJSON(event)" style="display:none;"></label>
+      </span>
+    </div>
+  </div>
+
+  <!-- ════ RIGHT: CONVERSIONS ════ -->
+  <div class="conv-panel">
+    <div class="resize-handle-right" id="resize-handle-right" title="Redimensionner"></div>
+    <div class="panel-header">Conversions</div>
+    <div class="conv-panel-body">
+
       <div class="conv-section">
         <div class="conv-title">▸ Longueur</div>
         <div class="conv-body">
@@ -893,95 +1027,26 @@
         </div>
       </div>
 
-    </div>
-  </div>
-
-  <!-- ════ RIGHT: BLOC-NOTES ════ -->
-  <div class="note-panel">
-    <div class="panel-header" style="border-right:none;">Bloc-Notes</div>
-
-    <div class="tabs-bar" id="tabs-bar">
-      <div class="tab-add" onclick="addTab()" title="Nouvelle note (Ctrl+T)">+</div>
-    </div>
-
-    <div class="note-toolbar">
-      <span class="ai-label">IA →</span>
-      <button class="ai-btn" onclick="aiAction('resume')">✦ Résumer</button>
-      <button class="ai-btn" onclick="aiAction('correct')">✎ Corriger</button>
-      <button class="ai-btn" onclick="aiAction('rephrase')">↻ Reformuler</button>
-      <button class="ai-btn" onclick="aiAction('expand')">⊕ Développer</button>
-      <div style="display:flex;align-items:center;gap:4px;">
-        <button class="ai-btn" onclick="aiTranslate()">⇄ Traduire →</button>
-        <select class="translate-select" id="translate-lang">
-          <option value="anglais">EN</option>
-          <option value="espagnol">ES</option>
-          <option value="allemand">DE</option>
-          <option value="italien">IT</option>
-          <option value="portugais">PT</option>
-          <option value="néerlandais">NL</option>
-          <option value="japonais">JA</option>
-          <option value="chinois">ZH</option>
-          <option value="arabe">AR</option>
-          <option value="russe">RU</option>
-          <option value="français">FR</option>
-        </select>
-      </div>
-      <div class="sep"></div>
-      <button class="ai-btn" onclick="aiAction('bullets')">≡ → Bullets</button>
-      <button class="ai-btn" onclick="aiAction('explain')">? Expliquer</button>
-      <button class="ai-btn" onclick="aiAction('tone')">◈ Ton pro</button>
-      <div class="sep"></div>
-      <button class="ai-btn" onclick="aiAction('correctcomment')">✦ Corriger + commenter</button>
-      <button class="ai-btn-clear" onclick="clearActiveNote()" title="Effacer tout le contenu de la note active">⌫ Effacer</button>
-      <div class="sep"></div>
-      <button class="ai-btn" onclick="insertTimestamp()" title="Insérer la date et l'heure à la position du curseur">⏱ Horodater</button>
-      <div class="sep"></div>
-      <button class="copy-ia-btn" id="copy-note-btn" onclick="copyNote()" title="Copier la sélection ou toute la note">⎘ Copier</button>
-    </div>
-
-    <!-- Prompt personnalisé -->
-    <div class="custom-prompt-row">
-      <span class="ai-label" style="flex-shrink:0;">✎ Perso →</span>
-      <input class="custom-prompt-input" id="custom-prompt-input" type="text" placeholder="Ex: Traduis en français soutenu, reformule en 3 phrases max, liste les arguments…" />
-      <button class="custom-prompt-btn" onclick="aiCustom()">Générer ↗</button>
-    </div>
-
-    <div class="editor-area">
-      <textarea class="note-editor" id="note-editor" placeholder="Écris ici…&#10;&#10;Sélectionne du texte ou laisse vide puis clique sur un raccourci IA."></textarea>
-      <div class="markdown-preview" id="markdown-preview"></div>
-      <div class="ai-response" id="ai-response">
-        <div class="ai-response-header">
-          <span class="ai-response-label" id="ai-response-label">⬡ Prompt généré</span>
-          <div style="display:flex;gap:6px;align-items:center;">
-            <button class="ai-close-btn" id="copy-btn" onclick="copyPrompt()">⎘ Copier</button>
-            <button class="ai-close-btn" onclick="closeAiResponse()">← Retour (Échap)</button>
+      <!-- Chronomètre -->
+      <div class="conv-section">
+        <div class="conv-title">▸ Chronomètre</div>
+        <div class="conv-body" style="gap:10px;">
+          <div style="text-align:center;">
+            <div id="chrono-display" style="font-family:var(--mono);font-size:28px;font-weight:300;color:var(--text);letter-spacing:0.05em;padding:6px 0;">00:00.00</div>
           </div>
+          <div style="display:flex;gap:6px;justify-content:center;">
+            <button class="cbtn op" id="chrono-start-btn" onclick="chronoStartStop()" style="flex:1;height:34px;font-size:12px;">▶ Start</button>
+            <button class="cbtn op" onclick="chronoLap()" style="flex:1;height:34px;font-size:12px;">⏱ Tour</button>
+            <button class="cbtn op" onclick="chronoReset()" style="flex:1;height:34px;font-size:12px;">↺ Reset</button>
+          </div>
+          <div id="chrono-laps" style="font-family:var(--mono);font-size:11px;color:var(--text-muted);max-height:90px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;"></div>
         </div>
-        <textarea id="ai-response-content" class="prompt-textarea"></textarea>
       </div>
-    </div>
 
-    <div class="statusbar">
-      <span id="status-words">0 mot</span>
-      <span>·</span>
-      <span id="status-chars">0 car.</span>
-      <span>·</span>
-      <span id="status-lines">1 ligne</span>
-      <span>·</span>
-      <span class="status-accent" id="status-tab">Note 1</span>
-      <span id="status-unsaved" class="status-unsaved" style="display:none;">● non sauvegardé</span>
-      <span style="margin-left:auto;display:flex;align-items:center;gap:6px;">
-        <span id="save-indicator" style="font-size:10px;opacity:0;transition:opacity 0.4s;color:var(--accent3);">✓ sauvegardé</span>
-        <button class="view-toggle-btn" id="view-toggle-btn" onclick="toggleMarkdownPreview()" title="Aperçu Markdown">MD</button>
-        <button class="status-btn" onclick="openExportModal()" title="Exporter">⬇ Exporter</button>
-        <label class="status-btn" title="Importer JSON" style="cursor:pointer;">⬆ JSON<input type="file" accept=".json" onchange="importJSON(event)" style="display:none;"></label>
-      </span>
     </div>
   </div>
 
 </div>
-
-<!-- Export Modal -->
 <div class="modal-overlay" id="export-modal">
   <div class="modal">
     <div class="modal-title">⬇ Exporter la note</div>
@@ -1613,8 +1678,9 @@ function copyNote() {
   document.addEventListener('mousemove', (e) => {
     if (!dragging) return;
     const delta = e.clientX - startX;
-    const newW = Math.max(260, Math.min(700, startW + delta));
-    layout.style.gridTemplateColumns = newW + 'px 1fr';
+    const newW = Math.max(200, Math.min(500, startW + delta));
+    const convW = document.querySelector('.conv-panel').getBoundingClientRect().width;
+    layout.style.gridTemplateColumns = newW + 'px 1fr ' + convW + 'px';
   });
 
   document.addEventListener('mouseup', () => {
@@ -1626,8 +1692,109 @@ function copyNote() {
   });
 })();
 
-// Auto-save au démarrage
-loadFromStorage();
+// ════════════════════════════════════════
+// RESIZE PANNEAU DROIT (CONVERSIONS)
+// ════════════════════════════════════════
+(function() {
+  const handle = document.getElementById('resize-handle-right');
+  const layout = document.querySelector('.layout');
+  let dragging = false;
+  let startX = 0;
+  let startW = 0;
+
+  handle.addEventListener('mousedown', (e) => {
+    dragging = true;
+    startX = e.clientX;
+    startW = document.querySelector('.conv-panel').getBoundingClientRect().width;
+    handle.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const delta = startX - e.clientX;
+    const newW = Math.max(200, Math.min(500, startW + delta));
+    const leftW = document.getElementById('left-panel').getBoundingClientRect().width;
+    layout.style.gridTemplateColumns = leftW + 'px 1fr ' + newW + 'px';
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    handle.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  });
+})();
+
+// ════════════════════════════════════════
+// CHRONOMÈTRE
+// ════════════════════════════════════════
+(function() {
+  let running = false;
+  let startTime = 0;
+  let elapsed = 0;
+  let rafId = null;
+  let lapCount = 0;
+  let lastLapElapsed = 0;
+
+  function fmt(ms) {
+    const m = Math.floor(ms / 60000);
+    const s = Math.floor((ms % 60000) / 1000);
+    const cs = Math.floor((ms % 1000) / 10);
+    return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0') + '.' + String(cs).padStart(2,'0');
+  }
+
+  function tick() {
+    elapsed = Date.now() - startTime;
+    document.getElementById('chrono-display').textContent = fmt(elapsed);
+    rafId = requestAnimationFrame(tick);
+  }
+
+  window.chronoStartStop = function() {
+    const btn = document.getElementById('chrono-start-btn');
+    if (!running) {
+      startTime = Date.now() - elapsed;
+      running = true;
+      btn.textContent = '⏸ Stop';
+      btn.style.color = 'var(--accent)';
+      tick();
+    } else {
+      running = false;
+      cancelAnimationFrame(rafId);
+      btn.textContent = '▶ Start';
+      btn.style.color = '';
+    }
+  };
+
+  window.chronoLap = function() {
+    if (!running && elapsed === 0) return;
+    lapCount++;
+    const lapTime = elapsed - lastLapElapsed;
+    lastLapElapsed = elapsed;
+    const laps = document.getElementById('chrono-laps');
+    const el = document.createElement('div');
+    el.style.cssText = 'display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid var(--border);';
+    el.innerHTML = `<span style="opacity:0.5">Tour ${lapCount}</span><span>${fmt(lapTime)}</span><span style="color:var(--accent2)">${fmt(elapsed)}</span>`;
+    laps.prepend(el);
+  };
+
+  window.chronoReset = function() {
+    running = false;
+    cancelAnimationFrame(rafId);
+    elapsed = 0;
+    lastLapElapsed = 0;
+    lapCount = 0;
+    document.getElementById('chrono-display').textContent = '00:00.00';
+    document.getElementById('chrono-start-btn').textContent = '▶ Start';
+    document.getElementById('chrono-start-btn').style.color = '';
+    document.getElementById('chrono-laps').innerHTML = '';
+  };
+})();
+
+
 
 // ════════════════════════════════════════
 // IA ACTIONS
