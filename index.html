@@ -334,6 +334,16 @@
   .affaire-modal-close{margin-left:auto;background:transparent;border:1px solid #d8d2c8;border-radius:3px;color:#6b6560;font-family:var(--font-mono);font-size:10px;padding:3px 10px;cursor:pointer;letter-spacing:1px;transition:all .15s;}
   .affaire-modal-close:hover{border-color:#6b6560;color:#1a1714;}
   .affaire-modal-iframe{flex:1;border:none;width:100%;display:block;}
+
+  /* ── DEMANDE CONGÉ PDF MODAL ── */
+  .dcpdf-overlay{position:fixed;inset:0;background:rgba(10,15,20,0.78);z-index:600;display:none;backdrop-filter:blur(4px);}
+  .dcpdf-overlay.open{display:flex;align-items:stretch;}
+  .dcpdf-modal-panel{display:flex;flex-direction:column;width:100%;height:100%;background:#f4f6fb;}
+  .dcpdf-modal-bar{display:flex;align-items:center;gap:10px;padding:0 16px;height:40px;background:#e8ecf4;border-bottom:1px solid #d0d7e8;flex-shrink:0;}
+  .dcpdf-modal-title{font-family:var(--font-mono);font-size:11px;color:#1a2744;letter-spacing:2px;text-transform:uppercase;}
+  .dcpdf-modal-close{margin-left:auto;background:transparent;border:1px solid #d0d7e8;border-radius:3px;color:#5a6a8a;font-family:var(--font-mono);font-size:10px;padding:3px 10px;cursor:pointer;letter-spacing:1px;transition:all .15s;}
+  .dcpdf-modal-close:hover{border-color:#1a2744;color:#1a2744;}
+  .dcpdf-modal-iframe{flex:1;border:none;width:100%;display:block;}
   /* ── BARRE JOURS SEMAINE ── */
   #week-bar{position:sticky;top:83px;z-index:98;background:rgba(195,201,207,0.88);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:3px 24px 3px;display:flex;align-items:center;gap:8px;}
   #week-bar.offday{display:none;}
@@ -818,6 +828,18 @@
   </div>
 </div>
 
+<!-- ════ DEMANDE CONGÉ PDF MODAL ═══════════════════════════════ -->
+<div class="dcpdf-overlay" id="dcpdfOverlay">
+  <div class="dcpdf-modal-panel">
+    <div class="dcpdf-modal-bar">
+      <span style="font-size:14px;">📋</span>
+      <div class="dcpdf-modal-title">DEMANDE D'ABSENCE — PDF</div>
+      <button class="dcpdf-modal-close" onclick="closeDcpdf()">✕ FERMER</button>
+    </div>
+    <iframe class="dcpdf-modal-iframe" id="dcpdfIframe" src="" title="Demande Absence PDF"></iframe>
+  </div>
+</div>
+
 <script>
 const FAV_KEY = 'launcher_favs';
 const FAV_COUNT = 10;
@@ -927,6 +949,7 @@ const APPS=[
   {file:'workspace.html',                  name:'Workspace',        desc:'Calculatrice · Conversions · Notes IA',emoji:'⬡',badge:'OUTIL'},
   {file:'news_agregateur_pro.html',        name:'Actualités',       desc:'Flux FR · Tech · Science · Dev',       emoji:'📰',badge:'INFO'},
   {file:'suivi_conges_v4.html',            name:'Suivi Congés',     desc:'Demandes · Suivi · Réponse auto',      emoji:'🏖',badge:'RH', action:'conges'},
+  {file:'demande_conge_PDF.html',          name:'Demande Absence',  desc:'Formulaire PDF · Aventech · Calibrage', emoji:'📋',badge:'RH', action:'dcpdf'},
 ];
 
 let newTab=localStorage.getItem('launcher_newtab')==='1';
@@ -947,6 +970,7 @@ function buildApps(){
       if(a.action==='annotateur'){openAnnotateur();return;}
       if(a.action==='affaire'){openAffaire();return;}
       if(a.action==='conges'){openConges();return;}
+      if(a.action==='dcpdf'){openDcpdf();return;}
       openApp(a.file);
     });
     c.querySelector('.app-nt').addEventListener('click',e=>{e.stopPropagation();window.open(a.file,'_blank');});
@@ -2263,6 +2287,23 @@ window.closeAnnotateur = function(){
 document.addEventListener('keydown', e=>{
   if(e.key==='Escape' && document.getElementById('annOverlay').classList.contains('open')){
     closeAnnotateur();
+  }
+});
+
+window.openDcpdf = function(){
+  const overlay = document.getElementById('dcpdfOverlay');
+  const iframe  = document.getElementById('dcpdfIframe');
+  if(!iframe.src || iframe.src === window.location.href) iframe.src = 'demande_conge_PDF.html';
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+};
+window.closeDcpdf = function(){
+  document.getElementById('dcpdfOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+};
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape' && document.getElementById('dcpdfOverlay').classList.contains('open')){
+    closeDcpdf();
   }
 });
 
