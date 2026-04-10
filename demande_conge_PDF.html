@@ -203,7 +203,16 @@ input:focus,select:focus{border-color:var(--accent);}
       <div class="calib-col hidden" id="cal_periode">
         <div class="calib-row"><span class="lbl2">X</span><input type="range" id="cx_periode" min="-30" max="30" value="0" step="0.5" oninput="cv('periode')"><span class="cv" id="cv_cx_periode">0</span></div>
         <div class="calib-row"><span class="lbl2">Y</span><input type="range" id="cy_periode" min="-30" max="30" value="0" step="0.5" oninput="cv('periode')"><span class="cv" id="cv_cy_periode">0</span></div>
-        <div class="calib-row" style="border-top:1px solid #c7d2fe;margin-top:3px;padding-top:3px;"><span class="lbl2" style="font-size:.6rem;color:#7c3aed;min-width:22px;">AA</span><input type="range" id="cx_annee_periode" min="-20" max="20" value="0" step="0.5" oninput="cvannee('periode')"><span class="cv" id="cv_cx_annee_periode" style="color:#7c3aed;">0</span></div>
+        <div class="calib-row" style="border-top:1px solid #c7d2fe;margin-top:3px;padding-top:3px;">
+          <span class="lbl2" style="font-size:.55rem;color:#7c3aed;min-width:30px;">AA deb</span>
+          <input type="range" id="cx_annee_periode_debut" min="-20" max="20" value="0" step="0.5" oninput="cvannee('periode_debut')">
+          <span class="cv" id="cv_cx_annee_periode_debut" style="color:#7c3aed;">0</span>
+        </div>
+        <div class="calib-row" style="border-top:1px solid #c7d2fe;margin-top:3px;padding-top:3px;">
+          <span class="lbl2" style="font-size:.55rem;color:#7c3aed;min-width:30px;">AA fin</span>
+          <input type="range" id="cx_annee_periode_fin" min="-20" max="20" value="0" step="0.5" oninput="cvannee('periode_fin')">
+          <span class="cv" id="cv_cx_annee_periode_fin" style="color:#7c3aed;">0</span>
+        </div>
       </div>
     </div>
   </div>
@@ -285,6 +294,27 @@ input:focus,select:focus{border-color:var(--accent);}
   </div>
 </div>
 
+<!-- SIGNATURE -->
+<div class="card">
+  <h2>Signature</h2>
+  <div class="field-row">
+    <div class="field-main">
+      <div class="field-label">Dessiner votre signature</div>
+      <canvas id="sig_canvas" width="400" height="100"
+        style="border:1.5px solid var(--border);border-radius:6px;cursor:crosshair;background:white;touch-action:none;width:100%;max-width:400px;display:block;"></canvas>
+      <div style="margin-top:6px;display:flex;gap:8px;align-items:center;">
+        <button onclick="clearSig()" style="padding:4px 12px;border:1.5px solid var(--red);border-radius:5px;background:white;color:var(--red);font-size:.78rem;font-weight:700;cursor:pointer;">✕ Effacer</button>
+        <span style="font-size:.72rem;color:#64748b;">Dessinez à la souris ou au doigt</span>
+      </div>
+    </div>
+    <div class="calib-col hidden" id="cal_sig">
+      <div class="calib-row"><span class="lbl2">X</span><input type="range" id="cx_sig" min="-50" max="50" value="0" step="0.5" oninput="cv('sig')"><span class="cv" id="cv_cx_sig">0</span></div>
+      <div class="calib-row"><span class="lbl2">Y</span><input type="range" id="cy_sig" min="-50" max="50" value="0" step="0.5" oninput="cv('sig')"><span class="cv" id="cv_cy_sig">0</span></div>
+      <div class="calib-row" style="margin-top:4px;"><span class="lbl2" style="font-size:.6rem;min-width:22px;">W</span><input type="range" id="cw_sig" min="20" max="150" value="70" step="1" oninput="cvw_sig()"><span class="cv" id="cv_cw_sig">70</span></div>
+    </div>
+  </div>
+</div>
+
 <button class="btn-gen" onclick="genererPDF()">📄 Générer et télécharger le PDF</button>
 <div id="status"></div>
 
@@ -299,9 +329,9 @@ function gUpdate() {
 
 // ── Sauvegarde / restauration des réglages (localStorage)
 const STORAGE_KEY = 'aventech_conge_reglages';
-const CALIB_KEYS = ['nom','societe','dept','site','periode','jour','horaire','obs','datedem'];
+const CALIB_KEYS = ['nom','societe','dept','site','periode','jour','horaire','obs','datedem','sig'];
 const MOTIF_KEYS = ['cp','anc','med','rtt','gel','mod','autre'];
-const ANNEE_KEYS = ['periode','jour','horaire','datedem'];
+const ANNEE_KEYS = ['periode_debut','periode_fin','jour','horaire','datedem'];
 
 function sauvegarderReglages() {
   const data = {
@@ -352,7 +382,6 @@ function reinitialiserReglages() {
     const e = document.getElementById('cx_annee_'+k);
     if (e) { e.value = 0; cvannee(k); }
   });
-  const s = document.getElementById('save_status');
   s.textContent = '🗑 Réglages réinitialisés';
   s.style.color = '#991b1b';
   setTimeout(() => { s.textContent = ''; s.style.color = '#166534'; }, 2500);
@@ -570,16 +599,17 @@ async function genererPDF() {
     // ABSENCE
     if (currentTab==='periode') {
       const o = getOff('periode');
-      const oa = getAnneeOff('periode');
+      const oa_d = getAnneeOff('periode_debut');
+      const oa_f = getAnneeOff('periode_fin');
       const dd = document.getElementById('date_debut').value;
       const df = document.getElementById('date_fin').value;
       if (dd) {
         const [y,m,d]=dd.split('-');
-        txt(dayName(dd),75,279,o); txt(d,167,279,o); txt(m,192,279,o); txt(y.slice(-2),250+oa,279,o);
+        txt(dayName(dd),75,279,o); txt(d,167,279,o); txt(m,192,279,o); txt(y.slice(-2),250+oa_d,279,o);
       }
       if (df) {
         const [y,m,d]=df.split('-');
-        txt(dayName(df),319,279,o); txt(d,406,279,o); txt(m,434,279,o); txt(y.slice(-2),482+oa,279,o);
+        txt(dayName(df),319,279,o); txt(d,406,279,o); txt(m,434,279,o); txt(y.slice(-2),482+oa_f,279,o);
       }
     } else if (currentTab==='jour') {
       const o = getOff('jour');
@@ -639,6 +669,24 @@ async function genererPDF() {
       txt(d,472,547,o_dd); txt(m,500,547,o_dd); txt(y.slice(-2),536+oa,547,o_dd);
     }
 
+    // SIGNATURE
+    const sigCanvas = document.getElementById('sig_canvas');
+    const sigEmpty = isSigEmpty(sigCanvas);
+    if (!sigEmpty) {
+      const o_sig = getOff('sig');
+      const sigW = parseFloat(document.getElementById('cw_sig').value) || 70;
+      const sigH = sigW * (sigCanvas.height / sigCanvas.width);
+      const sigData = sigCanvas.toDataURL('image/png');
+      const sigBytes = Uint8Array.from(atob(sigData.split(',')[1]), c => c.charCodeAt(0));
+      const sigImg = await pdfDoc.embedPng(sigBytes);
+      page.drawImage(sigImg, {
+        x: 350 + (o_sig?.x||0),
+        y: height - 575 + (o_sig?.y||0),
+        width: sigW,
+        height: sigH,
+      });
+    }
+
     const out = await pdfDoc.save();
     const blob = new Blob([out],{type:'application/pdf'});
     const url = URL.createObjectURL(blob);
@@ -660,6 +708,81 @@ document.getElementById('date_demande').valueAsDate = new Date();
 gUpdate();
 // Charger les réglages sauvegardés (après construction des motifs)
 setTimeout(chargerReglages, 50);
+
+// ── Signature pad
+(function initSig() {
+  const canvas = document.getElementById('sig_canvas');
+  const ctx = canvas.getContext('2d');
+  // Resize canvas to match display size
+  function resizeCanvas() {
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width > 0) {
+      canvas.width = rect.width;
+      canvas.height = 100;
+    }
+  }
+  resizeCanvas();
+  window.addEventListener('resize', () => { resizeCanvas(); clearSig(); });
+
+  let drawing = false;
+  let lastX = 0, lastY = 0;
+
+  function getPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    if (e.touches) {
+      return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
+    }
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
+  function startDraw(e) {
+    e.preventDefault();
+    drawing = true;
+    const p = getPos(e);
+    lastX = p.x; lastY = p.y;
+    ctx.beginPath();
+    ctx.arc(lastX, lastY, 1, 0, Math.PI*2);
+    ctx.fillStyle = '#1a2744';
+    ctx.fill();
+  }
+  function draw(e) {
+    if (!drawing) return;
+    e.preventDefault();
+    const p = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(p.x, p.y);
+    ctx.strokeStyle = '#1a2744';
+    ctx.lineWidth = 1.8;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    lastX = p.x; lastY = p.y;
+  }
+  function stopDraw() { drawing = false; }
+
+  canvas.addEventListener('mousedown', startDraw);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mouseup', stopDraw);
+  canvas.addEventListener('mouseleave', stopDraw);
+  canvas.addEventListener('touchstart', startDraw, { passive: false });
+  canvas.addEventListener('touchmove', draw, { passive: false });
+  canvas.addEventListener('touchend', stopDraw);
+})();
+
+function clearSig() {
+  const canvas = document.getElementById('sig_canvas');
+  canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function isSigEmpty(canvas) {
+  const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+  for (let i = 3; i < data.length; i += 4) { if (data[i] > 10) return false; }
+  return true;
+}
+
+function cvw_sig() {
+  document.getElementById('cv_cw_sig').textContent = document.getElementById('cw_sig').value;
+}
 </script>
 </body>
 </html>
