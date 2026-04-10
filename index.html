@@ -4,16 +4,32 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LAUNCHER — BASE OPS</title>
+<script>document.documentElement.className=localStorage.getItem('launcher_theme')||'theme-beige';</script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23060a0e'/><rect x='6' y='10' width='20' height='14' rx='1' fill='none' stroke='%2300e676' stroke-width='2'/><line x1='6' y1='16' x2='26' y2='16' stroke='%2300e676' stroke-width='1.2'/></svg>">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap');
   :root {
-    --bg:#d4d8dc; --panel:rgba(220,224,228,0.88); --panel2:rgba(210,215,220,0.95);
-    --border:#b0b8c2; --border2:#8fa0b0;
-    --text:#1a2330; --muted:#6a7a8a; --muted2:#4a5a6a;
-    --green:#007a42; --red:#cc1133; --gold:#8a6a00; --blue:#1a5ccc; --orange:#c04400;
-    --accent:#007a42;
     --font-mono:'Space Mono',monospace; --font-display:'Syne',sans-serif;
+  }
+  /* ── THÈME BEIGE-ORANGE ── */
+  html.theme-beige {
+    --bg:#f0e6d0; --panel:rgba(244,236,220,0.92); --panel2:rgba(238,228,210,0.97);
+    --border:#c8a87a; --border2:#a07848;
+    --text:#2a1800; --muted:#9a6a38; --muted2:#6e4820;
+    --green:#4e7a1a; --red:#c03018; --gold:#a07010; --blue:#2855a0; --orange:#c85c0a;
+    --accent:#c85c0a;
+    --header-bg:rgba(240,232,216,0.94); --bar-bg:rgba(236,228,212,0.93);
+    --weekbar-bg:rgba(232,224,206,0.91); --ticker-bg:rgba(228,220,202,0.94);
+  }
+  /* ── THÈME MILITAIRE OPEX ── */
+  html.theme-opex {
+    --bg:#161a10; --panel:rgba(24,30,16,0.93); --panel2:rgba(34,42,22,0.97);
+    --border:#384022; --border2:#4e5c2e;
+    --text:#b8c898; --muted:#6a7850; --muted2:#8a9a60;
+    --green:#6a9a22; --red:#b84020; --gold:#b88a08; --blue:#4a7aaa; --orange:#c07820;
+    --accent:#6a9a22;
+    --header-bg:rgba(18,22,12,0.96); --bar-bg:rgba(16,20,10,0.94);
+    --weekbar-bg:rgba(14,18,9,0.93); --ticker-bg:rgba(12,16,8,0.95);
   }
   *{margin:0;padding:0;box-sizing:border-box;}
   body{background:var(--bg);color:var(--text);font-family:var(--font-mono);font-size:12px;min-height:100vh;overflow-x:hidden;position:relative;}
@@ -22,7 +38,7 @@
   #bg-svg{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;}
 
   /* ── HEADER ── */
-  header{border-bottom:1px solid var(--border);padding:0 24px;height:50px;display:flex;align-items:center;justify-content:space-between;background:rgba(200,206,212,0.92);position:sticky;top:0;z-index:100;backdrop-filter:blur(10px);}
+  header{border-bottom:1px solid var(--border);padding:0 24px;height:50px;display:flex;align-items:center;justify-content:space-between;background:var(--header-bg);position:sticky;top:0;z-index:100;backdrop-filter:blur(10px);}
   .hL{display:flex;align-items:center;gap:14px;}
   .logo{font-family:var(--font-display);font-weight:800;font-size:16px;color:var(--accent);letter-spacing:4px;}
   .logo-sub{font-size:9px;color:var(--muted2);letter-spacing:2px;margin-top:2px;}
@@ -33,7 +49,7 @@
   .mega-btn:hover{background:rgba(212,66,106,.18);border-color:rgba(212,66,106,.55);color:#f06090;}
   .hR{display:flex;align-items:center;gap:8px;}
   #clock{font-size:11px;color:var(--gold);letter-spacing:2px;min-width:72px;text-align:right;}
-  .tab-toggle{display:flex;align-items:center;gap:6px;background:rgba(200,206,212,0.8);border:1px solid var(--border);border-radius:4px;padding:4px 9px;cursor:pointer;font-family:var(--font-mono);font-size:9px;color:var(--muted2);transition:all .2s;user-select:none;letter-spacing:1px;}
+  .tab-toggle{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:4px 9px;cursor:pointer;font-family:var(--font-mono);font-size:9px;color:var(--muted2);transition:all .2s;user-select:none;letter-spacing:1px;}
   .tab-toggle:hover{border-color:var(--accent);color:var(--accent);}
   .tab-toggle.nt{border-color:var(--blue);color:var(--blue);}
   .tab-toggle .dot{width:5px;height:5px;border-radius:50%;background:var(--muted);transition:background .2s;}
@@ -57,8 +73,19 @@
   .meteo-inner .mx-title{font-family:var(--font-display);font-size:10px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--text);}
   .meteo-inner .mx-body{padding:12px 14px;}
 
-  /* Méteo widget — remapping couleurs sur le thème launcher */
-  .meteo-inner{--bg:rgba(220,224,228,0.88);--bg2:rgba(210,215,220,0.95);--ink:var(--text);--ink2:var(--muted2);--ink3:var(--muted);--line:var(--border);--accent:#c4583c;--blue:#3a6fa8;}
+  /* ── SVG FOND — adaptation thème ── */
+  html.theme-opex #bg-svg rect[fill="url(#gM)"]{fill:url(#gM-opex);}
+  html.theme-opex #bg-svg path[stroke="rgba(80,100,120,0.1)"]{stroke:rgba(60,80,30,0.12);}
+  html.theme-opex #bg-svg path[stroke="rgba(60,80,110,0.2)"]{stroke:rgba(50,70,20,0.2);}
+  html.theme-opex #bg-svg [stroke*="rgba(30,60,90"]{stroke:rgba(80,100,40,0.22);}
+  html.theme-opex #bg-svg text{fill:rgba(80,110,40,0.35)!important;}
+
+  html.theme-beige .meteo-inner{--bg:rgba(244,236,220,0.92);--bg2:rgba(238,228,210,0.97);--ink:var(--text);--ink2:var(--muted2);--ink3:var(--muted);--line:var(--border);--accent:#c85c0a;--blue:#2855a0;}
+  html.theme-opex  .meteo-inner{--bg:rgba(24,30,16,0.93);--bg2:rgba(34,42,22,0.97);--ink:var(--text);--ink2:var(--muted2);--ink3:var(--muted);--line:var(--border);--accent:#6a9a22;--blue:#4a7aaa;}
+
+  /* ── BOUTON SWITCH THEME ── */
+  .theme-switch-btn{display:flex;align-items:center;gap:6px;border-radius:4px;padding:5px 11px;cursor:pointer;font-family:var(--font-mono);font-size:10px;letter-spacing:1px;transition:all .2s;border:1px solid;}
+  .theme-switch-btn:hover{filter:brightness(1.2);}
   .meteo-inner #meteo-app{max-width:100%;padding:0;background:transparent;}
   .meteo-inner #meteo-app .search-row{margin-bottom:14px;}
   .meteo-inner #meteo-app .search-input{font-family:var(--font-mono);font-size:10px;color:var(--text);border-bottom-color:var(--border);}
@@ -279,7 +306,7 @@
   @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
   .velo-spinning{animation:spin 1s linear infinite;display:inline-block;}
   /* ── BARRE PROGRESSION JOURNÉE TAFF ── */
-  #work-bar-wrap{position:sticky;top:50px;z-index:99;background:rgba(200,206,212,0.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:5px 24px;display:flex;align-items:center;gap:10px;}
+  #work-bar-wrap{position:sticky;top:50px;z-index:99;background:var(--bar-bg);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:5px 24px;display:flex;align-items:center;gap:10px;}
   #work-bar-wrap.offday{display:none;}
   .wb-label{font-family:var(--font-mono);font-size:9px;color:var(--muted2);letter-spacing:1.5px;white-space:nowrap;flex-shrink:0;}
   /* Piste principale : plage 7h–18h */
@@ -345,7 +372,7 @@
   .dcpdf-modal-close:hover{border-color:#1a2744;color:#1a2744;}
   .dcpdf-modal-iframe{flex:1;border:none;width:100%;display:block;}
   /* ── BARRE JOURS SEMAINE ── */
-  #week-bar{position:sticky;top:83px;z-index:98;background:rgba(195,201,207,0.88);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:3px 24px 3px;display:flex;align-items:center;gap:8px;}
+  #week-bar{position:sticky;top:83px;z-index:98;background:var(--weekbar-bg);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:3px 24px 3px;display:flex;align-items:center;gap:8px;}
   #week-bar.offday{display:none;}
   .wk-days{display:flex;align-items:center;gap:4px;flex:1;}
   .wk-day{flex:1;text-align:center;font-family:var(--font-mono);font-size:9px;letter-spacing:2px;padding:3px 4px;border-radius:3px;border:1px solid transparent;transition:all .2s;position:relative;user-select:none;cursor:default;}
@@ -363,7 +390,7 @@
   .wk-aic-toggle:hover{border-color:var(--blue);}
 
   /* ── BANDE DÉFILANTE ── */
-  #ticker-bar{position:sticky;top:141px;z-index:97;background:rgba(185,192,200,0.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);height:34px;overflow:hidden;display:flex;align-items:center;}
+  #ticker-bar{position:sticky;top:141px;z-index:97;background:var(--ticker-bg);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);height:34px;overflow:hidden;display:flex;align-items:center;}
   #ticker-bar.hidden{display:none;}
   .ticker-wrap{display:flex;align-items:center;width:100%;overflow:hidden;position:relative;}
   .ticker-track{display:flex;align-items:center;white-space:nowrap;animation:ticker-scroll 22s linear infinite;will-change:transform;}
@@ -626,6 +653,7 @@
     </button>
   </div>
   <div class="hR">
+    <button class="theme-switch-btn" id="themeSwitchBtn" onclick="switchTheme()" title="Changer de thème"></button>
     <button class="meteo-toggle-btn" id="meteoToggleBtn" onclick="toggleMeteo()" title="Afficher/masquer la météo">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"/>
@@ -2233,8 +2261,43 @@ function toggleMeteo(){
 })();
 
 // ══════════════════════════════════════════════════════════════════
-//  AFFAIRE TRACKER — via iframe
+//  THEME SWITCH — beige-orange ↔ militaire opex
 // ══════════════════════════════════════════════════════════════════
+(function(){
+  const THEMES = {
+    'theme-beige': {
+      label:'🪖 OPEX',
+      color:'#a07848', border:'rgba(160,120,72,.38)', bg:'rgba(160,120,72,.09)'
+    },
+    'theme-opex': {
+      label:'🌅 BEIGE',
+      color:'#7aaa30', border:'rgba(106,154,34,.38)', bg:'rgba(106,154,34,.09)'
+    }
+  };
+
+  function applyTheme(t){
+    document.documentElement.className = t;
+    const btn = document.getElementById('themeSwitchBtn');
+    if(!btn) return;
+    const cfg = THEMES[t];
+    btn.textContent = cfg.label;
+    btn.style.color       = cfg.color;
+    btn.style.borderColor = cfg.border;
+    btn.style.background  = cfg.bg;
+  }
+
+  const saved = localStorage.getItem('launcher_theme') || 'theme-beige';
+  applyTheme(saved);
+
+  window.switchTheme = function(){
+    const cur = document.documentElement.className.includes('theme-opex') ? 'theme-opex' : 'theme-beige';
+    const next = cur === 'theme-opex' ? 'theme-beige' : 'theme-opex';
+    localStorage.setItem('launcher_theme', next);
+    applyTheme(next);
+  };
+})();
+
+
 window.openAffaire = function(){
   const overlay = document.getElementById('affaireOverlay');
   const iframe  = document.getElementById('affaireIframe');
