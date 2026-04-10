@@ -1,29 +1,69 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="terrain">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SnapMark — Annotateur v2</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #1a1a1a;
-    --surface: #222222;
-    --surface2: #2a2a2a;
-    --surface3: #333333;
-    --border: #3a3a3a;
-    --accent: #ff7a00;
-    --accent-hover: #ff9230;
-    --accent-dim: rgba(255,122,0,0.15);
-    --accent2: #ff4444;
-    --text: #e8e8e8;
-    --text-muted: #777;
-    --text-dim: #555;
+  :root[data-theme="terrain"] {
+    --bg: #f5ede0;
+    --surface: #faf3ea;
+    --surface2: #f2e4d2;
+    --surface3: #eeddd0;
+    --border: #d4a882;
+    --accent: #d4621a;
+    --accent-hover: #e8741e;
+    --accent-dim: rgba(212,98,26,0.15);
+    --accent2: #c03030;
+    --text: #3a2010;
+    --text-muted: #a06030;
+    --text-dim: #c09060;
+    --tool-size: 42px;
+    --radius: 8px;
+    --green: #5a8a3a;
+    --blue: #2a70b8;
+  }
+  :root[data-theme="opex"] {
+    --bg: #0e120a;
+    --surface: #121a0c;
+    --surface2: #182210;
+    --surface3: #1e2c14;
+    --border: #2a4018;
+    --accent: #6ab020;
+    --accent-hover: #80cc28;
+    --accent-dim: rgba(106,176,32,0.15);
+    --accent2: #c83020;
+    --text: #b8cc90;
+    --text-muted: #5a7838;
+    --text-dim: #3a5020;
     --tool-size: 42px;
     --radius: 8px;
     --green: #4caf7d;
-    --blue: #4caaff;
+    --blue: #3a8a60;
   }
+
+  /* ── THEME TOGGLE ── */
+  .theme-toggle-wrap {
+    display: flex; align-items: center; gap: 6px;
+    font-family: 'Space Mono', monospace; font-size: 9px;
+    color: var(--text-muted); letter-spacing: .1em; white-space: nowrap;
+    text-transform: uppercase;
+  }
+  .theme-toggle-switch { position: relative; width: 40px; height: 20px; cursor: pointer; flex-shrink: 0; }
+  .theme-toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .theme-slider {
+    position: absolute; inset: 0;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; transition: background .3s;
+  }
+  .theme-slider::before {
+    content: ''; position: absolute;
+    width: 14px; height: 14px; left: 2px; top: 2px;
+    background: var(--accent); border-radius: 50%;
+    transition: transform .3s;
+  }
+  .theme-toggle-switch input:checked + .theme-slider::before { transform: translateX(20px); }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -156,8 +196,8 @@
   #canvas-wrap {
     flex: 1;
     display: flex; align-items: center; justify-content: center;
-    background: #111;
-    background-image: radial-gradient(circle, #222 1px, transparent 1px);
+    background: var(--bg);
+    background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
     background-size: 22px 22px;
     overflow: hidden;
     position: relative;
@@ -453,6 +493,15 @@
   <button class="icon-btn" id="undo-btn" title="Annuler (Ctrl+Z)">↩</button>
   <button class="icon-btn" id="redo-btn" title="Rétablir (Ctrl+Y)">↪</button>
   <div class="spacer"></div>
+  <div class="theme-toggle-wrap">
+    <span>TERRAIN</span>
+    <label class="theme-toggle-switch">
+      <input type="checkbox" id="themeToggle" onchange="document.documentElement.dataset.theme=this.checked?'opex':'terrain'">
+      <span class="theme-slider"></span>
+    </label>
+    <span>OPEX</span>
+  </div>
+  <div class="sep"></div>
   <button class="action-btn" id="present-btn" title="Mode présentation">🖥</button>
   <button class="action-btn" id="loupe-btn" title="Fenêtre flottante (zoom molette, drag)">🔍 Loupe</button>
   <button class="action-btn" id="import-json-btn" title="Importer annotations">📥 JSON</button>
