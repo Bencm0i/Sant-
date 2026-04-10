@@ -9,30 +9,30 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root[data-theme="bureau"] {
-  --bg: #0d1520; --bg2: #0a1018; --bg3: #07090f;
-  --surface: #111c2a; --surface2: #162235;
-  --border: #1e3a52; --border2: #2a5070;
-  --text: #c8dce8; --text2: #88aac0; --text3: #4a6e88;
-  --accent: #3ab8d8; --accent2: #1a90b8; --accent3: #70d8f0;
-  --tag-bg: #0d2a3a; --tag-text: #3ab8d8;
-  --shadow: rgba(0,20,40,0.5); --glow: rgba(58,184,216,0.22);
-  --input-bg: #09121c; --delete: #e05050;
-  --star: #e0c040; --fav-bg: #0d1e2e;
-  --grid-line: rgba(58,184,216,0.06);
-  --crosshair: rgba(58,184,216,0.18);
+  --bg: #f5ede0; --bg2: #eeddd0; --bg3: #e8d0be;
+  --surface: #faf3ea; --surface2: #f2e4d2;
+  --border: #d4a882; --border2: #c08850;
+  --text: #3a2010; --text2: #6b3e1e; --text3: #a06030;
+  --accent: #d4621a; --accent2: #b04e10; --accent3: #e8841e;
+  --tag-bg: #f0d8b8; --tag-text: #b04e10;
+  --shadow: rgba(100,50,10,0.18); --glow: rgba(212,98,26,0.22);
+  --input-bg: #ede0ce; --delete: #c03030;
+  --star: #d4a010; --fav-bg: #fef4e4;
+  --grid-line: rgba(212,98,26,0.07);
+  --crosshair: rgba(212,98,26,0.14);
 }
 :root[data-theme="blueprint"] {
-  --bg: #001428; --bg2: #000e1e; --bg3: #000810;
-  --surface: #00193a; --surface2: #001e44;
-  --border: #004080; --border2: #0060b0;
-  --text: #e0f0ff; --text2: #80b8d8; --text3: #3070a0;
-  --accent: #60d0ff; --accent2: #30a8e0; --accent3: #a0e8ff;
-  --tag-bg: #002050; --tag-text: #60d0ff;
-  --shadow: rgba(0,10,30,0.7); --glow: rgba(96,208,255,0.3);
-  --input-bg: #000f20; --delete: #ff5060;
-  --star: #ffd060; --fav-bg: #001830;
-  --grid-line: rgba(96,208,255,0.05);
-  --crosshair: rgba(96,208,255,0.15);
+  --bg: #0e120a; --bg2: #090c06; --bg3: #060804;
+  --surface: #121a0c; --surface2: #182210;
+  --border: #2a4018; --border2: #3a5820;
+  --text: #b8cc90; --text2: #7a9850; --text3: #4a6030;
+  --accent: #6ab020; --accent2: #4e8810; --accent3: #90d030;
+  --tag-bg: #1a2e08; --tag-text: #6ab020;
+  --shadow: rgba(0,10,0,0.7); --glow: rgba(106,176,32,0.28);
+  --input-bg: #090e06; --delete: #c83020;
+  --star: #c8a010; --fav-bg: #0e1808;
+  --grid-line: rgba(106,176,32,0.06);
+  --crosshair: rgba(106,176,32,0.14);
 }
 
 /* CAT COLORS — injected dynamically by JS */
@@ -256,12 +256,12 @@ input[type="file"] { display:none; }
       <a class="ai-link gemini" href="https://gemini.google.com" target="_blank" rel="noopener">Gemini</a>
     </div>
     <div class="theme-toggle">
-      <span>BUREAU</span>
+      <span>TERRAIN</span>
       <label class="toggle-switch">
         <input type="checkbox" id="themeToggle" onchange="toggleTheme()">
         <span class="toggle-slider"></span>
       </label>
-      <span>BLUEPRINT</span>
+      <span>OPEX</span>
     </div>
   </div>
 </header>
