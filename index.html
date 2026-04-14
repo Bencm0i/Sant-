@@ -410,6 +410,11 @@
   .ticker-item.tk-velo-nogo .tk-val{color:var(--red);}
   .ticker-item.tk-btc .tk-val{color:var(--gold);}
   .ticker-item.tk-affaire .tk-val{color:var(--orange);}
+  /* ── BOUTON PAUSE TICKER ── */
+  .ticker-pause-btn{flex-shrink:0;display:flex;align-items:center;justify-content:center;width:28px;height:28px;margin:0 6px 0 8px;border-radius:3px;border:1px solid var(--border2);background:transparent;cursor:pointer;color:var(--muted2);font-size:11px;transition:all .15s;user-select:none;}
+  .ticker-pause-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(0,0,0,0.06);}
+  .ticker-pause-btn.paused{border-color:var(--gold);color:var(--gold);background:rgba(0,0,0,0.07);}
+  .ticker-track.paused{animation-play-state:paused;}
   /* Éléments cachés pour data */
   #congesBody{display:none;}
   #veloBody{display:none;}
@@ -705,6 +710,7 @@
 
 <!-- ════ BANDE DÉFILANTE ════════════════════════════════════════ -->
 <div id="ticker-bar">
+  <button class="ticker-pause-btn" id="tickerPauseBtn" onclick="toggleTickerPause()" title="Pause / Reprendre le défilement">▶</button>
   <div class="ticker-wrap">
     <div class="ticker-track" id="tickerTrack">
       <!-- contenu injecté par JS, dupliqué pour scroll infini -->
@@ -2298,7 +2304,20 @@ function toggleMeteo(){
 })();
 
 
-window.openAffaire = function(){
+// ══════════════════════════════════════════════════════════════════
+//  TICKER PAUSE TOGGLE
+// ══════════════════════════════════════════════════════════════════
+window.toggleTickerPause = function(){
+  const track = document.getElementById('tickerTrack');
+  const btn   = document.getElementById('tickerPauseBtn');
+  if(!track || !btn) return;
+  const paused = track.classList.toggle('paused');
+  btn.textContent = paused ? '⏸' : '▶';
+  btn.classList.toggle('paused', paused);
+  btn.title = paused ? 'Reprendre le défilement' : 'Pause du défilement';
+};
+
+
   const overlay = document.getElementById('affaireOverlay');
   const iframe  = document.getElementById('affaireIframe');
   if(!iframe.src || iframe.src === window.location.href) iframe.src = 'affaire_tracker.html';
