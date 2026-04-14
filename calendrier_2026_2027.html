@@ -249,8 +249,27 @@
   .cell.empty { background: #e4e6e9; cursor: default; }
   .cell.ferie { background: #fff5f5; }
   .cell.cp-band { background: #fffdf0; }
-  .cell.today { background: var(--today) !important; }
-  .cell-day-num.today { background: #bbf7d0 !important; color: #065f46 !important; font-weight: 700; }
+
+  /* ── Jour passé ── */
+  .cell.past { background: #f0f0f2 !important; }
+  .cell.past .day-label { color: #c0c4cc !important; }
+  .cell.past .event-tag { opacity: 0.45; }
+  .cell.past .add-btn { display: none !important; }
+  .cell-day-num.past { background: #e8e9ec !important; color: #b0b5bf !important; }
+
+  /* ── Aujourd'hui — surbrillance forte ── */
+  .cell.today {
+    background: #d1fae5 !important;
+    outline: 2px solid #10b981;
+    outline-offset: -2px;
+    z-index: 1;
+  }
+  .cell-day-num.today {
+    background: #059669 !important;
+    color: #ffffff !important;
+    font-weight: 700;
+    outline: 2px solid #059669;
+  }
 
   .day-label { font-size: 9px; color: var(--muted); margin-right: 2px; min-width: 14px; font-weight: 600; flex-shrink: 0; }
 
@@ -741,6 +760,9 @@ function buildYear(year) {
     const todayDate = new Date(todayKey + 'T12:00:00');
     if (todayDate.getDate() === d && todayDate.getFullYear() === year) {
       dn.classList.add('today');
+    } else {
+      // Griser le numéro si l'année entière est passée, ou si le jour est forcément passé
+      // On marquera en post-traitement via markPastDayNums()
     }
     grid.appendChild(dn);
 
@@ -765,6 +787,7 @@ function buildYear(year) {
         // (on le fait via CSS sur .cell-day-num.we, mais la colonne jour est commune)
       }
       if (dateKey === todayKey) cell.classList.add('today');
+      else if (dateKey < todayKey) cell.classList.add('past');
       if (hols[dateKey]) cell.classList.add('ferie');
       if (events[dateKey] && events[dateKey].some(ev => ev.type === 'cp')) cell.classList.add('cp-band');
 
@@ -833,6 +856,18 @@ function markWeekendDayNums() {
         }
       }
       if (isWE) dayNumCell.classList.add('we');
+
+      // Griser le numéro si toutes les cellules non-vides de la ligne sont passées
+      let hasCurrent = false, hasPast = false, hasNonEmpty = false;
+      for (let col = 1; col < totalCols; col++) {
+        const c = cells[startIdx + col];
+        if (!c || c.classList.contains('empty')) continue;
+        hasNonEmpty = true;
+        if (c.classList.contains('today')) { hasCurrent = true; break; }
+        if (!c.classList.contains('past')) { hasCurrent = true; break; }
+        hasPast = true;
+      }
+      if (hasNonEmpty && !hasCurrent && hasPast) dayNumCell.classList.add('past');
     }
   });
 }
