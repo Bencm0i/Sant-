@@ -392,7 +392,7 @@
   /* ── BANDE DÉFILANTE ── */
   #ticker-bar{position:sticky;top:141px;z-index:97;background:var(--ticker-bg);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);height:34px;overflow:hidden;display:flex;align-items:center;}
   #ticker-bar.hidden{display:none;}
-  .ticker-wrap{display:flex;align-items:center;width:100%;overflow:hidden;position:relative;}
+  .ticker-wrap{display:flex;align-items:center;flex:1;min-width:0;overflow:hidden;position:relative;}
   .ticker-track{display:flex;align-items:center;white-space:nowrap;animation:ticker-scroll 22s linear infinite;will-change:transform;}
   .ticker-track:hover{animation-play-state:paused;}
   @keyframes ticker-scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
@@ -2318,6 +2318,7 @@ window.toggleTickerPause = function(){
 };
 
 
+window.openAffaire = function(){
   const overlay = document.getElementById('affaireOverlay');
   const iframe  = document.getElementById('affaireIframe');
   if(!iframe.src || iframe.src === window.location.href) iframe.src = 'affaire_tracker.html';
