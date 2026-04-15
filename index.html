@@ -490,6 +490,38 @@
   .tk-cfg-close-btn:hover{border-color:var(--muted);color:var(--text);}
   .tk-settings-btn{display:flex;align-items:center;gap:4px;flex-shrink:0;margin-right:4px;background:transparent;border:1px solid var(--border);border-radius:3px;padding:3px 7px;font-family:var(--font-mono);font-size:9px;color:var(--muted2);cursor:pointer;letter-spacing:1px;transition:all .15s;}
   .tk-settings-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+  /* ── CALCULATEUR HEURES MODAL ── */
+  .hcalc-overlay{position:fixed;inset:0;background:rgba(10,15,20,0.65);z-index:800;display:none;align-items:center;justify-content:center;backdrop-filter:blur(5px);}
+  .hcalc-overlay.open{display:flex;}
+  .hcalc-modal{background:var(--panel2);border:1px solid var(--border2);border-radius:6px;width:360px;max-width:calc(100vw - 32px);box-shadow:0 8px 40px rgba(0,0,0,0.55);overflow:hidden;}
+  .hcalc-bar{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border);background:var(--panel);}
+  .hcalc-bar-title{font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--text);flex:1;}
+  .hcalc-close{background:transparent;border:1px solid var(--border);border-radius:3px;padding:3px 9px;font-family:var(--font-mono);font-size:9px;color:var(--muted2);cursor:pointer;letter-spacing:1px;transition:all .15s;}
+  .hcalc-close:hover{border-color:var(--red);color:var(--red);}
+  .hcalc-body{padding:16px;}
+  .hcalc-day-row{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+  .hcalc-day{padding:4px 10px;border-radius:3px;font-family:var(--font-mono);font-size:9px;letter-spacing:1px;cursor:pointer;border:1px solid var(--border);background:var(--panel);color:var(--muted2);transition:all .15s;}
+  .hcalc-day:hover{border-color:var(--border2);color:var(--text);}
+  .hcalc-day.active{background:rgba(200,92,10,0.12);border-color:rgba(200,92,10,0.5);color:var(--accent);}
+  .hcalc-field{margin-bottom:10px;}
+  .hcalc-label{font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted2);margin-bottom:4px;display:block;}
+  .hcalc-input{background:var(--panel);border:1px solid var(--border);border-radius:3px;outline:none;padding:5px 8px;font-family:var(--font-mono);font-size:12px;color:var(--text);width:100%;transition:border-color .15s;}
+  .hcalc-input:focus{border-color:var(--accent);}
+  .hcalc-divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
+  .hcalc-status{border-radius:3px;padding:7px 10px;font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:1px;margin-bottom:12px;}
+  .hcalc-s-ok{background:rgba(78,122,26,0.12);border:1px solid rgba(78,122,26,0.35);color:var(--green);}
+  .hcalc-s-warn{background:rgba(160,112,16,0.12);border:1px solid rgba(160,112,16,0.35);color:var(--gold);}
+  .hcalc-s-err{background:rgba(192,48,24,0.12);border:1px solid rgba(192,48,24,0.35);color:var(--red);}
+  .hcalc-results{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+  .hcalc-metric{background:var(--panel);border:1px solid var(--border);border-radius:3px;padding:8px 10px;}
+  .hcalc-metric-label{font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);margin-bottom:4px;}
+  .hcalc-metric-value{font-family:var(--font-mono);font-size:18px;font-weight:700;color:var(--text);}
+  .hcalc-metric-value.ok{color:var(--green);}
+  .hcalc-metric-value.warn{color:var(--gold);}
+  .hcalc-metric-value.err{color:var(--red);}
+  .hcalc-info{font-family:var(--font-mono);font-size:9px;color:var(--muted2);line-height:1.7;border-top:1px solid var(--border);padding-top:10px;}
+  .hcalc-info b{color:var(--text);}
 </style>
 </head>
 <body>
@@ -721,6 +753,12 @@
         <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M3 15l5-5 4 4 3-3 6 6"/>
       </svg>
       ANNOTATEUR
+    </button>
+    <button class="ws-btn" onclick="openHCalc()" title="Calculateur heures départ" style="color:#b88a08;border-color:rgba(184,138,8,.25);background:rgba(184,138,8,.06);">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+      </svg>
+      HORAIRES
     </button>
     <button class="ws-btn" onclick="openWorkspace()" title="Ouvrir Workspace">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -959,6 +997,55 @@
       <button class="dcpdf-modal-close" onclick="closeDcpdf()">✕ FERMER</button>
     </div>
     <iframe class="dcpdf-modal-iframe" id="dcpdfIframe" src="" title="Demande Absence PDF"></iframe>
+  </div>
+</div>
+
+<!-- ════ CALCULATEUR HEURES DÉPART ══════════════════════════════ -->
+<div class="hcalc-overlay" id="hcalcOverlay">
+  <div class="hcalc-modal">
+    <div class="hcalc-bar">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#b88a08" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <div class="hcalc-bar-title">⬡ HORAIRES — AVENTECH SUPPORTS</div>
+      <button class="hcalc-close" onclick="closeHCalc()">✕ FERMER</button>
+    </div>
+    <div class="hcalc-body">
+      <div class="hcalc-day-row" id="hcalcDays">
+        <div class="hcalc-day active" data-day="lun">LUN</div>
+        <div class="hcalc-day" data-day="mar">MAR</div>
+        <div class="hcalc-day" data-day="mer">MER</div>
+        <div class="hcalc-day" data-day="jeu">JEU</div>
+        <div class="hcalc-day" data-day="ven">VEN</div>
+      </div>
+      <div class="hcalc-field">
+        <label class="hcalc-label">Arrivée (plage 07h30 – 08h30)</label>
+        <input class="hcalc-input" type="time" id="hcArrive" value="08:00">
+      </div>
+      <div class="hcalc-field">
+        <label class="hcalc-label">Début pause déjeuner</label>
+        <input class="hcalc-input" type="time" id="hcPauseS" value="12:15">
+      </div>
+      <div class="hcalc-field">
+        <label class="hcalc-label">Fin pause déjeuner</label>
+        <input class="hcalc-input" type="time" id="hcPauseE" value="12:55">
+      </div>
+      <hr class="hcalc-divider">
+      <div class="hcalc-status hcalc-s-ok" id="hcStatus">—</div>
+      <div class="hcalc-results">
+        <div class="hcalc-metric">
+          <div class="hcalc-metric-label">Pause méridienne</div>
+          <div class="hcalc-metric-value" id="hcVPause">—</div>
+        </div>
+        <div class="hcalc-metric">
+          <div class="hcalc-metric-label">Travail matin</div>
+          <div class="hcalc-metric-value" id="hcVMatin">—</div>
+        </div>
+        <div class="hcalc-metric" style="grid-column:1/-1">
+          <div class="hcalc-metric-label">Départ au plus tôt</div>
+          <div class="hcalc-metric-value ok" id="hcVDep" style="font-size:26px;">—</div>
+        </div>
+      </div>
+      <div class="hcalc-info" id="hcInfo">—</div>
+    </div>
   </div>
 </div>
 
@@ -2709,6 +2796,62 @@ function clearSearch(){
   const clearBtn = document.getElementById('searchClear');
   if(clearBtn) clearBtn.style.display = 'none';
 }
+
+// ══════════════════════════════════════════════════════════════════
+//  CALCULATEUR HEURES DÉPART — AVENTECH FONCTIONS SUPPORTS
+// ══════════════════════════════════════════════════════════════════
+const HC_DAYS = {
+  lun:{label:'Lundi',    workMin:450, pmEndRef:'16h10', departPlage:'15h40 – 16h40'},
+  mar:{label:'Mardi',    workMin:450, pmEndRef:'16h10', departPlage:'15h40 – 16h40'},
+  mer:{label:'Mercredi', workMin:450, pmEndRef:'16h10', departPlage:'15h40 – 16h40'},
+  jeu:{label:'Jeudi',    workMin:450, pmEndRef:'16h10', departPlage:'15h40 – 16h40'},
+  ven:{label:'Vendredi', workMin:390, pmEndRef:'15h30', departPlage:'14h50 – 15h30'}
+};
+let hcDay = 'lun';
+function hcToMin(t){const[h,m]=t.split(':').map(Number);return h*60+m;}
+function hcFmt(n){const h=Math.floor(n/60),m=n%60;return h>0?h+'h'+(m>0?String(m).padStart(2,'0'):''):m+' min';}
+function hcHHMM(n){return String(Math.floor(n/60)).padStart(2,'0')+'h'+String(n%60).padStart(2,'0');}
+function hcCompute(){
+  const day=HC_DAYS[hcDay];
+  const arrive=hcToMin(document.getElementById('hcArrive').value);
+  const ps=hcToMin(document.getElementById('hcPauseS').value);
+  const pe=hcToMin(document.getElementById('hcPauseE').value);
+  const pauseDur=pe-ps;
+  const matin=ps-arrive;
+  const depMin=pe+(day.workMin-matin);
+  document.getElementById('hcVPause').textContent=hcFmt(pauseDur);
+  document.getElementById('hcVMatin').textContent=hcFmt(matin);
+  document.getElementById('hcVDep').textContent=hcHHMM(depMin);
+  const pauseClass=pauseDur<40?'err':pauseDur>120?'warn':'ok';
+  document.getElementById('hcVPause').className='hcalc-metric-value '+pauseClass;
+  const arriveOk=arrive>=hcToMin('07:30')&&arrive<=hcToMin('08:30');
+  let sc='hcalc-s-ok',st='✓ HORAIRES VALIDES';
+  if(!arriveOk){sc='hcalc-s-warn';st='⚠ ARRIVÉE HORS PLAGE (07h30 – 08h30)';}
+  else if(pauseDur<40){sc='hcalc-s-err';st='✗ PAUSE TROP COURTE (MIN 40 MIN)';}
+  else if(pauseDur>120){sc='hcalc-s-warn';st='⚠ PAUSE > 2H (MAXIMUM AUTORISÉ)';}
+  const s=document.getElementById('hcStatus');
+  s.className='hcalc-status '+sc;s.textContent=st;
+  document.getElementById('hcInfo').innerHTML=
+    `<b>${day.label}</b> — Officiel : 08h00–12h15 / 12h55–${day.pmEndRef} &nbsp;|&nbsp; Requis : <b>${hcFmt(day.workMin)}</b><br>Plage de départ : <b>${day.departPlage}</b>`;
+}
+window.openHCalc=function(){
+  document.getElementById('hcalcOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+  hcCompute();
+};
+window.closeHCalc=function(){
+  document.getElementById('hcalcOverlay').classList.remove('open');
+  document.body.style.overflow='';
+};
+document.getElementById('hcalcDays').addEventListener('click',e=>{
+  const d=e.target.closest('.hcalc-day');if(!d)return;
+  document.querySelectorAll('.hcalc-day').forEach(b=>b.classList.remove('active'));
+  d.classList.add('active');hcDay=d.dataset.day;hcCompute();
+});
+['hcArrive','hcPauseS','hcPauseE'].forEach(id=>document.getElementById(id).addEventListener('input',hcCompute));
+document.getElementById('hcalcOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeHCalc();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.getElementById('hcalcOverlay').classList.contains('open'))closeHCalc();});
+
 
 window.openAffaire = function(){
   const overlay = document.getElementById('affaireOverlay');
