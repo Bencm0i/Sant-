@@ -6,6 +6,7 @@
 <title>Conversions — Dessin Industriel</title>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
+/* ══ THÈME PAR DÉFAUT : DARK STEEL ══ */
 :root {
   --bg:       #3a3c3f;
   --bg2:      #424547;
@@ -28,6 +29,56 @@
   --purple:   #9878e8;
   --purple-d: rgba(152,120,232,0.10);
   --steel:    #a0b0b8;
+}
+
+/* ══ THÈME BEIGE-ORANGE ══ */
+[data-theme="beige"] {
+  --bg:       #f5efe6;
+  --bg2:      #ede4d6;
+  --bg3:      #e4d8c8;
+  --border:   #c9b89a;
+  --border2:  #b8a285;
+  --text:     #2e1f0e;
+  --dim:      #8a7060;
+  --faint:    #d8cabb;
+  --orange:   #d4560a;
+  --orange-d: rgba(212,86,10,0.12);
+  --cyan:     #1a7a8c;
+  --cyan-d:   rgba(26,122,140,0.12);
+  --green:    #2e7d4a;
+  --green-d:  rgba(46,125,74,0.10);
+  --yellow:   #b8860b;
+  --yellow-d: rgba(184,134,11,0.12);
+  --red:      #c0392b;
+  --red-d:    rgba(192,57,43,0.10);
+  --purple:   #7b4fa0;
+  --purple-d: rgba(123,79,160,0.10);
+  --steel:    #6a8090;
+}
+
+/* ══ THÈME MILITAIRE ══ */
+[data-theme="military"] {
+  --bg:       #1c1f14;
+  --bg2:      #22261a;
+  --bg3:      #292e1f;
+  --border:   #3a4030;
+  --border2:  #4a5238;
+  --text:     #c8d4a0;
+  --dim:      #6a7850;
+  --faint:    #2e3424;
+  --orange:   #c8a020;
+  --orange-d: rgba(200,160,32,0.15);
+  --cyan:     #60b848;
+  --cyan-d:   rgba(96,184,72,0.12);
+  --green:    #88cc30;
+  --green-d:  rgba(136,204,48,0.10);
+  --yellow:   #d4b820;
+  --yellow-d: rgba(212,184,32,0.12);
+  --red:      #d04828;
+  --red-d:    rgba(208,72,40,0.12);
+  --purple:   #9090c0;
+  --purple-d: rgba(144,144,192,0.10);
+  --steel:    #788060;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -608,6 +659,53 @@ header {
   .content { padding: 16px 12px 40px; }
   .converter-grid { grid-template-columns: 1fr; }
 }
+
+/* ── THEME TOGGLE ── */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 3px;
+  overflow: hidden;
+  flex-shrink: 0;
+  margin-left: 16px;
+}
+.theme-btn {
+  font-family: 'Oswald', sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 6px 11px;
+  cursor: pointer;
+  color: var(--dim);
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--border);
+  transition: all .18s;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  user-select: none;
+}
+.theme-btn:last-child { border-right: none; }
+.theme-btn:hover { color: var(--text); background: var(--faint); }
+.theme-btn.active {
+  color: #0e0e0e;
+  background: var(--orange);
+  border-color: var(--orange);
+}
+.theme-btn .theme-swatch {
+  width: 8px; height: 8px;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+.theme-btn[data-set="dark"]     .theme-swatch { background: #a0b0b8; }
+.theme-btn[data-set="beige"]    .theme-swatch { background: #d4560a; }
+.theme-btn[data-set="military"] .theme-swatch { background: #88cc30; }
 </style>
 </head>
 <body>
@@ -625,6 +723,17 @@ header {
     <span class="htag">NF E 04-015</span>
     <span class="htag">NF S 61-937</span>
     <span class="htag">EN 13501</span>
+  </div>
+  <div class="theme-toggle" id="themeToggle">
+    <button class="theme-btn active" data-set="dark">
+      <span class="theme-swatch"></span>Steel
+    </button>
+    <button class="theme-btn" data-set="beige">
+      <span class="theme-swatch"></span>Beige
+    </button>
+    <button class="theme-btn" data-set="military">
+      <span class="theme-swatch"></span>Milita
+    </button>
   </div>
 </header>
 
@@ -2078,6 +2187,31 @@ function filterTable(tableId, query) {
     tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
   });
 }
+
+// ── THEME TOGGLE ──
+(function() {
+  const THEME_KEY = 'convpro_theme';
+  const btns = document.querySelectorAll('.theme-btn');
+  const root = document.documentElement;
+
+  function applyTheme(name) {
+    if (name === 'dark') {
+      root.removeAttribute('data-theme');
+    } else {
+      root.setAttribute('data-theme', name);
+    }
+    btns.forEach(b => b.classList.toggle('active', b.dataset.set === name));
+    try { localStorage.setItem(THEME_KEY, name); } catch(e) {}
+  }
+
+  let saved = 'dark';
+  try { saved = localStorage.getItem(THEME_KEY) || 'dark'; } catch(e) {}
+  applyTheme(saved);
+
+  btns.forEach(btn => {
+    btn.addEventListener('click', () => applyTheme(btn.dataset.set));
+  });
+})();
 </script>
 </body>
 </html>
