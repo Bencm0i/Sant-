@@ -419,6 +419,77 @@
   /* Éléments cachés pour data */
   #congesBody{display:none;}
   #veloBody{display:none;}
+
+  /* ── BARRE RECHERCHE ── */
+  .search-bar-wrap{margin-bottom:14px;position:relative;}
+  .search-bar-input{width:100%;background:var(--panel);border:1px solid var(--border);border-radius:5px;outline:none;padding:8px 12px 8px 34px;font-family:var(--font-mono);font-size:11px;color:var(--text);letter-spacing:0.5px;transition:border-color .18s;backdrop-filter:blur(4px);}
+  .search-bar-input::placeholder{color:var(--muted);}
+  .search-bar-input:focus{border-color:var(--border2);}
+  .search-bar-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;pointer-events:none;line-height:1;}
+  .search-bar-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;line-height:1;padding:2px 4px;display:none;transition:color .15s;}
+  .search-bar-clear:hover{color:var(--accent);}
+  .search-no-results{text-align:center;color:var(--muted);font-size:9px;letter-spacing:1px;padding:14px 0;display:none;}
+
+  /* ── DRAG & DROP ── */
+  .fav-item.drag-over{border-color:var(--accent);background:rgba(200,92,10,0.08);}
+  .fav-item[draggable="true"]{cursor:grab;}
+  .fav-item.dragging{opacity:0.4;}
+  .app-card[draggable="true"]{cursor:grab;}
+  .app-card.dragging{opacity:0.4;}
+  .app-card.drag-over{border-color:var(--accent);background:rgba(200,92,10,0.06);}
+
+  /* ── OFFLINE INDICATOR ── */
+  .app-offline-dot{position:absolute;top:5px;left:5px;width:6px;height:6px;border-radius:50%;background:var(--red);opacity:0;transition:opacity .3s;}
+  .app-card.offline .app-offline-dot{opacity:1;}
+  .app-card.offline .app-name{text-decoration:line-through;color:var(--muted);}
+  .app-card.offline::after{content:'INDISPONIBLE';position:absolute;bottom:6px;right:7px;font-size:7px;letter-spacing:1.5px;color:var(--red);opacity:0.7;}
+
+  /* ── RÉCEMMENT OUVERTS ── */
+  .recent-section{margin-bottom:16px;}
+  .recent-grid{display:flex;gap:7px;flex-wrap:wrap;}
+  .recent-chip{display:inline-flex;align-items:center;gap:5px;background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:4px 10px;font-family:var(--font-mono);font-size:9px;color:var(--muted2);cursor:pointer;letter-spacing:1px;transition:all .15s;white-space:nowrap;max-width:160px;}
+  .recent-chip:hover{border-color:var(--border2);color:var(--text);background:var(--panel2);}
+  .recent-chip .rc-emoji{font-size:12px;flex-shrink:0;}
+  .recent-chip .rc-name{overflow:hidden;text-overflow:ellipsis;}
+
+  /* ── WORK HOURS CONFIG MODAL ── */
+  .wh-modal-overlay{position:fixed;inset:0;background:rgba(10,15,20,0.6);z-index:800;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+  .wh-modal-overlay.open{display:flex;}
+  .wh-modal{background:var(--panel2);border:1px solid var(--border2);border-radius:6px;width:280px;padding:18px;box-shadow:0 8px 40px rgba(0,0,0,0.5);}
+  .wh-modal-title{font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--text);margin-bottom:14px;}
+  .wh-field{margin-bottom:10px;}
+  .wh-label{font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted2);margin-bottom:4px;display:block;}
+  .wh-input{background:var(--panel);border:1px solid var(--border);border-radius:3px;outline:none;padding:5px 8px;font-family:var(--font-mono);font-size:11px;color:var(--text);width:100%;transition:border-color .15s;}
+  .wh-input:focus{border-color:var(--accent);}
+  .wh-btns{display:flex;gap:8px;margin-top:14px;}
+  .wh-save-btn{flex:1;background:rgba(200,92,10,0.12);border:1px solid rgba(200,92,10,0.4);border-radius:3px;padding:6px;font-family:var(--font-mono);font-size:10px;color:var(--accent);cursor:pointer;letter-spacing:1px;transition:all .15s;}
+  .wh-save-btn:hover{background:rgba(200,92,10,0.2);}
+  .wh-cancel-btn{flex:1;background:transparent;border:1px solid var(--border);border-radius:3px;padding:6px;font-family:var(--font-mono);font-size:10px;color:var(--muted2);cursor:pointer;letter-spacing:1px;transition:all .15s;}
+  .wh-cancel-btn:hover{border-color:var(--muted);color:var(--text);}
+  .wh-gear-btn{display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid var(--border);border-radius:2px;padding:2px 7px;font-size:11px;cursor:pointer;color:var(--muted2);transition:all .15s;flex-shrink:0;}
+  .wh-gear-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+  /* ── TICKER CONFIG MODAL ── */
+  .tk-cfg-overlay{position:fixed;inset:0;background:rgba(10,15,20,0.6);z-index:800;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+  .tk-cfg-overlay.open{display:flex;}
+  .tk-cfg-modal{background:var(--panel2);border:1px solid var(--border2);border-radius:6px;width:300px;padding:18px;box-shadow:0 8px 40px rgba(0,0,0,0.5);}
+  .tk-cfg-title{font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--text);margin-bottom:14px;}
+  .tk-cfg-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);gap:10px;}
+  .tk-cfg-row:last-of-type{border-bottom:none;}
+  .tk-cfg-row-label{font-size:10px;color:var(--text);letter-spacing:0.5px;display:flex;align-items:center;gap:6px;}
+  .tk-cfg-toggle{width:30px;height:16px;border-radius:8px;border:1px solid var(--border2);background:var(--border);cursor:pointer;position:relative;transition:background .18s,border-color .18s;flex-shrink:0;}
+  .tk-cfg-toggle.on{background:var(--accent);border-color:var(--accent);}
+  .tk-cfg-toggle::after{content:'';position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;background:#fff;transition:left .18s;}
+  .tk-cfg-toggle.on::after{left:16px;}
+  .tk-speed-row{display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+  .tk-speed-label{font-size:9px;color:var(--muted2);letter-spacing:1px;flex-shrink:0;}
+  .tk-speed-input{flex:1;-webkit-appearance:none;height:4px;border-radius:2px;background:var(--border2);outline:none;cursor:pointer;}
+  .tk-speed-input::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid var(--panel);}
+  .tk-speed-val{font-size:9px;color:var(--accent);min-width:28px;text-align:right;font-family:var(--font-mono);}
+  .tk-cfg-close-btn{width:100%;margin-top:14px;background:transparent;border:1px solid var(--border);border-radius:3px;padding:6px;font-family:var(--font-mono);font-size:10px;color:var(--muted2);cursor:pointer;letter-spacing:1px;transition:all .15s;}
+  .tk-cfg-close-btn:hover{border-color:var(--muted);color:var(--text);}
+  .tk-settings-btn{display:flex;align-items:center;gap:4px;flex-shrink:0;margin-right:4px;background:transparent;border:1px solid var(--border);border-radius:3px;padding:3px 7px;font-family:var(--font-mono);font-size:9px;color:var(--muted2);cursor:pointer;letter-spacing:1px;transition:all .15s;}
+  .tk-settings-btn:hover{border-color:var(--accent);color:var(--accent);}
 </style>
 </head>
 <body>
@@ -688,6 +759,7 @@
   <span class="wb-pct"    id="wb-pct">0%</span>
   <span class="wb-remain" id="wb-remain">—</span>
   <span class="wb-velo"   id="wb-velo" style="display:none"></span>
+  <button class="wh-gear-btn" onclick="openWhModal()" title="Configurer les horaires">⚙</button>
 </div>
 
 <!-- ════ BARRE JOURS SEMAINE ════════════════════════════════ -->
@@ -712,6 +784,7 @@
 <!-- ════ BANDE DÉFILANTE ════════════════════════════════════════ -->
 <div id="ticker-bar">
   <button class="ticker-pause-btn" id="tickerPauseBtn" onclick="toggleTickerPause()" title="Pause / Reprendre le défilement">▶</button>
+  <button class="tk-settings-btn" onclick="openTkCfg()" title="Configurer le ticker">⚙ TICKER</button>
   <div class="ticker-wrap">
     <div class="ticker-track" id="tickerTrack">
       <!-- contenu injecté par JS, dupliqué pour scroll infini -->
@@ -756,6 +829,20 @@
         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15h8v1H8zm0-4h8v1H8zm0 8h5v1H8z"/></svg>
         NOTEBOOKLM
       </a>
+    </div>
+
+    <!-- Barre de recherche -->
+    <div class="search-bar-wrap">
+      <span class="search-bar-icon">⌕</span>
+      <input class="search-bar-input" id="searchBar" type="text" placeholder="Rechercher une app ou un favori…" autocomplete="off" oninput="onSearchInput()" onkeydown="if(event.key==='Escape'){clearSearch();}">
+      <button class="search-bar-clear" id="searchClear" onclick="clearSearch()" title="Effacer">×</button>
+    </div>
+    <div class="search-no-results" id="searchNoResults">// Aucun résultat</div>
+
+    <!-- Récemment ouverts -->
+    <div class="recent-section" id="recentSection" style="display:none">
+      <div class="slabel">Récemment ouverts</div>
+      <div class="recent-grid" id="recentGrid"></div>
     </div>
 
     <!-- Favoris web -->
@@ -875,6 +962,58 @@
   </div>
 </div>
 
+<!-- ════ WORK HOURS CONFIG MODAL ════════════════════════════════ -->
+<div class="wh-modal-overlay" id="whModal">
+  <div class="wh-modal">
+    <div class="wh-modal-title">⚙ HORAIRES DE TRAVAIL</div>
+    <div class="wh-field">
+      <label class="wh-label">Heure d'arrivée (Lun–Ven)</label>
+      <input class="wh-input" id="wh-start" type="time" value="07:30">
+    </div>
+    <div class="wh-field">
+      <label class="wh-label">Heure de départ — Lun à Jeu</label>
+      <input class="wh-input" id="wh-end-ljeu" type="time" value="15:40">
+    </div>
+    <div class="wh-field">
+      <label class="wh-label">Heure de départ — Vendredi</label>
+      <input class="wh-input" id="wh-end-ven" type="time" value="14:50">
+    </div>
+    <div class="wh-btns">
+      <button class="wh-cancel-btn" onclick="closeWhModal()">ANNULER</button>
+      <button class="wh-save-btn" onclick="saveWhModal()">ENREGISTRER</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ TICKER CONFIG MODAL ════════════════════════════════════ -->
+<div class="tk-cfg-overlay" id="tkCfgOverlay">
+  <div class="tk-cfg-modal">
+    <div class="tk-cfg-title">⚙ TICKER — CONFIGURATION</div>
+    <div class="tk-cfg-row">
+      <span class="tk-cfg-row-label">🏖 Congés en attente</span>
+      <div class="tk-cfg-toggle on" id="tkt-conges" onclick="toggleTkItem('conges',this)"></div>
+    </div>
+    <div class="tk-cfg-row">
+      <span class="tk-cfg-row-label">🚴 Vélo taff</span>
+      <div class="tk-cfg-toggle on" id="tkt-velo" onclick="toggleTkItem('velo',this)"></div>
+    </div>
+    <div class="tk-cfg-row">
+      <span class="tk-cfg-row-label">₿ BTC / EUR</span>
+      <div class="tk-cfg-toggle on" id="tkt-btc" onclick="toggleTkItem('btc',this)"></div>
+    </div>
+    <div class="tk-cfg-row">
+      <span class="tk-cfg-row-label">📋 Tâches en cours</span>
+      <div class="tk-cfg-toggle on" id="tkt-taches" onclick="toggleTkItem('taches',this)"></div>
+    </div>
+    <div class="tk-speed-row">
+      <span class="tk-speed-label">VITESSE</span>
+      <input type="range" class="tk-speed-input" id="tkSpeedSlider" min="6" max="60" step="2" value="22" oninput="onTkSpeedChange(this.value)">
+      <span class="tk-speed-val" id="tkSpeedVal">22s</span>
+    </div>
+    <button class="tk-cfg-close-btn" onclick="closeTkCfg()">FERMER</button>
+  </div>
+</div>
+
 <script>
 const FAV_KEY = 'launcher_favs';
 const FAV_COUNT = 10;
@@ -911,9 +1050,13 @@ function buildFavs(){
   const favs = loadFavs();
   const grid = document.getElementById('favGrid');
   grid.innerHTML = '';
+  let dragSrc = null;
+
   favs.forEach((fav, i) => {
     const item = document.createElement('div');
     item.className = 'fav-item';
+    item.draggable = true;
+    item.dataset.idx = i;
 
     const faviconSrc = fav.url ? getFavicon(fav.url) : '';
 
@@ -962,6 +1105,32 @@ function buildFavs(){
       });
     });
 
+    // ── Drag & drop ──
+    item.addEventListener('dragstart', e => {
+      dragSrc = item;
+      item.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    item.addEventListener('dragend', () => {
+      item.classList.remove('dragging');
+      grid.querySelectorAll('.fav-item').forEach(el => el.classList.remove('drag-over'));
+    });
+    item.addEventListener('dragover', e => {
+      if(dragSrc && dragSrc !== item){ e.preventDefault(); item.classList.add('drag-over'); }
+    });
+    item.addEventListener('dragleave', () => item.classList.remove('drag-over'));
+    item.addEventListener('drop', e => {
+      e.preventDefault();
+      if(!dragSrc || dragSrc === item) return;
+      const fromIdx = parseInt(dragSrc.dataset.idx);
+      const toIdx   = parseInt(item.dataset.idx);
+      const favs2 = loadFavs();
+      const [moved] = favs2.splice(fromIdx, 1);
+      favs2.splice(toIdx, 0, moved);
+      saveFavs(favs2);
+      buildFavs();
+    });
+
     grid.appendChild(item);
   });
 }
@@ -993,21 +1162,125 @@ function updateToggleUI(){
 }
 function openApp(f){if(newTab)window.open(f,'_blank');else window.location.href=f;}
 
+// ── RÉCEMMENT OUVERTS ──────────────────────────────────────────
+const RECENT_KEY = 'launcher_recent';
+const RECENT_MAX = 5;
+function loadRecent(){ try{return JSON.parse(localStorage.getItem(RECENT_KEY)||'[]');}catch{return [];} }
+function saveRecent(r){ localStorage.setItem(RECENT_KEY, JSON.stringify(r)); }
+function trackRecent(app){
+  let r = loadRecent().filter(x => x.file !== app.file || x.url !== app.url);
+  r.unshift({name:app.name, emoji:app.emoji, file:app.file||null, url:app.url||null, action:app.action||null});
+  if(r.length > RECENT_MAX) r = r.slice(0, RECENT_MAX);
+  saveRecent(r);
+  renderRecent();
+}
+function renderRecent(){
+  const r = loadRecent();
+  const section = document.getElementById('recentSection');
+  const grid = document.getElementById('recentGrid');
+  if(!r.length){ if(section) section.style.display='none'; return; }
+  if(section) section.style.display='';
+  if(!grid) return;
+  grid.innerHTML = '';
+  r.forEach(item => {
+    const chip = document.createElement('div');
+    chip.className = 'recent-chip';
+    chip.innerHTML = `<span class="rc-emoji">${item.emoji}</span><span class="rc-name">${escHtml(item.name)}</span>`;
+    chip.addEventListener('click', () => {
+      if(item.action==='annotateur'){openAnnotateur();return;}
+      if(item.action==='affaire'){openAffaire();return;}
+      if(item.action==='conges'){openConges();return;}
+      if(item.action==='dcpdf'){openDcpdf();return;}
+      if(item.url){window.open(item.url,'_blank','noopener');return;}
+      if(item.file) openApp(item.file);
+    });
+    grid.appendChild(chip);
+  });
+}
+
+// ── APPS OFFLINE CHECK ─────────────────────────────────────────
+async function checkAppOnline(file, card){
+  try {
+    const resp = await fetch(file, {method:'HEAD'});
+    if(!resp.ok) card.classList.add('offline');
+  } catch {
+    card.classList.add('offline');
+  }
+}
+
+// ── APPS ORDER (drag & drop) ───────────────────────────────────
+const APPS_ORDER_KEY = 'launcher_apps_order';
+function loadAppsOrder(){
+  try{ return JSON.parse(localStorage.getItem(APPS_ORDER_KEY)||'null'); }
+  catch{ return null; }
+}
+function saveAppsOrder(order){ localStorage.setItem(APPS_ORDER_KEY, JSON.stringify(order)); }
+function getOrderedApps(){
+  const order = loadAppsOrder();
+  if(!order) return [...APPS];
+  const ordered = [];
+  order.forEach(name => { const a = APPS.find(x=>x.name===name); if(a) ordered.push(a); });
+  APPS.forEach(a => { if(!ordered.find(x=>x.name===a.name)) ordered.push(a); });
+  return ordered;
+}
+
 function buildApps(){
   const g=document.getElementById('appsGrid');
-  APPS.forEach(a=>{
-    const c=document.createElement('div');c.className='app-card';
-    c.innerHTML=`<div class="app-nt" title="Nouvel onglet">↗</div><div class="app-icon">${a.emoji}</div><div class="app-name">${a.name}</div><div class="app-desc">${a.desc}</div><div class="app-badge">${a.badge}</div>`;
-    c.addEventListener('click',e=>{
-      if(e.target.classList.contains('app-nt'))return;
+  g.innerHTML='';
+  let dragSrc = null;
+  const orderedApps = getOrderedApps();
+
+  orderedApps.forEach(a=>{
+    const c=document.createElement('div');c.className='app-card';c.draggable=true;c.dataset.name=a.name;
+    c.innerHTML=`<div class="app-offline-dot"></div><div class="app-nt" title="Nouvel onglet">↗</div><div class="app-icon">${a.emoji}</div><div class="app-name">${a.name}</div><div class="app-desc">${a.desc}</div><div class="app-badge">${a.badge}</div>`;
+
+    const doOpen = () => {
+      trackRecent(a);
       if(a.action==='annotateur'){openAnnotateur();return;}
       if(a.action==='affaire'){openAffaire();return;}
       if(a.action==='conges'){openConges();return;}
       if(a.action==='dcpdf'){openDcpdf();return;}
       if(a.url){window.open(a.url,'_blank','noopener');return;}
       openApp(a.file);
+    };
+
+    c.addEventListener('click',e=>{
+      if(e.target.classList.contains('app-nt'))return;
+      doOpen();
     });
-    c.querySelector('.app-nt').addEventListener('click',e=>{e.stopPropagation();window.open(a.url||a.file,'_blank','noopener');});
+    c.querySelector('.app-nt').addEventListener('click',e=>{e.stopPropagation();trackRecent(a);window.open(a.url||a.file,'_blank','noopener');});
+
+    // Offline check (uniquement fichiers locaux)
+    if(a.file && !a.url) checkAppOnline(a.file, c);
+
+    // Drag & drop
+    c.addEventListener('dragstart', e => {
+      dragSrc = c;
+      c.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    c.addEventListener('dragend', () => {
+      c.classList.remove('dragging');
+      g.querySelectorAll('.app-card').forEach(el => el.classList.remove('drag-over'));
+    });
+    c.addEventListener('dragover', e => {
+      if(dragSrc && dragSrc !== c){ e.preventDefault(); c.classList.add('drag-over'); }
+    });
+    c.addEventListener('dragleave', () => c.classList.remove('drag-over'));
+    c.addEventListener('drop', e => {
+      e.preventDefault();
+      if(!dragSrc || dragSrc === c) return;
+      const cards = [...g.querySelectorAll('.app-card')];
+      const fromI = cards.indexOf(dragSrc);
+      const toI   = cards.indexOf(c);
+      if(fromI < 0 || toI < 0) return;
+      const ordered2 = getOrderedApps();
+      const [moved] = ordered2.splice(fromI, 1);
+      ordered2.splice(toI, 0, moved);
+      saveAppsOrder(ordered2.map(x=>x.name));
+      buildApps();
+    });
+
     g.appendChild(c);
   });
 }
@@ -1026,6 +1299,35 @@ function tick(){
 // Jauge absolue : 7h00–18h00 (660 min)
 // Zone hors-plage = rouge, zone dans plage = vert
 // Dépassement horaire = rouge
+const WH_KEY = 'launcher_work_hours';
+function getWorkHours(){
+  try{
+    const d = JSON.parse(localStorage.getItem(WH_KEY)||'null');
+    if(d) return d;
+  }catch{}
+  return {start:'07:30', endLJeu:'15:40', endVen:'14:50'};
+}
+function timeToMins(t){ const [h,m]=(t||'').split(':'); return parseInt(h||0)*60+parseInt(m||0); }
+
+function openWhModal(){
+  const wh = getWorkHours();
+  document.getElementById('wh-start').value   = wh.start;
+  document.getElementById('wh-end-ljeu').value = wh.endLJeu;
+  document.getElementById('wh-end-ven').value  = wh.endVen;
+  document.getElementById('whModal').classList.add('open');
+}
+function closeWhModal(){ document.getElementById('whModal').classList.remove('open'); }
+function saveWhModal(){
+  const wh = {
+    start:   document.getElementById('wh-start').value,
+    endLJeu: document.getElementById('wh-end-ljeu').value,
+    endVen:  document.getElementById('wh-end-ven').value,
+  };
+  localStorage.setItem(WH_KEY, JSON.stringify(wh));
+  closeWhModal();
+}
+document.getElementById('whModal').addEventListener('click', e => { if(e.target === e.currentTarget) closeWhModal(); });
+
 function updateWorkBar(now) {
   const wrap  = document.getElementById('work-bar-wrap');
   const pctEl = document.getElementById('wb-pct');
@@ -1038,13 +1340,14 @@ function updateWorkBar(now) {
   if (!isWorkDay) { wrap.classList.add('offday'); return; }
   wrap.classList.remove('offday');
 
-  // Plages horaires
+  // Plages horaires (configurables)
   const GAUGE_START = 7 * 60;       // 7h00
   const GAUGE_END   = 18 * 60;      // 18h00
   const GAUGE_TOTAL = GAUGE_END - GAUGE_START; // 660 min
 
-  const startMins = 7 * 60 + 30;   // 7h30
-  const endMins   = (dow === 5) ? (14 * 60 + 50) : (15 * 60 + 40); // 14h50 ven / 15h40 lun-jeu
+  const wh = getWorkHours();
+  const startMins = timeToMins(wh.start);
+  const endMins   = (dow === 5) ? timeToMins(wh.endVen) : timeToMins(wh.endLJeu);
   const totalWork = endMins - startMins;
 
   const nowMins = now.getHours() * 60 + now.getMinutes();
@@ -1092,7 +1395,8 @@ function updateWorkBar(now) {
 
   // Label jour
   const dayNames = ['','LUN','MAR','MER','JEU','VEN'];
-  const endLabel = (dow === 5) ? '14h50' : '15h40';
+  const minsToLabel = m => { const h=Math.floor(m/60),mn=m%60; return h+'h'+(mn>0?String(mn).padStart(2,'0'):''); };
+  const endLabel = (dow===5) ? wh.endVen : wh.endLJeu;
   lblEl.textContent = dayNames[dow] + ' · –' + endLabel;
 
   // Textes pct / reste
@@ -1799,7 +2103,7 @@ function congesRender() {
 }
 
 // ── INIT ───────────────────────────────────────────────────────
-updateToggleUI();buildApps();buildFavs();buildClips();loadTodos();renderTodos();loadNotes();renderNotes();congesRender();
+updateToggleUI();buildApps();buildFavs();buildClips();loadTodos();renderTodos();loadNotes();renderNotes();congesRender();renderRecent();
 
 // ── BANDE DÉFILANTE ────────────────────────────────────────────
 let tickerBtc = null;
@@ -2317,6 +2621,94 @@ window.toggleTickerPause = function(){
   btn.title = paused ? 'Reprendre le défilement' : 'Pause du défilement';
 };
 
+
+// ══════════════════════════════════════════════════════════════════
+//  TICKER CONFIG
+// ══════════════════════════════════════════════════════════════════
+const TK_CFG_KEY = 'launcher_tk_cfg';
+function loadTkCfg(){
+  try{ return JSON.parse(localStorage.getItem(TK_CFG_KEY)||'{}'); }
+  catch{ return {}; }
+}
+function saveTkCfg(cfg){ localStorage.setItem(TK_CFG_KEY, JSON.stringify(cfg)); }
+
+function openTkCfg(){
+  const cfg = loadTkCfg();
+  ['conges','velo','btc','taches'].forEach(k=>{
+    const el = document.getElementById('tkt-'+k);
+    if(el) el.classList.toggle('on', cfg[k]!==false);
+  });
+  const spd = cfg.speed || 22;
+  const slider = document.getElementById('tkSpeedSlider');
+  const val    = document.getElementById('tkSpeedVal');
+  if(slider) slider.value = spd;
+  if(val)    val.textContent = spd + 's';
+  document.getElementById('tkCfgOverlay').classList.add('open');
+}
+function closeTkCfg(){
+  document.getElementById('tkCfgOverlay').classList.remove('open');
+}
+function toggleTkItem(key, el){
+  el.classList.toggle('on');
+  const cfg = loadTkCfg();
+  cfg[key] = el.classList.contains('on');
+  saveTkCfg(cfg);
+  renderTicker();
+}
+function onTkSpeedChange(v){
+  const val = document.getElementById('tkSpeedVal');
+  if(val) val.textContent = v + 's';
+  const cfg = loadTkCfg();
+  cfg.speed = parseInt(v);
+  saveTkCfg(cfg);
+  const track = document.getElementById('tickerTrack');
+  if(track) track.style.animationDuration = v + 's';
+}
+document.getElementById('tkCfgOverlay').addEventListener('click', e => {
+  if(e.target === e.currentTarget) closeTkCfg();
+});
+
+// ══════════════════════════════════════════════════════════════════
+//  RECHERCHE APPS / FAVORIS
+// ══════════════════════════════════════════════════════════════════
+function onSearchInput(){
+  const q = document.getElementById('searchBar').value.trim().toLowerCase();
+  const clearBtn = document.getElementById('searchClear');
+  if(clearBtn) clearBtn.style.display = q ? 'block' : 'none';
+
+  let anyVisible = false;
+
+  // Filtrer les apps
+  const cards = document.querySelectorAll('#appsGrid .app-card');
+  cards.forEach(c => {
+    const name = (c.querySelector('.app-name')?.textContent||'').toLowerCase();
+    const desc = (c.querySelector('.app-desc')?.textContent||'').toLowerCase();
+    const badge = (c.querySelector('.app-badge')?.textContent||'').toLowerCase();
+    const match = !q || name.includes(q) || desc.includes(q) || badge.includes(q);
+    c.style.display = match ? '' : 'none';
+    if(match) anyVisible = true;
+  });
+
+  // Filtrer les favoris
+  const favItems = document.querySelectorAll('#favGrid .fav-item');
+  favItems.forEach(f => {
+    const label = (f.querySelector('.fav-label-in')?.value||'').toLowerCase();
+    const url   = (f.querySelector('.fav-url-in')?.value||'').toLowerCase();
+    const match = !q || label.includes(q) || url.includes(q);
+    f.style.display = match ? '' : 'none';
+    if(match) anyVisible = true;
+  });
+
+  const noRes = document.getElementById('searchNoResults');
+  if(noRes) noRes.style.display = (q && !anyVisible) ? 'block' : 'none';
+}
+
+function clearSearch(){
+  const bar = document.getElementById('searchBar');
+  if(bar){ bar.value = ''; onSearchInput(); bar.focus(); }
+  const clearBtn = document.getElementById('searchClear');
+  if(clearBtn) clearBtn.style.display = 'none';
+}
 
 window.openAffaire = function(){
   const overlay = document.getElementById('affaireOverlay');
