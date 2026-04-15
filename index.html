@@ -2288,6 +2288,27 @@ async function renderTicker() {
     parts.push(buildTickerItem('tk-btc', '₿', 'BTC/EUR', '—'));
   }
 
+  // 3b. NUMÉRO DE SEMAINE + DATE
+  (function(){
+    const now = new Date();
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    const dayOfYear = Math.floor((now - startOfYear) / 86400000);
+    const startDay = startOfYear.getDay() || 7;
+    const week = Math.ceil((dayOfYear + startDay) / 7);
+    const days = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+    const months = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+    const dateStr = `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+    parts.push(buildTickerItem('', '📅', `S${week}`, dateStr));
+  })();
+
+  // 3c. MÉTÉO ACTUELLE
+  (function(){
+    const wx = window._mxCurrent;
+    if (wx) {
+      parts.push(buildTickerItem('', wx.icon, wx.city.toUpperCase(), `${wx.temp}°C — ${wx.desc}`));
+    }
+  })();
+
   // 4. TÂCHES EN COURS
   let taches = [];
   try { taches = JSON.parse(localStorage.getItem('launcher_todos') || '[]'); } catch {}
@@ -2483,6 +2504,9 @@ function toggleMeteo(){
   window.meteoRefreshBtn = window.mxRefresh;
 
   function mxRender(data, city, country){
+    // Stocker les données météo pour le ticker
+    const _wmo = MX_WMO[data.current.weather_code] || ['🌡',''];
+    window._mxCurrent = { temp: Math.round(data.current.temperature_2m), icon: _wmo[0], desc: _wmo[1], city };
     const c=data.current, daily=data.daily, hourly=data.hourly;
     const now=new Date();
     const[icon,desc]=mxWmo(c.weather_code);
