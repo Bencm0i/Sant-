@@ -372,24 +372,6 @@
   .dcpdf-modal-close:hover{border-color:#1a2744;color:#1a2744;}
   .dcpdf-modal-iframe{flex:1;border:none;width:100%;display:block;}
 
-  /* ── PROREALTIME MODAL ── */
-  .prt-overlay{position:fixed;inset:0;background:rgba(8,12,20,0.85);z-index:600;display:none;backdrop-filter:blur(4px);}
-  .prt-overlay.open{display:flex;align-items:stretch;}
-  .prt-modal-panel{display:flex;flex-direction:column;width:100%;height:100%;background:#0d1117;position:relative;}
-  .prt-modal-bar{display:flex;align-items:center;gap:10px;padding:0 16px;height:42px;background:#0a0e14;border-bottom:1px solid #1e3a5f;flex-shrink:0;}
-  .prt-modal-title{font-family:var(--font-mono);font-size:11px;color:#4a9eff;letter-spacing:2px;text-transform:uppercase;}
-  .prt-modal-close{margin-left:auto;background:transparent;border:1px solid #1e3a5f;border-radius:3px;color:#5a8ab8;font-family:var(--font-mono);font-size:10px;padding:3px 10px;cursor:pointer;letter-spacing:1px;transition:all .15s;}
-  .prt-modal-close:hover{border-color:#4a9eff;color:#4a9eff;}
-  .prt-modal-open-btn{display:flex;align-items:center;gap:6px;background:rgba(74,158,255,0.1);border:1px solid rgba(74,158,255,0.35);border-radius:3px;color:#4a9eff;font-family:var(--font-mono);font-size:10px;padding:3px 11px;cursor:pointer;letter-spacing:1px;text-decoration:none;transition:all .15s;}
-  .prt-modal-open-btn:hover{background:rgba(74,158,255,0.22);border-color:#4a9eff;}
-  .prt-modal-iframe{flex:1;border:none;width:100%;display:block;background:#fff;}
-  .prt-blocked{display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#0d1117;color:#5a8ab8;font-family:var(--font-mono);font-size:11px;letter-spacing:1px;text-align:center;}
-  .prt-blocked.visible{display:flex;}
-  .prt-blocked-icon{font-size:40px;opacity:0.5;}
-  .prt-blocked-title{color:#4a9eff;font-size:13px;letter-spacing:2px;text-transform:uppercase;}
-  .prt-blocked-msg{color:#3a6a9a;font-size:10px;max-width:360px;line-height:1.7;}
-  .prt-blocked-link{display:inline-flex;align-items:center;gap:8px;padding:8px 20px;border:1px solid rgba(74,158,255,0.45);border-radius:4px;color:#4a9eff;text-decoration:none;font-family:var(--font-mono);font-size:11px;letter-spacing:1px;transition:all .18s;background:rgba(74,158,255,0.07);}
-  .prt-blocked-link:hover{background:rgba(74,158,255,0.18);border-color:#4a9eff;}
   /* ── BARRE JOURS SEMAINE ── */
   #week-bar{position:sticky;top:83px;z-index:98;background:var(--weekbar-bg);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:3px 24px 3px;display:flex;align-items:center;gap:8px;}
   #week-bar.offday{display:none;}
@@ -893,27 +875,6 @@
   </div>
 </div>
 
-<!-- ════ PROREALTIME MODAL ══════════════════════════════════════ -->
-<div class="prt-overlay" id="prtOverlay">
-  <div class="prt-modal-panel">
-    <div class="prt-modal-bar">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4a9eff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>
-      </svg>
-      <div class="prt-modal-title">⬡ PROREALTIME — Plateforme Trading</div>
-      <a class="prt-modal-open-btn" href="https://www.prorealtime.com/fr/login" target="_blank" rel="noopener" title="Ouvrir dans un nouvel onglet">↗ OUVRIR DANS UN ONGLET</a>
-      <button class="prt-modal-close" onclick="closeProrealtime()">✕ FERMER</button>
-    </div>
-    <iframe class="prt-modal-iframe" id="prtIframe" src="" title="ProRealTime" onload="prtCheckLoad(this)"></iframe>
-    <div class="prt-blocked" id="prtBlocked">
-      <div class="prt-blocked-icon">📊</div>
-      <div class="prt-blocked-title">ProRealTime</div>
-      <div class="prt-blocked-msg">Ce site bloque l'affichage en iframe pour des raisons de sécurité (X-Frame-Options). Utilisez le bouton ci-dessous pour l'ouvrir directement.</div>
-      <a class="prt-blocked-link" href="https://www.prorealtime.com/fr/login" target="_blank" rel="noopener">↗ &nbsp; OUVRIR PROREALTIME</a>
-    </div>
-  </div>
-</div>
-
 <script>
 const FAV_KEY = 'launcher_favs';
 const FAV_COUNT = 10;
@@ -1010,7 +971,6 @@ function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;')
 const APPS=[
   {file:'annotateur.html',                  name:'Annotateur',       desc:'Annoter images · Flèches · Bulles · Export', emoji:'🖼',badge:'OUTIL', action:'annotateur'},
   {file:'affaire_tracker.html',             name:'Suivi Affaire',    desc:'Tracker · Planning · Documents · Coûts',    emoji:'📁',badge:'TRAVAIL', action:'affaire'},
-  {file:'markets.html',                    name:'Markets',          desc:'BTC · Or · Pétrole · Indices',emoji:'📈',badge:'FINANCE'},
   {file:'calendrier_2026_2027.html',       name:'Calendrier',       desc:'2026 – 2027',                 emoji:'📅',badge:'PLANNING'},
   {file:'pointage_heures_par_affaire.html',name:'Pointage Heures',  desc:'Suivi heures par affaire',    emoji:'⏱',badge:'TRAVAIL'},
   {file:'calcul_horaire.html',             name:'Calcul Horaire',   desc:'Calculateur de temps',        emoji:'🕐',badge:'TRAVAIL'},
@@ -1022,7 +982,7 @@ const APPS=[
   {file:'workspace.html',                  name:'Workspace',        desc:'Calculatrice · Conversions · Notes IA',emoji:'⬡',badge:'OUTIL'},
   {file:'suivi_conges_v4.html',            name:'Suivi Congés',     desc:'Demandes · Suivi · Réponse auto',      emoji:'🏖',badge:'RH', action:'conges'},
   {file:'demande_conge_PDF.html',          name:'Demande Absence',  desc:'Formulaire PDF · Aventech · Calibrage', emoji:'📋',badge:'RH', action:'dcpdf'},
-  {file:'https://www.prorealtime.com/fr/login', name:'ProRealTime', desc:'Plateforme de trading · Graphiques · Marchés', emoji:'📊',badge:'FINANCE', action:'prorealtime'},
+  {url:'https://www.prorealtime.com/fr/login', name:'ProRealTime',  desc:'Plateforme de trading · Graphiques · Marchés', emoji:'📊',badge:'FINANCE'},
 ];
 
 let newTab=localStorage.getItem('launcher_newtab')==='1';
@@ -1044,10 +1004,10 @@ function buildApps(){
       if(a.action==='affaire'){openAffaire();return;}
       if(a.action==='conges'){openConges();return;}
       if(a.action==='dcpdf'){openDcpdf();return;}
-      if(a.action==='prorealtime'){openProrealtime();return;}
+      if(a.url){window.open(a.url,'_blank','noopener');return;}
       openApp(a.file);
     });
-    c.querySelector('.app-nt').addEventListener('click',e=>{e.stopPropagation();window.open(a.file,'_blank');});
+    c.querySelector('.app-nt').addEventListener('click',e=>{e.stopPropagation();window.open(a.url||a.file,'_blank','noopener');});
     g.appendChild(c);
   });
 }
@@ -2430,45 +2390,6 @@ document.addEventListener('keydown', e=>{
   }
 });
 
-// ══════════════════════════════════════════════════════════════════
-//  PROREALTIME — iframe avec détection blocage X-Frame-Options
-// ══════════════════════════════════════════════════════════════════
-window.openProrealtime = function(){
-  const overlay  = document.getElementById('prtOverlay');
-  const iframe   = document.getElementById('prtIframe');
-  const blocked  = document.getElementById('prtBlocked');
-  blocked.classList.remove('visible');
-  iframe.style.display = 'block';
-  if(!iframe.src || iframe.src === 'about:blank' || iframe.src === window.location.href){
-    iframe.src = 'https://www.prorealtime.com/fr/login';
-  }
-  overlay.classList.add('open');
-  document.body.style.overflow = 'hidden';
-};
-window.closeProrealtime = function(){
-  document.getElementById('prtOverlay').classList.remove('open');
-  document.body.style.overflow = '';
-};
-// Détection iframe bloquée : si le contenu est vide après chargement → afficher fallback
-window.prtCheckLoad = function(iframe){
-  try {
-    // Si la page est bloquée, contentDocument sera null ou une page d'erreur
-    const doc = iframe.contentDocument || iframe.contentWindow.document;
-    if(!doc || doc.body === null || doc.body.innerHTML.trim() === ''){
-      document.getElementById('prtBlocked').classList.add('visible');
-      iframe.style.display = 'none';
-    }
-  } catch(e){
-    // Cross-origin block → afficher fallback
-    document.getElementById('prtBlocked').classList.add('visible');
-    iframe.style.display = 'none';
-  }
-};
-document.addEventListener('keydown', e=>{
-  if(e.key==='Escape' && document.getElementById('prtOverlay').classList.contains('open')){
-    closeProrealtime();
-  }
-});
 
 </script>
 </body>
