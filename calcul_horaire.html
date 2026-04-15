@@ -1,0 +1,141 @@
+
+<style>
+.wrap { padding: 1rem 0; }
+.section-title { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 12px; }
+.day-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.day-btn { padding: 6px 14px; border-radius: 20px; font-size: 13px; cursor: pointer; border: 0.5px solid var(--color-border-secondary); background: var(--color-background-primary); color: var(--color-text-primary); }
+.day-btn.active { background: var(--color-background-info); color: var(--color-text-info); border-color: var(--color-border-info); }
+.divider { border: none; border-top: 0.5px solid var(--color-border-tertiary); margin: 1.25rem 0; }
+.field-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.field-label { font-size: 14px; color: var(--color-text-secondary); min-width: 160px; }
+.field-row input[type=time] { flex: 1; }
+.result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 1.5rem 0 1rem; }
+.metric { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 12px 16px; }
+.metric-label { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 4px; }
+.metric-value { font-size: 22px; font-weight: 500; color: var(--color-text-primary); }
+.ok { color: #0F6E56; }
+.warn { color: #854F0B; }
+.err { color: #A32D2D; }
+.status-bar { border-radius: var(--border-radius-md); padding: 10px 16px; font-size: 14px; font-weight: 500; margin-bottom: 12px; }
+.s-ok  { background: #E1F5EE; color: #0F6E56; }
+.s-warn { background: #FAEEDA; color: #854F0B; }
+.s-err  { background: #FCEBEB; color: #A32D2D; }
+.info-box { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 12px 16px; font-size: 13px; color: var(--color-text-secondary); line-height: 1.7; }
+.info-box strong { color: var(--color-text-primary); font-weight: 500; }
+</style>
+
+<div class="wrap">
+  <h2 class="sr-only">Calculateur d'heure de départ — Aventech Fonctions Supports</h2>
+
+  <p class="section-title">Jour</p>
+  <div class="day-row" id="dayRow">
+    <button class="day-btn active" data-day="lun">Lundi</button>
+    <button class="day-btn" data-day="mar">Mardi</button>
+    <button class="day-btn" data-day="mer">Mercredi</button>
+    <button class="day-btn" data-day="jeu">Jeudi</button>
+    <button class="day-btn" data-day="ven">Vendredi</button>
+  </div>
+
+  <hr class="divider">
+  <p class="section-title">Heures</p>
+
+  <div class="field-row">
+    <span class="field-label">Arrivée (7h30 – 8h30)</span>
+    <input type="time" id="arrive" value="08:00">
+  </div>
+  <div class="field-row">
+    <span class="field-label">Début pause déjeuner</span>
+    <input type="time" id="ps" value="12:15">
+  </div>
+  <div class="field-row">
+    <span class="field-label">Fin pause déjeuner</span>
+    <input type="time" id="pe" value="12:55">
+  </div>
+
+  <hr class="divider">
+
+  <div id="statusBar" class="status-bar s-ok">—</div>
+
+  <div class="result-grid">
+    <div class="metric">
+      <div class="metric-label">Pause méridienne</div>
+      <div class="metric-value" id="vPause">—</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Travail matin</div>
+      <div class="metric-value" id="vMatin">—</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Départ au plus tôt</div>
+      <div class="metric-value ok" id="vDep">—</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Temps total requis</div>
+      <div class="metric-value" id="vTotal">—</div>
+    </div>
+  </div>
+
+  <div class="info-box" id="infoBox">Sélectionnez un jour et saisissez vos heures.</div>
+</div>
+
+<script>
+const DAYS = {
+  lun: { label:'Lundi',    workMin: 450, pmEndRef:'16:10', departPlage:'15h40 – 16h40' },
+  mar: { label:'Mardi',    workMin: 450, pmEndRef:'16:10', departPlage:'15h40 – 16h40' },
+  mer: { label:'Mercredi', workMin: 450, pmEndRef:'16:10', departPlage:'15h40 – 16h40' },
+  jeu: { label:'Jeudi',    workMin: 450, pmEndRef:'16:10', departPlage:'15h40 – 16h40' },
+  ven: { label:'Vendredi', workMin: 390, pmEndRef:'15:30', departPlage:'14h50' }
+};
+
+let sel = 'lun';
+
+function toMin(t){ const [h,m]=t.split(':').map(Number); return h*60+m; }
+function toHHMM(n){ return String(Math.floor(n/60)).padStart(2,'0')+'h'+String(n%60).padStart(2,'0'); }
+function fmt(n){ const h=Math.floor(n/60),m=n%60; return h>0 ? h+'h'+(m>0?String(m).padStart(2,'0'):'') : m+' min'; }
+
+function compute(){
+  const day = DAYS[sel];
+  const arrive = toMin(document.getElementById('arrive').value);
+  const ps     = toMin(document.getElementById('ps').value);
+  const pe     = toMin(document.getElementById('pe').value);
+
+  const pauseDur = pe - ps;
+  const matin    = ps - arrive;
+  const depMin   = pe + (day.workMin - matin);
+
+  document.getElementById('vPause').textContent = fmt(pauseDur);
+  document.getElementById('vMatin').textContent = fmt(matin);
+  document.getElementById('vDep').textContent   = toHHMM(depMin);
+  document.getElementById('vTotal').textContent = fmt(day.workMin);
+
+  document.getElementById('vPause').className = 'metric-value ' + (pauseDur < 40 ? 'err' : pauseDur > 120 ? 'warn' : 'ok');
+
+  const arriveOk = arrive >= toMin('07:30') && arrive <= toMin('08:30');
+  const pauseOk  = pauseDur >= 40 && pauseDur <= 120;
+
+  let sc='s-ok', st='✓ Horaires valides';
+  if (!arriveOk){ sc='s-warn'; st='⚠ Arrivée hors plage (7h30 – 8h30)'; }
+  else if (pauseDur < 40){ sc='s-err'; st='✗ Pause trop courte (minimum 40 min)'; }
+  else if (pauseDur > 120){ sc='s-warn'; st='⚠ Pause supérieure à 2h (maximum autorisé)'; }
+
+  document.getElementById('statusBar').className = 'status-bar '+sc;
+  document.getElementById('statusBar').textContent = st;
+
+  document.getElementById('infoBox').innerHTML =
+    `<strong>${day.label}</strong> — Horaire officiel : 08h00–12h15 / 12h55–${day.pmEndRef.replace(':','h')}<br>` +
+    `Temps de travail requis : <strong>${fmt(day.workMin)}</strong><br>` +
+    `Plage de départ : <strong>${day.departPlage}</strong>`;
+}
+
+document.getElementById('dayRow').addEventListener('click', e => {
+  const btn = e.target.closest('.day-btn');
+  if (!btn) return;
+  document.querySelectorAll('.day-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  sel = btn.dataset.day;
+  compute();
+});
+
+['arrive','ps','pe'].forEach(id => document.getElementById(id).addEventListener('input', compute));
+compute();
+</script>
