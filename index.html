@@ -411,6 +411,7 @@
   .ticker-item.tk-velo-nogo .tk-val{color:var(--red);}
   .ticker-item.tk-btc .tk-val{color:var(--gold);}
   .ticker-item.tk-affaire .tk-val{color:var(--orange);}
+  .ticker-item.tk-date-item .tk-day-name{font-family:var(--font-display);font-weight:800;font-size:15px;color:var(--accent);letter-spacing:2px;margin-right:8px;}
   /* ── BOUTON PAUSE TICKER ── */
   .ticker-pause-btn{flex-shrink:0;display:flex;align-items:center;justify-content:center;width:28px;height:28px;margin:0 6px 0 8px;border-radius:3px;border:1px solid var(--border2);background:transparent;cursor:pointer;color:var(--muted2);font-size:11px;transition:all .15s;user-select:none;}
   .ticker-pause-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(0,0,0,0.06);}
@@ -2288,7 +2289,7 @@ async function renderTicker() {
     parts.push(buildTickerItem('tk-btc', '₿', 'BTC/EUR', '—'));
   }
 
-  // 3b. NUMÉRO DE SEMAINE + DATE
+  // 3b. NUMÉRO DE SEMAINE + DATE (jour mis en évidence)
   (function(){
     const now = new Date();
     const startOfYear = new Date(now.getFullYear(), 0, 1);
@@ -2296,9 +2297,17 @@ async function renderTicker() {
     const startDay = startOfYear.getDay() || 7;
     const week = Math.ceil((dayOfYear + startDay) / 7);
     const days = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+    const daysFull = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
     const months = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
-    const dateStr = `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
-    parts.push(buildTickerItem('', '📅', `S${week}`, dateStr));
+    const dayName = daysFull[now.getDay()];
+    const dateStr = `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()} — S${week}`;
+    parts.push(
+      `<span class="ticker-item tk-date-item">` +
+      `<span class="tk-icon">📅</span>` +
+      `<span class="tk-day-name">${dayName.toUpperCase()}</span>` +
+      `<span class="tk-val" style="font-size:10px;color:var(--muted2);font-weight:400;">${dateStr}</span>` +
+      `</span>`
+    );
   })();
 
   // 3c. MÉTÉO ACTUELLE
@@ -2306,6 +2315,21 @@ async function renderTicker() {
     const wx = window._mxCurrent;
     if (wx) {
       parts.push(buildTickerItem('', wx.icon, wx.city.toUpperCase(), `${wx.temp}°C — ${wx.desc}`));
+    }
+  })();
+
+  // 3d. ALERTE POINTAGE (vendredi uniquement)
+  (function(){
+    const now = new Date();
+    if (now.getDay() === 5) { // 5 = vendredi
+      parts.push(
+        `<span class="ticker-item tk-pointage-alert" style="cursor:pointer;" onclick="openApp('pointage_heures_par_affaire.html')">` +
+        `<span class="tk-icon">⏱</span>` +
+        `<span class="tk-label" style="color:var(--red);font-weight:700;letter-spacing:2px;">RAPPEL</span>` +
+        `<span class="tk-val" style="color:var(--red);font-weight:700;text-transform:uppercase;letter-spacing:1px;">Penser au pointage des heures !</span>` +
+        `<span style="margin-left:8px;font-size:8px;color:var(--red);letter-spacing:1px;border:1px solid rgba(200,48,24,0.5);padding:1px 5px;border-radius:2px;">OUVRIR ↗</span>` +
+        `</span>`
+      );
     }
   })();
 
@@ -2334,8 +2358,9 @@ async function renderTicker() {
   const track = document.getElementById('tickerTrack');
   if (track) track.innerHTML = full;
 
-  // Vitesse rapide fixe (plus le nombre est bas, plus c'est rapide)
-  if (track) track.style.animationDuration = '18s';
+  // Vitesse mémorisée (localStorage), défaut 22s
+  const tkCfgSpeed = (function(){ try{ return JSON.parse(localStorage.getItem('launcher_tk_cfg')||'{}').speed || 22; } catch{ return 22; } })();
+  if (track) track.style.animationDuration = tkCfgSpeed + 's';
 }
 
 renderTicker();
