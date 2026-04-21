@@ -106,14 +106,7 @@ input:focus,select:focus{border-color:var(--accent);}
       </div>
       <div id="save_status" style="font-size:.7rem;color:#166534;margin-top:3px;min-height:14px;"></div>
     </div>
-    <div class="global-item">
-      <label class="lbl">Afficher les réglages fins</label>
-      <div style="margin-top:4px;">
-        <button onclick="toggleAllCalib()" style="padding:5px 12px;border:1.5px solid #f59e0b;border-radius:6px;background:white;color:#92400e;font-size:.78rem;font-weight:700;cursor:pointer;">
-          Afficher / Masquer les sliders
-        </button>
-      </div>
-    </div>
+
   </div>
 </div>
 
@@ -127,7 +120,7 @@ input:focus,select:focus{border-color:var(--accent);}
       <div class="field-label">Nom & Prénom *</div>
       <div class="field-input"><input type="text" id="nom" placeholder="Ex : DUPONT Jean"></div>
     </div>
-    <div class="calib-col hidden" id="cal_nom">
+    <div class="calib-col" id="cal_nom">
       <div class="calib-row"><span class="lbl2">X</span><input type="range" id="cx_nom" min="-30" max="30" value="0" step="0.5" oninput="cv('nom')"><span class="cv" id="cv_cx_nom">0</span></div>
       <div class="calib-row"><span class="lbl2">Y</span><input type="range" id="cy_nom" min="-30" max="30" value="0" step="0.5" oninput="cv('nom')"><span class="cv" id="cv_cy_nom">0</span></div>
     </div>
@@ -138,12 +131,12 @@ input:focus,select:focus{border-color:var(--accent);}
     <div class="field-main">
       <div class="field-label">Société</div>
       <div class="checks" id="societe">
-        <label class="check-item active" onclick="sel(this,'societe')"><input type="radio" name="societe" value="aventech_groupe" checked> AVENTECH Groupe</label>
-        <label class="check-item" onclick="sel(this,'societe')"><input type="radio" name="societe" value="aventech"> AVENTECH</label>
+        <label class="check-item" onclick="sel(this,'societe')"><input type="radio" name="societe" value="aventech_groupe"> AVENTECH Groupe</label>
+        <label class="check-item active" onclick="sel(this,'societe')"><input type="radio" name="societe" value="aventech" checked> AVENTECH</label>
         <label class="check-item" onclick="sel(this,'societe')"><input type="radio" name="societe" value="fil_control"> Fil Control</label>
       </div>
     </div>
-    <div class="calib-col hidden" id="cal_societe">
+    <div class="calib-col" id="cal_societe">
       <div class="calib-row"><span class="lbl2">X</span><input type="range" id="cx_societe" min="-15" max="15" value="0" step="0.5" oninput="cv('societe')"><span class="cv" id="cv_cx_societe">0</span></div>
       <div class="calib-row"><span class="lbl2">Y</span><input type="range" id="cy_societe" min="-15" max="15" value="0" step="0.5" oninput="cv('societe')"><span class="cv" id="cv_cy_societe">0</span></div>
     </div>
@@ -154,13 +147,13 @@ input:focus,select:focus{border-color:var(--accent);}
     <div class="field-main">
       <div class="field-label">Département</div>
       <div class="checks" id="dept">
-        <label class="check-item" onclick="sel(this,'dept')"><input type="radio" name="dept" value="operations"> Opérations</label>
+        <label class="check-item active" onclick="sel(this,'dept')"><input type="radio" name="dept" value="operations" checked> Opérations</label>
         <label class="check-item" onclick="sel(this,'dept')"><input type="radio" name="dept" value="offre"> Offre et commerce</label>
         <label class="check-item" onclick="sel(this,'dept')"><input type="radio" name="dept" value="achats"> Achats et Supply</label>
         <label class="check-item" onclick="sel(this,'dept')"><input type="radio" name="dept" value="services"> Services supports</label>
       </div>
     </div>
-    <div class="calib-col hidden" id="cal_dept">
+    <div class="calib-col" id="cal_dept">
       <div class="calib-row"><span class="lbl2">X</span><input type="range" id="cx_dept" min="-15" max="15" value="0" step="0.5" oninput="cv('dept')"><span class="cv" id="cv_cx_dept">0</span></div>
       <div class="calib-row"><span class="lbl2">Y</span><input type="range" id="cy_dept" min="-15" max="15" value="0" step="0.5" oninput="cv('dept')"><span class="cv" id="cv_cy_dept">0</span></div>
     </div>
@@ -175,7 +168,7 @@ input:focus,select:focus{border-color:var(--accent);}
         <label class="check-item" onclick="sel(this,'site')"><input type="radio" name="site" value="alixan"> A2R – Alixan</label>
       </div>
     </div>
-    <div class="calib-col hidden" id="cal_site">
+    <div class="calib-col" id="cal_site">
       <div class="calib-row"><span class="lbl2">X</span><input type="range" id="cx_site" min="-15" max="15" value="0" step="0.5" oninput="cv('site')"><span class="cv" id="cv_cx_site">0</span></div>
       <div class="calib-row"><span class="lbl2">Y</span><input type="range" id="cy_site" min="-15" max="15" value="0" step="0.5" oninput="cv('site')"><span class="cv" id="cv_cy_site">0</span></div>
     </div>
@@ -200,7 +193,7 @@ input:focus,select:focus{border-color:var(--accent);}
           <div><label class="lbl">Fin (inclus)</label><input type="date" id="date_fin"></div>
         </div>
       </div>
-      <div class="calib-col hidden" id="cal_periode">
+      <div class="calib-col" id="cal_periode">
         <div class="calib-row"><span class="lbl2">X</span><input type="range" id="cx_periode" min="-30" max="30" value="0" step="0.5" oninput="cv('periode')"><span class="cv" id="cv_cx_periode">0</span></div>
         <div class="calib-row"><span class="lbl2">Y</span><input type="range" id="cy_periode" min="-30" max="30" value="0" step="0.5" oninput="cv('periode')"><span class="cv" id="cv_cy_periode">0</span></div>
         <div class="calib-row" style="border-top:1px solid #c7d2fe;margin-top:3px;padding-top:3px;">
@@ -233,7 +226,7 @@ input:focus,select:focus{border-color:var(--accent);}
           </div>
         </div>
       </div>
-      <div class="calib-col hidden" id="cal_jour">
+      <div class="calib-col" id="cal_jour">
         <div class="calib-row"><span class="lbl2">X</span><input type="range" id="cx_jour" min="-30" max="30" value="0" step="0.5" oninput="cv('jour')"><span class="cv" id="cv_cx_jour">0</span></div>
         <div class="calib-row"><span class="lbl2">Y</span><input type="range" id="cy_jour" min="-30" max="30" value="0" step="0.5" oninput="cv('jour')"><span class="cv" id="cv_cy_jour">0</span></div>
         <div class="calib-row" style="border-top:1px solid #c7d2fe;margin-top:3px;padding-top:3px;"><span class="lbl2" style="font-size:.6rem;color:#7c3aed;min-width:22px;">AA</span><input type="range" id="cx_annee_jour" min="-20" max="20" value="0" step="0.5" oninput="cvannee('jour')"><span class="cv" id="cv_cx_annee_jour" style="color:#7c3aed;">0</span></div>
@@ -253,7 +246,7 @@ input:focus,select:focus{border-color:var(--accent);}
           </div>
         </div>
       </div>
-      <div class="calib-col hidden" id="cal_horaire">
+      <div class="calib-col" id="cal_horaire">
         <div class="calib-row"><span class="lbl2">X</span><input type="range" id="cx_horaire" min="-30" max="30" value="0" step="0.5" oninput="cv('horaire')"><span class="cv" id="cv_cx_horaire">0</span></div>
         <div class="calib-row"><span class="lbl2">Y</span><input type="range" id="cy_horaire" min="-30" max="30" value="0" step="0.5" oninput="cv('horaire')"><span class="cv" id="cv_cy_horaire">0</span></div>
         <div class="calib-row" style="border-top:1px solid #c7d2fe;margin-top:3px;padding-top:3px;"><span class="lbl2" style="font-size:.6rem;color:#7c3aed;min-width:22px;">AA</span><input type="range" id="cx_annee_horaire" min="-20" max="20" value="0" step="0.5" oninput="cvannee('horaire')"><span class="cv" id="cv_cx_annee_horaire" style="color:#7c3aed;">0</span></div>
@@ -276,7 +269,7 @@ input:focus,select:focus{border-color:var(--accent);}
       <div class="field-label">Observations</div>
       <input type="text" id="observations" placeholder="…">
     </div>
-    <div class="calib-col hidden" id="cal_obs">
+    <div class="calib-col" id="cal_obs">
       <div class="calib-row"><span class="lbl2">X</span><input type="range" id="cx_obs" min="-30" max="30" value="0" step="0.5" oninput="cv('obs')"><span class="cv" id="cv_cx_obs">0</span></div>
       <div class="calib-row"><span class="lbl2">Y</span><input type="range" id="cy_obs" min="-30" max="30" value="0" step="0.5" oninput="cv('obs')"><span class="cv" id="cv_cy_obs">0</span></div>
     </div>
@@ -286,7 +279,7 @@ input:focus,select:focus{border-color:var(--accent);}
       <div class="field-label">Date de la demande</div>
       <input type="date" id="date_demande">
     </div>
-    <div class="calib-col hidden" id="cal_datedem">
+    <div class="calib-col" id="cal_datedem">
       <div class="calib-row"><span class="lbl2">X</span><input type="range" id="cx_datedem" min="-30" max="30" value="0" step="0.5" oninput="cv('datedem')"><span class="cv" id="cv_cx_datedem">0</span></div>
       <div class="calib-row"><span class="lbl2">Y</span><input type="range" id="cy_datedem" min="-30" max="30" value="0" step="0.5" oninput="cv('datedem')"><span class="cv" id="cv_cy_datedem">0</span></div>
       <div class="calib-row" style="border-top:1px solid #c7d2fe;margin-top:3px;padding-top:3px;"><span class="lbl2" style="font-size:.6rem;color:#7c3aed;min-width:22px;">AA</span><input type="range" id="cx_annee_datedem" min="-20" max="20" value="0" step="0.5" oninput="cvannee('datedem')"><span class="cv" id="cv_cx_annee_datedem" style="color:#7c3aed;">0</span></div>
@@ -307,7 +300,7 @@ input:focus,select:focus{border-color:var(--accent);}
         <span style="font-size:.72rem;color:#64748b;">Dessinez à la souris ou au doigt</span>
       </div>
     </div>
-    <div class="calib-col hidden" id="cal_sig">
+    <div class="calib-col" id="cal_sig">
       <div class="calib-row"><span class="lbl2">X</span><input type="range" id="cx_sig" min="-50" max="50" value="0" step="0.5" oninput="cv('sig')"><span class="cv" id="cv_cx_sig">0</span></div>
       <div class="calib-row"><span class="lbl2">Y</span><input type="range" id="cy_sig" min="-50" max="50" value="0" step="0.5" oninput="cv('sig')"><span class="cv" id="cv_cy_sig">0</span></div>
       <div class="calib-row" style="margin-top:4px;"><span class="lbl2" style="font-size:.6rem;min-width:22px;">W</span><input type="range" id="cw_sig" min="20" max="150" value="70" step="1" oninput="cvw_sig()"><span class="cv" id="cv_cw_sig">70</span></div>
@@ -483,7 +476,7 @@ const MOTIFS = [
     <div class="motif-row2">
       <label class="motif-lbl"><input type="checkbox" id="chk_${m.key}"> ${m.label}</label>
       ${inputEl}
-      <div class="motif-calib hidden" id="cal_m_${m.key}">
+      <div class="motif-calib" id="cal_m_${m.key}">
         <div class="calib-row">
           <span class="lbl2" style="font-size:.65rem;color:#5b6fa0;font-weight:700;min-width:10px;">X</span>
           <input type="range" id="cx_m_${m.key}" min="-30" max="30" value="0" step="0.5" oninput="cvm('${m.key}')">
@@ -498,6 +491,15 @@ const MOTIFS = [
     </div>`;
   });
   // patch toggleAllCalib to also handle motif calib panels
+  // Auto-remplir observations quand CP Gelés est coché
+  document.getElementById('chk_gel').addEventListener('change', function() {
+    const obs = document.getElementById('observations');
+    if (this.checked) {
+      obs.value = 'CP GELE';
+    } else {
+      if (obs.value === 'CP GELE') obs.value = '';
+    }
+  });
 })();
 
 function cvm(key) {
