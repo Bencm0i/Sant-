@@ -118,7 +118,11 @@ input:focus,select:focus{border-color:var(--accent);}
   <div class="field-row">
     <div class="field-main">
       <div class="field-label">Nom & Prénom *</div>
-      <div class="field-input"><input type="text" id="nom" placeholder="Ex : DUPONT Jean"></div>
+      <div class="field-input" style="display:flex;gap:6px;align-items:center;">
+        <input type="text" id="nom" placeholder="Ex : DUPONT Jean" style="flex:1;">
+        <button onclick="sauvegarderNom()" title="Sauvegarder le nom" style="padding:6px 10px;border:1.5px solid #22c55e;border-radius:6px;background:white;color:#166534;font-size:.78rem;font-weight:700;cursor:pointer;white-space:nowrap;">💾 Sauvegarder</button>
+      </div>
+      <div id="nom_status" style="font-size:.7rem;color:#166534;margin-top:3px;min-height:14px;"></div>
     </div>
     <div class="calib-col" id="cal_nom">
       <div class="calib-row"><span class="lbl2">X</span><input type="range" id="cx_nom" min="-30" max="30" value="0" step="0.5" oninput="cv('nom')"><span class="cv" id="cv_cx_nom">0</span></div>
@@ -708,6 +712,21 @@ async function genererPDF() {
 
 document.getElementById('date_demande').valueAsDate = new Date();
 gUpdate();
+
+// Charger le nom sauvegardé
+(function() {
+  const nomSauve = localStorage.getItem('aventech_nom');
+  if (nomSauve) document.getElementById('nom').value = nomSauve;
+})();
+
+function sauvegarderNom() {
+  const val = document.getElementById('nom').value.trim();
+  if (!val) { document.getElementById('nom_status').textContent = '⚠️ Champ vide'; setTimeout(()=>document.getElementById('nom_status').textContent='',2000); return; }
+  localStorage.setItem('aventech_nom', val);
+  const s = document.getElementById('nom_status');
+  s.textContent = '✅ Nom sauvegardé !';
+  setTimeout(() => s.textContent = '', 2500);
+}
 // Charger les réglages sauvegardés (après construction des motifs)
 setTimeout(chargerReglages, 50);
 
