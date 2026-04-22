@@ -455,13 +455,13 @@ function startTimer(entryId){
     updateTimerStat(); saveTimers();
   },1000);
   const b=document.getElementById('tb-'+entryId);
-  if(b){ b.textContent='\u23f9 STOP'; b.className='timer-btn stop'; b.onclick=()=>stopTimer(entryId); }
+  if(b){ b.textContent='\u23f9 STOP'; b.className='timer-btn stop'; }
 }
 function stopTimer(entryId){
   const t=getTimer(entryId); if(!t.running) return;
   clearInterval(t.intervalId); t.running=false;
   const b=document.getElementById('tb-'+entryId);
-  if(b){ b.textContent='\u25b6 START'; b.className='timer-btn start'; b.onclick=()=>startTimer(entryId); }
+  if(b){ b.textContent='\u25b6 START'; b.className='timer-btn start'; }
   const d=document.getElementById('td-'+entryId);
   if(d) d.className='timer-display';
   saveTimers(); updateTimerStat();
@@ -554,6 +554,11 @@ function renderEntries(){
     const meta=document.createElement('div'); meta.className='entry-meta';
     const ts=document.createElement('span'); ts.className='entry-ts'; ts.textContent='\uD83D\uDCC5 '+ds;
     meta.appendChild(ts);
+    const pLabels={high:'\uD83D\uDD34 Urgent',med:'\u26A1 Normal',low:'\uD83D\uDFE2 Info'};
+    const pb=document.createElement('span'); pb.className='entry-tag'; pb.style.background='transparent';
+    pb.style.color=entry.priority==='high'?'var(--priority-high)':entry.priority==='low'?'var(--priority-low)':'var(--priority-med)';
+    pb.textContent=pLabels[entry.priority]||entry.priority;
+    meta.appendChild(pb);
     if(entry.tag){ const tg=document.createElement('span'); tg.className='entry-tag'; tg.textContent='#'+entry.tag; meta.appendChild(tg); }
 
     // text
