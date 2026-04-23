@@ -533,6 +533,39 @@
   .hcalc-metric-value.err{color:var(--red);}
   .hcalc-info{font-family:var(--font-mono);font-size:9px;color:var(--muted2);line-height:1.7;border-top:1px solid var(--border);padding-top:10px;}
   .hcalc-info b{color:var(--text);}
+
+  /* ── RESET STORAGE MODAL ── */
+  .reset-overlay{position:fixed;inset:0;background:rgba(10,15,20,0.75);z-index:900;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px);}
+  .reset-overlay.open{display:flex;}
+  .reset-modal{background:var(--panel2);border:1px solid var(--red);border-radius:6px;width:360px;max-width:calc(100vw - 32px);box-shadow:0 8px 40px rgba(0,0,0,0.7),0 0 0 1px rgba(192,48,24,0.15);overflow:hidden;animation:reset-pop .18s ease;}
+  @keyframes reset-pop{from{opacity:0;transform:scale(0.94)}to{opacity:1;transform:scale(1)}}
+  .reset-bar{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid rgba(192,48,24,0.3);background:rgba(192,48,24,0.07);}
+  .reset-bar-icon{font-size:16px;}
+  .reset-bar-title{font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--red);flex:1;}
+  .reset-close{background:transparent;border:1px solid rgba(192,48,24,0.3);border-radius:3px;padding:3px 9px;font-family:var(--font-mono);font-size:9px;color:var(--muted2);cursor:pointer;letter-spacing:1px;transition:all .15s;}
+  .reset-close:hover{border-color:var(--red);color:var(--red);}
+  .reset-body{padding:18px 16px;}
+  .reset-warn-box{background:rgba(192,48,24,0.08);border:1px solid rgba(192,48,24,0.3);border-radius:4px;padding:12px 14px;margin-bottom:14px;}
+  .reset-warn-title{font-family:var(--font-display);font-size:11px;font-weight:700;color:var(--red);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+  .reset-warn-list{list-style:none;padding:0;margin:0;}
+  .reset-warn-list li{font-family:var(--font-mono);font-size:9px;color:var(--muted2);padding:3px 0;border-bottom:1px solid rgba(192,48,24,0.12);display:flex;align-items:center;gap:6px;letter-spacing:0.5px;}
+  .reset-warn-list li:last-child{border-bottom:none;}
+  .reset-warn-list li::before{content:'▸';color:var(--red);font-size:8px;flex-shrink:0;}
+  .reset-advice{background:rgba(160,112,16,0.08);border:1px solid rgba(160,112,16,0.3);border-radius:4px;padding:10px 12px;margin-bottom:16px;font-family:var(--font-mono);font-size:9px;color:var(--gold);line-height:1.7;letter-spacing:0.5px;}
+  .reset-advice strong{color:var(--gold);font-weight:700;}
+  .reset-confirm-row{display:flex;align-items:center;gap:8px;margin-bottom:14px;padding:8px 10px;background:rgba(0,0,0,0.06);border-radius:3px;border:1px solid var(--border);}
+  .reset-confirm-check{width:16px;height:16px;border:1px solid var(--border2);border-radius:2px;flex-shrink:0;cursor:pointer;accent-color:var(--red);}
+  .reset-confirm-label{font-family:var(--font-mono);font-size:9px;color:var(--text);letter-spacing:0.5px;cursor:pointer;line-height:1.5;}
+  .reset-btns{display:flex;gap:8px;}
+  .reset-cancel-btn{flex:1;background:transparent;border:1px solid var(--border);border-radius:3px;padding:8px;font-family:var(--font-mono);font-size:10px;color:var(--muted2);cursor:pointer;letter-spacing:1px;transition:all .15s;}
+  .reset-cancel-btn:hover{border-color:var(--muted);color:var(--text);}
+  .reset-confirm-btn{flex:1;background:rgba(192,48,24,0.08);border:1px solid rgba(192,48,24,0.35);border-radius:3px;padding:8px;font-family:var(--font-mono);font-size:10px;color:var(--red);cursor:pointer;letter-spacing:1px;transition:all .15s;opacity:0.4;pointer-events:none;}
+  .reset-confirm-btn.ready{opacity:1;pointer-events:auto;}
+  .reset-confirm-btn.ready:hover{background:rgba(192,48,24,0.2);border-color:var(--red);}
+  .reset-done-msg{display:none;text-align:center;padding:10px 0 4px;font-family:var(--font-mono);font-size:10px;color:var(--green);letter-spacing:1px;}
+  /* Bouton danger dans hR */
+  .danger-btn{display:flex;align-items:center;gap:6px;background:rgba(192,48,24,0.06);border:1px solid rgba(192,48,24,0.22);border-radius:4px;padding:5px 11px;cursor:pointer;font-family:var(--font-mono);font-size:10px;color:var(--red);letter-spacing:1px;transition:all .2s;user-select:none;}
+  .danger-btn:hover{background:rgba(192,48,24,0.16);border-color:rgba(192,48,24,0.5);}
 </style>
 </head>
 <body>
@@ -785,6 +818,12 @@
     </button>
   </div>
   <div class="hR">
+    <button class="danger-btn" onclick="openResetStorage()" title="Vider toutes les sauvegardes locales">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+      </svg>
+      RESET
+    </button>
     <button class="theme-switch-btn" id="themeSwitchBtn" onclick="switchTheme()" title="Changer de thème"></button>
     <button class="meteo-toggle-btn" id="meteoToggleBtn" onclick="toggleMeteo()" title="Afficher/masquer la météo">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -3002,6 +3041,62 @@ document.addEventListener('keydown', e=>{
   }
 });
 
+// ══════════════════════════════════════════════════════════════════
+//  RESET STORAGE — vider toutes les sauvegardes localStorage
+// ══════════════════════════════════════════════════════════════════
+window.openResetStorage = function(){
+  document.getElementById('resetOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  // Reset état
+  document.getElementById('resetConfirmCheck').checked = false;
+  document.getElementById('resetConfirmBtn').classList.remove('ready');
+  document.getElementById('resetDoneMsg').style.display = 'none';
+  // Compter les entrées
+  const count = localStorage.length;
+  document.getElementById('resetCountInfo').textContent = count + ' entrée' + (count > 1 ? 's' : '') + ' détectée' + (count > 1 ? 's' : '');
+};
+window.closeResetStorage = function(){
+  document.getElementById('resetOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+};
+document.addEventListener('DOMContentLoaded', function(){
+  const overlay = document.getElementById('resetOverlay');
+  if(overlay){
+    overlay.addEventListener('click', e => { if(e.target === overlay) closeResetStorage(); });
+  }
+  const chk = document.getElementById('resetConfirmCheck');
+  if(chk){
+    chk.addEventListener('change', function(){
+      document.getElementById('resetConfirmBtn').classList.toggle('ready', this.checked);
+    });
+  }
+});
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape' && document.getElementById('resetOverlay')?.classList.contains('open')){
+    closeResetStorage();
+  }
+});
+window.doResetStorage = function(){
+  const btn = document.getElementById('resetConfirmBtn');
+  if(!btn.classList.contains('ready')) return;
+  // Sauvegarde du thème courant pour le réappliquer après
+  const theme = localStorage.getItem('launcher_theme') || 'theme-beige';
+  localStorage.clear();
+  localStorage.setItem('launcher_theme', theme);
+  const done = document.getElementById('resetDoneMsg');
+  done.style.display = 'block';
+  btn.textContent = '✓ EFFACÉ';
+  btn.style.color = 'var(--green)';
+  btn.style.borderColor = 'var(--green)';
+  btn.classList.remove('ready');
+  document.getElementById('resetConfirmCheck').checked = false;
+  document.getElementById('resetCountInfo').textContent = '0 entrée — mémoire vidée';
+  setTimeout(() => {
+    closeResetStorage();
+    location.reload();
+  }, 1800);
+};
+
 window.openDcpdf = function(){
   const overlay = document.getElementById('dcpdfOverlay');
   const iframe  = document.getElementById('dcpdfIframe');
@@ -3021,5 +3116,44 @@ document.addEventListener('keydown', e=>{
 
 
 </script>
+
+<!-- ════ RESET STORAGE MODAL ════════════════════════════════════ -->
+<div class="reset-overlay" id="resetOverlay">
+  <div class="reset-modal">
+    <div class="reset-bar">
+      <span class="reset-bar-icon">🗑</span>
+      <span class="reset-bar-title">RÉINITIALISATION DES DONNÉES</span>
+      <button class="reset-close" onclick="closeResetStorage()">✕ FERMER</button>
+    </div>
+    <div class="reset-body">
+      <div class="reset-warn-box">
+        <div class="reset-warn-title">⚠ ATTENTION — Action irréversible</div>
+        <ul class="reset-warn-list">
+          <li>Toutes les tâches TODO seront supprimées</li>
+          <li>Toutes les notes seront effacées</li>
+          <li>Les favoris personnalisés seront perdus</li>
+          <li>Les champs copiables seront réinitialisés</li>
+          <li>Les paramètres du ticker seront réinitialisés</li>
+          <li>Les horaires de travail configurés seront perdus</li>
+          <li>Les jours AIC configurés seront réinitialisés</li>
+        </ul>
+      </div>
+      <div class="reset-advice">
+        <strong>💡 Conseil :</strong> Avant de continuer, pensez à exporter vos données importantes.<br>
+        Utilisez <strong>MEGA</strong> ou un autre service de sauvegarde pour conserver une copie de vos informations. Le thème actuel sera conservé après la réinitialisation.
+      </div>
+      <div style="font-family:var(--font-mono);font-size:9px;color:var(--muted);margin-bottom:10px;letter-spacing:0.5px;" id="resetCountInfo">Calcul en cours…</div>
+      <div class="reset-confirm-row">
+        <input type="checkbox" class="reset-confirm-check" id="resetConfirmCheck">
+        <label class="reset-confirm-label" for="resetConfirmCheck">J'ai compris que cette action est <strong style="color:var(--red)">définitive</strong> et j'ai effectué mes sauvegardes si nécessaire.</label>
+      </div>
+      <div class="reset-btns">
+        <button class="reset-cancel-btn" onclick="closeResetStorage()">ANNULER</button>
+        <button class="reset-confirm-btn" id="resetConfirmBtn" onclick="doResetStorage()">🗑 TOUT EFFACER</button>
+      </div>
+      <div class="reset-done-msg" id="resetDoneMsg">✓ Mémoire locale vidée — rechargement en cours…</div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
