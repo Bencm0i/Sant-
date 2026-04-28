@@ -308,7 +308,7 @@ async function downloadPDF() {
       const c = flatCanvas(nums[i]);
       doc.addImage(c.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, w, h);
     }
-    doc.save('document-masque.pdf');
+    doc.save('[OK-IA] document-masque.pdf');
     setStatus('PDF téléchargé', 'ok');
   } catch(e) { setStatus('Erreur : ' + e.message, 'err'); }
 }
@@ -320,7 +320,7 @@ function downloadImages() {
     const c = flatCanvas(n);
     const a = document.createElement('a');
     a.href = c.toDataURL('image/jpeg', 0.92);
-    a.download = `page-${n}-masquee.jpg`;
+    a.download = `[OK-IA] page-${n}-masquee.jpg`;
     a.click();
   });
   setStatus(`${nums.length} image(s) téléchargée(s)`, 'ok');
