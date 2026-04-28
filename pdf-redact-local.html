@@ -112,7 +112,15 @@ header h1 { font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; 
     <!-- Export PDF -->
     <div class="s-section" id="sidePanel" style="display:none">
       <span class="s-label">Exporter</span>
-      <button class="action-btn primary" onclick="downloadPDF()">
+      <button class="action-btn primary" onclick="downloadPDFOriginalName()">
+        <span class="ico">↓</span> PDF [IA-OK]
+        <span class="desc">nom original</span>
+      </button>
+      <button class="action-btn primary" onclick="downloadPNGOriginalName()">
+        <span class="ico">↓</span> PNG [IA-OK]
+        <span class="desc">nom original</span>
+      </button>
+      <button class="action-btn" onclick="downloadPDF()">
         <span class="ico">↓</span> Télécharger PDF masqué
         <span class="desc">toutes pages</span>
       </button>
@@ -160,7 +168,7 @@ header h1 { font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 const { jsPDF } = window.jspdf;
 
-let pdfDoc = null, pages = {}, redactions = {}, mode = 'draw', drawing = false, startX, startY;
+let pdfDoc = null, pages = {}, redactions = {}, mode = 'draw', drawing = false, startX, startY, originalFileName = '';
 const SCALE = 1.5;
 
 const dropZone = document.getElementById('dropZone');
@@ -179,6 +187,7 @@ function setStatus(msg, type='') {
 
 async function loadFile(file) {
   if (!file || file.type !== 'application/pdf') { setStatus('Fichier invalide', 'err'); return; }
+  originalFileName = file.name.replace(/\.pdf$/i, '');
   setStatus('Chargement…', 'info');
   const data = await file.arrayBuffer();
   pdfDoc = await pdfjsLib.getDocument({ data }).promise;
@@ -310,6 +319,67 @@ async function downloadPDF() {
     }
     doc.save('[OK-IA] document-masque.pdf');
     setStatus('PDF téléchargé', 'ok');
+  } catch(e) { setStatus('Erreur : ' + e.message, 'err'); }
+}
+
+async function downloadPDFOriginalName() {
+  if (!pdfDoc) return;
+  setStatus('Génération du PDF…', 'info');
+  try {
+    const nums = Object.keys(pages).map(Number).sort((a,b)=>a-b);
+    const first = flatCanvas(nums[0]);
+    const w = first.width / SCALE, h = first.height / SCALE;
+    const orient = w > h ? 'l' : 'p';
+    const doc = new jsPDF({ orientation: orient, unit: 'pt', format: [w, h] });
+
+    for (let i = 0; i < nums.length; i++) {
+      if (i > 0) doc.addPage([w, h], orient);
+      const c = flatCanvas(nums[i]);
+      doc.addImage(c.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, w, h);
+    }
+    const filename = originalFileName ? `${originalFileName} [IA-OK].pdf` : '[IA-OK] document-masque.pdf';
+    doc.save(filename);
+    setStatus('PDF téléchargé : ' + filename, 'ok');
+  } catch(e) { setStatus('Erreur : ' + e.message, 'err'); }
+}
+
+async function downloadPNGOriginalName() {
+  if (!pdfDoc) return;
+  setStatus('Génération du PNG…', 'info');
+  try {
+    const nums = Object.keys(pages).map(Number).sort((a,b)=>a-b);
+    
+    if (nums.length === 1) {
+      // Une seule page
+      const c = flatCanvas(nums[0]);
+      const a = document.createElement('a');
+      a.href = c.toDataURL('image/png');
+      const filename = originalFileName ? `${originalFileName} [IA-OK].png` : '[IA-OK] document-masque.png';
+      a.download = filename;
+      a.click();
+      setStatus('PNG téléchargé : ' + filename, 'ok');
+    } else {
+      // Plusieurs pages - créer une mosaïque verticale
+      const canvases = nums.map(flatCanvas);
+      const totalH = canvases.reduce((s,c) => s + c.height + 8, 0);
+      const maxW = Math.max(...canvases.map(c => c.width));
+      const canvas = document.createElement('canvas');
+      canvas.width = maxW; canvas.height = totalH;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0,0,maxW,totalH);
+      let y = 0;
+      for (const c of canvases) { 
+        ctx.drawImage(c, 0, y); 
+        y += c.height + 8; 
+      }
+      
+      const a = document.createElement('a');
+      a.href = canvas.toDataURL('image/png');
+      const filename = originalFileName ? `${originalFileName} [IA-OK].png` : '[IA-OK] document-masque.png';
+      a.download = filename;
+      a.click();
+      setStatus('PNG téléchargé : ' + filename + ' (mosaïque)', 'ok');
+    }
   } catch(e) { setStatus('Erreur : ' + e.message, 'err'); }
 }
 
