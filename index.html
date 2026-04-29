@@ -440,6 +440,10 @@
   .ticker-pause-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(0,0,0,0.06);}
   .ticker-pause-btn.paused{border-color:var(--gold);color:var(--gold);background:rgba(0,0,0,0.07);}
   .ticker-track.paused{animation-play-state:paused;}
+  /* ── RAPPEL SAUVEGARDE LUNDI ── */
+  .ticker-item.tk-backup-monday{background:rgba(232,197,71,0.07);border-radius:4px;padding:2px 10px;border:1px solid rgba(232,197,71,0.22);box-shadow:0 0 12px rgba(232,197,71,0.08);}
+  @keyframes backup-pulse{0%,100%{transform:scale(1);filter:drop-shadow(0 0 0px rgba(232,197,71,0));}50%{transform:scale(1.18);filter:drop-shadow(0 0 6px rgba(232,197,71,0.7));}}
+
   /* Éléments cachés pour data */
   #congesBody{display:none;}
   #veloBody{display:none;}
@@ -2410,6 +2414,21 @@ async function renderTicker() {
     const wx = window._mxCurrent;
     if (wx) {
       parts.push(buildTickerItem('', wx.icon, wx.city.toUpperCase(), `${wx.temp}°C — ${wx.desc}`));
+    }
+  })();
+
+  // 3d-bis. RAPPEL SAUVEGARDE (lundi uniquement)
+  (function(){
+    const now = new Date();
+    if (now.getDay() === 1) { // 1 = lundi
+      parts.push(
+        `<span class="ticker-item tk-backup-monday" style="cursor:default;">` +
+        `<span class="tk-icon" style="animation:backup-pulse 1.6s ease-in-out infinite;">💾</span>` +
+        `<span class="tk-label" style="color:#e8c547;font-weight:700;letter-spacing:2px;text-shadow:0 0 8px rgba(232,197,71,0.4);">SAUVEGARDE</span>` +
+        `<span class="tk-val" style="color:#ffe066;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;text-shadow:0 0 10px rgba(255,220,80,0.35);">⚠ Penser à sauvegarder vos fichiers importants !</span>` +
+        `<span style="margin-left:10px;font-size:8px;color:#e8c547;letter-spacing:1.5px;border:1px solid rgba(232,197,71,0.55);padding:2px 7px;border-radius:3px;background:rgba(232,197,71,0.08);font-weight:700;">LUNDI — BACKUP</span>` +
+        `</span>`
+      );
     }
   })();
 
