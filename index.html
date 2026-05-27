@@ -67,7 +67,7 @@
 
   /* ── APPS GRID ── */
   .apps-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(188px,1fr));gap:10px;}
-  .app-card{background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:13px 13px 11px;cursor:pointer;transition:all .18s;display:flex;flex-direction:column;gap:6px;position:relative;overflow:hidden;backdrop-filter:blur(4px);}
+  .app-card{background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:13px 13px 11px;cursor:pointer;transition:all .18s;display:flex;flex-direction:column;gap:6px;position:relative;overflow:hidden;}
   .app-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--accent);opacity:0;transition:opacity .18s;}
   .app-card:hover{border-color:var(--border2);background:var(--panel2);transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,0,0,0.5);}
   .app-card:hover::before{opacity:1;}
@@ -89,7 +89,7 @@
   .app-card-sm .app-offline-dot{top:50%;transform:translateY(-50%);}
 
   /* ── TODO ── */
-  .todo-panel{background:var(--panel);border:1px solid var(--border);border-radius:5px;overflow:hidden;backdrop-filter:blur(4px);}
+  .todo-panel{background:var(--panel);border:1px solid var(--border);border-radius:5px;overflow:hidden;}
   .todo-header{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
   .todo-title{font-family:var(--font-display);font-size:10px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--text);}
   .todo-count{font-size:9px;color:var(--muted2);background:var(--border);padding:2px 6px;border-radius:2px;}
@@ -120,7 +120,7 @@
 
   /* ── FAVORIS ── */
   .fav-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin-bottom:4px;}
-  .fav-item{background:var(--panel);border:1px solid var(--border);border-radius:5px;display:flex;align-items:center;gap:0;overflow:hidden;transition:all .18s;backdrop-filter:blur(4px);}
+  .fav-item{background:var(--panel);border:1px solid var(--border);border-radius:5px;display:flex;align-items:center;gap:0;overflow:hidden;transition:all .18s;}
   .fav-item:hover{border-color:var(--border2);box-shadow:0 2px 12px rgba(0,0,0,0.15);}
   .fav-go{width:34px;height:34px;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;background:transparent;border:none;border-right:1px solid var(--border);color:var(--muted2);font-size:13px;transition:all .15s;}
   .fav-go:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
@@ -133,7 +133,7 @@
   .fav-favicon{width:14px;height:14px;border-radius:2px;object-fit:contain;flex-shrink:0;margin-left:8px;opacity:0.7;}
 
   /* ── NOTES ── */
-  .notes-panel{background:var(--panel);border:1px solid var(--border);border-radius:5px;overflow:hidden;backdrop-filter:blur(4px);margin-top:14px;}
+  .notes-panel{background:var(--panel);border:1px solid var(--border);border-radius:5px;overflow:hidden;margin-top:14px;}
   .notes-header{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
   .notes-title{font-family:var(--font-display);font-size:10px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--text);}
   .notes-actions{display:flex;gap:6px;align-items:center;}
@@ -159,7 +159,7 @@
   .notes-empty{padding:22px;text-align:center;color:var(--muted);font-size:9px;letter-spacing:1px;}
 
   /* ── CHAMPS COPIABLES ── */
-  .clip-panel{background:var(--panel);border:1px solid var(--border);border-radius:5px;overflow:hidden;backdrop-filter:blur(4px);margin-top:14px;}
+  .clip-panel{background:var(--panel);border:1px solid var(--border);border-radius:5px;overflow:hidden;margin-top:14px;}
   .clip-header{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
   .clip-title{font-family:var(--font-display);font-size:10px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--text);}
   .clip-item{display:flex;align-items:stretch;border-bottom:1px solid var(--border);flex-wrap:wrap;}
@@ -200,7 +200,7 @@
   .ws-btn:hover{background:#a8acd0;border-color:#7aa0c0;color:#b4cde3;}
 
   /* ── VELOTAF ── */
-  .velo-panel{background:var(--panel);border:1px solid var(--border);border-radius:5px;overflow:hidden;backdrop-filter:blur(4px);margin-top:14px;}
+  .velo-panel{background:var(--panel);border:1px solid var(--border);border-radius:5px;overflow:hidden;margin-top:14px;}
   .velo-header{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
   .velo-title{font-family:var(--font-display);font-size:10px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--text);}
   .velo-refresh{background:transparent;border:1px solid var(--border);border-radius:2px;padding:2px 8px;font-family:var(--font-mono);font-size:9px;color:var(--muted2);cursor:pointer;letter-spacing:1px;transition:all .15s;}
@@ -238,7 +238,7 @@
   .velo-conseil-title{font-size:8px;color:var(--muted2);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;}
 
   /* ── CONGÉS ── */
-  .conges-panel{background:var(--panel);border:1px solid var(--border);border-radius:5px;overflow:hidden;backdrop-filter:blur(4px);}
+  .conges-panel{background:var(--panel);border:1px solid var(--border);border-radius:5px;overflow:hidden;}
   .conges-header{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
   .conges-title{font-family:var(--font-display);font-size:10px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--text);}
   .conges-open-btn{background:transparent;border:1px solid var(--border);border-radius:2px;padding:2px 8px;font-family:var(--font-mono);font-size:9px;color:var(--muted2);cursor:pointer;letter-spacing:1px;transition:all .15s;}
@@ -303,6 +303,18 @@
   .ptg-link:hover{background:#6b0808;border-color:#fff;}
   .ptg-close{background:transparent;border:1px solid #fff;border-radius:3px;padding:3px 8px;font-family:var(--font-mono);font-size:9px;color:#fff;cursor:pointer;letter-spacing:1px;transition:all .15s;flex-shrink:0;}
   .ptg-close:hover{border-color:#fff;color:#fff;}
+  /* ── BANDEAU AIC JOURNALIÈRE ── */
+  #aic-banner{position:sticky;top:83px;z-index:99;display:none;align-items:center;gap:10px;padding:8px 24px;background:#c05a00;border-bottom:3px solid #8a3d00;backdrop-filter:none;animation:aic-slide-in .3s ease;box-shadow:0 3px 16px rgba(0,0,0,0.4);}
+  #aic-banner.visible{display:flex;animation:aic-slide-in .3s ease, aic-pulse 2s ease-in-out infinite;}
+  @keyframes aic-slide-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes aic-pulse{0%,100%{background:#c05a00;}50%{background:#e07020;}}
+  .aic-icon{font-size:18px;flex-shrink:0;}
+  .aic-label{font-family:var(--font-display);font-weight:800;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#fff;white-space:nowrap;flex-shrink:0;text-shadow:0 1px 4px rgba(0,0,0,0.4);}
+  .aic-msg{font-family:var(--font-mono);font-size:10px;color:#fff;flex:1;letter-spacing:0.5px;}
+  .aic-link{display:flex;align-items:center;gap:5px;padding:5px 14px;background:#7a3800;border:1px solid #fff;border-radius:3px;font-family:var(--font-mono);font-size:9px;color:#fff;text-decoration:none;letter-spacing:1.5px;font-weight:700;transition:all .15s;white-space:nowrap;flex-shrink:0;}
+  .aic-link:hover{background:#5a2800;border-color:#fff;}
+  .aic-close{background:transparent;border:1px solid #fff;border-radius:3px;padding:3px 8px;font-family:var(--font-mono);font-size:9px;color:#fff;cursor:pointer;letter-spacing:1px;transition:all .15s;flex-shrink:0;}
+  .aic-close:hover{border-color:#ffe0b2;color:#ffe0b2;}
 
   /* ── BADGER MODAL (rappel pointage matin 7h-9h) ── */
   .badger-overlay{position:fixed;inset:0;background:rgba(10,15,20,0.72);z-index:900;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px);}
@@ -328,7 +340,7 @@
   .badger-checkbox-row label{font-family:var(--font-mono);font-size:9px;color:var(--muted);cursor:pointer;letter-spacing:0.5px;line-height:1.4;}
 
   /* ── ANNOTATEUR MODAL (iframe SnapMark) ── */
-  .ann-overlay{position:fixed;inset:0;background:rgba(10,15,20,0.78);z-index:600;display:none;backdrop-filter:blur(4px);}
+  .ann-overlay{position:fixed;inset:0;background:rgba(10,15,20,0.78);z-index:600;display:none;}
   .ann-overlay.open{display:flex;align-items:stretch;}
   .ann-panel{display:flex;flex-direction:column;width:100%;height:100%;background:#1a1a1a;position:relative;}
   .ann-bar{display:flex;align-items:center;gap:10px;padding:0 16px;height:40px;background:#222;border-bottom:1px solid #3a3a3a;flex-shrink:0;}
@@ -338,7 +350,7 @@
   .ann-iframe{flex:1;border:none;width:100%;display:block;}
 
   /* ── CONGÉS MODAL (iframe) ── */
-  .conges-overlay{position:fixed;inset:0;background:rgba(10,15,20,0.78);z-index:600;display:none;backdrop-filter:blur(4px);}
+  .conges-overlay{position:fixed;inset:0;background:rgba(10,15,20,0.78);z-index:600;display:none;}
   .conges-overlay.open{display:flex;align-items:stretch;}
   .conges-modal-panel{display:flex;flex-direction:column;width:100%;height:100%;background:#FAF8F5;position:relative;}
   .conges-modal-bar{display:flex;align-items:center;gap:10px;padding:0 16px;height:40px;background:#F2EFE9;border-bottom:1px solid #E4DDD4;flex-shrink:0;}
@@ -348,7 +360,7 @@
   .conges-modal-iframe{flex:1;border:none;width:100%;display:block;}
 
   /* ── AFFAIRE TRACKER MODAL ── */
-  .affaire-overlay{position:fixed;inset:0;background:rgba(10,15,20,0.78);z-index:600;display:none;backdrop-filter:blur(4px);}
+  .affaire-overlay{position:fixed;inset:0;background:rgba(10,15,20,0.78);z-index:600;display:none;}
   .affaire-overlay.open{display:flex;align-items:stretch;}
   .affaire-modal-panel{display:flex;flex-direction:column;width:100%;height:100%;background:#f4f1ec;}
   .affaire-modal-bar{display:flex;align-items:center;gap:10px;padding:0 16px;height:40px;background:#ede9e1;border-bottom:1px solid #d8d2c8;flex-shrink:0;}
@@ -358,7 +370,7 @@
   .affaire-modal-iframe{flex:1;border:none;width:100%;display:block;}
 
   /* ── DEMANDE CONGÉ PDF MODAL ── */
-  .dcpdf-overlay{position:fixed;inset:0;background:rgba(10,15,20,0.78);z-index:600;display:none;backdrop-filter:blur(4px);}
+  .dcpdf-overlay{position:fixed;inset:0;background:rgba(10,15,20,0.78);z-index:600;display:none;}
   .dcpdf-overlay.open{display:flex;align-items:stretch;}
   .dcpdf-modal-panel{display:flex;flex-direction:column;width:100%;height:100%;background:#f4f6fb;}
   .dcpdf-modal-bar{display:flex;align-items:center;gap:10px;padding:0 16px;height:40px;background:#e8ecf4;border-bottom:1px solid #d0d7e8;flex-shrink:0;}
@@ -368,7 +380,7 @@
   .dcpdf-modal-iframe{flex:1;border:none;width:100%;display:block;}
 
   /* ── PDF REDACT MODAL ── */
-  .pdfredact-overlay{position:fixed;inset:0;background:rgba(10,15,20,0.88);z-index:600;display:none;backdrop-filter:blur(4px);}
+  .pdfredact-overlay{position:fixed;inset:0;background:rgba(10,15,20,0.88);z-index:600;display:none;}
   .pdfredact-overlay.open{display:flex;align-items:stretch;}
   .pdfredact-modal-panel{display:flex;flex-direction:column;width:100%;height:100%;background:#111;}
   .pdfredact-modal-bar{display:flex;align-items:center;gap:10px;padding:0 16px;height:40px;background:#1a1a1a;border-bottom:1px solid #2e2e2e;flex-shrink:0;}
@@ -378,7 +390,7 @@
   .pdfredact-modal-iframe{flex:1;border:none;width:100%;display:block;}
 
   /* ── LOG BOULOT MODAL ── */
-  .logb-overlay{position:fixed;inset:0;background:rgba(10,15,20,0.78);z-index:600;display:none;backdrop-filter:blur(4px);}
+  .logb-overlay{position:fixed;inset:0;background:rgba(10,15,20,0.78);z-index:600;display:none;}
   .logb-overlay.open{display:flex;align-items:stretch;}
   .logb-modal-panel{display:flex;flex-direction:column;width:100%;height:100%;background:#f5ede0;}
   .logb-modal-bar{display:flex;align-items:center;gap:10px;padding:0 16px;height:40px;background:#ede0cc;border-bottom:2px solid #c9a97a;flex-shrink:0;}
@@ -445,7 +457,7 @@
 
   /* ── BARRE RECHERCHE ── */
   .search-bar-wrap{margin-bottom:14px;position:relative;}
-  .search-bar-input{width:100%;background:var(--panel);border:1px solid var(--border);border-radius:5px;outline:none;padding:8px 12px 8px 34px;font-family:var(--font-mono);font-size:11px;color:var(--text);letter-spacing:0.5px;transition:border-color .18s;backdrop-filter:blur(4px);}
+  .search-bar-input{width:100%;background:var(--panel);border:1px solid var(--border);border-radius:5px;outline:none;padding:8px 12px 8px 34px;font-family:var(--font-mono);font-size:11px;color:var(--text);letter-spacing:0.5px;transition:border-color .18s;}
   .search-bar-input::placeholder{color:var(--muted);}
   .search-bar-input:focus{border-color:var(--border2);}
   .search-bar-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;pointer-events:none;line-height:1;}
@@ -476,7 +488,7 @@
   .recent-chip .rc-name{overflow:hidden;text-overflow:ellipsis;}
 
   /* ── WORK HOURS CONFIG MODAL ── */
-  .wh-modal-overlay{position:fixed;inset:0;background:rgba(10,15,20,0.6);z-index:800;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+  .wh-modal-overlay{position:fixed;inset:0;background:rgba(10,15,20,0.6);z-index:800;display:none;align-items:center;justify-content:center;}
   .wh-modal-overlay.open{display:flex;}
   .wh-modal{background:var(--panel2);border:1px solid var(--border2);border-radius:6px;width:280px;padding:18px;box-shadow:0 8px 40px rgba(0,0,0,0.5);}
   .wh-modal-title{font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--text);margin-bottom:14px;}
@@ -493,7 +505,7 @@
   .wh-gear-btn:hover{border-color:var(--accent);color:var(--accent);}
 
   /* ── TICKER CONFIG MODAL ── */
-  .tk-cfg-overlay{position:fixed;inset:0;background:rgba(10,15,20,0.6);z-index:800;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+  .tk-cfg-overlay{position:fixed;inset:0;background:rgba(10,15,20,0.6);z-index:800;display:none;align-items:center;justify-content:center;}
   .tk-cfg-overlay.open{display:flex;}
   .tk-cfg-modal{background:var(--panel2);border:1px solid var(--border2);border-radius:6px;width:300px;padding:18px;box-shadow:0 8px 40px rgba(0,0,0,0.5);}
   .tk-cfg-title{font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--text);margin-bottom:14px;}
@@ -576,7 +588,7 @@
   .reset-confirm-btn.ready:hover{background:#400c0c;border-color:var(--red);}
   .reset-done-msg{display:none;text-align:center;padding:10px 0 4px;font-family:var(--font-mono);font-size:10px;color:var(--green);letter-spacing:1px;}
   /* ── PANNEAU HEURES TRAVAILLÉES (basé sur clics Eurécia) ── */
-  .htrav-panel{background:var(--panel);border:1px solid var(--border);border-radius:5px;overflow:hidden;backdrop-filter:blur(4px);margin-top:14px;}
+  .htrav-panel{background:var(--panel);border:1px solid var(--border);border-radius:5px;overflow:hidden;margin-top:14px;}
   .htrav-header{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;}
   .htrav-title{font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--text);flex:1;}
   .htrav-date{font-family:var(--font-mono);font-size:9px;color:var(--muted);letter-spacing:1px;}
@@ -905,6 +917,18 @@
   <button class="ptg-close" onclick="dismissPointageBanner()">✕</button>
 </div>
 
+<!-- ════ BANNIÈRE AIC JOURNALIÈRE — 11h30 ═══════════════════ -->
+<div id="aic-banner">
+  <span class="aic-icon">📊</span>
+  <span class="aic-label">AIC JOURNALIÈRE</span>
+  <span class="aic-msg" id="aic-msg">Rappel : remplir l'AIC journalière BE meca</span>
+  <a class="aic-link" href="https://aventechgroupe-my.sharepoint.com/:x:/r/personal/julien_billon_aventech-e_com/_layouts/15/Doc.aspx?sourcedoc=%7B5906D9EC-91A7-4B7F-8C2B-D09556BCF095%7D&file=5PL0200ACT004A%20AIC%20journaliere%20BE%20meca.xlsx&wdLOR=c66DC75A4-FB5E-4EFD-82F2-58621D5D2E4D&fromShare=true&action=default&mobileredi=" target="_blank" rel="noopener" onclick="dismissAicBanner()">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+    OUVRIR AIC ↗
+  </a>
+  <button class="aic-close" onclick="dismissAicBanner()">✕</button>
+</div>
+
 <!-- ════ BARRE JOURS SEMAINE ════════════════════════════════ -->
 <div id="week-bar">
   <div class="wk-days" id="wk-days">
@@ -987,47 +1011,8 @@
 
   <!-- Todo -->
   <div>
-    <div class="slabel">Todo</div>
-    <div class="todo-panel">
-      <div class="todo-header">
-        <div class="todo-title">TÂCHES</div>
-        <div class="todo-count" id="todoCount">0</div>
-      </div>
-      <div class="todo-input-row">
-        <input class="todo-input" id="todoInput" placeholder="Nouvelle tâche…" maxlength="200">
-        <button class="todo-add-btn" onclick="addTodo()">+</button>
-      </div>
-      <div class="todo-list" id="todoList"></div>
-      <div class="todo-footer">
-        <span class="todo-fi" id="todoInfo">0 restante(s)</span>
-        <button class="todo-cd" onclick="clearDone()">Effacer terminées</button>
-      </div>
-    </div>
-
-    <!-- Champs copiables -->
-    <div class="slabel" style="margin-top:14px">Presse-papiers</div>
-    <div class="clip-panel">
-      <div class="clip-header">
-        <div class="clip-title">COPIER RAPIDE</div>
-      </div>
-      <div id="clipList"></div>
-    </div>
-
-    <!-- Notes -->
-    <div class="slabel" style="margin-top:14px">Notes</div>
-    <div class="notes-panel">
-      <div class="notes-header">
-        <div class="notes-title">NOTES</div>
-        <div class="notes-actions">
-          <button class="notes-new-btn" id="notesNewBtn">+ NOUVELLE</button>
-        </div>
-      </div>
-      <div class="notes-tabs" id="notesTabs"></div>
-      <div class="notes-body" id="notesBody"></div>
-    </div>
-
     <!-- Heures travaillées Eurécia -->
-    <div class="slabel" style="margin-top:14px">Pointage Eurécia</div>
+    <div class="slabel">Pointage Eurécia</div>
     <div class="htrav-panel" id="htravPanel">
       <div class="htrav-header">
         <div class="htrav-title">⏱ HEURES TRAVAILLÉES</div>
@@ -1046,6 +1031,36 @@
         <div class="htrav-results" id="htravResults"></div>
         <div class="htrav-info" id="htravInfo"></div>
       </div>
+    </div>
+
+    <div class="slabel" style="margin-top:14px">Todo</div>
+    <div class="todo-panel">
+      <div class="todo-header">
+        <div class="todo-title">TÂCHES</div>
+        <div class="todo-count" id="todoCount">0</div>
+      </div>
+      <div class="todo-input-row">
+        <input class="todo-input" id="todoInput" placeholder="Nouvelle tâche…" maxlength="200">
+        <button class="todo-add-btn" onclick="addTodo()">+</button>
+      </div>
+      <div class="todo-list" id="todoList"></div>
+      <div class="todo-footer">
+        <span class="todo-fi" id="todoInfo">0 restante(s)</span>
+        <button class="todo-cd" onclick="clearDone()">Effacer terminées</button>
+      </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="slabel" style="margin-top:14px">Notes</div>
+    <div class="notes-panel">
+      <div class="notes-header">
+        <div class="notes-title">NOTES</div>
+        <div class="notes-actions">
+          <button class="notes-new-btn" id="notesNewBtn">+ NOUVELLE</button>
+        </div>
+      </div>
+      <div class="notes-tabs" id="notesTabs"></div>
+      <div class="notes-body" id="notesBody"></div>
     </div>
 
   </div>
@@ -2337,7 +2352,7 @@ function congesRender() {
 }
 
 // ── INIT ───────────────────────────────────────────────────────
-updateToggleUI();buildApps();buildFavs();buildClips();loadTodos();renderTodos();loadNotes();renderNotes();congesRender();renderRecent();
+updateToggleUI();buildApps();buildFavs();loadTodos();renderTodos();loadNotes();renderNotes();congesRender();renderRecent();
 
 // ── BANNIÈRE RAPPEL POINTAGE EURÉCIA ──────────────────────────
 // Créneaux : 7h30, 12h25, 13h00, 15h40 — visible 30 min avant chaque
@@ -2420,6 +2435,59 @@ updateToggleUI();buildApps();buildFavs();buildClips();loadTodos();renderTodos();
 
   checkPointageBanner();
   setInterval(checkPointageBanner, 30000); // vérif toutes les 30s
+})();
+
+// ── BANNIÈRE AIC JOURNALIÈRE — 11h30 (tous les jours ouvrés) ──────
+(function initAicBanner() {
+  const AIC_H = 11, AIC_M = 30;
+  const WINDOW_MIN = 30;
+  const AIC_DISMISS_KEY = 'aic_dismissed';
+
+  function getTodayKey() {
+    const d = new Date();
+    return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  }
+
+  function isDismissedToday() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(AIC_DISMISS_KEY) || '{}');
+      return raw.day === getTodayKey() && raw.done === true;
+    } catch { return false; }
+  }
+
+  window.dismissAicBanner = function() {
+    localStorage.setItem(AIC_DISMISS_KEY, JSON.stringify({ day: getTodayKey(), done: true }));
+    document.getElementById('aic-banner').classList.remove('visible');
+  };
+
+  function checkAicBanner() {
+    const banner = document.getElementById('aic-banner');
+    if (!banner) return;
+    const now = new Date();
+    const dow = now.getDay();
+    if (dow < 1 || dow > 5) { banner.classList.remove('visible'); return; }
+    if (isDismissedToday()) { banner.classList.remove('visible'); return; }
+
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    const cMins   = AIC_H * 60 + AIC_M;
+    const inWindow = nowMins >= cMins - WINDOW_MIN && nowMins < cMins + WINDOW_MIN;
+
+    if (inWindow) {
+      const diff = cMins - nowMins;
+      const msgEl = document.getElementById('aic-msg');
+      if (msgEl) {
+        msgEl.textContent = diff > 0
+          ? `⏱ AIC journalière dans ${diff} min — penser à remplir !`
+          : `⏱ 11h30 — heure de remplir l'AIC journalière BE meca !`;
+      }
+      banner.classList.add('visible');
+    } else {
+      banner.classList.remove('visible');
+    }
+  }
+
+  checkAicBanner();
+  setInterval(checkAicBanner, 30000);
 })();
 
 // ── HEURES TRAVAILLÉES — basé sur clics Eurécia ───────────────────
