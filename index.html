@@ -34,17 +34,17 @@
   .logo{font-family:var(--font-display);font-weight:800;font-size:16px;color:var(--accent);letter-spacing:4px;}
   .logo-sub{font-size:9px;color:var(--muted2);letter-spacing:2px;margin-top:2px;}
   .sep{width:1px;height:28px;background:var(--border);}
-  .ff-btn{display:flex;align-items:center;gap:6px;background:#c4bc80;border:1px solid #c85c0a;border-radius:4px;padding:5px 11px;cursor:pointer;font-family:var(--font-mono);font-size:10px;color:#ff8c42;text-decoration:none;transition:all .2s;letter-spacing:1px;}
-  .ff-btn:hover{background:#ccc090;border-color:#f97316;color:#ffaa66;}
-  .mega-btn{color:#d4426a;border-color:#c03060;background:#c8a8c8;}
-  .mega-btn:hover{background:#c090b8;border-color:#e0507a;color:#f06090;}
+  .ff-btn{display:flex;align-items:center;gap:6px;background:#7a3a00;border:1px solid #5a2800;border-radius:4px;padding:5px 11px;cursor:pointer;font-family:var(--font-mono);font-size:10px;color:#ffe0b2;text-decoration:none;transition:all .2s;letter-spacing:1px;}
+  .ff-btn:hover{background:#923f00;border-color:#7a3000;color:#fff;}
+  .mega-btn{color:#ffd6e0;border-color:#7a1030;background:#801040;}
+  .mega-btn:hover{background:#991848;border-color:#aa2050;color:#fff;}
   .hR{display:flex;align-items:center;gap:8px;}
   #clock{font-size:11px;color:var(--gold);letter-spacing:2px;min-width:72px;text-align:right;}
-  .tab-toggle{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:4px 9px;cursor:pointer;font-family:var(--font-mono);font-size:9px;color:var(--muted2);transition:all .2s;user-select:none;letter-spacing:1px;}
-  .tab-toggle:hover{border-color:var(--accent);color:var(--accent);}
-  .tab-toggle.nt{border-color:var(--blue);color:var(--blue);}
-  .tab-toggle .dot{width:5px;height:5px;border-radius:50%;background:var(--muted);transition:background .2s;}
-  .tab-toggle.nt .dot{background:var(--blue);}
+  .tab-toggle{display:flex;align-items:center;gap:6px;background:#4a4030;border:1px solid #6a5a40;border-radius:4px;padding:4px 9px;cursor:pointer;font-family:var(--font-mono);font-size:9px;color:#d4c8a8;transition:all .2s;user-select:none;letter-spacing:1px;}
+  .tab-toggle:hover{border-color:var(--accent);color:#ffe0c0;}
+  .tab-toggle.nt{border-color:#5a80c0;color:#b8d0f8;background:#2a3a5a;}
+  .tab-toggle .dot{width:5px;height:5px;border-radius:50%;background:#a09070;transition:background .2s;}
+  .tab-toggle.nt .dot{background:#7aa0e8;}
 
   /* ── MAIN LAYOUT ── */
   .main{position:relative;z-index:1;max-width:1400px;margin:0 auto;padding:20px 24px 40px;display:grid;grid-template-columns:1fr 296px;gap:20px;align-items:start;}
@@ -54,12 +54,12 @@
   /* ── AI BAR ── */
   .ai-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
   .ai-link{display:flex;align-items:center;gap:7px;padding:6px 13px;border-radius:4px;text-decoration:none;font-family:var(--font-mono);font-size:10px;letter-spacing:1.5px;font-weight:700;text-transform:uppercase;border:1px solid;transition:all .18s;}
-  .ai-link.claude{color:#c8a87a;border-color:#8a6030;background:#c4b878;}
-  .ai-link.claude:hover{background:#c8bc80;border-color:#b08050;}
-  .ai-link.chatgpt{color:#19c37d;border-color:#0f7a4a;background:#a0c8a8;}
-  .ai-link.chatgpt:hover{background:#a0c0a0;border-color:#18c37d;}
-  .ai-link.notebook{color:#7ab4f5;border-color:#2a5a90;background:#b0b4d0;}
-  .ai-link.notebook:hover{background:#aaaec8;border-color:#5a9fd4;}
+  .ai-link.claude{color:#fff8e8;border-color:#7a5020;background:#7a4a10;}
+  .ai-link.claude:hover{background:#8a5418;border-color:#9a6428;color:#fff;}
+  .ai-link.chatgpt{color:#e8fff4;border-color:#0a5a30;background:#0a5030;}
+  .ai-link.chatgpt:hover{background:#0d6038;border-color:#18804a;color:#fff;}
+  .ai-link.notebook{color:#e8f0ff;border-color:#1a3a70;background:#1a3470;}
+  .ai-link.notebook:hover{background:#223c80;border-color:#3a60b0;color:#fff;}
 
   /* ── SECTION LABEL ── */
   .slabel{font-family:var(--font-display);font-size:9px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--muted2);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
@@ -69,7 +69,7 @@
   .apps-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(188px,1fr));gap:10px;}
   .app-card{background:var(--panel);border:1px solid var(--border);border-radius:5px;padding:13px 13px 11px;cursor:pointer;transition:all .18s;display:flex;flex-direction:column;gap:6px;position:relative;overflow:hidden;}
   .app-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--accent);opacity:0;transition:opacity .18s;}
-  .app-card:hover{border-color:var(--border2);background:var(--panel2);transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,0,0,0.5);}
+  .app-card:hover{border-color:var(--border2);background:var(--panel2);transform:translateY(-1px);}
   .app-card:hover::before{opacity:1;}
   .app-icon{width:28px;height:28px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:16px;background:#bbb49e;border:1px solid var(--border);}
   .app-name{font-family:var(--font-display);font-weight:600;font-size:12px;color:var(--text);}
@@ -121,7 +121,7 @@
   /* ── FAVORIS ── */
   .fav-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin-bottom:4px;}
   .fav-item{background:var(--panel);border:1px solid var(--border);border-radius:5px;display:flex;align-items:center;gap:0;overflow:hidden;transition:all .18s;}
-  .fav-item:hover{border-color:var(--border2);box-shadow:0 2px 12px rgba(0,0,0,0.15);}
+  .fav-item:hover{border-color:var(--border2);}
   .fav-go{width:34px;height:34px;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;background:transparent;border:none;border-right:1px solid var(--border);color:var(--muted2);font-size:13px;transition:all .15s;}
   .fav-go:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
   .fav-fields{flex:1;display:flex;flex-direction:column;min-width:0;}
@@ -196,8 +196,8 @@
   .ws-close{margin-left:auto;background:transparent;border:1px solid #2e3235;border-radius:3px;color:#78909c;font-family:var(--font-mono);font-size:10px;padding:3px 10px;cursor:pointer;letter-spacing:1px;transition:all .15s;}
   .ws-close:hover{border-color:#8fa8c8;color:#cfd8dc;}
   .ws-iframe{flex:1;border:none;width:100%;display:block;}
-  .ws-btn{display:flex;align-items:center;gap:6px;background:#b4b8d0;border:1px solid #4a6880;border-radius:4px;padding:5px 11px;cursor:pointer;font-family:var(--font-mono);font-size:10px;color:#8fa8c8;text-decoration:none;transition:all .2s;letter-spacing:1px;}
-  .ws-btn:hover{background:#a8acd0;border-color:#7aa0c0;color:#b4cde3;}
+  .ws-btn{display:flex;align-items:center;gap:6px;background:#2a3a50;border:1px solid #4a6880;border-radius:4px;padding:5px 11px;cursor:pointer;font-family:var(--font-mono);font-size:10px;color:#c8dff0;text-decoration:none;transition:all .2s;letter-spacing:1px;}
+  .ws-btn:hover{background:#344a62;border-color:#7aa0c0;color:#e8f4ff;}
 
   /* ── VELOTAF ── */
   .velo-panel{background:var(--panel);border:1px solid var(--border);border-radius:5px;overflow:hidden;margin-top:14px;}
@@ -268,15 +268,16 @@
   .wb-label{font-family:var(--font-mono);font-size:9px;color:var(--muted2);letter-spacing:1.5px;white-space:nowrap;flex-shrink:0;}
   /* Piste principale : plage 7h–18h */
   .wb-track{flex:1;height:7px;background:var(--border);border-radius:3px;position:relative;overflow:visible;}
-  /* Segment hors-plage gauche (avant 7h30 ou après fin) */
-  .wb-seg-out{position:absolute;top:0;height:100%;background:#c4a870;border-radius:3px 0 0 3px;}
-  /* Segment plage travail (7h30–fin) */
-  .wb-seg-in{position:absolute;top:0;height:100%;background:#b4ac90;border-radius:0;}
-  /* Segment hors-plage droite (après fin–18h) */
-  .wb-seg-out-r{position:absolute;top:0;height:100%;background:#c8b86a;border-radius:0 3px 3px 0;}
-  /* Curseur position actuelle */
-  .wb-cursor{position:absolute;top:-3px;width:3px;height:13px;border-radius:2px;background:var(--accent);transition:left .5s ease;z-index:2;box-shadow:0 0 4px rgba(0,122,66,0.6);}
-  .wb-cursor.over{background:var(--red);box-shadow:0 0 6px rgba(204,17,51,0.8);}
+  /* Segment hors-plage gauche (avant début travail) */
+  .wb-seg-out{position:absolute;top:0;height:100%;background:rgba(183,28,28,0.35);border-radius:3px 0 0 3px;}
+  /* Segment plage travail */
+  .wb-seg-in{position:absolute;top:0;height:100%;background:rgba(46,125,50,0.55);border-radius:0;}
+  /* Segment hors-plage droite (après fin) */
+  .wb-seg-out-r{position:absolute;top:0;height:100%;background:rgba(183,28,28,0.35);border-radius:0 3px 3px 0;}
+  /* Curseur — vert dans les heures, rouge hors horaires */
+  .wb-cursor{position:absolute;top:-3px;width:3px;height:13px;border-radius:2px;background:var(--green);transition:left .5s ease;z-index:2;}
+  .wb-cursor.over{background:var(--red);}
+  .wb-cursor.before{background:var(--red);}
   /* Marqueur début travail */
   .wb-mark{position:absolute;top:-2px;width:1px;height:11px;background:var(--muted2);opacity:0.5;}
   /* Marqueur fin travail */
@@ -331,8 +332,8 @@
   .badger-reminder strong{color:var(--accent);font-size:13px;}
   .badger-time-info{background:#bab296;border:1px solid var(--border);border-radius:4px;padding:8px 14px;margin-bottom:18px;text-align:center;font-family:var(--font-mono);font-size:9px;color:var(--muted2);letter-spacing:1px;}
   .badger-actions{display:flex;gap:10px;flex-direction:column;}
-  .badger-btn-primary{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 18px;background:var(--accent);border:none;border-radius:5px;color:#fff;font-family:var(--font-display);font-weight:700;font-size:12px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;text-decoration:none;transition:all .18s;box-shadow:0 2px 12px rgba(0,0,0,0.25);}
-  .badger-btn-primary:hover{filter:brightness(1.15);transform:translateY(-1px);box-shadow:0 4px 18px rgba(0,0,0,0.35);}
+  .badger-btn-primary{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 18px;background:var(--accent);border:none;border-radius:5px;color:#fff;font-family:var(--font-display);font-weight:700;font-size:12px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;text-decoration:none;transition:all .18s;}
+  .badger-btn-primary:hover{filter:brightness(1.15);transform:translateY(-1px);}
   .badger-btn-secondary{display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;background:transparent;border:1px solid var(--border);border-radius:4px;color:var(--muted2);font-family:var(--font-mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all .15s;}
   .badger-btn-secondary:hover{border-color:var(--muted2);color:var(--text);}
   .badger-checkbox-row{display:flex;align-items:center;gap:8px;margin-top:6px;}
@@ -419,6 +420,10 @@
   .wk-aic-toggle{width:16px;height:16px;border-radius:2px;border:1px solid var(--border2);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:9px;transition:all .15s;flex-shrink:0;}
   .wk-aic-toggle.on{background:#b0b0d0;border-color:#60a5fa;color:var(--blue);}
   .wk-aic-toggle:hover{border-color:var(--blue);}
+  /* Numéro de semaine */
+  .wk-num-badge{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 14px 0 4px;border-right:2px solid var(--border);margin-right:8px;white-space:nowrap;flex-shrink:0;line-height:1;}
+  .wk-num-lbl{font-family:var(--font-mono);font-size:8px;font-weight:700;color:var(--muted2);letter-spacing:2px;text-transform:uppercase;margin-bottom:1px;}
+  .wk-num-val{font-family:var(--font-display);font-weight:800;font-size:52px;color:var(--text);letter-spacing:-2px;line-height:1;}
 
   /* ── BANDE DÉFILANTE ── */
   #ticker-bar{position:sticky;top:141px;z-index:97;background:var(--ticker-bg);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);height:34px;overflow:hidden;display:flex;align-items:center;}
@@ -841,19 +846,19 @@
       </svg>
       MEGA
     </a>
-    <button class="ws-btn" onclick="openAnnotateur()" title="Ouvrir Annotateur" style="color:#7ab4f5;border-color:#2a5a90;background:#b0b4d0;">
+    <button class="ws-btn" onclick="openAnnotateur()" title="Ouvrir Annotateur" style="color:#e0f0ff;border-color:#2a5a90;background:#1a3a60;">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M3 15l5-5 4 4 3-3 6 6"/>
       </svg>
       ANNOTATEUR
     </button>
-    <button class="ws-btn" onclick="openHCalc()" title="Calculateur heures départ" style="color:#b88a08;border-color:#806000;background:#c2b88a;">
+    <button class="ws-btn" onclick="openHCalc()" title="Calculateur heures départ" style="color:#fff0c0;border-color:#806000;background:#4a3800;">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
       </svg>
       HORAIRES
     </button>
-    <button class="ws-btn" onclick="openLogBoulot()" title="Ouvrir Log Boulot" style="color:#e07820;border-color:#a05010;background:#c0b47c;">
+    <button class="ws-btn" onclick="openLogBoulot()" title="Ouvrir Log Boulot" style="color:#ffe0c0;border-color:#a05010;background:#5a2a00;">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
       </svg>
@@ -865,7 +870,7 @@
       </svg>
       WORKSPACE
     </button>
-    <button class="ws-btn" onclick="testPointageBanner()" title="Tester le bandeau rappel pointage Eurécia" style="color:#ff4444;border-color:#ef4444;background:#d4a8a8;">
+    <button class="ws-btn" onclick="testPointageBanner()" title="Tester le bandeau rappel pointage Eurécia" style="color:#ffd0d0;border-color:#901010;background:#5a0808;">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
       </svg>
@@ -931,6 +936,10 @@
 
 <!-- ════ BARRE JOURS SEMAINE ════════════════════════════════ -->
 <div id="week-bar">
+  <div class="wk-num-badge" id="wk-num-badge">
+    <span class="wk-num-lbl">SEM</span>
+    <span class="wk-num-val" id="wk-num-val">—</span>
+  </div>
   <div class="wk-days" id="wk-days">
     <div class="wk-day" id="wk-1"><div class="wk-day-name">LUN</div></div>
     <div class="wk-day" id="wk-2"><div class="wk-day-name">MAR</div></div>
@@ -1637,9 +1646,11 @@ function updateWorkBar(now) {
   // Curseur position now
   cursor.style.left = nowPct + '%';
 
-  // État dépassement
+  // État curseur : vert si dans les heures, rouge sinon
+  const isBefore = nowMins < startMins;
   const isOver = nowMins > endMins;
-  cursor.className = 'wb-cursor' + (isOver ? ' over' : '');
+  const isInWork = !isBefore && !isOver;
+  cursor.className = 'wb-cursor' + (isOver ? ' over' : isBefore ? ' before' : '');
   markE.className  = 'wb-mark-end' + (isOver ? ' over' : '');
 
   // Label jour
@@ -1725,6 +1736,18 @@ function renderWeekBar() {
   const isWorkDay = today >= 1 && today <= 5;
   const weekBar = document.getElementById('week-bar');
   if (!weekBar) return;
+
+  // Numéro de semaine ISO
+  (function(){
+    const d = new Date();
+    const jan4 = new Date(d.getFullYear(), 0, 4);
+    const startOfWeek1 = new Date(jan4);
+    startOfWeek1.setDate(jan4.getDate() - ((jan4.getDay() + 6) % 7));
+    const diff = d - startOfWeek1;
+    const weekNum = Math.floor(diff / (7 * 864e5)) + 1;
+    const el = document.getElementById('wk-num-val');
+    if (el) el.textContent = weekNum;
+  })();
 
   // Afficher même le weekend (on montre la semaine en cours)
   weekBar.classList.remove('offday');
