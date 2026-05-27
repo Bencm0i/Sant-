@@ -4,32 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LAUNCHER — BASE OPS</title>
-<script>document.documentElement.className=localStorage.getItem('launcher_theme')||'theme-beige';</script>
+<script>document.documentElement.className='';</script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23060a0e'/><rect x='6' y='10' width='20' height='14' rx='1' fill='none' stroke='%2300e676' stroke-width='2'/><line x1='6' y1='16' x2='26' y2='16' stroke='%2300e676' stroke-width='1.2'/></svg>">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap');
   :root {
     --font-mono:'Space Mono',monospace; --font-display:'Syne',sans-serif;
   }
-  /* ── THÈME BEIGE-ORANGE ── */
-  html.theme-beige {
-    --bg:#f0e6d0; --panel:rgba(244,236,220,0.92); --panel2:rgba(238,228,210,0.97);
-    --border:#c8a87a; --border2:#a07848;
-    --text:#2a1800; --muted:#9a6a38; --muted2:#6e4820;
-    --green:#4e7a1a; --red:#c03018; --gold:#a07010; --blue:#2855a0; --orange:#c85c0a;
+  /* ── THÈME UNIQUE : BEIGE · ORANGE · OLIVE ── */
+  :root {
+    --bg:#ede6d5; --panel:rgba(245,239,226,0.94); --panel2:rgba(240,233,218,0.98);
+    --border:#c6a96e; --border2:#9a7a42;
+    --text:#1e1200; --muted:#8a6030; --muted2:#5e3e16;
+    --green:#5a7820; --red:#be2e10; --gold:#9a7010; --blue:#244fa0; --orange:#c85c0a;
     --accent:#c85c0a;
-    --header-bg:rgba(240,232,216,0.94); --bar-bg:rgba(236,228,212,0.93);
-    --weekbar-bg:rgba(232,224,206,0.91); --ticker-bg:rgba(228,220,202,0.94);
-  }
-  /* ── THÈME MILITAIRE OPEX ── */
-  html.theme-opex {
-    --bg:#161a10; --panel:rgba(24,30,16,0.93); --panel2:rgba(34,42,22,0.97);
-    --border:#384022; --border2:#4e5c2e;
-    --text:#b8c898; --muted:#6a7850; --muted2:#8a9a60;
-    --green:#6a9a22; --red:#b84020; --gold:#b88a08; --blue:#4a7aaa; --orange:#c07820;
-    --accent:#6a9a22;
-    --header-bg:rgba(18,22,12,0.96); --bar-bg:rgba(16,20,10,0.94);
-    --weekbar-bg:rgba(14,18,9,0.93); --ticker-bg:rgba(12,16,8,0.95);
+    --olive:#6b7c2a; --olive2:#8a9e38; --olive-bg:rgba(107,124,42,0.10);
+    --header-bg:rgba(241,234,220,0.96); --bar-bg:rgba(237,230,214,0.95);
+    --weekbar-bg:rgba(233,226,208,0.93); --ticker-bg:rgba(229,222,202,0.96);
   }
   *{margin:0;padding:0;box-sizing:border-box;}
   body{background:var(--bg);color:var(--text);font-family:var(--font-mono);font-size:12px;min-height:100vh;overflow-x:hidden;position:relative;}
@@ -73,15 +64,13 @@
   .meteo-inner .mx-title{font-family:var(--font-display);font-size:10px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--text);}
   .meteo-inner .mx-body{padding:12px 14px;}
 
-  /* ── SVG FOND — adaptation thème ── */
-  html.theme-opex #bg-svg rect[fill="url(#gM)"]{fill:url(#gM-opex);}
-  html.theme-opex #bg-svg path[stroke="rgba(80,100,120,0.1)"]{stroke:rgba(60,80,30,0.12);}
-  html.theme-opex #bg-svg path[stroke="rgba(60,80,110,0.2)"]{stroke:rgba(50,70,20,0.2);}
-  html.theme-opex #bg-svg [stroke*="rgba(30,60,90"]{stroke:rgba(80,100,40,0.22);}
-  html.theme-opex #bg-svg text{fill:rgba(80,110,40,0.35)!important;}
+  /* ── SVG FOND ── */
+  #bg-svg path[stroke="rgba(80,100,120,0.1)"]{stroke:rgba(107,124,42,0.10);}
+  #bg-svg path[stroke="rgba(60,80,110,0.2)"]{stroke:rgba(107,124,42,0.18);}
+  #bg-svg [stroke*="rgba(30,60,90"]{stroke:rgba(90,100,30,0.2);}
+  #bg-svg text{fill:rgba(90,70,20,0.3)!important;}
 
-  html.theme-beige .meteo-inner{--bg:rgba(244,236,220,0.92);--bg2:rgba(238,228,210,0.97);--ink:var(--text);--ink2:var(--muted2);--ink3:var(--muted);--line:var(--border);--accent:#c85c0a;--blue:#2855a0;}
-  html.theme-opex  .meteo-inner{--bg:rgba(24,30,16,0.93);--bg2:rgba(34,42,22,0.97);--ink:var(--text);--ink2:var(--muted2);--ink3:var(--muted);--line:var(--border);--accent:#6a9a22;--blue:#4a7aaa;}
+  .meteo-inner{--bg:rgba(245,239,226,0.94);--bg2:rgba(240,233,218,0.98);--ink:var(--text);--ink2:var(--muted2);--ink3:var(--muted);--line:var(--border);--accent:#c85c0a;--blue:#244fa0;}
 
   /* ── BOUTON SWITCH THEME ── */
   .theme-switch-btn{display:flex;align-items:center;gap:6px;border-radius:4px;padding:5px 11px;cursor:pointer;font-family:var(--font-mono);font-size:10px;letter-spacing:1px;transition:all .2s;border:1px solid;}
@@ -616,6 +605,38 @@
   .reset-confirm-btn.ready{opacity:1;pointer-events:auto;}
   .reset-confirm-btn.ready:hover{background:rgba(192,48,24,0.2);border-color:var(--red);}
   .reset-done-msg{display:none;text-align:center;padding:10px 0 4px;font-family:var(--font-mono);font-size:10px;color:var(--green);letter-spacing:1px;}
+  /* ── PANNEAU HEURES TRAVAILLÉES (basé sur clics Eurécia) ── */
+  .htrav-panel{background:var(--panel);border:1px solid var(--border);border-radius:5px;overflow:hidden;backdrop-filter:blur(4px);margin-top:14px;}
+  .htrav-header{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .htrav-title{font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--text);flex:1;}
+  .htrav-date{font-family:var(--font-mono);font-size:9px;color:var(--muted);letter-spacing:1px;}
+  .htrav-reset-btn{background:transparent;border:1px solid var(--border);border-radius:2px;padding:2px 7px;font-family:var(--font-mono);font-size:9px;color:var(--muted);cursor:pointer;letter-spacing:1px;transition:all .15s;}
+  .htrav-reset-btn:hover{border-color:var(--red);color:var(--red);}
+  .htrav-body{padding:10px 14px;}
+  .htrav-slots{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:10px;}
+  .htrav-slot{background:rgba(0,0,0,0.04);border:1px solid var(--border);border-radius:3px;padding:6px 5px;text-align:center;transition:all .2s;}
+  .htrav-slot.hit{background:rgba(107,124,42,0.12);border-color:rgba(107,124,42,0.5);}
+  .htrav-slot.hit .htrav-slot-ico{color:var(--olive2);}
+  .htrav-slot.hit .htrav-slot-time{color:var(--olive);}
+  .htrav-slot-ico{font-size:14px;line-height:1;margin-bottom:3px;}
+  .htrav-slot-time{font-family:var(--font-display);font-weight:700;font-size:10px;color:var(--muted2);letter-spacing:0.5px;}
+  .htrav-slot-label{font-family:var(--font-mono);font-size:7px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:2px;}
+  .htrav-divider{border:none;border-top:1px solid var(--border);margin:8px 0;}
+  .htrav-results{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;}
+  .htrav-metric{background:rgba(0,0,0,0.04);border:1px solid var(--border);border-radius:3px;padding:7px 9px;}
+  .htrav-metric-label{font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);margin-bottom:3px;}
+  .htrav-metric-val{font-family:var(--font-mono);font-size:17px;font-weight:700;color:var(--text);}
+  .htrav-metric-val.ok{color:var(--olive);}
+  .htrav-metric-val.partial{color:var(--gold);}
+  .htrav-metric-val.none{color:var(--muted);}
+  .htrav-bar-wrap{margin-bottom:8px;}
+  .htrav-bar-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+  .htrav-bar-lbl{font-size:8px;color:var(--muted2);letter-spacing:1px;text-transform:uppercase;}
+  .htrav-bar-pct{font-family:var(--font-mono);font-size:9px;color:var(--olive);font-weight:700;}
+  .htrav-bar-track{height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+  .htrav-bar-fill{height:100%;background:linear-gradient(90deg,var(--olive),var(--olive2));border-radius:3px;transition:width .4s ease;}
+  .htrav-info{font-family:var(--font-mono);font-size:8px;color:var(--muted);letter-spacing:0.5px;line-height:1.7;border-top:1px solid var(--border);padding-top:7px;}
+  .htrav-info b{color:var(--muted2);}
   /* Bouton danger dans hR */
   .danger-btn{display:flex;align-items:center;gap:6px;background:rgba(192,48,24,0.06);border:1px solid rgba(192,48,24,0.22);border-radius:4px;padding:5px 11px;cursor:pointer;font-family:var(--font-mono);font-size:10px;color:var(--red);letter-spacing:1px;transition:all .2s;user-select:none;}
   .danger-btn:hover{background:rgba(192,48,24,0.16);border-color:rgba(192,48,24,0.5);}
@@ -870,7 +891,6 @@
       </svg>
       RESET
     </button>
-    <button class="theme-switch-btn" id="themeSwitchBtn" onclick="switchTheme()" title="Changer de thème"></button>
     <button class="meteo-toggle-btn" id="meteoToggleBtn" onclick="toggleMeteo()" title="Afficher/masquer la météo">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9z"/>
@@ -1046,6 +1066,28 @@
       </div>
       <div class="notes-tabs" id="notesTabs"></div>
       <div class="notes-body" id="notesBody"></div>
+    </div>
+
+    <!-- Heures travaillées Eurécia -->
+    <div class="slabel" style="margin-top:14px">Pointage Eurécia</div>
+    <div class="htrav-panel" id="htravPanel">
+      <div class="htrav-header">
+        <div class="htrav-title">⏱ HEURES TRAVAILLÉES</div>
+        <span class="htrav-date" id="htravDate">—</span>
+        <button class="htrav-reset-btn" onclick="htravReset()" title="Réinitialiser le jour">↺ RAZ</button>
+      </div>
+      <div class="htrav-body">
+        <div class="htrav-slots" id="htravSlots"></div>
+        <div class="htrav-bar-wrap">
+          <div class="htrav-bar-label">
+            <span class="htrav-bar-lbl">Progression théorique</span>
+            <span class="htrav-bar-pct" id="htravPct">0%</span>
+          </div>
+          <div class="htrav-bar-track"><div class="htrav-bar-fill" id="htravBarFill" style="width:0%"></div></div>
+        </div>
+        <div class="htrav-results" id="htravResults"></div>
+        <div class="htrav-info" id="htravInfo"></div>
+      </div>
     </div>
 
   </div>
@@ -2422,6 +2464,179 @@ updateToggleUI();buildApps();buildFavs();buildClips();loadTodos();renderTodos();
   setInterval(checkPointageBanner, 30000); // vérif toutes les 30s
 })();
 
+// ── HEURES TRAVAILLÉES — basé sur clics Eurécia ───────────────────
+(function initHtrav(){
+  // Définition des 4 créneaux : id, heure, rôle
+  const SLOTS = [
+    { id:'s1', time:'7h30',  h:7,  m:30, role:'Arrivée',      ico:'🟢' },
+    { id:'s2', time:'12h25', h:12, m:25, role:'Pause déj.',   ico:'🍽' },
+    { id:'s3', time:'13h00', h:13, m:0,  role:'Retour',       ico:'🔄' },
+    { id:'s4', time:'15h40', h:15, m:40, role:'Départ',       ico:'🏁' },
+  ];
+  // Durée théorique totale si les 4 créneaux sont pointés :
+  // matin : 12h25 - 7h30 = 4h55 = 295 min
+  // après-midi : 15h40 - 13h00 = 2h40 = 160 min
+  // TOTAL : 7h35 = 455 min
+  const THEORIC_MIN = 455; // 7h35
+
+  const HTRAV_KEY = 'htrav_clics';
+
+  function getTodayKey(){
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  function loadClics(){
+    try {
+      const raw = JSON.parse(localStorage.getItem(HTRAV_KEY)||'{}');
+      if(raw.day !== getTodayKey()) return { day: getTodayKey(), hits: [] };
+      return raw;
+    } catch { return { day: getTodayKey(), hits: [] }; }
+  }
+
+  function saveClics(data){ localStorage.setItem(HTRAV_KEY, JSON.stringify(data)); }
+
+  // Enregistre un clic Eurécia — détecte le créneau le plus proche
+  window.htravRecordClic = function(){
+    const now = new Date();
+    const nowMins = now.getHours()*60 + now.getMinutes();
+    // Trouve le créneau non encore pointé le plus proche (dans une fenêtre ±60 min)
+    let best = null, bestDist = Infinity;
+    SLOTS.forEach(s => {
+      const slotMins = s.h*60 + s.m;
+      const dist = Math.abs(nowMins - slotMins);
+      if(dist < bestDist && dist <= 60) { bestDist = dist; best = s.id; }
+    });
+    const data = loadClics();
+    if(best && !data.hits.includes(best)){
+      data.hits.push(best);
+      saveClics(data);
+    }
+    renderHtrav();
+  };
+
+  window.htravReset = function(){
+    localStorage.removeItem(HTRAV_KEY);
+    renderHtrav();
+  };
+
+  function minsToHStr(mins){
+    const h = Math.floor(Math.abs(mins)/60);
+    const m = Math.abs(mins)%60;
+    return `${h}h${String(m).padStart(2,'0')}`;
+  }
+
+  function calcWorked(hits){
+    // Calcule les minutes travaillées selon les créneaux pointés
+    let total = 0;
+    // S1→S2 : matin (7h30→12h25 = 295 min)
+    if(hits.includes('s1') && hits.includes('s2')) total += 295;
+    else if(hits.includes('s1') && !hits.includes('s2')){
+      // S1 seul : compte jusqu'à maintenant si dans la plage, sinon max matin
+      const now = new Date();
+      const nowMins = now.getHours()*60 + now.getMinutes();
+      const s1End = 12*60+25;
+      if(nowMins < s1End) total += Math.max(0, nowMins - (7*60+30));
+      else total += 295; // plage matin complète
+    }
+    // S3→S4 : après-midi (13h00→15h40 = 160 min)
+    if(hits.includes('s3') && hits.includes('s4')) total += 160;
+    else if(hits.includes('s3') && !hits.includes('s4')){
+      const now = new Date();
+      const nowMins = now.getHours()*60 + now.getMinutes();
+      const s4End = 15*60+40;
+      if(nowMins < s4End) total += Math.max(0, nowMins - (13*60));
+      else total += 160;
+    }
+    return total;
+  }
+
+  function renderHtrav(){
+    const data = loadClics();
+    const hits = data.hits || [];
+
+    // Date
+    const dateEl = document.getElementById('htravDate');
+    if(dateEl){
+      const d = new Date();
+      const days = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+      dateEl.textContent = `${days[d.getDay()]} ${d.getDate()}/${d.getMonth()+1}`;
+    }
+
+    // Slots
+    const slotsEl = document.getElementById('htravSlots');
+    if(slotsEl){
+      slotsEl.innerHTML = SLOTS.map(s => {
+        const hit = hits.includes(s.id);
+        return `<div class="htrav-slot ${hit?'hit':''}">
+          <div class="htrav-slot-ico">${s.ico}</div>
+          <div class="htrav-slot-time">${s.time}</div>
+          <div class="htrav-slot-label">${s.role}</div>
+        </div>`;
+      }).join('');
+    }
+
+    // Calcul
+    const workedMin = calcWorked(hits);
+    const pct = Math.min(100, Math.round(workedMin / THEORIC_MIN * 100));
+    const diffMin = workedMin - THEORIC_MIN;
+    const cls = hits.length === 4 ? 'ok' : hits.length >= 2 ? 'partial' : 'none';
+
+    // Barre
+    const fillEl = document.getElementById('htravBarFill');
+    const pctEl  = document.getElementById('htravPct');
+    if(fillEl) fillEl.style.width = pct + '%';
+    if(pctEl)  { pctEl.textContent = pct + '%'; pctEl.style.color = cls==='ok'?'var(--olive)':cls==='partial'?'var(--gold)':'var(--muted)'; }
+
+    // Métriques
+    const resultsEl = document.getElementById('htravResults');
+    if(resultsEl){
+      resultsEl.innerHTML = `
+        <div class="htrav-metric">
+          <div class="htrav-metric-label">Travaillé</div>
+          <div class="htrav-metric-val ${cls}">${workedMin>0?minsToHStr(workedMin):'—'}</div>
+        </div>
+        <div class="htrav-metric">
+          <div class="htrav-metric-label">Théorique</div>
+          <div class="htrav-metric-val">${minsToHStr(THEORIC_MIN)}</div>
+        </div>
+        <div class="htrav-metric">
+          <div class="htrav-metric-label">Écart</div>
+          <div class="htrav-metric-val ${diffMin>=0?'ok':hits.length>0?'partial':'none'}">${hits.length>0?(diffMin>=0?'+':'')+minsToHStr(diffMin):'—'}</div>
+        </div>
+        <div class="htrav-metric">
+          <div class="htrav-metric-label">Pointages</div>
+          <div class="htrav-metric-val ${cls}">${hits.length}/4</div>
+        </div>`;
+    }
+
+    // Info
+    const infoEl = document.getElementById('htravInfo');
+    if(infoEl){
+      const missing = SLOTS.filter(s=>!hits.includes(s.id)).map(s=>s.time);
+      if(hits.length===4){
+        infoEl.innerHTML = `<b>Journée complète</b> — 4/4 créneaux badgés. ${diffMin>=0?'Surplus : <b>+'+minsToHStr(diffMin)+'</b>':'Vous avez travaillé <b>'+minsToHStr(workedMin)+'</b>.'}`;
+      } else if(hits.length>0){
+        infoEl.innerHTML = `<b>${hits.length} créneau${hits.length>1?'x':''} badgé${hits.length>1?'s':''}</b> · Manquants : <b>${missing.join(', ')}</b>`;
+      } else {
+        infoEl.innerHTML = `Cliquez sur <b>OUVRIR EURÉCIA ↗</b> dans le bandeau de rappel pour badger. Chaque clic enregistre un créneau.`;
+      }
+    }
+  }
+
+  renderHtrav();
+  // Rafraîchit toutes les minutes (pour le calcul du temps partiel)
+  setInterval(renderHtrav, 60000);
+
+  // Accroche sur le lien Eurécia dans le bandeau : on enregistre le clic
+  document.addEventListener('click', e => {
+    const link = e.target.closest('.ptg-link');
+    if(link && link.href && link.href.includes('eurecia')) {
+      htravRecordClic();
+    }
+  }, true);
+})();
+
 // ── BANDE DÉFILANTE ────────────────────────────────────────────
 let tickerBtc = null;
 let tickerBtcTs = 0;
@@ -2949,44 +3164,6 @@ function toggleMeteo(){
 })();
 
 // ══════════════════════════════════════════════════════════════════
-//  THEME SWITCH — beige-orange ↔ militaire opex
-// ══════════════════════════════════════════════════════════════════
-(function(){
-  const THEMES = {
-    'theme-beige': {
-      label:'🪖 OPEX',
-      color:'#a07848', border:'rgba(160,120,72,.38)', bg:'rgba(160,120,72,.09)'
-    },
-    'theme-opex': {
-      label:'🌅 BEIGE',
-      color:'#7aaa30', border:'rgba(106,154,34,.38)', bg:'rgba(106,154,34,.09)'
-    }
-  };
-
-  function applyTheme(t){
-    document.documentElement.className = t;
-    const btn = document.getElementById('themeSwitchBtn');
-    if(!btn) return;
-    const cfg = THEMES[t];
-    btn.textContent = cfg.label;
-    btn.style.color       = cfg.color;
-    btn.style.borderColor = cfg.border;
-    btn.style.background  = cfg.bg;
-  }
-
-  const saved = localStorage.getItem('launcher_theme') || 'theme-beige';
-  applyTheme(saved);
-
-  window.switchTheme = function(){
-    const cur = document.documentElement.className.includes('theme-opex') ? 'theme-opex' : 'theme-beige';
-    const next = cur === 'theme-opex' ? 'theme-beige' : 'theme-opex';
-    localStorage.setItem('launcher_theme', next);
-    applyTheme(next);
-  };
-})();
-
-
-// ══════════════════════════════════════════════════════════════════
 //  TICKER PAUSE TOGGLE
 // ══════════════════════════════════════════════════════════════════
 window.toggleTickerPause = function(){
@@ -3311,10 +3488,7 @@ document.addEventListener('keydown', e => {
 window.doResetStorage = function(){
   const btn = document.getElementById('resetConfirmBtn');
   if(!btn.classList.contains('ready')) return;
-  // Sauvegarde du thème courant pour le réappliquer après
-  const theme = localStorage.getItem('launcher_theme') || 'theme-beige';
   localStorage.clear();
-  localStorage.setItem('launcher_theme', theme);
   const done = document.getElementById('resetDoneMsg');
   done.style.display = 'block';
   btn.textContent = '✓ EFFACÉ';
