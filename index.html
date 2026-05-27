@@ -79,6 +79,15 @@
   .app-card:hover .app-nt{opacity:1;}
   .app-nt:hover{color:var(--blue);background:var(--border2);}
 
+  /* ── CARTE COMPACTE (utilitaires) ── */
+  .app-card-sm{flex-direction:row;align-items:center;padding:7px 10px;gap:8px;}
+  .app-card-sm .app-icon{width:22px;height:22px;font-size:12px;flex-shrink:0;}
+  .app-card-sm .app-name{font-size:11px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .app-card-sm .app-desc{display:none;}
+  .app-card-sm .app-badge{font-size:7px;letter-spacing:1.5px;white-space:nowrap;flex-shrink:0;opacity:0.45;}
+  .app-card-sm .app-nt{top:50%;transform:translateY(-50%);}
+  .app-card-sm .app-offline-dot{top:50%;transform:translateY(-50%);}
+
   /* ── TODO ── */
   .todo-panel{background:var(--panel);border:1px solid var(--border);border-radius:5px;overflow:hidden;backdrop-filter:blur(4px);}
   .todo-header{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
@@ -1455,7 +1464,7 @@ function buildApps(){
   const orderedApps = getOrderedApps();
 
   orderedApps.forEach(a=>{
-    const c=document.createElement('div');c.className='app-card';c.draggable=true;c.dataset.name=a.name;
+    const c=document.createElement('div');c.className='app-card app-card-sm';c.draggable=true;c.dataset.name=a.name;
     c.innerHTML=`<div class="app-offline-dot"></div><div class="app-nt" title="Nouvel onglet">↗</div><div class="app-icon">${a.emoji}</div><div class="app-name">${a.name}</div><div class="app-desc">${a.desc}</div><div class="app-badge">${a.badge}</div>`;
 
     const doOpen = () => {
