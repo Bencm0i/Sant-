@@ -796,13 +796,6 @@
       <div class="logo-sub">BASE OPS // OUTILS LOCAUX</div>
     </div>
     <div class="sep"></div>
-    <a class="ff-btn" href="about:home" title="Page d'accueil Firefox">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-        <polyline points="9,22 9,12 15,12 15,22"/>
-      </svg>
-      FIREFOX HOME
-    </a>
     <a class="ff-btn mega-btn" href="https://mega.nz" target="_blank" rel="noopener" title="MEGA Cloud">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
@@ -1336,7 +1329,11 @@ const APPS=[
   {file:'suivi_conges_v4.html',            name:'Suivi Congés',     desc:'Demandes · Suivi · Réponse auto',      emoji:'🏖',badge:'RH', action:'conges'},
   {file:'demande_conge_PDF.html',          name:'Demande Absence',  desc:'Formulaire PDF · Aventech · Calibrage', emoji:'📋',badge:'RH', action:'dcpdf'},
   {file:'pdf-redact-local.html',           name:'PDF Redact',       desc:'Caviarder · Biffer zones · Export PDF',  emoji:'🔏',badge:'OUTIL', action:'pdfredact'},
-  {url:'https://www.prorealtime.com/fr/login', name:'ProRealTime',  desc:'Plateforme de trading · Graphiques · Marchés', emoji:'📊',badge:'FINANCE'},
+  {url:'https://www.prorealtime.com/fr/login',                          name:'ProRealTime',     desc:'Plateforme de trading · Graphiques · Marchés',  emoji:'📊',badge:'FINANCE'},
+  {url:'https://bencm0i.github.io/Sant-/meeting-notes.html',           name:'Meeting Notes',   desc:'Notes de réunion · Compte-rendu',               emoji:'📝',badge:'OUTIL'},
+  {url:'https://bencm0i.github.io/smart/meteo_dashboard_chauffage.html',name:'Météo Chauffage',desc:'Dashboard météo · Gestion chauffage',            emoji:'🌡',badge:'SMART'},
+  {url:'https://bencm0i.github.io/smart/conscience',                   name:'Conscience',      desc:'Smart · Conscience',                            emoji:'🧠',badge:'SMART'},
+  {url:'https://www.pappers.fr/',                                       name:'Pappers',         desc:'Recherche entreprises · Informations légales',  emoji:'🏢',badge:'BUSINESS'},
 ];
 
 let newTab=localStorage.getItem('launcher_newtab')==='1';
