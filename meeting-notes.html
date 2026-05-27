@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Réunion</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Sans:wght@300;400;600&display=swap');
+
+:root {
+  --bg: #0b0818;
+  --surface: #120f24;
+  --border: #2b1f4a;
+  --accent: #c084fc;
+  --accent-dim: #9055cc;
+  --text: #c4b5e8;
+  --text-dim: #4d3d70;
+  --text-bright: #ede8ff;
+  --action: #f472b6;
+  --action-dim: #9e3370;
+  --decision: #67e8f9;
+  --question: #fbbf24;
+  --important: #fb923c;
+  --danger: #f87171;
+  --sidebar-w: 210px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Sans', sans-serif; display: flex; height: 100vh; }
+
+/* SIDEBAR */
+#sidebar {
+  width: var(--sidebar-w); flex-shrink: 0;
+  background: var(--surface); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden;
+  transition: width 0.2s;
+}
+#sidebar.collapsed { width: 0; border-right: none; }
+
+.sidebar-header {
+  padding: 11px 12px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+}
+.sidebar-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .15em; color: var(--text-dim); }
+.sidebar-new {
+  background: none; border: 1px solid var(--border); color: var(--accent);
+  font-family: 'IBM Plex Mono', monospace; font-size: 15px; cursor: pointer;
+  padding: 1px 7px; border-radius: 2px; line-height: 1; transition: all .15s;
+}
+.sidebar-new:hover { background: rgba(192,132,252,.1); }
+
+#meeting-list { flex: 1; overflow-y: auto; padding: 4px 0; }
+
+.meeting-entry {
+  padding: 7px 12px; cursor: pointer; transition: background .1s;
+  border-left: 2px solid transparent;
+}
+.meeting-entry:hover { background: rgba(255,255,255,.03); }
+.meeting-entry.active { border-left-color: var(--accent); background: rgba(192,132,252,.07); }
+
+.me-title {
+  font-size: 12px; color: var(--text-bright); font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.meeting-entry.active .me-title { color: var(--accent); }
+.me-meta { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-dim); margin-top: 1px; }
+.me-del {
+  float: right; background: none; border: none; color: var(--text-dim);
+  cursor: pointer; font-size: 13px; opacity: 0; transition: opacity .15s; padding: 0 2px;
+}
+.meeting-entry:hover .me-del { opacity: 1; }
+.me-del:hover { color: var(--danger); }
+
+/* APP */
+#app { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+/* TOPBAR */
+#topbar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 14px; border-bottom: 1px solid var(--border);
+  background: var(--surface); flex-shrink: 0;
+}
+.icon-btn {
+  background: none; border: none; color: var(--text-dim); cursor: pointer;
+  font-size: 15px; padding: 4px 6px; border-radius: 2px;
+  transition: color .15s, background .15s; line-height: 1; flex-shrink: 0;
+}
+.icon-btn:hover { color: var(--accent); background: rgba(192,132,252,.1); }
+
+#meeting-title {
+  flex: 1; background: transparent; border: none; outline: none;
+  font-family: 'IBM Plex Sans', sans-serif; font-size: 16px; font-weight: 600;
+  color: var(--text-bright); caret-color: var(--accent); min-width: 0;
+}
+#meeting-title::placeholder { color: var(--text-dim); font-weight: 300; }
+
+#timer {
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--accent);
+  letter-spacing: .05em; flex-shrink: 0; cursor: pointer;
+  padding: 3px 8px; border: 1px solid var(--border); border-radius: 2px; transition: all .15s;
+}
+#timer:hover { border-color: var(--accent); }
+#timer.paused { color: var(--text-dim); }
+
+#date-display { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-dim); flex-shrink: 0; }
+
+/* PARTICIPANTS */
+#participants-bar {
+  padding: 5px 14px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+}
+.bar-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .1em; flex-shrink: 0; }
+#participants { flex: 1; background: transparent; border: none; outline: none; font-size: 12px; color: var(--text); caret-color: var(--accent); }
+#participants::placeholder { color: var(--text-dim); }
+
+/* MAIN */
+#main { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+
+/* LEFT */
+#left-panel { flex: 1; display: flex; flex-direction: column; border-right: 1px solid var(--border); min-width: 0; overflow: hidden; }
+
+/* AGENDA */
+#agenda-section { border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0; }
+#agenda-header { display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; cursor: pointer; user-select: none; }
+.section-title { font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .12em; color: var(--text-dim); }
+#agenda-toggle-icon { font-size: 9px; color: var(--text-dim); transition: transform .2s; }
+#agenda-section.open #agenda-toggle-icon { transform: rotate(180deg); }
+#agenda-body { display: none; padding: 4px 10px 8px; }
+#agenda-section.open #agenda-body { display: block; }
+#agenda-items { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; min-height: 4px; }
+
+.agenda-chip {
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 3px 8px;
+  border: 1px solid var(--border); color: var(--text-dim); border-radius: 2px;
+  cursor: pointer; background: transparent; transition: all .15s;
+  display: flex; align-items: center; gap: 5px;
+}
+.agenda-chip:hover { border-color: var(--accent); color: var(--accent); }
+.chip-del { color: var(--text-dim); font-size: 12px; border: none; background: none; cursor: pointer; padding: 0; }
+.agenda-chip:hover .chip-del { color: var(--danger); }
+
+#agenda-input-row { display: flex; gap: 6px; align-items: center; }
+#agenda-input {
+  flex: 1; background: transparent; border: none; border-bottom: 1px solid var(--border);
+  outline: none; font-size: 12px; color: var(--text); padding: 2px 4px; caret-color: var(--accent);
+}
+#agenda-input::placeholder { color: var(--text-dim); }
+
+/* NOTES */
+#notes-section { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+#notes-toolbar {
+  display: flex; gap: 3px; padding: 5px 10px; border-bottom: 1px solid var(--border);
+  flex-shrink: 0; flex-wrap: wrap; align-items: center;
+}
+.tag-btn {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px; padding: 3px 7px;
+  border: 1px solid var(--border); background: transparent; color: var(--text-dim);
+  cursor: pointer; border-radius: 2px; transition: all .15s; letter-spacing: .03em;
+}
+.tag-btn:hover { border-color: var(--accent); color: var(--accent); }
+.tag-btn.act { border-color: rgba(244,114,182,.3); color: var(--action); }
+.tag-btn.act:hover { background: rgba(244,114,182,.06); }
+.tag-btn.dec { border-color: rgba(103,232,249,.3); color: var(--decision); }
+.tag-btn.dec:hover { background: rgba(103,232,249,.06); }
+.tag-btn.que { border-color: rgba(251,191,36,.3); color: var(--question); }
+.tag-btn.que:hover { background: rgba(251,191,36,.06); }
+.tag-btn.imp { border-color: rgba(251,146,60,.3); color: var(--important); }
+.tag-btn.imp:hover { background: rgba(251,146,60,.06); }
+.toolbar-sep { width: 1px; height: 12px; background: var(--border); margin: 0 3px; }
+.char-count { margin-left: auto; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-dim); }
+
+/* NOTES EDITOR — overlay technique */
+.notes-wrapper { flex: 1; position: relative; overflow: hidden; min-height: 0; }
+
+#notes-highlight {
+  position: absolute; inset: 0; pointer-events: none;
+  font-family: 'IBM Plex Mono', monospace; font-size: 13px; line-height: 1.75;
+  padding: 14px 18px; white-space: pre-wrap; word-break: break-word;
+  overflow: hidden; box-sizing: border-box; color: var(--text);
+  letter-spacing: 0; tab-size: 4;
+}
+#notes-area {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  background: transparent; color: transparent; caret-color: var(--accent);
+  font-family: 'IBM Plex Mono', monospace; font-size: 13px; line-height: 1.75;
+  padding: 14px 18px; border: none; outline: none; resize: none;
+  overflow-y: auto; box-sizing: border-box; z-index: 1;
+  letter-spacing: 0; tab-size: 4;
+}
+
+.hl-action   { color: var(--action); }
+.hl-decision { color: var(--decision); }
+.hl-question { color: var(--question); }
+.hl-important{ color: var(--important); }
+.hl-section  { color: var(--accent); font-style: italic; }
+
+/* RIGHT PANEL */
+#right-panel { width: 290px; flex-shrink: 0; display: flex; flex-direction: column; overflow: hidden; }
+
+.panel-section { display: flex; flex-direction: column; border-bottom: 1px solid var(--border); min-height: 0; }
+.panel-header { padding: 7px 10px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.panel-title { font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .12em; color: var(--text-dim); flex: 1; }
+.panel-count { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-dim); background: var(--border); padding: 1px 5px; border-radius: 10px; }
+
+/* ACTIONS */
+#actions-section { flex: 1; overflow: hidden; }
+#actions-list { overflow-y: auto; padding: 2px 6px; max-height: 240px; }
+
+.action-item {
+  display: flex; align-items: flex-start; gap: 5px;
+  padding: 5px 5px; border-radius: 2px; cursor: grab; transition: background .1s;
+  border-left: 2px solid transparent;
+}
+.action-item:hover { background: rgba(192,132,252,.05); }
+.action-item.dragging { opacity: .35; }
+.action-item.drag-over { border-left-color: var(--accent); }
+.action-item.done { opacity: .4; }
+.action-item.done .action-text { text-decoration: line-through; }
+.action-item.auto-item { border-left-color: rgba(244,114,182,.2); }
+
+.drag-handle { color: var(--text-dim); font-size: 11px; margin-top: 2px; cursor: grab; flex-shrink: 0; opacity: .3; }
+.action-item:hover .drag-handle { opacity: 1; }
+
+.action-check {
+  width: 13px; height: 13px; border: 1px solid var(--action-dim); border-radius: 2px;
+  flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center;
+  font-size: 9px; color: var(--action); cursor: pointer; transition: background .15s;
+}
+.action-item.done .action-check { background: var(--action-dim); color: var(--bg); }
+
+.action-body { flex: 1; min-width: 0; }
+.action-text { font-size: 12px; color: var(--text); line-height: 1.4; word-break: break-word; }
+.action-meta { display: flex; gap: 5px; margin-top: 2px; flex-wrap: wrap; align-items: center; }
+.action-assignee { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-dim); }
+.action-due      { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--question); }
+.action-auto-badge { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--text-dim); border: 1px solid var(--border); padding: 0 3px; border-radius: 2px; }
+.action-ts { font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: var(--text-dim); }
+
+.action-del { background: none; border: none; color: transparent; cursor: pointer; font-size: 13px; padding: 0 2px; flex-shrink: 0; transition: color .15s; margin-top: 1px; }
+.action-item:hover .action-del { color: var(--text-dim); }
+.action-del:hover { color: var(--danger) !important; }
+
+#action-form { border-top: 1px solid var(--border); padding: 5px 8px; flex-shrink: 0; }
+.action-input-row { display: flex; gap: 4px; align-items: center; margin-bottom: 3px; }
+.action-input-row:last-child { margin-bottom: 0; }
+#action-input, #action-assignee-input, #action-due-input {
+  background: transparent; border: none; outline: none;
+  font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; color: var(--text);
+  caret-color: var(--action); flex: 1;
+}
+#action-input { font-size: 13px; }
+#action-input::placeholder, #action-assignee-input::placeholder { color: var(--text-dim); }
+#action-due-input { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color-scheme: dark; max-width: 130px; }
+.add-btn { font-family: 'IBM Plex Mono', monospace; font-size: 16px; background: transparent; border: none; color: var(--text-dim); cursor: pointer; line-height: 1; padding: 0 4px; transition: color .15s; }
+.add-btn:hover { color: var(--action); }
+.meta-label { font-size: 10px; color: var(--text-dim); font-family: 'IBM Plex Mono', monospace; flex-shrink: 0; }
+
+/* DECISIONS */
+#decisions-section { overflow: hidden; }
+#decisions-list { overflow-y: auto; padding: 2px 6px; max-height: 140px; }
+
+.decision-item { display: flex; align-items: flex-start; gap: 6px; padding: 5px 5px; border-radius: 2px; transition: background .1s; }
+.decision-item:hover { background: rgba(103,232,249,.04); }
+.decision-dot { width: 5px; height: 5px; background: var(--decision); border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+.decision-text { font-size: 12px; color: var(--text); flex: 1; line-height: 1.4; word-break: break-word; }
+.decision-ts { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-dim); flex-shrink: 0; margin-top: 1px; }
+.decision-del { background: none; border: none; color: transparent; cursor: pointer; font-size: 13px; padding: 0 2px; transition: color .15s; }
+.decision-item:hover .decision-del { color: var(--text-dim); }
+.decision-del:hover { color: var(--danger) !important; }
+
+#decision-form { border-top: 1px solid var(--border); padding: 5px 8px; display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
+#decision-input { flex: 1; background: transparent; border: none; outline: none; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; color: var(--text); caret-color: var(--decision); }
+#decision-input::placeholder { color: var(--text-dim); }
+.dec-add:hover { color: var(--decision) !important; }
+
+/* EXPORT */
+#export-section { padding: 8px; display: flex; gap: 5px; flex-direction: column; flex-shrink: 0; }
+.export-btn {
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .08em;
+  text-transform: uppercase; padding: 7px 10px; border-radius: 2px; cursor: pointer;
+  border: 1px solid var(--border); background: transparent; color: var(--text-dim);
+  transition: all .15s; text-align: left;
+}
+.export-btn:hover { border-color: var(--accent); color: var(--accent); }
+.export-btn.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+.export-btn.primary:hover { background: var(--accent-dim); border-color: var(--accent-dim); }
+.export-btn.danger { color: var(--danger); border-color: rgba(248,113,113,.2); }
+.export-btn.danger:hover { border-color: var(--danger); background: rgba(248,113,113,.05); }
+
+/* SHORTCUTS MODAL */
+#shortcuts-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.72); z-index: 1000; align-items: center; justify-content: center; }
+#shortcuts-modal.open { display: flex; }
+.modal-box { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 22px; min-width: 300px; }
+.modal-title { font-family: 'IBM Plex Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--accent); margin-bottom: 14px; }
+.sc-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--border); }
+.sc-row:last-of-type { border-bottom: none; }
+.sc-desc { font-size: 13px; color: var(--text); }
+.sc-key { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--accent); background: rgba(192,132,252,.1); border: 1px solid rgba(192,132,252,.2); padding: 2px 6px; border-radius: 3px; }
+.modal-close { margin-top: 14px; width: 100%; font-family: 'IBM Plex Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; padding: 7px; background: transparent; border: 1px solid var(--border); color: var(--text-dim); cursor: pointer; border-radius: 2px; transition: all .15s; }
+.modal-close:hover { border-color: var(--accent); color: var(--accent); }
+
+/* TOAST */
+#toast { position: fixed; bottom: 16px; right: 16px; background: var(--accent); color: var(--bg); font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; padding: 7px 14px; border-radius: 2px; opacity: 0; transform: translateY(6px); transition: all .2s; pointer-events: none; z-index: 2000; }
+#toast.show { opacity: 1; transform: translateY(0); }
+
+/* SCROLLBARS */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+input[type="date"] { color-scheme: dark; }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <div class="sidebar-header">
+    <span class="sidebar-label">Réunions</span>
+    <button class="sidebar-new" onclick="newMeeting()" title="Nouvelle réunion (Ctrl+Shift+N)">+</button>
+  </div>
+  <div id="meeting-list"></div>
+</div>
+
+<div id="app">
+  <div id="topbar">
+    <button class="icon-btn" onclick="toggleSidebar()" title="Panneau réunions">☰</button>
+    <input id="meeting-title" type="text" placeholder="Titre de la réunion…" autocomplete="off" spellcheck="false" oninput="saveCurrent()">
+    <span id="date-display"></span>
+    <span id="timer" title="Clic = pause/reprise">00:00</span>
+    <button class="icon-btn" onclick="document.getElementById('shortcuts-modal').classList.add('open')" title="Raccourcis">?</button>
+  </div>
+
+  <div id="participants-bar">
+    <span class="bar-label">Présents</span>
+    <input id="participants" type="text" placeholder="Noms séparés par des virgules…" autocomplete="off" oninput="saveCurrent()">
+  </div>
+
+  <div id="main">
+    <div id="left-panel">
+
+      <div id="agenda-section">
+        <div id="agenda-header" onclick="toggleAgenda()">
+          <span class="section-title">Ordre du jour</span>
+          <span id="agenda-toggle-icon">▼</span>
+        </div>
+        <div id="agenda-body">
+          <div id="agenda-items"></div>
+          <div id="agenda-input-row">
+            <input id="agenda-input" type="text" placeholder="Ajouter un point…" autocomplete="off">
+            <button class="add-btn" onclick="addAgendaItem()" style="color:var(--accent);font-size:15px">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="notes-section">
+        <div id="notes-toolbar">
+          <button class="tag-btn act" onclick="insertTag('ACTION')"    title="Ctrl+1">⚡ ACTION</button>
+          <button class="tag-btn dec" onclick="insertTag('DÉCISION')"  title="Ctrl+2">◈ DÉCISION</button>
+          <button class="tag-btn que" onclick="insertTag('?')"         title="Ctrl+3">? Question</button>
+          <button class="tag-btn imp" onclick="insertTag('!')"         title="Ctrl+4">! Important</button>
+          <div class="toolbar-sep"></div>
+          <button class="tag-btn"    onclick="insertTag('SECTION')"    title="Ctrl+5">§ Section</button>
+          <span class="char-count" id="char-count">0 car.</span>
+        </div>
+        <div class="notes-wrapper">
+          <div id="notes-highlight" aria-hidden="true"></div>
+          <textarea id="notes-area" placeholder="Notes libres…&#10;Utilisez les boutons ou Ctrl+1/2/3/4 pour baliser." spellcheck="true" oninput="onNotesInput()" onscroll="syncHlScroll()"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div id="right-panel">
+      <div class="panel-section" id="actions-section">
+        <div class="panel-header">
+          <span class="panel-title">⚡ Actions</span>
+          <span class="panel-count" id="action-count">0</span>
+        </div>
+        <div id="actions-list"></div>
+        <div id="action-form">
+          <div class="action-input-row">
+            <input id="action-input" type="text" placeholder="Ajouter une action…" autocomplete="off">
+            <button class="add-btn" onclick="addManualAction()">+</button>
+          </div>
+          <div class="action-input-row">
+            <span class="meta-label">@</span>
+            <input id="action-assignee-input" type="text" placeholder="Assigné à…" autocomplete="off">
+            <input id="action-due-input" type="date" title="Échéance">
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-section" id="decisions-section">
+        <div class="panel-header">
+          <span class="panel-title">◈ Décisions</span>
+          <span class="panel-count" id="decision-count">0</span>
+        </div>
+        <div id="decisions-list"></div>
+        <div id="decision-form">
+          <input id="decision-input" type="text" placeholder="Ajouter une décision…" autocomplete="off">
+          <button class="add-btn dec-add" onclick="addManualDecision()">+</button>
+        </div>
+      </div>
+
+      <div class="panel-section" id="export-section">
+        <button class="export-btn primary" onclick="exportClipboard()">↗ Copier le compte-rendu</button>
+        <button class="export-btn"         onclick="exportMarkdown()">↓ Télécharger Markdown</button>
+        <button class="export-btn"         onclick="exportTxt()">↓ Télécharger .txt</button>
+        <button class="export-btn danger"  onclick="clearMeeting()">⊘ Réinitialiser cette réunion</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="shortcuts-modal" onclick="this.classList.remove('open')">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-title">Raccourcis clavier</div>
+    <div class="sc-row"><span class="sc-desc">Tag [ACTION]</span><span class="sc-key">Ctrl+1</span></div>
+    <div class="sc-row"><span class="sc-desc">Tag [DÉCISION]</span><span class="sc-key">Ctrl+2</span></div>
+    <div class="sc-row"><span class="sc-desc">Tag [?] Question</span><span class="sc-key">Ctrl+3</span></div>
+    <div class="sc-row"><span class="sc-desc">Tag [!] Important</span><span class="sc-key">Ctrl+4</span></div>
+    <div class="sc-row"><span class="sc-desc">Nouvelle section §</span><span class="sc-key">Ctrl+5</span></div>
+    <div class="sc-row"><span class="sc-desc">Copier compte-rendu</span><span class="sc-key">Ctrl+Shift+C</span></div>
+    <div class="sc-row"><span class="sc-desc">Nouvelle réunion</span><span class="sc-key">Ctrl+Shift+N</span></div>
+    <div class="sc-row"><span class="sc-desc">Focus notes</span><span class="sc-key">Ctrl+Shift+E</span></div>
+    <div class="sc-row"><span class="sc-desc">Pause / reprise timer</span><span class="sc-key">Clic sur le timer</span></div>
+    <button class="modal-close" onclick="document.getElementById('shortcuts-modal').classList.remove('open')">Fermer</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════
+let state = { meetings: [], currentId: null };
+let timerInterval = null;
+let timerPaused = false;
+let pauseStart = null;
+let dragSrcIdx = null;
+
+// ══════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════
+function init() {
+  loadState();
+  if (!state.meetings.length) newMeeting(false);
+  else loadMeeting(state.currentId || state.meetings[0].id);
+  updateDate();
+  startTimerLoop();
+  renderMeetingList();
+  document.addEventListener('keydown', handleShortcuts);
+}
+
+function uid() { return Math.random().toString(36).slice(2,10); }
+function nowStr() { return new Date().toTimeString().slice(0,5); }
+function pad(n) { return String(n).padStart(2,'0'); }
+
+// ══════════════════════════════════════════════
+//  PERSISTENCE
+// ══════════════════════════════════════════════
+function loadState() {
+  try { const s = localStorage.getItem('mtg_v3'); if (s) state = JSON.parse(s); } catch {}
+}
+
+function saveState() {
+  const m = currentMeeting();
+  if (m) {
+    m.title        = document.getElementById('meeting-title').value;
+    m.participants = document.getElementById('participants').value;
+    m.notes        = document.getElementById('notes-area').value;
+  }
+  state.currentId = state.currentId;
+  try { localStorage.setItem('mtg_v3', JSON.stringify(state)); } catch {}
+  renderMeetingList();
+}
+
+function saveCurrent() { saveState(); }
+function currentMeeting() { return state.meetings.find(m => m.id === state.currentId); }
+
+// ══════════════════════════════════════════════
+//  MEETINGS
+// ══════════════════════════════════════════════
+function newMeeting(switchTo = true) {
+  const m = {
+    id: uid(), title: '', date: new Date().toISOString(),
+    participants: '', notes: '',
+    startTime: Date.now(), pausedOffset: 0,
+    agenda: [], actions: [], decisions: []
+  };
+  state.meetings.unshift(m);
+  state.currentId = m.id;
+  saveState();
+  if (switchTo) loadMeeting(m.id);
+  renderMeetingList();
+}
+
+function loadMeeting(id) {
+  saveState();
+  state.currentId = id;
+  const m = state.meetings.find(x => x.id === id);
+  if (!m) return;
+  document.getElementById('meeting-title').value = m.title || '';
+  document.getElementById('participants').value   = m.participants || '';
+  document.getElementById('notes-area').value     = m.notes || '';
+  document.getElementById('char-count').textContent = (m.notes||'').length + ' car.';
+  timerPaused = false; pauseStart = null;
+  document.getElementById('timer').classList.remove('paused');
+  updateHighlight();
+  renderAgenda();
+  renderActions();
+  renderDecisions();
+  renderMeetingList();
+  document.getElementById('notes-area').focus();
+}
+
+function deleteMeeting(id, e) {
+  e.stopPropagation();
+  if (!confirm('Supprimer cette réunion ?')) return;
+  state.meetings = state.meetings.filter(m => m.id !== id);
+  if (!state.meetings.length) newMeeting(false);
+  if (state.currentId === id) state.currentId = state.meetings[0].id;
+  saveState();
+  loadMeeting(state.currentId);
+}
+
+function renderMeetingList() {
+  const list = document.getElementById('meeting-list');
+  list.innerHTML = '';
+  state.meetings.forEach(m => {
+    const div = document.createElement('div');
+    div.className = 'meeting-entry' + (m.id === state.currentId ? ' active' : '');
+    const d = new Date(m.date);
+    const ds = d.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit', year:'2-digit'});
+    const pending = (m.actions||[]).filter(a=>!a.done).length;
+    div.innerHTML = `
+      <button class="me-del" onclick="deleteMeeting('${m.id}',event)" title="Supprimer">×</button>
+      <div class="me-title">${esc(m.title||'Sans titre')}</div>
+      <div class="me-meta">${ds}${pending ? ' · '+pending+' action'+(pending>1?'s':'') : ''}</div>`;
+    div.addEventListener('click', () => loadMeeting(m.id));
+    list.appendChild(div);
+  });
+}
+
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('collapsed'); }
+
+// ══════════════════════════════════════════════
+//  TIMER
+// ══════════════════════════════════════════════
+function startTimerLoop() {
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    if (timerPaused) return;
+    const m = currentMeeting(); if (!m) return;
+    const elapsed = Math.floor((Date.now() - m.startTime + (m.pausedOffset||0)) / 1000);
+    const h = Math.floor(elapsed/3600), mn = Math.floor((elapsed%3600)/60), s = elapsed%60;
+    document.getElementById('timer').textContent =
+      h > 0 ? `${pad(h)}:${pad(mn)}:${pad(s)}` : `${pad(mn)}:${pad(s)}`;
+  }, 1000);
+}
+
+document.getElementById('timer').addEventListener('click', () => {
+  const m = currentMeeting(); if (!m) return;
+  if (!timerPaused) {
+    timerPaused = true; pauseStart = Date.now();
+    document.getElementById('timer').classList.add('paused');
+    showToast('Timer en pause');
+  } else {
+    m.pausedOffset = (m.pausedOffset||0) - (Date.now() - pauseStart);
+    timerPaused = false; pauseStart = null;
+    document.getElementById('timer').classList.remove('paused');
+    showToast('Timer repris');
+  }
+});
+
+function updateDate() {
+  document.getElementById('date-display').textContent =
+    new Date().toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});
+}
+
+// ══════════════════════════════════════════════
+//  NOTES + HIGHLIGHT OVERLAY
+// ══════════════════════════════════════════════
+function onNotesInput() {
+  updateHighlight();
+  autoExtract();
+  const v = document.getElementById('notes-area').value;
+  document.getElementById('char-count').textContent = v.length + ' car.';
+  saveCurrent();
+}
+
+function updateHighlight() {
+  const ta = document.getElementById('notes-area');
+  const hl = document.getElementById('notes-highlight');
+  const html = ta.value.split('\n').map(line => {
+    const e = esc(line);
+    if (/^\[ACTION\]/i.test(line))                  return `<span class="hl-action">${e}</span>`;
+    if (/^\[(DÉ|DE)CISION\]/i.test(line))           return `<span class="hl-decision">${e}</span>`;
+    if (/^\[\?\]/.test(line))                        return `<span class="hl-question">${e}</span>`;
+    if (/^\[!\]/.test(line))                         return `<span class="hl-important">${e}</span>`;
+    if (/^##\s/.test(line))                          return `<span class="hl-section">${e}</span>`;
+    return e;
+  }).join('\n');
+  hl.innerHTML = html;
+  hl.scrollTop = ta.scrollTop;
+}
+
+function syncHlScroll() {
+  document.getElementById('notes-highlight').scrollTop =
+    document.getElementById('notes-area').scrollTop;
+}
+
+function insertTag(tag) {
+  const ta = document.getElementById('notes-area');
+  const pos = ta.selectionStart, text = ta.value;
+  const lineStart = text.lastIndexOf('\n', pos-1) + 1;
+  const lineEnd   = text.indexOf('\n', pos);
+  const line      = text.slice(lineStart, lineEnd===-1 ? text.length : lineEnd);
+  const map = { ACTION:'[ACTION] ', 'DÉCISION':'[DÉCISION] ', '?':'[?] ', '!':'[!] ', SECTION:'## ' };
+  const ins = map[tag] || `[${tag}] `;
+  if (!line.startsWith(ins)) {
+    ta.value = text.slice(0,lineStart) + ins + text.slice(lineStart);
+    ta.selectionStart = ta.selectionEnd = lineStart + ins.length;
+  }
+  onNotesInput(); ta.focus();
+}
+
+// ══════════════════════════════════════════════
+//  AUTO-EXTRACT FROM NOTES
+// ══════════════════════════════════════════════
+function autoExtract() {
+  const m = currentMeeting(); if (!m) return;
+  const lines = document.getElementById('notes-area').value.split('\n');
+
+  const actLines = lines.filter(l => /^\[ACTION\]\s*/i.test(l))
+    .map(l => l.replace(/^\[ACTION\]\s*/i,'').trim()).filter(Boolean);
+
+  const decLines = lines.filter(l => /^\[(DÉ|DE)CISION\]\s*/i.test(l))
+    .map(l => l.replace(/^\[(DÉ|DE)CISION\]\s*/i,'').trim()).filter(Boolean);
+
+  const manAct = m.actions.filter(a => a.source==='manual');
+  const oldAuto = m.actions.filter(a => a.source==='auto');
+  m.actions = [...manAct, ...actLines.map(text => {
+    const ex = oldAuto.find(a => a.text===text);
+    return ex || {id:uid(), text, source:'auto', done:false, assignee:'', due:'', ts:nowStr()};
+  })];
+
+  const manDec = m.decisions.filter(d => d.source==='manual');
+  const oldAutoDec = m.decisions.filter(d => d.source==='auto');
+  m.decisions = [...manDec, ...decLines.map(text => {
+    const ex = oldAutoDec.find(d => d.text===text);
+    return ex || {id:uid(), text, source:'auto', ts:nowStr()};
+  })];
+
+  renderActions(); renderDecisions();
+}
+
+// ══════════════════════════════════════════════
+//  ACTIONS
+// ══════════════════════════════════════════════
+function renderActions() {
+  const m = currentMeeting();
+  const actions = m ? m.actions : [];
+  const pending = actions.filter(a=>!a.done).length;
+  document.getElementById('action-count').textContent = pending + '/' + actions.length;
+  const list = document.getElementById('actions-list');
+  list.innerHTML = '';
+
+  actions.forEach((a, i) => {
+    const div = document.createElement('div');
+    div.className = 'action-item' + (a.done?' done':'') + (a.source==='auto'?' auto-item':'');
+    div.draggable = true;
+    div.innerHTML = `
+      <span class="drag-handle">⠿</span>
+      <div class="action-check" onclick="toggleAction(${i})">${a.done?'✓':''}</div>
+      <div class="action-body">
+        <div class="action-text">${esc(a.text)}</div>
+        <div class="action-meta">
+          ${a.assignee ? `<span class="action-assignee">@${esc(a.assignee)}</span>` : ''}
+          ${a.due      ? `<span class="action-due">⏳ ${a.due}</span>` : ''}
+          ${a.source==='auto' ? `<span class="action-auto-badge">auto</span>` : ''}
+          ${a.ts       ? `<span class="action-ts">${a.ts}</span>` : ''}
+        </div>
+      </div>
+      <button class="action-del" onclick="deleteAction(${i})" title="Supprimer">×</button>`;
+
+    div.addEventListener('dragstart', e => { dragSrcIdx = i; div.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; });
+    div.addEventListener('dragend',   () => { div.classList.remove('dragging'); list.querySelectorAll('.action-item').forEach(el=>el.classList.remove('drag-over')); });
+    div.addEventListener('dragover',  e => { e.preventDefault(); list.querySelectorAll('.action-item').forEach(el=>el.classList.remove('drag-over')); div.classList.add('drag-over'); });
+    div.addEventListener('drop', e => {
+      e.preventDefault();
+      if (dragSrcIdx===null || dragSrcIdx===i) return;
+      const mm = currentMeeting();
+      const [moved] = mm.actions.splice(dragSrcIdx,1);
+      mm.actions.splice(i,0,moved);
+      dragSrcIdx = null; renderActions(); saveState();
+    });
+    list.appendChild(div);
+  });
+}
+
+function addManualAction() {
+  const inp = document.getElementById('action-input');
+  const ass = document.getElementById('action-assignee-input');
+  const due = document.getElementById('action-due-input');
+  const text = inp.value.trim(); if (!text) return;
+  const m = currentMeeting(); if (!m) return;
+  m.actions.push({id:uid(), text, source:'manual', done:false, assignee:ass.value.trim(), due:due.value, ts:nowStr()});
+  inp.value=''; ass.value=''; due.value='';
+  renderActions(); saveState(); inp.focus();
+}
+
+function toggleAction(i) {
+  const m = currentMeeting(); if (!m) return;
+  m.actions[i].done = !m.actions[i].done;
+  renderActions(); saveState();
+}
+
+function deleteAction(i) {
+  const m = currentMeeting(); if (!m) return;
+  m.actions.splice(i,1); renderActions(); saveState();
+}
+
+document.getElementById('action-input').addEventListener('keydown', e => { if (e.key==='Enter') addManualAction(); });
+
+// ══════════════════════════════════════════════
+//  DECISIONS
+// ══════════════════════════════════════════════
+function renderDecisions() {
+  const m = currentMeeting();
+  const decisions = m ? m.decisions : [];
+  document.getElementById('decision-count').textContent = decisions.length;
+  const list = document.getElementById('decisions-list');
+  list.innerHTML = '';
+  decisions.forEach((d, i) => {
+    const div = document.createElement('div');
+    div.className = 'decision-item';
+    div.innerHTML = `
+      <div class="decision-dot"></div>
+      <span class="decision-text">${esc(d.text)}</span>
+      ${d.ts ? `<span class="decision-ts">${d.ts}</span>` : ''}
+      <button class="decision-del" onclick="deleteDecision(${i})" title="Supprimer">×</button>`;
+    list.appendChild(div);
+  });
+}
+
+function addManualDecision() {
+  const inp = document.getElementById('decision-input');
+  const text = inp.value.trim(); if (!text) return;
+  const m = currentMeeting(); if (!m) return;
+  m.decisions.push({id:uid(), text, source:'manual', ts:nowStr()});
+  inp.value=''; renderDecisions(); saveState(); inp.focus();
+}
+
+function deleteDecision(i) {
+  const m = currentMeeting(); if (!m) return;
+  m.decisions.splice(i,1); renderDecisions(); saveState();
+}
+
+document.getElementById('decision-input').addEventListener('keydown', e => { if (e.key==='Enter') addManualDecision(); });
+
+// ══════════════════════════════════════════════
+//  AGENDA
+// ══════════════════════════════════════════════
+function toggleAgenda() { document.getElementById('agenda-section').classList.toggle('open'); }
+
+function renderAgenda() {
+  const m = currentMeeting();
+  const items = m ? (m.agenda||[]) : [];
+  const c = document.getElementById('agenda-items'); c.innerHTML = '';
+  items.forEach((item, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'agenda-chip';
+    btn.title = 'Insérer dans les notes';
+    btn.innerHTML = `${esc(item)} <button class="chip-del" title="Supprimer">×</button>`;
+    btn.querySelector('.chip-del').addEventListener('click', e => { e.stopPropagation(); deleteAgendaItem(i); });
+    btn.addEventListener('click', () => insertAgendaInNotes(item));
+    c.appendChild(btn);
+  });
+}
+
+function addAgendaItem() {
+  const inp = document.getElementById('agenda-input');
+  const text = inp.value.trim(); if (!text) return;
+  const m = currentMeeting(); if (!m) return;
+  if (!m.agenda) m.agenda=[];
+  m.agenda.push(text); inp.value=''; renderAgenda(); saveState(); inp.focus();
+}
+
+function deleteAgendaItem(i) {
+  const m = currentMeeting(); if (!m) return;
+  m.agenda.splice(i,1); renderAgenda(); saveState();
+}
+
+function insertAgendaInNotes(item) {
+  const ta = document.getElementById('notes-area');
+  const pos = ta.selectionStart, text = ta.value;
+  const ins = '\n## ' + item + '\n';
+  ta.value = text.slice(0,pos) + ins + text.slice(pos);
+  ta.selectionStart = ta.selectionEnd = pos + ins.length;
+  onNotesInput(); ta.focus();
+}
+
+document.getElementById('agenda-input').addEventListener('keydown', e => { if (e.key==='Enter') addAgendaItem(); });
+
+// ══════════════════════════════════════════════
+//  EXPORT
+// ══════════════════════════════════════════════
+function buildReport(fmt) {
+  const m = currentMeeting(); if (!m) return '';
+  const title = m.title || 'Sans titre';
+  const date = new Date(m.date).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const participants = m.participants || '';
+  const notes = m.notes || '';
+
+  if (fmt === 'md') {
+    let out = `# ${title}\n\n**Date :** ${date}  \n`;
+    if (participants) out += `**Présents :** ${participants}  \n`;
+    out += '\n---\n\n';
+    if (notes) out += `## Notes\n\n${notes}\n\n`;
+    if (m.actions.length) {
+      out += `## Actions\n\n`;
+      m.actions.forEach(a => {
+        out += `- [${a.done?'x':' '}] ${a.text}`;
+        if (a.assignee) out += ` *(${a.assignee})*`;
+        if (a.due)      out += ` — ⏳ ${a.due}`;
+        out += '\n';
+      });
+      out += '\n';
+    }
+    if (m.decisions.length) {
+      out += `## Décisions\n\n`;
+      m.decisions.forEach(d => { out += `- ${d.text}\n`; });
+    }
+    return out;
+  }
+
+  let out = '═'.repeat(48)+'\n';
+  out += `  ${title.toUpperCase()}\n  ${date}\n`;
+  if (participants) out += `  Présents : ${participants}\n`;
+  out += '═'.repeat(48)+'\n\n';
+  if (m.agenda&&m.agenda.length) {
+    out += `ORDRE DU JOUR\n${'─'.repeat(38)}\n`;
+    m.agenda.forEach((item,i) => { out += `  ${i+1}. ${item}\n`; });
+    out += '\n';
+  }
+  if (notes) out += `NOTES\n${'─'.repeat(38)}\n${notes}\n\n`;
+  if (m.actions.length) {
+    out += `ACTIONS (${m.actions.length})\n${'─'.repeat(38)}\n`;
+    m.actions.forEach(a => {
+      out += `  [${a.done?'✓':' '}] ${a.text}`;
+      if (a.assignee) out += ` — @${a.assignee}`;
+      if (a.due)      out += ` — ${a.due}`;
+      out += '\n';
+    });
+    out += '\n';
+  }
+  if (m.decisions.length) {
+    out += `DÉCISIONS (${m.decisions.length})\n${'─'.repeat(38)}\n`;
+    m.decisions.forEach(d => { out += `  ◈ ${d.text}\n`; });
+  }
+  return out;
+}
+
+function exportClipboard() { navigator.clipboard.writeText(buildReport('txt')).then(() => showToast('Copié')); }
+function exportMarkdown()  { dl(buildReport('md'),  'md');  }
+function exportTxt()       { dl(buildReport('txt'), 'txt'); }
+
+function dl(content, ext) {
+  const m = currentMeeting();
+  const slug = (m?.title||'reunion').replace(/\s+/g,'_').toLowerCase();
+  const date = new Date().toISOString().slice(0,10);
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(new Blob([content],{type:'text/plain;charset=utf-8'})),
+    download: `${date}_${slug}.${ext}`
+  });
+  a.click(); URL.revokeObjectURL(a.href); showToast('Téléchargé');
+}
+
+function clearMeeting() {
+  if (!confirm('Réinitialiser cette réunion ?')) return;
+  const m = currentMeeting(); if (!m) return;
+  Object.assign(m,{title:'',participants:'',notes:'',actions:[],decisions:[],agenda:[],startTime:Date.now(),pausedOffset:0});
+  loadMeeting(m.id); showToast('Réinitialisé');
+}
+
+// ══════════════════════════════════════════════
+//  KEYBOARD SHORTCUTS
+// ══════════════════════════════════════════════
+function handleShortcuts(e) {
+  if (!(e.ctrlKey||e.metaKey)) return;
+  const k = e.key;
+  if (k==='1') { e.preventDefault(); insertTag('ACTION'); }
+  else if (k==='2') { e.preventDefault(); insertTag('DÉCISION'); }
+  else if (k==='3') { e.preventDefault(); insertTag('?'); }
+  else if (k==='4') { e.preventDefault(); insertTag('!'); }
+  else if (k==='5') { e.preventDefault(); insertTag('SECTION'); }
+  else if (e.shiftKey && k==='C') { e.preventDefault(); exportClipboard(); }
+  else if (e.shiftKey && k==='N') { e.preventDefault(); newMeeting(); }
+  else if (e.shiftKey && k==='E') { e.preventDefault(); document.getElementById('notes-area').focus(); }
+}
+
+// ══════════════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════════════
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t); t._t = setTimeout(()=>t.classList.remove('show'), 2000);
+}
+
+// ══════════════════════════════════════════════
+init();
+</script>
+</body>
+</html>
