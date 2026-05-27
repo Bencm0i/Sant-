@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Journal Pro</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%231a3a18'/><rect x='4' y='5' width='24' height='17' rx='1' fill='none' stroke='%237fff70' stroke-width='1.5'/><rect x='6' y='7' width='20' height='13' fill='%231e4219'/><text x='16' y='17' font-family='monospace' font-size='9' fill='%237fff70' text-anchor='middle' font-weight='bold'>LOG</text><rect x='13' y='22' width='6' height='2' fill='%237fff70'/><rect x='10' y='24' width='12' height='1.5' fill='%237fff70'/></svg>">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+:root {
+  --bg:          #1a3a18;
+  --surface:     #1e4219;
+  --border:      #2d6128;
+  --accent:      #7fff70;
+  --accent-dim:  #50cc44;
+  --text:        #6aee5c;
+  --text-dim:    #3a7a30;
+  --text-bright: #a0ffaa;
+  --action:      #a0ffaa;
+  --action-dim:  #3a8840;
+  --decision:    #7fff70;
+  --question:    #8aff80;
+  --important:   #c0ffc0;
+  --danger:      #50cc44;
+  --alert:       #ffff70;
+  --sidebar-w:   220px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  display: flex; height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 9999; pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0,0,0,0.10) 0px,
+    rgba(0,0,0,0.10) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+}
+
+body, input, textarea, button, select { text-shadow: none; }
+
+/* SIDEBAR */
+#sidebar {
+  width: var(--sidebar-w); flex-shrink: 0;
+  background: var(--surface); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden;
+  transition: width 0.2s;
+}
+#sidebar.collapsed { width: 0; border-right: none; }
+
+.sidebar-header {
+  padding: 11px 12px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+}
+.sidebar-label { font-size: 10px; text-transform: uppercase; letter-spacing: .15em; color: var(--text-dim); }
+.sidebar-new {
+  background: none; border: 1px solid var(--border); color: var(--accent);
+  font-family: 'Share Tech Mono', monospace; font-size: 15px; cursor: pointer;
+  padding: 1px 7px; border-radius: 2px; line-height: 1; transition: all .15s;
+}
+.sidebar-new:hover { background: rgba(127,255,112,.12); }
+
+#entry-list { flex: 1; overflow-y: auto; padding: 4px 0; }
+
+.entry-item {
+  padding: 7px 12px; cursor: pointer; transition: background .1s;
+  border-left: 2px solid transparent;
+}
+.entry-item:hover { background: rgba(127,255,112,.06); }
+.entry-item.active { border-left-color: var(--accent); background: rgba(127,255,112,.1); }
+
+.ei-title {
+  font-size: 12px; color: var(--text-bright); font-weight: 400;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.entry-item.active .ei-title { color: var(--accent); }
+
+.ei-badge {
+  display: inline-block; font-size: 9px; padding: 0 4px; border-radius: 2px;
+  border: 1px solid; margin-right: 4px; vertical-align: middle;
+}
+.badge-inc  { color: #ffaa50; border-color: rgba(255,170,80,.4); }
+.badge-dec  { color: var(--decision); border-color: rgba(127,255,112,.35); }
+.badge-pro  { color: #80d0ff; border-color: rgba(128,208,255,.35); }
+.badge-wit  { color: var(--important); border-color: rgba(192,255,192,.35); }
+.badge-obs  { color: var(--text-dim); border-color: rgba(58,122,48,.5); }
+
+.ei-meta { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+.ei-del {
+  float: right; background: none; border: none; color: var(--text-dim);
+  cursor: pointer; font-size: 13px; opacity: 0; transition: opacity .15s; padding: 0 2px;
+}
+.entry-item:hover .ei-del { opacity: 1; }
+.ei-del:hover { color: var(--danger); }
+
+/* APP */
+#app { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+/* TOPBAR */
+#topbar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 14px; border-bottom: 1px solid var(--border);
+  background: var(--surface); flex-shrink: 0;
+}
+.icon-btn {
+  background: none; border: none; color: var(--text-dim); cursor: pointer;
+  font-size: 15px; padding: 4px 6px; border-radius: 2px;
+  transition: color .15s, background .15s; line-height: 1; flex-shrink: 0;
+}
+.icon-btn:hover { color: var(--accent); background: rgba(127,255,112,.1); }
+
+#entry-title {
+  flex: 1; background: transparent; border: none; outline: none;
+  font-family: 'Share Tech Mono', monospace; font-size: 15px;
+  color: var(--text-bright); caret-color: var(--accent); min-width: 0;
+  text-transform: uppercase; letter-spacing: .05em;
+}
+#entry-title::placeholder { color: var(--text-dim); }
+
+#clock {
+  font-size: 12px; color: var(--accent); letter-spacing: .05em; flex-shrink: 0;
+  padding: 3px 8px; border: 1px solid var(--border); border-radius: 2px;
+}
+#date-display { font-size: 10px; color: var(--text-dim); flex-shrink: 0; }
+
+/* META BAR */
+#meta-bar {
+  padding: 5px 14px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px; flex-shrink: 0; flex-wrap: wrap;
+}
+.bar-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .1em; flex-shrink: 0; }
+.bar-input {
+  background: transparent; border: none; outline: none;
+  font-size: 12px; font-family: 'Share Tech Mono', monospace;
+  color: var(--text); caret-color: var(--accent);
+}
+.bar-input::placeholder { color: var(--text-dim); }
+
+#cat-select {
+  background: var(--surface); border: 1px solid var(--border); outline: none;
+  font-family: 'Share Tech Mono', monospace; font-size: 11px;
+  color: var(--accent); padding: 2px 6px; border-radius: 2px; cursor: pointer;
+}
+#cat-select:focus { border-color: var(--accent); }
+.bar-sep { width: 1px; height: 12px; background: var(--border); }
+
+/* MAIN */
+#main { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+
+/* LEFT */
+#left-panel { flex: 1; display: flex; flex-direction: column; border-right: 1px solid var(--border); min-width: 0; overflow: hidden; }
+
+/* TOOLBAR */
+#notes-toolbar {
+  display: flex; gap: 3px; padding: 5px 10px; border-bottom: 1px solid var(--border);
+  flex-shrink: 0; flex-wrap: wrap; align-items: center;
+}
+.tag-btn {
+  font-family: 'Share Tech Mono', monospace; font-size: 10px; padding: 3px 7px;
+  border: 1px solid var(--border); background: transparent; color: var(--text-dim);
+  cursor: pointer; border-radius: 2px; transition: all .15s; letter-spacing: .03em;
+}
+.tag-btn:hover            { border-color: var(--accent); color: var(--accent); }
+.tag-btn.t-fait           { border-color: rgba(255,170,80,.4);  color: #ffaa50; }
+.tag-btn.t-fait:hover     { background: rgba(255,170,80,.07); }
+.tag-btn.t-promis         { border-color: rgba(128,208,255,.35); color: #80d0ff; }
+.tag-btn.t-promis:hover   { background: rgba(128,208,255,.07); }
+.tag-btn.t-temoin         { border-color: rgba(192,255,192,.35); color: var(--important); }
+.tag-btn.t-temoin:hover   { background: rgba(192,255,192,.07); }
+.tag-btn.t-alerte         { border-color: rgba(255,80,80,.4);   color: #ff8080; }
+.tag-btn.t-alerte:hover   { background: rgba(255,80,80,.07); }
+.tag-btn.t-ref            { border-color: rgba(127,255,112,.3); color: var(--decision); }
+.tag-btn.t-ref:hover      { background: rgba(127,255,112,.06); }
+.toolbar-sep { width: 1px; height: 12px; background: var(--border); margin: 0 3px; }
+.char-count { margin-left: auto; font-size: 10px; color: var(--text-dim); }
+
+/* EDITOR */
+.notes-wrapper { flex: 1; position: relative; overflow: hidden; min-height: 0; }
+#notes-highlight {
+  position: absolute; inset: 0; pointer-events: none;
+  font-family: 'Share Tech Mono', monospace; font-size: 13px; line-height: 1.75;
+  padding: 14px 18px; white-space: pre-wrap; word-break: break-word;
+  overflow: hidden; box-sizing: border-box; color: var(--text);
+  letter-spacing: 0; tab-size: 4;
+}
+#notes-area {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  background: transparent; color: transparent; caret-color: var(--accent);
+  font-family: 'Share Tech Mono', monospace; font-size: 13px; line-height: 1.75;
+  padding: 14px 18px; border: none; outline: none; resize: none;
+  overflow-y: auto; box-sizing: border-box; z-index: 1;
+  letter-spacing: 0; tab-size: 4;
+}
+.hl-fait    { color: #ffaa50; }
+.hl-promis  { color: #80d0ff; }
+.hl-temoin  { color: var(--important); }
+.hl-alerte  { color: #ff8080; }
+.hl-ref     { color: var(--decision); }
+.hl-section { color: var(--accent); letter-spacing: .08em; }
+
+/* RIGHT PANEL */
+#right-panel { width: 290px; flex-shrink: 0; display: flex; flex-direction: column; overflow: hidden; }
+
+.panel-section { display: flex; flex-direction: column; border-bottom: 1px solid var(--border); min-height: 0; }
+.panel-header { padding: 7px 10px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.panel-title { font-size: 10px; text-transform: uppercase; letter-spacing: .12em; color: var(--text-dim); flex: 1; }
+.panel-count { font-size: 10px; color: var(--text-dim); background: var(--border); padding: 1px 5px; border-radius: 10px; }
+
+/* WITNESSES */
+#witnesses-section { overflow: hidden; max-height: 180px; }
+#witnesses-list { overflow-y: auto; padding: 2px 6px; max-height: 120px; }
+
+.witness-item {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 5px; border-radius: 2px; transition: background .1s;
+}
+.witness-item:hover { background: rgba(127,255,112,.06); }
+.witness-dot { width: 5px; height: 5px; background: var(--important); border-radius: 50%; flex-shrink: 0; }
+.witness-name { font-size: 12px; color: var(--text); flex: 1; }
+.witness-role { font-size: 10px; color: var(--text-dim); }
+.witness-del { background: none; border: none; color: transparent; cursor: pointer; font-size: 13px; padding: 0 2px; transition: color .15s; }
+.witness-item:hover .witness-del { color: var(--text-dim); }
+.witness-del:hover { color: var(--danger) !important; }
+
+#witness-form { border-top: 1px solid var(--border); padding: 5px 8px; flex-shrink: 0; }
+.w-row { display: flex; gap: 4px; align-items: center; margin-bottom: 3px; }
+.w-row:last-child { margin-bottom: 0; }
+#witness-input, #witness-role-input {
+  background: transparent; border: none; outline: none;
+  font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--text);
+  caret-color: var(--important); flex: 1;
+}
+#witness-input::placeholder, #witness-role-input::placeholder { color: var(--text-dim); }
+
+/* PREUVES */
+#proofs-section { overflow: hidden; }
+#proofs-list { overflow-y: auto; padding: 2px 6px; max-height: 120px; }
+
+.proof-item {
+  display: flex; align-items: flex-start; gap: 6px;
+  padding: 5px 5px; border-radius: 2px; transition: background .1s;
+}
+.proof-item:hover { background: rgba(127,255,112,.06); }
+.proof-dot { width: 5px; height: 5px; background: var(--decision); border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+.proof-text { font-size: 12px; color: var(--text); flex: 1; line-height: 1.4; word-break: break-word; }
+.proof-del { background: none; border: none; color: transparent; cursor: pointer; font-size: 13px; padding: 0 2px; transition: color .15s; }
+.proof-item:hover .proof-del { color: var(--text-dim); }
+.proof-del:hover { color: var(--danger) !important; }
+
+#proof-form { border-top: 1px solid var(--border); padding: 5px 8px; display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
+#proof-input { flex: 1; background: transparent; border: none; outline: none; font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--text); caret-color: var(--decision); }
+#proof-input::placeholder { color: var(--text-dim); }
+
+/* EXPORT */
+#export-section { padding: 8px; display: flex; gap: 5px; flex-direction: column; flex-shrink: 0; }
+.export-btn {
+  font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: .08em;
+  text-transform: uppercase; padding: 7px 10px; border-radius: 2px; cursor: pointer;
+  border: 1px solid var(--border); background: transparent; color: var(--text-dim);
+  transition: all .15s; text-align: left;
+}
+.export-btn:hover { border-color: var(--accent); color: var(--accent); }
+.export-btn.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+.export-btn.primary:hover { background: var(--accent-dim); border-color: var(--accent-dim); }
+.export-btn.danger { color: var(--danger); border-color: rgba(80,204,68,.25); }
+.export-btn.danger:hover { border-color: var(--danger); background: rgba(80,204,68,.07); }
+
+/* MODAL */
+#shortcuts-modal { display: none; position: fixed; inset: 0; background: rgba(10,30,8,.82); z-index: 1000; align-items: center; justify-content: center; }
+#shortcuts-modal.open { display: flex; }
+.modal-box { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 22px; min-width: 320px; max-width: 420px; }
+.modal-title { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--accent); margin-bottom: 14px; }
+.sc-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--border); }
+.sc-row:last-of-type { border-bottom: none; }
+.sc-desc { font-size: 12px; color: var(--text); }
+.sc-key { font-size: 11px; color: var(--accent); background: rgba(127,255,112,.1); border: 1px solid rgba(127,255,112,.25); padding: 2px 6px; border-radius: 3px; }
+.modal-close { margin-top: 14px; width: 100%; font-family: 'Share Tech Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; padding: 7px; background: transparent; border: 1px solid var(--border); color: var(--text-dim); cursor: pointer; border-radius: 2px; transition: all .15s; }
+.modal-close:hover { border-color: var(--accent); color: var(--accent); }
+
+/* TOAST */
+#toast { position: fixed; bottom: 16px; right: 16px; background: var(--accent); color: var(--bg); font-family: 'Share Tech Mono', monospace; font-size: 11px; font-weight: 600; padding: 7px 14px; border-radius: 2px; opacity: 0; transform: translateY(6px); transition: all .2s; pointer-events: none; z-index: 2000; }
+#toast.show { opacity: 1; transform: translateY(0); }
+
+/* SCROLLBARS */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.add-btn { font-family: 'Share Tech Mono', monospace; font-size: 16px; background: transparent; border: none; color: var(--text-dim); cursor: pointer; line-height: 1; padding: 0 4px; transition: color .15s; }
+.add-btn:hover { color: var(--accent); }
+.meta-label { font-size: 10px; color: var(--text-dim); font-family: 'Share Tech Mono', monospace; flex-shrink: 0; }
+
+input[type="date"] { color-scheme: dark; }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <div class="sidebar-header">
+    <span class="sidebar-label">Entrées</span>
+    <button class="sidebar-new" onclick="newEntry()" title="Nouvelle entrée (Ctrl+Shift+N)">+</button>
+  </div>
+  <div id="entry-list"></div>
+</div>
+
+<div id="app">
+  <div id="topbar">
+    <button class="icon-btn" onclick="toggleSidebar()" title="Panneau entrées">☰</button>
+    <input id="entry-title" type="text" placeholder="Titre de l'entrée…" autocomplete="off" spellcheck="false" oninput="saveCurrent()">
+    <span id="date-display"></span>
+    <span id="clock">00:00:00</span>
+    <button class="icon-btn" onclick="document.getElementById('shortcuts-modal').classList.add('open')" title="Aide">?</button>
+  </div>
+
+  <div id="meta-bar">
+    <span class="bar-label">Type</span>
+    <select id="cat-select" onchange="saveCurrent()">
+      <option value="incident">🔴 Incident</option>
+      <option value="decision">◈ Décision reçue</option>
+      <option value="promesse">💬 Promesse / Engagement</option>
+      <option value="observation">👁 Observation</option>
+      <option value="autre">— Autre</option>
+    </select>
+    <div class="bar-sep"></div>
+    <span class="bar-label">Lieu / Contexte</span>
+    <input class="bar-input" id="context-input" type="text" placeholder="ex: Bureau RH, Teams, couloir…" autocomplete="off" oninput="saveCurrent()" style="width:220px">
+    <div class="bar-sep"></div>
+    <span class="bar-label">Interlocuteur(s)</span>
+    <input class="bar-input" id="interlocutor-input" type="text" placeholder="Nom, poste…" autocomplete="off" oninput="saveCurrent()" style="width:180px">
+  </div>
+
+  <div id="main">
+    <div id="left-panel">
+
+      <div id="notes-section" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;">
+        <div id="notes-toolbar">
+          <button class="tag-btn t-fait"   onclick="insertTag('FAIT')"    title="Ctrl+1">📌 FAIT</button>
+          <button class="tag-btn t-promis" onclick="insertTag('PROMIS')"  title="Ctrl+2">💬 PROMIS</button>
+          <button class="tag-btn t-temoin" onclick="insertTag('TÉMOIN')"  title="Ctrl+3">👁 TÉMOIN</button>
+          <button class="tag-btn t-alerte" onclick="insertTag('ALERTE')"  title="Ctrl+4">⚠ ALERTE</button>
+          <button class="tag-btn t-ref"    onclick="insertTag('REF')"     title="Ctrl+5"># REF</button>
+          <div class="toolbar-sep"></div>
+          <button class="tag-btn"          onclick="insertTag('SECTION')" title="Ctrl+6">§ Section</button>
+          <span class="char-count" id="char-count">0 car.</span>
+        </div>
+        <div class="notes-wrapper">
+          <div id="notes-highlight" aria-hidden="true"></div>
+          <textarea id="notes-area"
+            placeholder="Décrivez les faits de manière factuelle et chronologique.&#10;&#10;[FAIT] Ce qui s'est passé exactement&#10;[PROMIS] Ce qui vous a été promis verbalement&#10;[TÉMOIN] Qui était présent&#10;[ALERTE] Ce qui vous semble anormal ou litigieux&#10;[REF] Référence document / mail / ticket"
+            spellcheck="true" oninput="onNotesInput()" onscroll="syncHlScroll()"></textarea>
+        </div>
+      </div>
+
+    </div>
+
+    <div id="right-panel">
+
+      <div class="panel-section" id="witnesses-section">
+        <div class="panel-header">
+          <span class="panel-title">👁 Témoins présents</span>
+          <span class="panel-count" id="witness-count">0</span>
+        </div>
+        <div id="witnesses-list"></div>
+        <div id="witness-form">
+          <div class="w-row">
+            <input id="witness-input" type="text" placeholder="Nom du témoin…" autocomplete="off">
+            <button class="add-btn" onclick="addWitness()" style="color:var(--important)">+</button>
+          </div>
+          <div class="w-row">
+            <span class="meta-label">Rôle</span>
+            <input id="witness-role-input" type="text" placeholder="ex: DRH, collègue, client…" autocomplete="off">
+          </div>
+        </div>
+      </div>
+
+      <div class="panel-section" id="proofs-section">
+        <div class="panel-header">
+          <span class="panel-title">◈ Preuves / Références</span>
+          <span class="panel-count" id="proof-count">0</span>
+        </div>
+        <div id="proofs-list"></div>
+        <div id="proof-form">
+          <input id="proof-input" type="text" placeholder="Email du 12/05, ticket #1234, contrat p.8…" autocomplete="off">
+          <button class="add-btn" onclick="addProof()" style="color:var(--decision)">+</button>
+        </div>
+      </div>
+
+      <div class="panel-section" id="export-section">
+        <button class="export-btn primary" onclick="exportClipboard()">↗ Copier le rapport horodaté</button>
+        <button class="export-btn"         onclick="exportTxt()">↓ Télécharger .txt</button>
+        <button class="export-btn"         onclick="exportMarkdown()">↓ Télécharger .md</button>
+        <button class="export-btn danger"  onclick="clearEntry()">⊘ Réinitialiser cette entrée</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div id="shortcuts-modal" onclick="this.classList.remove('open')">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-title">Guide des balises</div>
+    <div class="sc-row"><span class="sc-desc">[FAIT] — Ce qui s'est réellement passé</span><span class="sc-key">Ctrl+1</span></div>
+    <div class="sc-row"><span class="sc-desc">[PROMIS] — Engagement verbal reçu</span><span class="sc-key">Ctrl+2</span></div>
+    <div class="sc-row"><span class="sc-desc">[TÉMOIN] — Personne présente</span><span class="sc-key">Ctrl+3</span></div>
+    <div class="sc-row"><span class="sc-desc">[ALERTE] — Anomalie / point litigieux</span><span class="sc-key">Ctrl+4</span></div>
+    <div class="sc-row"><span class="sc-desc">[REF] — Référence document ou mail</span><span class="sc-key">Ctrl+5</span></div>
+    <div class="sc-row"><span class="sc-desc">§ Section</span><span class="sc-key">Ctrl+6</span></div>
+    <div class="sc-row"><span class="sc-desc">Copier rapport</span><span class="sc-key">Ctrl+Shift+C</span></div>
+    <div class="sc-row"><span class="sc-desc">Nouvelle entrée</span><span class="sc-key">Ctrl+Shift+N</span></div>
+    <div style="margin-top:12px; font-size:10px; color:var(--text-dim); line-height:1.6;">
+      💡 Notez les faits bruts, sans interprétation.<br>
+      Toujours préciser qui a dit quoi, devant qui.<br>
+      Le rapport exporté est horodaté automatiquement.
+    </div>
+    <button class="modal-close" onclick="document.getElementById('shortcuts-modal').classList.remove('open')">Fermer</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════
+let state = { entries: [], currentId: null };
+let clockInterval = null;
+
+// ══════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════
+function init() {
+  loadState();
+  if (!state.entries.length) newEntry(false);
+  else loadEntry(state.currentId || state.entries[0].id);
+  updateDate();
+  startClock();
+  renderEntryList();
+  document.addEventListener('keydown', handleShortcuts);
+}
+
+function uid() { return Math.random().toString(36).slice(2,10); }
+function pad(n) { return String(n).padStart(2,'0'); }
+function nowStr() {
+  const d = new Date();
+  return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+function dateISO() { return new Date().toISOString(); }
+
+// ══════════════════════════════════════════════
+//  PERSISTENCE
+// ══════════════════════════════════════════════
+function loadState() {
+  try { const s = localStorage.getItem('jpro_v1'); if (s) state = JSON.parse(s); } catch {}
+}
+
+function saveState() {
+  const e = currentEntry();
+  if (e) {
+    e.title        = document.getElementById('entry-title').value;
+    e.category     = document.getElementById('cat-select').value;
+    e.context      = document.getElementById('context-input').value;
+    e.interlocutor = document.getElementById('interlocutor-input').value;
+    e.notes        = document.getElementById('notes-area').value;
+  }
+  try { localStorage.setItem('jpro_v1', JSON.stringify(state)); } catch {}
+  renderEntryList();
+}
+
+function saveCurrent() { saveState(); }
+function currentEntry() { return state.entries.find(e => e.id === state.currentId); }
+
+// ══════════════════════════════════════════════
+//  ENTRIES
+// ══════════════════════════════════════════════
+function newEntry(switchTo = true) {
+  const e = {
+    id: uid(), title: '', date: dateISO(), category: 'incident',
+    context: '', interlocutor: '', notes: '',
+    witnesses: [], proofs: []
+  };
+  state.entries.unshift(e);
+  state.currentId = e.id;
+  saveState();
+  if (switchTo) loadEntry(e.id);
+  renderEntryList();
+}
+
+function loadEntry(id) {
+  saveState();
+  state.currentId = id;
+  const e = state.entries.find(x => x.id === id);
+  if (!e) return;
+  document.getElementById('entry-title').value       = e.title || '';
+  document.getElementById('cat-select').value        = e.category || 'incident';
+  document.getElementById('context-input').value     = e.context || '';
+  document.getElementById('interlocutor-input').value = e.interlocutor || '';
+  document.getElementById('notes-area').value        = e.notes || '';
+  document.getElementById('char-count').textContent  = (e.notes||'').length + ' car.';
+  updateHighlight();
+  renderWitnesses();
+  renderProofs();
+  renderEntryList();
+  document.getElementById('notes-area').focus();
+}
+
+function deleteEntry(id, ev) {
+  ev.stopPropagation();
+  if (!confirm('Supprimer cette entrée ?')) return;
+  state.entries = state.entries.filter(e => e.id !== id);
+  if (!state.entries.length) newEntry(false);
+  if (state.currentId === id) state.currentId = state.entries[0].id;
+  saveState();
+  loadEntry(state.currentId);
+}
+
+const CAT_LABELS = {
+  incident:   'INC',
+  decision:   'DEC',
+  promesse:   'PRO',
+  observation:'OBS',
+  autre:      '---'
+};
+const CAT_CLASS = {
+  incident:   'badge-inc',
+  decision:   'badge-dec',
+  promesse:   'badge-pro',
+  observation:'badge-obs',
+  autre:      'badge-obs'
+};
+
+function renderEntryList() {
+  const list = document.getElementById('entry-list');
+  list.innerHTML = '';
+  state.entries.forEach(e => {
+    const div = document.createElement('div');
+    div.className = 'entry-item' + (e.id === state.currentId ? ' active' : '');
+    const d = new Date(e.date);
+    const ds = d.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit', year:'2-digit'});
+    const cat = e.category || 'autre';
+    div.innerHTML = `
+      <button class="ei-del" onclick="deleteEntry('${e.id}',event)" title="Supprimer">×</button>
+      <div class="ei-title"><span class="ei-badge ${CAT_CLASS[cat]}">${CAT_LABELS[cat]}</span>${esc(e.title||'Sans titre')}</div>
+      <div class="ei-meta">${ds}${e.interlocutor ? ' · ' + esc(e.interlocutor) : ''}</div>`;
+    div.addEventListener('click', () => loadEntry(e.id));
+    list.appendChild(div);
+  });
+}
+
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('collapsed'); }
+
+// ══════════════════════════════════════════════
+//  CLOCK
+// ══════════════════════════════════════════════
+function startClock() {
+  clearInterval(clockInterval);
+  clockInterval = setInterval(() => {
+    const d = new Date();
+    document.getElementById('clock').textContent =
+      `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }, 1000);
+}
+
+function updateDate() {
+  document.getElementById('date-display').textContent =
+    new Date().toLocaleDateString('fr-FR', {weekday:'short', day:'numeric', month:'short', year:'numeric'});
+}
+
+// ══════════════════════════════════════════════
+//  NOTES + HIGHLIGHT
+// ══════════════════════════════════════════════
+function onNotesInput() {
+  updateHighlight();
+  const v = document.getElementById('notes-area').value;
+  document.getElementById('char-count').textContent = v.length + ' car.';
+  saveCurrent();
+}
+
+function updateHighlight() {
+  const ta = document.getElementById('notes-area');
+  const hl = document.getElementById('notes-highlight');
+  const html = ta.value.split('\n').map(line => {
+    const e = esc(line);
+    if (/^\[FAIT\]/i.test(line))    return `<span class="hl-fait">${e}</span>`;
+    if (/^\[PROMIS\]/i.test(line))  return `<span class="hl-promis">${e}</span>`;
+    if (/^\[TÉMOIN\]/i.test(line) || /^\[TEMOIN\]/i.test(line)) return `<span class="hl-temoin">${e}</span>`;
+    if (/^\[ALERTE\]/i.test(line))  return `<span class="hl-alerte">${e}</span>`;
+    if (/^\[REF\]/i.test(line))     return `<span class="hl-ref">${e}</span>`;
+    if (/^##\s/.test(line))         return `<span class="hl-section">${e}</span>`;
+    return e;
+  }).join('\n');
+  hl.innerHTML = html;
+  hl.scrollTop = ta.scrollTop;
+}
+
+function syncHlScroll() {
+  document.getElementById('notes-highlight').scrollTop =
+    document.getElementById('notes-area').scrollTop;
+}
+
+function insertTag(tag) {
+  const ta = document.getElementById('notes-area');
+  const pos = ta.selectionStart, text = ta.value;
+  const lineStart = text.lastIndexOf('\n', pos-1) + 1;
+  const map = {
+    FAIT:    '[FAIT] ',
+    PROMIS:  '[PROMIS] ',
+    TÉMOIN:  '[TÉMOIN] ',
+    ALERTE:  '[ALERTE] ',
+    REF:     '[REF] ',
+    SECTION: '## '
+  };
+  const ins = map[tag] || `[${tag}] `;
+  const lineEnd = text.indexOf('\n', pos);
+  const line = text.slice(lineStart, lineEnd===-1 ? text.length : lineEnd);
+  if (!line.startsWith(ins)) {
+    ta.value = text.slice(0,lineStart) + ins + text.slice(lineStart);
+    ta.selectionStart = ta.selectionEnd = lineStart + ins.length;
+  }
+  onNotesInput(); ta.focus();
+}
+
+// ══════════════════════════════════════════════
+//  WITNESSES
+// ══════════════════════════════════════════════
+function renderWitnesses() {
+  const e = currentEntry();
+  const witnesses = e ? (e.witnesses || []) : [];
+  document.getElementById('witness-count').textContent = witnesses.length;
+  const list = document.getElementById('witnesses-list');
+  list.innerHTML = '';
+  witnesses.forEach((w, i) => {
+    const div = document.createElement('div');
+    div.className = 'witness-item';
+    div.innerHTML = `
+      <div class="witness-dot"></div>
+      <span class="witness-name">${esc(w.name)}</span>
+      ${w.role ? `<span class="witness-role">(${esc(w.role)})</span>` : ''}
+      <button class="witness-del" onclick="deleteWitness(${i})" title="Supprimer">×</button>`;
+    list.appendChild(div);
+  });
+}
+
+function addWitness() {
+  const inp = document.getElementById('witness-input');
+  const rol = document.getElementById('witness-role-input');
+  const name = inp.value.trim(); if (!name) return;
+  const e = currentEntry(); if (!e) return;
+  if (!e.witnesses) e.witnesses = [];
+  e.witnesses.push({ name, role: rol.value.trim(), ts: nowStr() });
+  inp.value = ''; rol.value = '';
+  renderWitnesses(); saveState(); inp.focus();
+}
+
+function deleteWitness(i) {
+  const e = currentEntry(); if (!e) return;
+  e.witnesses.splice(i,1); renderWitnesses(); saveState();
+}
+
+document.getElementById('witness-input').addEventListener('keydown', ev => { if (ev.key==='Enter') addWitness(); });
+
+// ══════════════════════════════════════════════
+//  PROOFS
+// ══════════════════════════════════════════════
+function renderProofs() {
+  const e = currentEntry();
+  const proofs = e ? (e.proofs || []) : [];
+  document.getElementById('proof-count').textContent = proofs.length;
+  const list = document.getElementById('proofs-list');
+  list.innerHTML = '';
+  proofs.forEach((p, i) => {
+    const div = document.createElement('div');
+    div.className = 'proof-item';
+    div.innerHTML = `
+      <div class="proof-dot"></div>
+      <span class="proof-text">${esc(p.text)}</span>
+      <button class="proof-del" onclick="deleteProof(${i})" title="Supprimer">×</button>`;
+    list.appendChild(div);
+  });
+}
+
+function addProof() {
+  const inp = document.getElementById('proof-input');
+  const text = inp.value.trim(); if (!text) return;
+  const e = currentEntry(); if (!e) return;
+  if (!e.proofs) e.proofs = [];
+  e.proofs.push({ text, ts: nowStr() });
+  inp.value = '';
+  renderProofs(); saveState(); inp.focus();
+}
+
+function deleteProof(i) {
+  const e = currentEntry(); if (!e) return;
+  e.proofs.splice(i,1); renderProofs(); saveState();
+}
+
+document.getElementById('proof-input').addEventListener('keydown', ev => { if (ev.key==='Enter') addProof(); });
+
+// ══════════════════════════════════════════════
+//  EXPORT
+// ══════════════════════════════════════════════
+const CAT_FULL = {
+  incident:    'INCIDENT',
+  decision:    'DÉCISION REÇUE',
+  promesse:    'PROMESSE / ENGAGEMENT',
+  observation: 'OBSERVATION',
+  autre:       'AUTRE'
+};
+
+function buildReport(fmt) {
+  const e = currentEntry(); if (!e) return '';
+  const title = e.title || 'Sans titre';
+  const cat   = CAT_FULL[e.category] || e.category;
+  const d = new Date(e.date);
+  const dateStr = d.toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+  const exportTs = nowStr();
+
+  if (fmt === 'md') {
+    let out = `# ${title}\n\n`;
+    out += `**Type :** ${cat}  \n`;
+    out += `**Date de l'événement :** ${dateStr}  \n`;
+    out += `**Export généré le :** ${exportTs}  \n`;
+    if (e.context)      out += `**Lieu / Contexte :** ${e.context}  \n`;
+    if (e.interlocutor) out += `**Interlocuteur(s) :** ${e.interlocutor}  \n`;
+    out += '\n---\n\n';
+    if (e.notes) out += `## Récit des faits\n\n${e.notes}\n\n`;
+    if (e.witnesses && e.witnesses.length) {
+      out += `## Témoins présents\n\n`;
+      e.witnesses.forEach(w => { out += `- ${w.name}${w.role ? ` (${w.role})` : ''}\n`; });
+      out += '\n';
+    }
+    if (e.proofs && e.proofs.length) {
+      out += `## Preuves / Références\n\n`;
+      e.proofs.forEach(p => { out += `- ${p.text}\n`; });
+    }
+    return out;
+  }
+
+  const line = '═'.repeat(52);
+  const dash = '─'.repeat(48);
+  let out = line + '\n';
+  out += `  JOURNAL PROFESSIONNEL — ENTRÉE CONFIDENTIELLE\n`;
+  out += line + '\n\n';
+  out += `  TYPE       : ${cat}\n`;
+  out += `  TITRE      : ${title}\n`;
+  out += `  DATE ÉVÉNT : ${dateStr}\n`;
+  out += `  EXPORT     : ${exportTs}\n`;
+  if (e.context)      out += `  CONTEXTE   : ${e.context}\n`;
+  if (e.interlocutor) out += `  INTERLOCUT : ${e.interlocutor}\n`;
+  out += '\n' + dash + '\n';
+  out += 'RÉCIT DES FAITS\n' + dash + '\n';
+  if (e.notes) out += e.notes + '\n\n';
+  if (e.witnesses && e.witnesses.length) {
+    out += `TÉMOINS PRÉSENTS (${e.witnesses.length})\n` + dash + '\n';
+    e.witnesses.forEach(w => { out += `  ● ${w.name}${w.role ? ' — ' + w.role : ''}\n`; });
+    out += '\n';
+  }
+  if (e.proofs && e.proofs.length) {
+    out += `PREUVES / RÉFÉRENCES (${e.proofs.length})\n` + dash + '\n';
+    e.proofs.forEach(p => { out += `  ◈ ${p.text}\n`; });
+    out += '\n';
+  }
+  out += line + '\n';
+  out += `  Document généré le ${exportTs} — Usage personnel confidentiel\n`;
+  out += line + '\n';
+  return out;
+}
+
+function exportClipboard() { navigator.clipboard.writeText(buildReport('txt')).then(() => showToast('Copié !')); }
+function exportMarkdown()  { dl(buildReport('md'),  'md');  }
+function exportTxt()       { dl(buildReport('txt'), 'txt'); }
+
+function dl(content, ext) {
+  const e = currentEntry();
+  const slug = (e?.title||'entree').replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_-]/g,'').toLowerCase();
+  const date = new Date().toISOString().slice(0,10);
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(new Blob([content],{type:'text/plain;charset=utf-8'})),
+    download: `${date}_journal_${slug}.${ext}`
+  });
+  a.click(); URL.revokeObjectURL(a.href); showToast('Téléchargé');
+}
+
+function clearEntry() {
+  if (!confirm('Réinitialiser cette entrée ?')) return;
+  const e = currentEntry(); if (!e) return;
+  Object.assign(e, {title:'', category:'incident', context:'', interlocutor:'', notes:'', witnesses:[], proofs:[], date: dateISO()});
+  loadEntry(e.id); showToast('Réinitialisé');
+}
+
+// ══════════════════════════════════════════════
+//  SHORTCUTS
+// ══════════════════════════════════════════════
+function handleShortcuts(ev) {
+  if (!(ev.ctrlKey||ev.metaKey)) return;
+  const k = ev.key;
+  if (k==='1') { ev.preventDefault(); insertTag('FAIT'); }
+  else if (k==='2') { ev.preventDefault(); insertTag('PROMIS'); }
+  else if (k==='3') { ev.preventDefault(); insertTag('TÉMOIN'); }
+  else if (k==='4') { ev.preventDefault(); insertTag('ALERTE'); }
+  else if (k==='5') { ev.preventDefault(); insertTag('REF'); }
+  else if (k==='6') { ev.preventDefault(); insertTag('SECTION'); }
+  else if (ev.shiftKey && k==='C') { ev.preventDefault(); exportClipboard(); }
+  else if (ev.shiftKey && k==='N') { ev.preventDefault(); newEntry(); }
+}
+
+// ══════════════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════════════
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._t); t._t = setTimeout(()=>t.classList.remove('show'), 2000);
+}
+
+// ══════════════════════════════════════════════
+init();
+</script>
+</body>
+</html>
