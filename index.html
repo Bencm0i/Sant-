@@ -332,6 +332,19 @@
   .wb-remain.over{color:var(--red);font-weight:700;}
   .wb-velo{font-family:var(--font-mono);font-size:9px;letter-spacing:1px;white-space:nowrap;flex-shrink:0;padding:1px 7px;border-radius:3px;border:1px solid;}
 
+  /* ── BANNIÈRE RAPPEL POINTAGE EURÉCIA ── */
+  #pointage-banner{position:sticky;top:83px;z-index:99;display:none;align-items:center;gap:10px;padding:6px 24px;background:rgba(232,120,32,0.12);border-bottom:2px solid rgba(232,120,32,0.5);backdrop-filter:blur(10px);animation:ptg-slide-in .3s ease;}
+  #pointage-banner.visible{display:flex;}
+  @keyframes ptg-slide-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+  .ptg-icon{font-size:16px;animation:badger-bounce 1.1s ease-in-out infinite;flex-shrink:0;}
+  .ptg-label{font-family:var(--font-display);font-weight:800;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#e87820;white-space:nowrap;flex-shrink:0;}
+  .ptg-msg{font-family:var(--font-mono);font-size:10px;color:#ffaa60;flex:1;letter-spacing:0.5px;}
+  .ptg-creneaux{font-family:var(--font-mono);font-size:9px;color:rgba(255,170,96,0.7);letter-spacing:1px;white-space:nowrap;flex-shrink:0;}
+  .ptg-link{display:flex;align-items:center;gap:5px;padding:4px 12px;background:rgba(232,120,32,0.15);border:1px solid rgba(232,120,32,0.55);border-radius:3px;font-family:var(--font-mono);font-size:9px;color:#e87820;text-decoration:none;letter-spacing:1.5px;font-weight:700;transition:all .15s;white-space:nowrap;flex-shrink:0;}
+  .ptg-link:hover{background:rgba(232,120,32,0.3);color:#ffaa60;border-color:rgba(232,120,32,0.8);}
+  .ptg-close{background:transparent;border:1px solid rgba(232,120,32,0.3);border-radius:3px;padding:3px 8px;font-family:var(--font-mono);font-size:9px;color:rgba(232,120,32,0.6);cursor:pointer;letter-spacing:1px;transition:all .15s;flex-shrink:0;}
+  .ptg-close:hover{border-color:rgba(232,120,32,0.8);color:#e87820;}
+
   /* ── BADGER MODAL (rappel pointage matin 7h-9h) ── */
   .badger-overlay{position:fixed;inset:0;background:rgba(10,15,20,0.72);z-index:900;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px);}
   .badger-overlay.open{display:flex;}
@@ -887,6 +900,19 @@
   <span class="wb-remain" id="wb-remain">—</span>
   <span class="wb-velo"   id="wb-velo" style="display:none"></span>
   <button class="wh-gear-btn" onclick="openWhModal()" title="Configurer les horaires">⚙</button>
+</div>
+
+<!-- ════ BANNIÈRE RAPPEL POINTAGE EURÉCIA ══════════════════════ -->
+<div id="pointage-banner">
+  <span class="ptg-icon">🕐</span>
+  <span class="ptg-label">POINTAGE</span>
+  <span class="ptg-msg" id="ptg-msg">Rappel : penser à badger sur Eurécia</span>
+  <span class="ptg-creneaux" id="ptg-creneaux-label">7h30 · 12h25 · 13h · 15h40</span>
+  <a class="ptg-link" href="https://plateforme.eurecia.com/eurecia/index.html#/dashboard" target="_blank" rel="noopener" onclick="dismissPointageBanner()">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    OUVRIR EURÉCIA ↗
+  </a>
+  <button class="ptg-close" onclick="dismissPointageBanner()">✕</button>
 </div>
 
 <!-- ════ BARRE JOURS SEMAINE ════════════════════════════════ -->
@@ -2312,6 +2338,89 @@ function congesRender() {
 // ── INIT ───────────────────────────────────────────────────────
 updateToggleUI();buildApps();buildFavs();buildClips();loadTodos();renderTodos();loadNotes();renderNotes();congesRender();renderRecent();
 
+// ── BANNIÈRE RAPPEL POINTAGE EURÉCIA ──────────────────────────
+// Créneaux : 7h30, 12h25, 13h00, 15h40 — visible 30 min avant chaque
+(function initPointageBanner() {
+  const CRENEAUX = [
+    { h: 7,  m: 30, label: '7h30' },
+    { h: 12, m: 25, label: '12h25' },
+    { h: 13, m: 0,  label: '13h00' },
+    { h: 15, m: 40, label: '15h40' },
+  ];
+  const WINDOW_MIN = 30; // minutes avant le créneau
+  const DISMISS_KEY = 'ptg_dismissed'; // stocke les créneaux dismissés today
+
+  function getTodayKey() {
+    const d = new Date();
+    return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  }
+
+  function getDismissed() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(DISMISS_KEY) || '{}');
+      if (raw.day !== getTodayKey()) return { day: getTodayKey(), slots: [] };
+      return raw;
+    } catch { return { day: getTodayKey(), slots: [] }; }
+  }
+
+  window.dismissPointageBanner = function() {
+    const now = new Date();
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    // Trouver le créneau actif
+    const active = CRENEAUX.find(c => {
+      const cMins = c.h * 60 + c.m;
+      return nowMins >= cMins - WINDOW_MIN && nowMins < cMins + WINDOW_MIN;
+    });
+    const dismissed = getDismissed();
+    if (active) dismissed.slots.push(active.label);
+    localStorage.setItem(DISMISS_KEY, JSON.stringify(dismissed));
+    document.getElementById('pointage-banner').classList.remove('visible');
+  };
+
+  function checkPointageBanner() {
+    const banner = document.getElementById('pointage-banner');
+    const weekBar = document.getElementById('week-bar');
+    const tickerBar = document.getElementById('ticker-bar');
+    if (!banner) return;
+    const now = new Date();
+    const dow = now.getDay();
+    // Seulement jours ouvrés
+    if (dow < 1 || dow > 5) { banner.classList.remove('visible'); return; }
+
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    const dismissed = getDismissed();
+
+    const active = CRENEAUX.find(c => {
+      const cMins = c.h * 60 + c.m;
+      return nowMins >= cMins - WINDOW_MIN && nowMins < cMins + WINDOW_MIN
+             && !dismissed.slots.includes(c.label);
+    });
+
+    if (active) {
+      const cMins = active.h * 60 + active.m;
+      const diff = cMins - nowMins;
+      const msgEl = document.getElementById('ptg-msg');
+      if (msgEl) {
+        msgEl.textContent = diff > 0
+          ? `⏱ Pointage ${active.label} dans ${diff} min — penser à badger !`
+          : `⏱ Heure de badger ! Créneau ${active.label}`;
+      }
+      banner.classList.add('visible');
+      // Décaler week-bar et ticker-bar vers le bas
+      const bannerH = banner.offsetHeight || 34;
+      if (weekBar) weekBar.style.top = (83 + bannerH) + 'px';
+      if (tickerBar) tickerBar.style.top = (83 + bannerH + 26) + 'px';
+    } else {
+      banner.classList.remove('visible');
+      if (weekBar) weekBar.style.top = '';
+      if (tickerBar) tickerBar.style.top = '';
+    }
+  }
+
+  checkPointageBanner();
+  setInterval(checkPointageBanner, 30000); // vérif toutes les 30s
+})();
+
 // ── BANDE DÉFILANTE ────────────────────────────────────────────
 let tickerBtc = null;
 let tickerBtcTs = 0;
@@ -2361,29 +2470,6 @@ function buildTickerItem(cls, icon, label, val, extra) {
 async function renderTicker() {
   const sep = `<span class="ticker-sep">◆</span>`;
   let parts = [];
-
-  // 1. CONGÉS EN ATTENTE
-  const waiting = getCongesEnAttente();
-  if (waiting.length > 0) {
-    const w = waiting[0];
-    const fmt = d => { if(!d) return ''; const [y,m,j]=d.split('-'); return `${j}/${m}`; };
-    const datesStr = w.s ? ` ${fmt(w.s)}→${fmt(w.e)}` : '';
-    parts.push(
-      `<a class="ticker-item tk-conge-link" onclick="openConges()" style="cursor:pointer;text-decoration:none;">` +
-      `<span class="tk-icon">🏖</span><span class="tk-label">CONGÉ EN ATTENTE</span>` +
-      `<span class="tk-val">${waiting.length} demande${waiting.length>1?'s':''} — ${datesStr}</span>` +
-      `<span style="margin-left:8px;font-size:8px;color:var(--blue);letter-spacing:1px;border:1px solid rgba(26,92,204,0.3);padding:1px 5px;border-radius:2px;">+ NOUVEAU ↗</span>` +
-      `</a>`
-    );
-  } else {
-    parts.push(
-      `<a class="ticker-item tk-conge-link" onclick="openConges()" style="cursor:pointer;text-decoration:none;">` +
-      `<span class="tk-icon">🏖</span><span class="tk-label">CONGÉS</span>` +
-      `<span class="tk-val">Aucune demande en attente</span>` +
-      `<span style="margin-left:8px;font-size:8px;color:var(--blue);letter-spacing:1px;border:1px solid rgba(26,92,204,0.3);padding:1px 5px;border-radius:2px;">+ CRÉER ↗</span>` +
-      `</a>`
-    );
-  }
 
   // 2. VÉLO TAFF
   const velo = getVeloScore();
