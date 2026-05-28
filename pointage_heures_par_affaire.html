@@ -459,6 +459,65 @@ body {
 }
 .ecart-bar .eb-label { font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); text-align: left; padding-left: 16px; }
 
+/* ── Badge bar ── */
+.badge-bar {
+  background: var(--purple-bg);
+  border-top: 2px solid #c4b5fd;
+  min-height: 50px;
+}
+.badge-bar > * {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 15px; font-weight: 700;
+  text-align: center;
+  padding: 7px 4px;
+  color: var(--purple);
+  border-right: 1px solid #ddd6fe;
+}
+.badge-bar > *:last-child { border-right: none; }
+.badge-bar .bb-label {
+  font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--purple);
+  text-align: left; padding-left: 16px;
+}
+.badge-inp {
+  width: 74px;
+  background: var(--purple-bg);
+  border: 1.5px solid #c4b5fd;
+  border-radius: 8px;
+  color: var(--purple);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 15px; font-weight: 700;
+  text-align: center;
+  padding: 7px 4px;
+  outline: none;
+  transition: all .12s;
+  -moz-appearance: textfield;
+}
+.badge-inp::-webkit-inner-spin-button, .badge-inp::-webkit-outer-spin-button { -webkit-appearance: none; }
+.badge-inp:hover { border-color: var(--purple); background: #ede9fe; }
+.badge-inp:focus { border-color: var(--purple); background: #ede9fe; }
+.badge-inp.has-val { background: #ede9fe; border-color: var(--purple); }
+
+/* ── Écart badge bar ── */
+.ecart-badge-bar {
+  background: var(--card);
+  border-top: 1px solid #ddd6fe;
+  min-height: 38px;
+  border-bottom: none;
+}
+.ecart-badge-bar > * {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; font-weight: 700;
+  text-align: center;
+  padding: 9px 6px;
+  color: var(--muted);
+}
+.ecart-badge-bar .ebb-label {
+  font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--purple);
+  text-align: left; padding-left: 16px;
+}
+
 /* ════════════════ ADD ROW BUTTON ════════════════ */
 .add-row-btn {
   display: flex; align-items: center; gap: 9px;
@@ -1084,6 +1143,31 @@ body {
     <div id="etot">—</div>
     <div></div>
   </div>
+
+  <!-- Badge bar -->
+  <div class="tgrid badge-bar" id="badge-bar">
+    <div></div>
+    <div class="bb-label">🏷 Badge</div>
+    <div></div><div></div>
+    <div><input type="number" class="badge-inp" id="badge-l" step="0.1" min="0" placeholder="—" oninput="recalcBadge()"></div>
+    <div><input type="number" class="badge-inp" id="badge-m" step="0.1" min="0" placeholder="—" oninput="recalcBadge()"></div>
+    <div><input type="number" class="badge-inp" id="badge-me" step="0.1" min="0" placeholder="—" oninput="recalcBadge()"></div>
+    <div><input type="number" class="badge-inp" id="badge-j" step="0.1" min="0" placeholder="—" oninput="recalcBadge()"></div>
+    <div><input type="number" class="badge-inp" id="badge-v" step="0.1" min="0" placeholder="—" oninput="recalcBadge()"></div>
+    <div id="badge-tot" style="color:var(--purple);font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;text-align:center;padding:7px 4px;">—</div>
+    <div></div>
+  </div>
+
+  <!-- Écart badge bar -->
+  <div class="tgrid ecart-badge-bar" id="ecart-badge-bar">
+    <div></div>
+    <div class="ebb-label">Écart / badge</div>
+    <div></div><div></div>
+    <div id="ebl">—</div><div id="ebm">—</div><div id="ebme">—</div>
+    <div id="ebj">—</div><div id="ebv">—</div>
+    <div id="ebtot">—</div>
+    <div></div>
+  </div>
 </div>
 
 <button class="add-row-btn" onclick="addAff()">
@@ -1353,6 +1437,49 @@ function recalcAll(){
     if(tot===0){se.textContent='—';se.style.color='var(--muted)';}
     else{se.textContent=(ec>=0?'+':'')+fmt(ec)+'h';se.style.color=ec>=0?'var(--green)':'var(--red)';}
   }
+  recalcBadge();
+}
+
+// ─── BADGE ───
+function recalcBadge(){
+  const d={l:0,m:0,me:0,j:0,v:0};
+  document.querySelectorAll('.h-inp').forEach(i=>{if(d.hasOwnProperty(i.dataset.j))d[i.dataset.j]+=gv(i);});
+
+  let badgeTot=0;
+  const EBID={l:'ebl',m:'ebm',me:'ebme',j:'ebj',v:'ebv'};
+  JJ.forEach(j=>{
+    const inp=document.getElementById('badge-'+j);
+    const bv=inp?parseFloat(inp.value)||0:0;
+    if(inp) inp.classList.toggle('has-val',bv>0);
+    badgeTot+=bv;
+    const affv=d[j];
+    const ec=document.getElementById(EBID[j]);
+    if(ec){
+      if(bv===0){ec.textContent='—';ec.style.color='var(--muted)';}
+      else{
+        const diff=affv-bv;
+        const sign=diff>=0?'+':'';
+        ec.textContent=sign+fmt(diff)+'h';
+        ec.style.color=Math.abs(diff)<0.05?'var(--green)':diff<0?'var(--red)':'var(--amber)';
+      }
+    }
+  });
+
+  const bt=document.getElementById('badge-tot');
+  if(bt) bt.textContent=badgeTot===0?'—':fmtH(badgeTot);
+
+  const affTot=Object.values(d).reduce((a,b)=>a+b,0);
+  const ebtot=document.getElementById('ebtot');
+  if(ebtot){
+    if(badgeTot===0){ebtot.textContent='—';ebtot.style.color='var(--muted)';}
+    else{
+      const diff=affTot-badgeTot;
+      const sign=diff>=0?'+':'';
+      ebtot.textContent=sign+fmt(diff)+'h';
+      ebtot.style.color=Math.abs(diff)<0.05?'var(--green)':diff<0?'var(--red)':'var(--amber)';
+    }
+  }
+  sched();
 }
 
 // ─── COLLECT / RESTORE ───
@@ -1390,7 +1517,7 @@ function collect(){
     af.push({name:ni?.value||'',code:cs?.value||'',bud:bi?.value||'',col:b?.style.background||'',hours:h,comment:cm?.value||''});
   });
 
-  return{week:wn,year:YR,rm,fx,af,locked:{...LOCKED},at:new Date().toISOString()};
+  return{week:wn,year:YR,rm,fx,af,locked:{...LOCKED},badge:Object.fromEntries(JJ.map(j=>[j,document.getElementById('badge-'+j)?.value||''])),at:new Date().toISOString()};
 }
 
 function restore(data){
@@ -1441,11 +1568,16 @@ function restore(data){
       if (data.locked[j]) toggleLock(j);
     });
   }
-
+  if (data.badge) {
+    JJ.forEach(j => {
+      const inp = document.getElementById('badge-'+j);
+      if (inp) { inp.value = data.badge[j]||''; inp.classList.toggle('has-val', parseFloat(data.badge[j]||0)>0); }
+    });
+  }
   recalcAll();
 }
 
-function clearInps(){document.querySelectorAll('.h-inp').forEach(i=>{i.value='';i.classList.remove('has-val');});}
+function clearInps(){document.querySelectorAll('.h-inp').forEach(i=>{i.value='';i.classList.remove('has-val');});JJ.forEach(j=>{const inp=document.getElementById('badge-'+j);if(inp){inp.value='';inp.classList.remove('has-val');}});}
 
 // ─── AUTO SAVE ───
 function sched(){dot('saving');clearTimeout(stmr);stmr=setTimeout(doSave,800);}
