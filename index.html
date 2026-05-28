@@ -348,28 +348,7 @@
   .aic-close{background:transparent;border:1px solid #fff;border-radius:3px;padding:3px 8px;font-family:var(--font-mono);font-size:9px;color:#fff;cursor:pointer;letter-spacing:1px;transition:all .15s;flex-shrink:0;}
   .aic-close:hover{border-color:#ffe0b2;color:#ffe0b2;}
 
-  /* ── BADGER MODAL (rappel pointage matin 7h-9h) ── */
-  .badger-overlay{position:fixed;inset:0;background:rgba(10,15,20,0.72);z-index:900;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px);}
-  .badger-overlay.open{display:flex;}
-  .badger-modal{background:var(--panel2);border:1px solid var(--border2);border-radius:8px;padding:0;max-width:420px;width:90%;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);}
-  .badger-bar{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:2px solid var(--border);background:var(--header-bg);}
-  .badger-bar-icon{font-size:20px;animation:badger-bounce 1.2s ease-in-out infinite;}
   @keyframes badger-bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
-  .badger-bar-title{font-family:var(--font-display);font-weight:800;font-size:13px;color:var(--accent);letter-spacing:3px;text-transform:uppercase;flex:1;}
-  .badger-close{background:transparent;border:1px solid var(--border);border-radius:3px;color:var(--muted2);font-family:var(--font-mono);font-size:9px;padding:4px 10px;cursor:pointer;letter-spacing:1px;transition:all .15s;}
-  .badger-close:hover{border-color:var(--red);color:var(--red);}
-  .badger-body{padding:22px 18px 18px;}
-  .badger-reminder{font-family:var(--font-mono);font-size:11px;color:var(--text);line-height:1.8;margin-bottom:18px;text-align:center;}
-  .badger-reminder strong{color:var(--accent);font-size:13px;}
-  .badger-time-info{background:#bab296;border:1px solid var(--border);border-radius:4px;padding:8px 14px;margin-bottom:18px;text-align:center;font-family:var(--font-mono);font-size:9px;color:var(--muted2);letter-spacing:1px;}
-  .badger-actions{display:flex;gap:10px;flex-direction:column;}
-  .badger-btn-primary{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 18px;background:var(--accent);border:none;border-radius:5px;color:#fff;font-family:var(--font-display);font-weight:700;font-size:12px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;text-decoration:none;transition:all .18s;}
-  .badger-btn-primary:hover{filter:brightness(1.15);transform:translateY(-1px);}
-  .badger-btn-secondary{display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;background:transparent;border:1px solid var(--border);border-radius:4px;color:var(--muted2);font-family:var(--font-mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all .15s;}
-  .badger-btn-secondary:hover{border-color:var(--muted2);color:var(--text);}
-  .badger-checkbox-row{display:flex;align-items:center;gap:8px;margin-top:6px;}
-  .badger-checkbox-row input{accent-color:var(--accent);width:13px;height:13px;cursor:pointer;}
-  .badger-checkbox-row label{font-family:var(--font-mono);font-size:9px;color:var(--muted);cursor:pointer;letter-spacing:0.5px;line-height:1.4;}
 
   /* ── ANNOTATEUR MODAL (iframe SnapMark) ── */
   .ann-overlay{position:fixed;inset:0;background:rgba(10,15,20,0.78);z-index:600;display:none;}
@@ -658,31 +637,7 @@
   /* Bouton danger dans hR */
   .danger-btn{display:flex;align-items:center;gap:6px;background:#d4a8a8;border:1px solid #ef4444;border-radius:4px;padding:5px 11px;cursor:pointer;font-family:var(--font-mono);font-size:10px;color:var(--red);letter-spacing:1px;transition:all .2s;user-select:none;}
   .danger-btn:hover{background:#cc9090;border-color:#ef4444;}
-  /* ── PORTAIL INTERNE ── */
-  .portail-wrap{position:relative;z-index:1;margin:0;border-top:2px solid var(--border2);}
-  .portail-bar{display:flex;align-items:center;gap:10px;padding:0 24px;height:38px;background:var(--header-bg);border-bottom:1px solid var(--border);flex-shrink:0;}
-  .portail-bar-icon{font-size:14px;flex-shrink:0;}
-  .portail-bar-title{font-family:var(--font-display);font-weight:800;font-size:10px;color:var(--muted2);letter-spacing:3px;text-transform:uppercase;flex-shrink:0;}
-  .portail-url-display{font-family:var(--font-mono);font-size:9px;color:var(--muted);letter-spacing:0.5px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .portail-url-row{flex:1;display:none;align-items:center;gap:6px;}
-  .portail-url-row.visible{display:flex;}
-  .portail-url-input{flex:1;background:var(--panel2);border:1px solid var(--border2);border-radius:3px;outline:none;padding:4px 8px;font-family:var(--font-mono);font-size:10px;color:var(--text);transition:border-color .15s;}
-  .portail-url-input:focus{border-color:var(--accent);}
-  .portail-url-save{background:var(--accent);border:1px solid var(--accent);border-radius:3px;color:#fff;font-family:var(--font-mono);font-size:9px;padding:3px 9px;cursor:pointer;letter-spacing:1px;font-weight:700;white-space:nowrap;transition:all .15s;}
-  .portail-url-save:hover{filter:brightness(1.12);}
-  .portail-url-cancel{background:transparent;border:1px solid var(--border);border-radius:3px;color:var(--muted2);font-family:var(--font-mono);font-size:9px;padding:3px 8px;cursor:pointer;transition:all .15s;}
-  .portail-url-cancel:hover{border-color:var(--red);color:var(--red);}
-  .portail-edit-btn,.portail-reload-btn,.portail-toggle-btn{background:transparent;border:1px solid var(--border);border-radius:3px;color:var(--muted2);font-size:12px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .15s;line-height:1;}
-  .portail-edit-btn:hover,.portail-reload-btn:hover{border-color:var(--accent);color:var(--accent);}
-  .portail-toggle-btn:hover{border-color:var(--muted2);color:var(--text);}
-  .portail-body{position:relative;height:600px;transition:height .25s ease;}
-  .portail-body.collapsed{height:0;overflow:hidden;}
-  .portail-iframe{width:100%;height:100%;border:none;display:block;}
-  .portail-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:var(--panel);}
-  .portail-empty-icon{font-size:32px;opacity:0.3;}
-  .portail-empty-txt{font-family:var(--font-mono);font-size:11px;color:var(--muted);letter-spacing:1px;}
-  .portail-empty-btn{background:transparent;border:1px dashed var(--border2);border-radius:4px;color:var(--muted2);font-family:var(--font-mono);font-size:10px;padding:6px 16px;cursor:pointer;letter-spacing:1px;transition:all .18s;}
-  .portail-empty-btn:hover{border-color:var(--accent);color:var(--accent);}
+
 </style>
 </head>
 <body>
@@ -1130,31 +1085,6 @@
       <div class="notes-body" id="notesBody"></div>
     </div>
 
-  </div>
-</div>
-
-<!-- ════ PORTAIL INTERNE ═════════════════════════════════════════ -->
-<div class="portail-wrap" id="portailWrap">
-  <div class="portail-bar">
-    <span class="portail-bar-icon">🏢</span>
-    <span class="portail-bar-title">PORTAIL INTERNE</span>
-    <div class="portail-url-row" id="portailUrlRow">
-      <input class="portail-url-input" id="portailUrlInput" type="url" placeholder="https://intranet.aventech…" autocomplete="off">
-      <button class="portail-url-save" onclick="savePortailUrl()">✓ VALIDER</button>
-      <button class="portail-url-cancel" onclick="cancelPortailEdit()">✕</button>
-    </div>
-    <span class="portail-url-display" id="portailUrlDisplay"></span>
-    <button class="portail-edit-btn" id="portailEditBtn" onclick="editPortailUrl()" title="Modifier l'URL">✎</button>
-    <button class="portail-reload-btn" onclick="reloadPortail()" title="Actualiser">↺</button>
-    <button class="portail-toggle-btn" id="portailToggleBtn" onclick="togglePortail()" title="Réduire / Agrandir">▲</button>
-  </div>
-  <div class="portail-body" id="portailBody">
-    <iframe class="portail-iframe" id="portailIframe" src="" title="Portail Interne" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
-    <div class="portail-empty" id="portailEmpty">
-      <div class="portail-empty-icon">🏢</div>
-      <div class="portail-empty-txt">Aucune URL configurée</div>
-      <button class="portail-empty-btn" onclick="editPortailUrl()">+ CONFIGURER LE PORTAIL</button>
-    </div>
   </div>
 </div>
 
@@ -2953,27 +2883,6 @@ async function renderTicker() {
     );
   })();
 
-  // 3d-ter. BADGER / EURÉCIA (tous les jours ouvrés 7h-9h)
-  (function(){
-    const now = new Date();
-    const dow = now.getDay();
-    const h = now.getHours();
-    const isWorkDay = dow >= 1 && dow <= 5;
-    const wh = getWorkHours();
-    const badgerStart = 7; // 7h00
-    const badgerEnd   = 9; // 9h00
-    if (isWorkDay && h >= badgerStart && h < badgerEnd) {
-      parts.push(
-        `<a class="ticker-item tk-badger-alert" href="https://plateforme.eurecia.com/eurecia/index.html#/dashboard" target="_blank" rel="noopener" style="text-decoration:none;cursor:pointer;">` +
-        `<span class="tk-icon" style="animation:badger-bounce 1.2s ease-in-out infinite;">🕐</span>` +
-        `<span class="tk-label" style="color:#e87820;font-weight:700;letter-spacing:2px;text-shadow:0 0 8px rgba(232,120,32,0.4);">BADGER</span>` +
-        `<span class="tk-val" style="color:#ffaa60;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;">⏱ Penser à valider les heures sur Eurécia !</span>` +
-        `<span style="margin-left:10px;font-size:8px;color:#e87820;letter-spacing:1.5px;border:1px solid #f97316;padding:2px 7px;border-radius:3px;background:#2e1400;font-weight:700;">OUVRIR EURÉCIA ↗</span>` +
-        `</a>`
-      );
-    }
-  })();
-
   // 3d-bis. RAPPEL SAUVEGARDE (lundi uniquement)
   (function(){
     const now = new Date();
@@ -3271,63 +3180,6 @@ document.addEventListener('keydown', e=>{
 // ══════════════════════════════════════════════════════════════════
 //  RESET STORAGE — vider toutes les sauvegardes localStorage
 // ══════════════════════════════════════════════════════════════════
-// ══════════════════════════════════════════════════════════════════
-//  BADGER / EURÉCIA — POPUP RAPPEL MATIN 7h–9h
-// ══════════════════════════════════════════════════════════════════
-(function initBadger(){
-  const now = new Date();
-  const dow = now.getDay();
-  const h   = now.getHours();
-  const isWorkDay = dow >= 1 && dow <= 5;
-  const BADGER_START = 7; // 7h00
-  const BADGER_END   = 9; // 9h00
-
-  if (!isWorkDay || h < BADGER_START || h >= BADGER_END) return;
-
-  // Clé "ne plus afficher aujourd'hui"
-  const today = now.toISOString().slice(0, 10);
-  const dismissed = localStorage.getItem('launcher_badger_dismiss');
-  if (dismissed === today) return;
-
-  // Afficher la popup après 1.5s (laisse le temps au launcher de se charger)
-  setTimeout(() => {
-    const overlay = document.getElementById('badgerOverlay');
-    if (!overlay) return;
-    // Mettre à jour l'info de créneau avec l'heure de start configurée
-    const wh = getWorkHours();
-    const info = document.getElementById('badgerTimeInfo');
-    if (info) info.textContent = `Créneau de pointage : ${wh.start.replace(':', 'h')} – 09h00  ·  Journée en cours`;
-    overlay.classList.add('open');
-    document.body.style.overflow = 'hidden';
-  }, 1500);
-})();
-
-window.closeBadger = function(){
-  const overlay = document.getElementById('badgerOverlay');
-  if (overlay) overlay.classList.remove('open');
-  document.body.style.overflow = '';
-};
-
-window.badgerToggleNoMore = function(chk){
-  if (chk.checked) {
-    const today = new Date().toISOString().slice(0, 10);
-    localStorage.setItem('launcher_badger_dismiss', today);
-  } else {
-    localStorage.removeItem('launcher_badger_dismiss');
-  }
-};
-
-document.addEventListener('DOMContentLoaded', function(){
-  const ov = document.getElementById('badgerOverlay');
-  if (ov) ov.addEventListener('click', e => { if (e.target === ov) closeBadger(); });
-});
-
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && document.getElementById('badgerOverlay')?.classList.contains('open')) {
-    closeBadger();
-  }
-});
-
 window.openResetStorage = function(){
   document.getElementById('resetOverlay').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -3425,106 +3277,8 @@ document.addEventListener('keydown', e=>{
     closePdfRedact();
   }
 });
-// ── PORTAIL INTERNE ───────────────────────────────────────────
-const PORTAIL_URL_KEY = 'launcher_portail_url';
-const PORTAIL_COLLAPSED_KEY = 'launcher_portail_collapsed';
-
-function initPortail(){
-  const url = localStorage.getItem(PORTAIL_URL_KEY) || '';
-  const collapsed = localStorage.getItem(PORTAIL_COLLAPSED_KEY) === '1';
-  const iframe = document.getElementById('portailIframe');
-  const empty  = document.getElementById('portailEmpty');
-  const display = document.getElementById('portailUrlDisplay');
-  const body   = document.getElementById('portailBody');
-  const btn    = document.getElementById('portailToggleBtn');
-  display.textContent = url || '— non configuré —';
-  if(url){ iframe.src = url; iframe.style.display='block'; empty.style.display='none'; }
-  else   { iframe.style.display='none'; empty.style.display='flex'; }
-  if(collapsed){ body.classList.add('collapsed'); btn.textContent='▼'; }
-  else         { body.classList.remove('collapsed'); btn.textContent='▲'; }
-}
-
-function editPortailUrl(){
-  const url = localStorage.getItem(PORTAIL_URL_KEY) || '';
-  const row = document.getElementById('portailUrlRow');
-  const display = document.getElementById('portailUrlDisplay');
-  const inp = document.getElementById('portailUrlInput');
-  const editBtn = document.getElementById('portailEditBtn');
-  inp.value = url;
-  row.classList.add('visible');
-  display.style.display = 'none';
-  editBtn.style.display = 'none';
-  setTimeout(()=>inp.focus(), 50);
-}
-
-function cancelPortailEdit(){
-  document.getElementById('portailUrlRow').classList.remove('visible');
-  document.getElementById('portailUrlDisplay').style.display = '';
-  document.getElementById('portailEditBtn').style.display = '';
-}
-
-function savePortailUrl(){
-  const url = document.getElementById('portailUrlInput').value.trim();
-  if(url) localStorage.setItem(PORTAIL_URL_KEY, url);
-  else localStorage.removeItem(PORTAIL_URL_KEY);
-  cancelPortailEdit();
-  initPortail();
-}
-
-function reloadPortail(){
-  const iframe = document.getElementById('portailIframe');
-  const url = localStorage.getItem(PORTAIL_URL_KEY);
-  if(url){ iframe.src = ''; setTimeout(()=>{ iframe.src = url; }, 50); }
-}
-
-function togglePortail(){
-  const body = document.getElementById('portailBody');
-  const btn  = document.getElementById('portailToggleBtn');
-  const isCollapsed = body.classList.toggle('collapsed');
-  btn.textContent = isCollapsed ? '▼' : '▲';
-  localStorage.setItem(PORTAIL_COLLAPSED_KEY, isCollapsed ? '1' : '0');
-}
-
-document.addEventListener('DOMContentLoaded', ()=>{ initPortail(); });
-document.getElementById('portailUrlInput')?.addEventListener('keydown', e=>{
-  if(e.key==='Enter') savePortailUrl();
-  if(e.key==='Escape') cancelPortailEdit();
-});
 
 </script>
-
-<!-- ════ BADGER / EURÉCIA — RAPPEL POINTAGE MATIN ════════════════ -->
-<div class="badger-overlay" id="badgerOverlay">
-  <div class="badger-modal">
-    <div class="badger-bar">
-      <span class="badger-bar-icon">🕐</span>
-      <span class="badger-bar-title">RAPPEL POINTAGE</span>
-      <button class="badger-close" onclick="closeBadger()">✕ FERMER</button>
-    </div>
-    <div class="badger-body">
-      <div class="badger-reminder">
-        <strong>⏱ Penser à valider les heures !</strong><br>
-        <span style="font-size:9px;color:var(--muted2);">Badger &amp; enregistrer la journée sur Eurécia</span>
-      </div>
-      <div class="badger-time-info" id="badgerTimeInfo">
-        Créneau de pointage : 07h00 – 09h00
-      </div>
-      <div class="badger-actions">
-        <a class="badger-btn-primary" href="https://plateforme.eurecia.com/eurecia/index.html#/dashboard" target="_blank" rel="noopener" onclick="closeBadger()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          OUVRIR EURÉCIA — BADGER
-        </a>
-        <button class="badger-btn-secondary" onclick="closeBadger()">
-          ✓ J'ai déjà badgé — fermer
-        </button>
-      </div>
-      <div class="badger-checkbox-row" style="margin-top:14px;">
-        <input type="checkbox" id="badgerNoMore" onchange="badgerToggleNoMore(this)">
-        <label for="badgerNoMore">Ne plus afficher aujourd'hui</label>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- ════ AJOUTER UTILITAIRE MODAL ════════════════════════════════ -->
 <div class="addutil-overlay" id="addutilOverlay">
