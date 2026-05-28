@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LAUNCHER — BASE OPS</title>
+<title>⬡ LAUNCHER — BASE OPS</title>
 <script>document.documentElement.className='';</script>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23060a0e'/><rect x='6' y='10' width='20' height='14' rx='1' fill='none' stroke='%2300e676' stroke-width='2'/><line x1='6' y1='16' x2='26' y2='16' stroke='%2300e676' stroke-width='1.2'/></svg>">
 <style>
@@ -81,12 +81,40 @@
 
   /* ── CARTE COMPACTE (utilitaires) ── */
   .app-card-sm{flex-direction:row;align-items:center;padding:7px 10px;gap:8px;}
-  .app-card-sm .app-icon{width:22px;height:22px;font-size:12px;flex-shrink:0;}
+  .app-card-sm .app-icon{width:22px;height:22px;font-size:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+  .app-card-sm .app-icon img.util-favicon{width:16px;height:16px;object-fit:contain;border-radius:2px;}
   .app-card-sm .app-name{font-size:11px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .app-card-sm .app-desc{display:none;}
   .app-card-sm .app-badge{font-size:7px;letter-spacing:1.5px;white-space:nowrap;flex-shrink:0;opacity:0.45;}
   .app-card-sm .app-nt{top:50%;transform:translateY(-50%);}
   .app-card-sm .app-offline-dot{top:50%;transform:translateY(-50%);}
+  /* Bouton supprimer carte utilitaire custom */
+  .app-del{position:absolute;bottom:50%;right:28px;transform:translateY(50%);width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);opacity:0;transition:opacity .15s;background:var(--border);border-radius:2px;cursor:pointer;border:none;line-height:1;z-index:2;}
+  .app-card:hover .app-del{opacity:1;}
+  .app-del:hover{color:var(--red);background:var(--border2);}
+  /* Bouton + Ajouter utilitaire */
+  .apps-add-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:7px 10px;background:transparent;border:1px dashed var(--border2);border-radius:5px;cursor:pointer;font-family:var(--font-mono);font-size:10px;color:var(--muted2);letter-spacing:1px;transition:all .18s;}
+  .apps-add-btn:hover{border-color:var(--accent);color:var(--accent);background:#c8c0a8;}
+  /* Modal ajouter utilitaire */
+  .addutil-overlay{position:fixed;inset:0;background:rgba(10,15,20,0.65);z-index:700;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px);}
+  .addutil-overlay.open{display:flex;}
+  .addutil-modal{background:var(--panel);border:1px solid var(--border2);border-radius:6px;width:360px;max-width:94vw;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.4);}
+  .addutil-bar{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--header-bg);}
+  .addutil-bar-title{font-family:var(--font-display);font-weight:800;font-size:11px;color:var(--accent);letter-spacing:3px;text-transform:uppercase;flex:1;}
+  .addutil-close{background:transparent;border:1px solid var(--border);border-radius:3px;color:var(--muted2);font-family:var(--font-mono);font-size:9px;padding:3px 9px;cursor:pointer;letter-spacing:1px;transition:all .15s;}
+  .addutil-close:hover{border-color:var(--red);color:var(--red);}
+  .addutil-body{padding:18px 16px;display:flex;flex-direction:column;gap:10px;}
+  .addutil-field{display:flex;flex-direction:column;gap:4px;}
+  .addutil-label{font-family:var(--font-display);font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted2);}
+  .addutil-input{background:var(--panel2);border:1px solid var(--border);border-radius:3px;outline:none;padding:7px 10px;font-family:var(--font-mono);font-size:10px;color:var(--text);transition:border-color .15s;}
+  .addutil-input:focus{border-color:var(--accent);}
+  .addutil-input::placeholder{color:var(--muted);}
+  .addutil-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .addutil-btns{display:flex;gap:8px;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--border);}
+  .addutil-cancel{background:transparent;border:1px solid var(--border);border-radius:3px;color:var(--muted2);font-family:var(--font-mono);font-size:9px;padding:5px 13px;cursor:pointer;letter-spacing:1px;transition:all .15s;}
+  .addutil-cancel:hover{border-color:var(--muted2);color:var(--text);}
+  .addutil-confirm{background:var(--accent);border:1px solid var(--accent);border-radius:3px;color:#fff;font-family:var(--font-mono);font-size:9px;padding:5px 13px;cursor:pointer;letter-spacing:1px;font-weight:700;transition:all .15s;}
+  .addutil-confirm:hover{filter:brightness(1.12);}
 
   /* ── TODO ── */
   .todo-panel{background:var(--panel);border:1px solid var(--border);border-radius:5px;overflow:hidden;}
@@ -120,8 +148,11 @@
 
   /* ── FAVORIS ── */
   .fav-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin-bottom:4px;}
-  .fav-item{background:var(--panel);border:1px solid var(--border);border-radius:5px;display:flex;align-items:center;gap:0;overflow:hidden;transition:all .18s;}
+  .fav-item{background:var(--panel);border:1px solid var(--border);border-radius:5px;display:flex;align-items:center;gap:0;overflow:hidden;transition:all .18s;position:relative;}
   .fav-item:hover{border-color:var(--border2);}
+  .fav-del{position:absolute;top:50%;right:4px;transform:translateY(-50%);width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);opacity:0;transition:opacity .15s;background:var(--border);border-radius:2px;cursor:pointer;border:none;line-height:1;flex-shrink:0;}
+  .fav-item:hover .fav-del{opacity:1;}
+  .fav-del:hover{color:var(--red);background:var(--border2);}
   .fav-go{width:34px;height:34px;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;background:transparent;border:none;border-right:1px solid var(--border);color:var(--muted2);font-size:13px;transition:all .15s;}
   .fav-go:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
   .fav-fields{flex:1;display:flex;flex-direction:column;min-width:0;}
@@ -423,7 +454,7 @@
   /* Numéro de semaine */
   .wk-num-badge{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 14px 0 4px;border-right:2px solid var(--border);margin-right:8px;white-space:nowrap;flex-shrink:0;line-height:1;}
   .wk-num-lbl{font-family:var(--font-mono);font-size:8px;font-weight:700;color:var(--muted2);letter-spacing:2px;text-transform:uppercase;margin-bottom:1px;}
-  .wk-num-val{font-family:var(--font-display);font-weight:800;font-size:52px;color:var(--text);letter-spacing:-2px;line-height:1;}
+  .wk-num-val{font-family:var(--font-display);font-weight:800;font-size:17px;color:var(--text);letter-spacing:-1px;line-height:1;}
 
   /* ── BANDE DÉFILANTE ── */
   #ticker-bar{position:sticky;top:141px;z-index:97;background:var(--ticker-bg);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);height:34px;overflow:hidden;display:flex;align-items:center;}
@@ -1012,10 +1043,12 @@
     <!-- Favoris web -->
     <div class="slabel">Favoris Web</div>
     <div class="fav-grid" id="favGrid"></div>
+    <button class="apps-add-btn" style="margin-top:8px;width:100%;" onclick="addFav()">+ AJOUTER UN FAVORI</button>
 
     <!-- Apps -->
     <div class="slabel" style="margin-top:18px">Utilitaires</div>
     <div class="apps-grid" id="appsGrid"></div>
+    <button class="apps-add-btn" style="margin-top:8px;width:100%;" onclick="openAddUtil()">+ AJOUTER UN UTILITAIRE</button>
   </div>
 
   <!-- Todo -->
@@ -1313,16 +1346,23 @@ function buildFavs(){
     item.innerHTML = `
       <button class="fav-go" title="Ouvrir">→</button>
       ${faviconSrc ? `<img class="fav-favicon" src="${faviconSrc}" alt="" onerror="this.style.display='none'">` : '<span style="width:8px"></span>'}
-      <div class="fav-fields">
+      <div class="fav-fields" style="padding-right:22px">
         <input class="fav-label-in" type="text" value="${escHtml(fav.label)}" placeholder="Nom du site" maxlength="40" data-i="${i}" data-field="label">
         <input class="fav-url-in"   type="text" value="${escHtml(fav.url)}"   placeholder="https://…"   maxlength="300" data-i="${i}" data-field="url">
       </div>
+      <button class="fav-del" title="Supprimer ce favori">✕</button>
     `;
 
     // Bouton ouvrir
     item.querySelector('.fav-go').addEventListener('click', () => {
       const url = loadFavs()[i].url;
       openFav(url.startsWith('http') ? url : 'https://'+url);
+    });
+
+    // Bouton supprimer
+    item.querySelector('.fav-del').addEventListener('click', e => {
+      e.stopPropagation();
+      deleteFav(i);
     });
 
     // Double-clic sur tout l'item = ouvrir aussi
@@ -1385,6 +1425,25 @@ function buildFavs(){
   });
 }
 
+function addFav(){
+  const favs = loadFavs();
+  favs.push({label:'', url:''});
+  saveFavs(favs);
+  buildFavs();
+  // Focus sur le dernier input label ajouté
+  setTimeout(() => {
+    const inputs = document.querySelectorAll('#favGrid .fav-label-in');
+    if(inputs.length) inputs[inputs.length-1].focus();
+  }, 50);
+}
+
+function deleteFav(idx){
+  const favs = loadFavs();
+  favs.splice(idx, 1);
+  saveFavs(favs);
+  buildFavs();
+}
+
 function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 
 const APPS=[
@@ -1400,8 +1459,6 @@ const APPS=[
   {file:'mindmap.html',                    name:'MindMap',          desc:'Carte mentale interactive',           emoji:'🗺',badge:'OUTIL'},
   {file:'workspace.html',                  name:'Workspace',        desc:'Calculatrice · Conversions · Notes IA',emoji:'⬡',badge:'OUTIL'},
   {file:'suivi_conges_v4.html',            name:'Suivi Congés',     desc:'Demandes · Suivi · Réponse auto',      emoji:'🏖',badge:'RH', action:'conges'},
-  {file:'demande_conge_PDF.html',          name:'Demande Absence',  desc:'Formulaire PDF · Aventech · Calibrage', emoji:'📋',badge:'RH', action:'dcpdf'},
-  {file:'pdf-redact-local.html',           name:'PDF Redact',       desc:'Caviarder · Biffer zones · Export PDF',  emoji:'🔏',badge:'OUTIL', action:'pdfredact'},
   {url:'https://www.prorealtime.com/fr/login',                          name:'ProRealTime',     desc:'Plateforme de trading · Graphiques · Marchés',  emoji:'📊',badge:'FINANCE'},
   {url:'https://bencm0i.github.io/Sant-/meeting-notes.html',           name:'Meeting Notes',   desc:'Notes de réunion · Compte-rendu',               emoji:'📝',badge:'OUTIL'},
   {url:'https://bencm0i.github.io/smart/meteo_dashboard_chauffage.html',name:'Météo Chauffage',desc:'Dashboard météo · Gestion chauffage',            emoji:'🌡',badge:'SMART'},
@@ -1409,6 +1466,50 @@ const APPS=[
   {url:'https://www.pappers.fr/',                                       name:'Pappers',         desc:'Recherche entreprises · Informations légales',  emoji:'🏢',badge:'BUSINESS'},
   {url:'https://plateforme.eurecia.com/eurecia/index.html#/dashboard', name:'Eurécia',         desc:'Pointage · Congés · RH · Gestion des temps',   emoji:'🕐',badge:'RH'},
 ];
+
+// ── UTILITAIRES CUSTOM (ajoutés par l'utilisateur) ─────────────
+const CUSTOM_APPS_KEY = 'launcher_custom_apps';
+function loadCustomApps(){ try{ return JSON.parse(localStorage.getItem(CUSTOM_APPS_KEY)||'[]'); }catch{ return []; } }
+function saveCustomApps(arr){ localStorage.setItem(CUSTOM_APPS_KEY, JSON.stringify(arr)); }
+function getAllApps(){ return [...APPS, ...loadCustomApps()]; }
+
+// ── MODAL AJOUTER UTILITAIRE ───────────────────────────────────
+function openAddUtil(){
+  document.getElementById('addutil-url').value='';
+  document.getElementById('addutil-name').value='';
+  document.getElementById('addutil-emoji').value='';
+  document.getElementById('addutil-desc').value='';
+  document.getElementById('addutil-badge').value='';
+  document.getElementById('addutilOverlay').classList.add('open');
+  setTimeout(()=>document.getElementById('addutil-url').focus(), 80);
+}
+function closeAddUtil(){ document.getElementById('addutilOverlay').classList.remove('open'); }
+function confirmAddUtil(){
+  const url   = document.getElementById('addutil-url').value.trim();
+  const name  = document.getElementById('addutil-name').value.trim();
+  const emoji = document.getElementById('addutil-emoji').value.trim() || '🔗';
+  const desc  = document.getElementById('addutil-desc').value.trim() || 'Lien interne';
+  const badge = (document.getElementById('addutil-badge').value.trim() || 'CUSTOM').toUpperCase();
+  if(!url || !name){ alert('URL et Nom obligatoires.'); return; }
+  const customs = loadCustomApps();
+  customs.push({ url, name, emoji, desc, badge, custom:true });
+  saveCustomApps(customs);
+  closeAddUtil();
+  buildApps();
+}
+document.addEventListener('DOMContentLoaded', ()=>{
+  const addutilOv = document.getElementById('addutilOverlay');
+  if(addutilOv) addutilOv.addEventListener('click', e=>{ if(e.target===e.currentTarget) closeAddUtil(); });
+});
+document.addEventListener('keydown', e=>{ if(e.key==='Escape' && document.getElementById('addutilOverlay')?.classList.contains('open')) closeAddUtil(); });
+
+// ── FAVICON HELPER ─────────────────────────────────────────────
+function getFaviconUrl(urlStr){
+  try{
+    const u = new URL(urlStr);
+    return `${u.protocol}//${u.host}/favicon.ico`;
+  }catch{ return null; }
+}
 
 let newTab=localStorage.getItem('launcher_newtab')==='1';
 function toggleTabMode(){newTab=!newTab;localStorage.setItem('launcher_newtab',newTab?'1':'0');updateToggleUI();}
@@ -1474,10 +1575,11 @@ function loadAppsOrder(){
 function saveAppsOrder(order){ localStorage.setItem(APPS_ORDER_KEY, JSON.stringify(order)); }
 function getOrderedApps(){
   const order = loadAppsOrder();
-  if(!order) return [...APPS];
+  const all = getAllApps();
+  if(!order) return all;
   const ordered = [];
-  order.forEach(name => { const a = APPS.find(x=>x.name===name); if(a) ordered.push(a); });
-  APPS.forEach(a => { if(!ordered.find(x=>x.name===a.name)) ordered.push(a); });
+  order.forEach(name => { const a = all.find(x=>x.name===name); if(a) ordered.push(a); });
+  all.forEach(a => { if(!ordered.find(x=>x.name===a.name)) ordered.push(a); });
   return ordered;
 }
 
@@ -1489,7 +1591,20 @@ function buildApps(){
 
   orderedApps.forEach(a=>{
     const c=document.createElement('div');c.className='app-card app-card-sm';c.draggable=true;c.dataset.name=a.name;
-    c.innerHTML=`<div class="app-offline-dot"></div><div class="app-nt" title="Nouvel onglet">↗</div><div class="app-icon">${a.emoji}</div><div class="app-name">${a.name}</div><div class="app-desc">${a.desc}</div><div class="app-badge">${a.badge}</div>`;
+
+    // Icône : favicon si URL externe, sinon emoji
+    let iconHtml;
+    if(a.url){
+      const fav = getFaviconUrl(a.url);
+      iconHtml = `<div class="app-icon"><img class="util-favicon" src="${fav}" alt="" onerror="this.style.display='none';this.parentNode.textContent='${a.emoji}'" loading="lazy"></div>`;
+    } else {
+      iconHtml = `<div class="app-icon">${a.emoji}</div>`;
+    }
+
+    // Bouton supprimer uniquement pour les utilitaires custom
+    const delBtn = a.custom ? `<button class="app-del" title="Supprimer" onclick="deleteCustomApp(event,'${escHtml(a.name)}')">✕</button>` : '';
+
+    c.innerHTML=`<div class="app-offline-dot"></div><div class="app-nt" title="Nouvel onglet">↗</div>${iconHtml}<div class="app-name">${a.name}</div><div class="app-desc">${a.desc}</div><div class="app-badge">${a.badge}</div>${delBtn}`;
 
     const doOpen = () => {
       trackRecent(a);
@@ -1504,6 +1619,7 @@ function buildApps(){
 
     c.addEventListener('click',e=>{
       if(e.target.classList.contains('app-nt'))return;
+      if(e.target.classList.contains('app-del'))return;
       doOpen();
     });
     c.querySelector('.app-nt').addEventListener('click',e=>{e.stopPropagation();trackRecent(a);window.open(a.url||a.file,'_blank','noopener');});
@@ -1541,6 +1657,13 @@ function buildApps(){
 
     g.appendChild(c);
   });
+}
+
+function deleteCustomApp(e, name){
+  e.stopPropagation();
+  const customs = loadCustomApps().filter(a => a.name !== name);
+  saveCustomApps(customs);
+  buildApps();
 }
 
 // ── CLOCK ──────────────────────────────────────────────────────
@@ -3289,6 +3412,45 @@ document.addEventListener('keydown', e=>{
   </div>
 </div>
 
+<!-- ════ AJOUTER UTILITAIRE MODAL ════════════════════════════════ -->
+<div class="addutil-overlay" id="addutilOverlay">
+  <div class="addutil-modal">
+    <div class="addutil-bar">
+      <span style="font-size:14px">🔗</span>
+      <span class="addutil-bar-title">+ Ajouter un utilitaire</span>
+      <button class="addutil-close" onclick="closeAddUtil()">✕ FERMER</button>
+    </div>
+    <div class="addutil-body">
+      <div class="addutil-field">
+        <label class="addutil-label">URL du lien interne</label>
+        <input class="addutil-input" id="addutil-url" type="url" placeholder="http://192.168.1.x:port/… ou https://…" autocomplete="off">
+      </div>
+      <div class="addutil-row">
+        <div class="addutil-field">
+          <label class="addutil-label">Nom</label>
+          <input class="addutil-input" id="addutil-name" type="text" placeholder="Mon outil" maxlength="32" autocomplete="off">
+        </div>
+        <div class="addutil-field">
+          <label class="addutil-label">Icône (emoji)</label>
+          <input class="addutil-input" id="addutil-emoji" type="text" placeholder="🔧" maxlength="4" autocomplete="off">
+        </div>
+      </div>
+      <div class="addutil-field">
+        <label class="addutil-label">Description (optionnel)</label>
+        <input class="addutil-input" id="addutil-desc" type="text" placeholder="Courte description…" maxlength="60" autocomplete="off">
+      </div>
+      <div class="addutil-field">
+        <label class="addutil-label">Badge (optionnel)</label>
+        <input class="addutil-input" id="addutil-badge" type="text" placeholder="OUTIL" maxlength="12" autocomplete="off">
+      </div>
+    </div>
+    <div class="addutil-btns">
+      <button class="addutil-cancel" onclick="closeAddUtil()">ANNULER</button>
+      <button class="addutil-confirm" onclick="confirmAddUtil()">+ AJOUTER</button>
+    </div>
+  </div>
+</div>
+
 <!-- ════ RESET STORAGE MODAL ════════════════════════════════════ -->
 <div class="reset-overlay" id="resetOverlay">
   <div class="reset-modal">
@@ -3301,6 +3463,7 @@ document.addEventListener('keydown', e=>{
       <div class="reset-warn-box">
         <div class="reset-warn-title">⚠ ATTENTION — Action irréversible</div>
         <ul class="reset-warn-list">
+          <li>Les utilitaires personnalisés ajoutés seront supprimés</li>
           <li>Toutes les tâches TODO seront supprimées</li>
           <li>Toutes les notes seront effacées</li>
           <li>Les favoris personnalisés seront perdus</li>
