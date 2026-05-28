@@ -707,6 +707,27 @@
   .htrav-bar-fill{height:100%;background:linear-gradient(90deg,var(--olive),var(--olive2));border-radius:3px;transition:width .4s ease;}
   .htrav-info{font-family:var(--font-mono);font-size:8px;color:var(--muted);letter-spacing:0.5px;line-height:1.7;border-top:1px solid var(--border);padding-top:7px;}
   .htrav-info b{color:var(--muted2);}
+  /* ── POINTAGE INPUTS ── */
+  .htrav-inputs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:8px;}
+  .htrav-input-field{background:#b8b09a;border:1px solid var(--border);border-radius:3px;padding:5px 5px 4px;text-align:center;}
+  .htrav-input-lbl{font-family:var(--font-mono);font-size:7px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;}
+  .htrav-time-in{background:var(--panel2);border:1px solid var(--border);border-radius:2px;outline:none;padding:3px 4px;font-family:var(--font-display);font-size:11px;font-weight:700;color:var(--text);width:100%;text-align:center;transition:border-color .15s;}
+  .htrav-time-in:focus{border-color:var(--accent);}
+  .htrav-time-in::-webkit-calendar-picker-indicator{opacity:0.3;cursor:pointer;width:10px;height:10px;}
+  /* Départ calculé */
+  .htrav-depart-wrap{background:#b8b09a;border:1px solid var(--border);border-radius:3px;padding:7px 9px;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+  .htrav-depart-lbl{font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);flex-shrink:0;}
+  .htrav-depart-val{font-family:var(--font-mono);font-size:20px;font-weight:700;color:var(--olive);flex:1;text-align:center;}
+  .htrav-depart-val.warn{color:var(--gold);}
+  .htrav-depart-val.none{color:var(--muted);font-size:14px;}
+  .htrav-depart-edit{background:var(--panel2);border:1px solid var(--border);border-radius:2px;outline:none;padding:3px 4px;font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--olive);width:82px;text-align:center;display:none;transition:border-color .15s;}
+  .htrav-depart-edit:focus{border-color:var(--accent);}
+  .htrav-depart-edit::-webkit-calendar-picker-indicator{opacity:0.3;cursor:pointer;width:10px;height:10px;}
+  .htrav-depart-manual-btn{background:transparent;border:1px solid var(--border);border-radius:2px;padding:2px 6px;font-family:var(--font-mono);font-size:8px;color:var(--muted);cursor:pointer;letter-spacing:1px;flex-shrink:0;transition:all .15s;}
+  .htrav-depart-manual-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .htrav-depart-tag{font-size:8px;padding:2px 5px;border-radius:2px;letter-spacing:1px;flex-shrink:0;}
+  .htrav-depart-tag.auto{background:#2a4a1a;color:var(--olive2);border:1px solid #3a6a20;}
+  .htrav-depart-tag.manual{background:#4a3a10;color:var(--gold);border:1px solid #6a5a20;}
   /* Bouton danger dans hR */
   .danger-btn{display:flex;align-items:center;gap:6px;background:#d4a8a8;border:1px solid #ef4444;border-radius:4px;padding:5px 11px;cursor:pointer;font-family:var(--font-mono);font-size:10px;color:var(--red);letter-spacing:1px;transition:all .2s;user-select:none;}
   .danger-btn:hover{background:#cc9090;border-color:#ef4444;}
@@ -1127,10 +1148,33 @@
         <button class="htrav-reset-btn" onclick="htravReset()" title="Réinitialiser le jour">↺ RAZ</button>
       </div>
       <div class="htrav-body">
-        <div class="htrav-slots" id="htravSlots"></div>
+        <!-- 3 inputs pointage -->
+        <div class="htrav-inputs">
+          <div class="htrav-input-field">
+            <div class="htrav-input-lbl">🟢 Arrivée</div>
+            <input class="htrav-time-in" type="time" id="htravIn1" oninput="htravCalc()">
+          </div>
+          <div class="htrav-input-field">
+            <div class="htrav-input-lbl">🍽 Pause midi ↓</div>
+            <input class="htrav-time-in" type="time" id="htravIn2" oninput="htravCalc()">
+          </div>
+          <div class="htrav-input-field">
+            <div class="htrav-input-lbl">🔄 Pause midi ↑</div>
+            <input class="htrav-time-in" type="time" id="htravIn3" oninput="htravCalc()">
+          </div>
+        </div>
+        <!-- Départ calculé / manuel -->
+        <div class="htrav-depart-wrap" id="htravDepartWrap">
+          <div class="htrav-depart-lbl">DÉPART</div>
+          <div class="htrav-depart-val none" id="htravDepartVal">—</div>
+          <input class="htrav-depart-edit" type="time" id="htravDepartEdit" oninput="htravManualDepart()" style="display:none">
+          <span class="htrav-depart-tag auto" id="htravDepartTag" style="display:none">AUTO</span>
+          <button class="htrav-depart-manual-btn" id="htravDepartBtn" onclick="htravToggleManual()">✎</button>
+        </div>
+        <!-- Barre -->
         <div class="htrav-bar-wrap">
           <div class="htrav-bar-label">
-            <span class="htrav-bar-lbl">Progression théorique</span>
+            <span class="htrav-bar-lbl">Progression</span>
             <span class="htrav-bar-pct" id="htravPct">0%</span>
           </div>
           <div class="htrav-bar-track"><div class="htrav-bar-fill" id="htravBarFill" style="width:0%"></div></div>
@@ -2777,177 +2821,265 @@ updateToggleUI();buildApps();buildFavs();loadTodos();renderTodos();loadNotes();r
   setInterval(checkAicBanner, 30000);
 })();
 
-// ── HEURES TRAVAILLÉES — basé sur clics Eurécia ───────────────────
+// ── HEURES TRAVAILLÉES — Saisie pointage + calcul départ ─────────────
 (function initHtrav(){
-  // Définition des 4 créneaux : id, heure, rôle
-  const SLOTS = [
-    { id:'s1', time:'7h30',  h:7,  m:30, role:'Arrivée',      ico:'🟢' },
-    { id:'s2', time:'12h25', h:12, m:25, role:'Pause déj.',   ico:'🍽' },
-    { id:'s3', time:'13h00', h:13, m:0,  role:'Retour',       ico:'🔄' },
-    { id:'s4', time:'15h40', h:15, m:40, role:'Départ',       ico:'🏁' },
-  ];
-  // Durée théorique totale si les 4 créneaux sont pointés :
-  // matin : 12h25 - 7h30 = 4h55 = 295 min
-  // après-midi : 15h40 - 13h00 = 2h40 = 160 min
-  // TOTAL : 7h35 = 455 min
-  const THEORIC_MIN = 455; // 7h35
 
-  const HTRAV_KEY = 'htrav_clics';
+  const HTRAV_KEY = 'htrav_pointage';
+  // Pauses fixes : 10mn matin + 10mn apm
+  const PAUSE_FIXE_MIN = 10 + 10; // 20mn au total
+
+  // Cible selon le jour (lun=1…ven=5)
+  function getTargetMin(){
+    const dow = new Date().getDay(); // 0=dim,1=lun,…,5=ven,6=sam
+    return dow === 5 ? Math.round(6.2*60) : Math.round(7.2*60); // 372 ou 432
+  }
 
   function getTodayKey(){
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   }
 
-  function loadClics(){
-    try {
+  function loadData(){
+    try{
       const raw = JSON.parse(localStorage.getItem(HTRAV_KEY)||'{}');
-      if(raw.day !== getTodayKey()) return { day: getTodayKey(), hits: [] };
+      if(raw.day !== getTodayKey()) return {day:getTodayKey(),in1:'',in2:'',in3:'',manualDepart:'',isManual:false};
       return raw;
-    } catch { return { day: getTodayKey(), hits: [] }; }
+    } catch { return {day:getTodayKey(),in1:'',in2:'',in3:'',manualDepart:'',isManual:false}; }
   }
 
-  function saveClics(data){ localStorage.setItem(HTRAV_KEY, JSON.stringify(data)); }
+  function saveData(d){ localStorage.setItem(HTRAV_KEY, JSON.stringify(d)); }
 
-  // Enregistre un clic Eurécia — détecte le créneau le plus proche
-  window.htravRecordClic = function(){
-    const now = new Date();
-    const nowMins = now.getHours()*60 + now.getMinutes();
-    // Trouve le créneau non encore pointé le plus proche (dans une fenêtre ±60 min)
-    let best = null, bestDist = Infinity;
-    SLOTS.forEach(s => {
-      const slotMins = s.h*60 + s.m;
-      const dist = Math.abs(nowMins - slotMins);
-      if(dist < bestDist && dist <= 60) { bestDist = dist; best = s.id; }
-    });
-    const data = loadClics();
-    if(best && !data.hits.includes(best)){
-      data.hits.push(best);
-      saveClics(data);
+  function timeToMins(t){ // "HH:MM" → minutes
+    if(!t) return null;
+    const [h,m] = t.split(':').map(Number);
+    return h*60+m;
+  }
+
+  function minsToTime(m){ // minutes → "HH:MM"
+    if(m===null||m===undefined) return '';
+    const h = Math.floor(m/60);
+    const mn = m%60;
+    return `${String(h).padStart(2,'0')}:${String(mn).padStart(2,'0')}`;
+  }
+
+  function minsToHStr(mins){
+    const abs = Math.abs(mins);
+    const h = Math.floor(abs/60);
+    const m = abs%60;
+    return `${h}h${String(m).padStart(2,'0')}`;
+  }
+
+  // Calcule l'heure de départ théorique
+  // Formule : Arrivée + Cible + (Pause_fin - Pause_debut) + 20mn_fixes
+  function calcDepart(in1, in2, in3){
+    const arrMin = timeToMins(in1);
+    if(arrMin === null) return null;
+    const target = getTargetMin();
+    const pauseMidi = (timeToMins(in2) !== null && timeToMins(in3) !== null)
+      ? timeToMins(in3) - timeToMins(in2)
+      : 45; // durée pause midi par défaut si non renseignée
+    const departMin = arrMin + target + pauseMidi + PAUSE_FIXE_MIN;
+    return departMin;
+  }
+
+  // Calcule le temps travaillé jusqu'à maintenant (ou jusqu'au départ enregistré)
+  function calcWorkedNow(in1, in2, in3, departOverride){
+    const arrMin = timeToMins(in1);
+    if(arrMin === null) return null;
+    const nowMins = new Date().getHours()*60 + new Date().getMinutes();
+    const endMins = departOverride !== null ? departOverride : nowMins;
+    const pauseMidi = (timeToMins(in2) !== null && timeToMins(in3) !== null)
+      ? timeToMins(in3) - timeToMins(in2)
+      : 0;
+    // Si on est pendant la pause midi, ne pas compter la pause
+    let pauseElapsed = 0;
+    if(timeToMins(in2) !== null && timeToMins(in3) !== null){
+      const p2 = timeToMins(in2), p3 = timeToMins(in3);
+      if(endMins <= p2) pauseElapsed = 0;
+      else if(endMins >= p3) pauseElapsed = pauseMidi;
+      else pauseElapsed = endMins - p2;
     }
+    const worked = endMins - arrMin - pauseElapsed - PAUSE_FIXE_MIN;
+    return Math.max(0, worked);
+  }
+
+  window.htravCalc = function(){
+    const data = loadData();
+    data.in1 = document.getElementById('htravIn1').value;
+    data.in2 = document.getElementById('htravIn2').value;
+    data.in3 = document.getElementById('htravIn3').value;
+    data.isManual = false;
+    data.manualDepart = '';
+    saveData(data);
     renderHtrav();
+  };
+
+  window.htravManualDepart = function(){
+    const data = loadData();
+    const val = document.getElementById('htravDepartEdit').value;
+    data.manualDepart = val;
+    data.isManual = true;
+    saveData(data);
+    renderHtrav();
+  };
+
+  let _manualMode = false;
+  window.htravToggleManual = function(){
+    _manualMode = !_manualMode;
+    const valEl = document.getElementById('htravDepartVal');
+    const editEl = document.getElementById('htravDepartEdit');
+    const btn = document.getElementById('htravDepartBtn');
+    const data = loadData();
+    if(_manualMode){
+      const curVal = data.isManual && data.manualDepart ? data.manualDepart
+        : (()=>{ const dm = calcDepart(data.in1,data.in2,data.in3); return dm!==null?minsToTime(dm):''; })();
+      valEl.style.display = 'none';
+      editEl.style.display = 'block';
+      editEl.value = curVal;
+      btn.textContent = '✓';
+      btn.title = 'Valider';
+    } else {
+      // Valider la saisie manuelle
+      const val = editEl.value;
+      if(val){
+        data.manualDepart = val;
+        data.isManual = true;
+      } else {
+        data.isManual = false;
+        data.manualDepart = '';
+      }
+      saveData(data);
+      valEl.style.display = 'block';
+      editEl.style.display = 'none';
+      btn.textContent = '✎';
+      btn.title = 'Modifier manuellement';
+      renderHtrav();
+    }
   };
 
   window.htravReset = function(){
     localStorage.removeItem(HTRAV_KEY);
+    _manualMode = false;
+    ['htravIn1','htravIn2','htravIn3'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.value='';
+    });
+    const valEl = document.getElementById('htravDepartVal');
+    const editEl = document.getElementById('htravDepartEdit');
+    const btn = document.getElementById('htravDepartBtn');
+    if(valEl){ valEl.style.display='block'; valEl.textContent='—'; valEl.className='htrav-depart-val none'; }
+    if(editEl){ editEl.style.display='none'; }
+    if(btn){ btn.textContent='✎'; }
     renderHtrav();
   };
 
-  function minsToHStr(mins){
-    const h = Math.floor(Math.abs(mins)/60);
-    const m = Math.abs(mins)%60;
-    return `${h}h${String(m).padStart(2,'0')}`;
-  }
-
-  function calcWorked(hits){
-    // Calcule les minutes travaillées selon les créneaux pointés
-    let total = 0;
-    // S1→S2 : matin (7h30→12h25 = 295 min)
-    if(hits.includes('s1') && hits.includes('s2')) total += 295;
-    else if(hits.includes('s1') && !hits.includes('s2')){
-      // S1 seul : compte jusqu'à maintenant si dans la plage, sinon max matin
-      const now = new Date();
-      const nowMins = now.getHours()*60 + now.getMinutes();
-      const s1End = 12*60+25;
-      if(nowMins < s1End) total += Math.max(0, nowMins - (7*60+30));
-      else total += 295; // plage matin complète
-    }
-    // S3→S4 : après-midi (13h00→15h40 = 160 min)
-    if(hits.includes('s3') && hits.includes('s4')) total += 160;
-    else if(hits.includes('s3') && !hits.includes('s4')){
-      const now = new Date();
-      const nowMins = now.getHours()*60 + now.getMinutes();
-      const s4End = 15*60+40;
-      if(nowMins < s4End) total += Math.max(0, nowMins - (13*60));
-      else total += 160;
-    }
-    return total;
-  }
-
   function renderHtrav(){
-    const data = loadClics();
-    const hits = data.hits || [];
+    const data = loadData();
+    const target = getTargetMin();
+    const dow = new Date().getDay();
+    const isFri = dow === 5;
 
-    // Date
+    // Date header
     const dateEl = document.getElementById('htravDate');
     if(dateEl){
       const d = new Date();
       const days = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
-      dateEl.textContent = `${days[d.getDay()]} ${d.getDate()}/${d.getMonth()+1}`;
+      const targetLabel = isFri ? '6h12' : '7h12';
+      dateEl.textContent = `${days[d.getDay()]} ${d.getDate()}/${d.getMonth()+1} · ${targetLabel}`;
     }
 
-    // Slots
-    const slotsEl = document.getElementById('htravSlots');
-    if(slotsEl){
-      slotsEl.innerHTML = SLOTS.map(s => {
-        const hit = hits.includes(s.id);
-        return `<div class="htrav-slot ${hit?'hit':''}">
-          <div class="htrav-slot-ico">${s.ico}</div>
-          <div class="htrav-slot-time">${s.time}</div>
-          <div class="htrav-slot-label">${s.role}</div>
-        </div>`;
-      }).join('');
+    // Remplir les inputs si données sauvegardées
+    const f1 = document.getElementById('htravIn1');
+    const f2 = document.getElementById('htravIn2');
+    const f3 = document.getElementById('htravIn3');
+    if(f1 && !_manualMode){ if(data.in1) f1.value=data.in1; }
+    if(f2 && !_manualMode){ if(data.in2) f2.value=data.in2; }
+    if(f3 && !_manualMode){ if(data.in3) f3.value=data.in3; }
+
+    // Calcul départ
+    const departCalcMin = calcDepart(data.in1, data.in2, data.in3);
+    const departMin = data.isManual && data.manualDepart ? timeToMins(data.manualDepart) : departCalcMin;
+
+    // Affichage départ
+    if(!_manualMode){
+      const valEl = document.getElementById('htravDepartVal');
+      const tagEl = document.getElementById('htravDepartTag');
+      if(valEl){
+        if(departMin !== null){
+          valEl.textContent = minsToTime(departMin);
+          valEl.className = 'htrav-depart-val ok';
+          valEl.style.display='block';
+        } else {
+          valEl.textContent = '—';
+          valEl.className = 'htrav-depart-val none';
+          valEl.style.display='block';
+        }
+      }
+      if(tagEl){
+        tagEl.style.display = departMin!==null ? 'inline' : 'none';
+        tagEl.textContent = data.isManual ? 'MANUEL' : 'AUTO';
+        tagEl.className = 'htrav-depart-tag ' + (data.isManual?'manual':'auto');
+      }
     }
 
-    // Calcul
-    const workedMin = calcWorked(hits);
-    const pct = Math.min(100, Math.round(workedMin / THEORIC_MIN * 100));
-    const diffMin = workedMin - THEORIC_MIN;
-    const cls = hits.length === 4 ? 'ok' : hits.length >= 2 ? 'partial' : 'none';
+    // Temps travaillé jusqu'à maintenant
+    const workedMin = calcWorkedNow(data.in1, data.in2, data.in3, null);
+    const pct = workedMin!==null ? Math.min(100, Math.round(workedMin/target*100)) : 0;
+    const diffMin = workedMin!==null ? workedMin - target : null;
 
     // Barre
     const fillEl = document.getElementById('htravBarFill');
     const pctEl  = document.getElementById('htravPct');
     if(fillEl) fillEl.style.width = pct + '%';
-    if(pctEl)  { pctEl.textContent = pct + '%'; pctEl.style.color = cls==='ok'?'var(--olive)':cls==='partial'?'var(--gold)':'var(--muted)'; }
+    if(pctEl){
+      pctEl.textContent = pct + '%';
+      pctEl.style.color = pct>=100 ? 'var(--olive)' : pct>60 ? 'var(--gold)' : 'var(--muted)';
+    }
 
     // Métriques
     const resultsEl = document.getElementById('htravResults');
     if(resultsEl){
+      const pauseMidi = (timeToMins(data.in2)!==null && timeToMins(data.in3)!==null)
+        ? timeToMins(data.in3)-timeToMins(data.in2) : null;
+      const pauseDisplay = pauseMidi!==null ? minsToHStr(pauseMidi) : '—';
+      const clsW = workedMin===null?'none':pct>=100?'ok':'partial';
+      const clsD = diffMin===null?'none':diffMin>=0?'ok':'partial';
       resultsEl.innerHTML = `
         <div class="htrav-metric">
-          <div class="htrav-metric-label">Travaillé</div>
-          <div class="htrav-metric-val ${cls}">${workedMin>0?minsToHStr(workedMin):'—'}</div>
+          <div class="htrav-metric-label">Travaillé (maintenant)</div>
+          <div class="htrav-metric-val ${clsW}">${workedMin!==null?minsToHStr(workedMin):'—'}</div>
         </div>
         <div class="htrav-metric">
-          <div class="htrav-metric-label">Théorique</div>
-          <div class="htrav-metric-val">${minsToHStr(THEORIC_MIN)}</div>
+          <div class="htrav-metric-label">Cible</div>
+          <div class="htrav-metric-val">${minsToHStr(target)}</div>
         </div>
         <div class="htrav-metric">
           <div class="htrav-metric-label">Écart</div>
-          <div class="htrav-metric-val ${diffMin>=0?'ok':hits.length>0?'partial':'none'}">${hits.length>0?(diffMin>=0?'+':'')+minsToHStr(diffMin):'—'}</div>
+          <div class="htrav-metric-val ${clsD}">${diffMin!==null?(diffMin>=0?'+':'')+minsToHStr(diffMin):'—'}</div>
         </div>
         <div class="htrav-metric">
-          <div class="htrav-metric-label">Pointages</div>
-          <div class="htrav-metric-val ${cls}">${hits.length}/4</div>
+          <div class="htrav-metric-label">Pause midi</div>
+          <div class="htrav-metric-val">${pauseDisplay}</div>
         </div>`;
     }
 
     // Info
     const infoEl = document.getElementById('htravInfo');
     if(infoEl){
-      const missing = SLOTS.filter(s=>!hits.includes(s.id)).map(s=>s.time);
-      if(hits.length===4){
-        infoEl.innerHTML = `<b>Journée complète</b> — 4/4 créneaux badgés. ${diffMin>=0?'Surplus : <b>+'+minsToHStr(diffMin)+'</b>':'Vous avez travaillé <b>'+minsToHStr(workedMin)+'</b>.'}`;
-      } else if(hits.length>0){
-        infoEl.innerHTML = `<b>${hits.length} créneau${hits.length>1?'x':''} badgé${hits.length>1?'s':''}</b> · Manquants : <b>${missing.join(', ')}</b>`;
-      } else {
-        infoEl.innerHTML = `Cliquez sur <b>OUVRIR EURÉCIA ↗</b> dans le bandeau de rappel pour badger. Chaque clic enregistre un créneau.`;
+      const lines = [];
+      if(!data.in1) lines.push('Saisissez votre heure d\'arrivée pour calculer le départ.');
+      else {
+        lines.push(`<b>Arrivée</b> ${data.in1} · <b>Pauses fixes</b> 10mn matin + 10mn apm = 20mn déduits`);
+        if(!data.in2 || !data.in3) lines.push('⚠ Pause midi non renseignée — durée estimée à 45mn');
+        if(departMin!==null) lines.push(`<b>Départ calculé</b> pour ${minsToHStr(target)} de présence nette : <b>${minsToTime(departMin)}</b>${data.isManual?' <span style="color:var(--gold)">(correction manuelle)</span>':''}`);
       }
+      infoEl.innerHTML = lines.join('<br>');
     }
   }
 
   renderHtrav();
-  // Rafraîchit toutes les minutes (pour le calcul du temps partiel)
   setInterval(renderHtrav, 60000);
 
-  // Accroche sur le lien Eurécia dans le bandeau : on enregistre le clic
-  document.addEventListener('click', e => {
-    const link = e.target.closest('.ptg-link');
-    if(link && link.href && link.href.includes('eurecia')) {
-      htravRecordClic();
-    }
-  }, true);
 })();
 
 // ── BOUTONS UTILITAIRES ÉDITABLES ──────────────────────────────
