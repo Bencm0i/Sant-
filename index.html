@@ -30,8 +30,15 @@
 
   /* ── HEADER ── */
   header{border-bottom:1px solid var(--border);padding:0 24px;height:50px;display:flex;align-items:center;justify-content:space-between;background:var(--header-bg);position:sticky;top:0;z-index:100;backdrop-filter:blur(10px);}
-  .hL{display:flex;align-items:center;gap:14px;}
-  .logo{font-family:var(--font-display);font-weight:800;font-size:16px;color:var(--accent);letter-spacing:4px;}
+  /* ── BOUTONS UTILITAIRES ÉDITABLES ── */
+  .ws-btn-label{cursor:text;border-radius:2px;padding:0 2px;transition:background .15s;}
+  .ws-btn-label:hover{background:rgba(255,255,255,0.1);}
+  .ws-btn-label[contenteditable="true"]{background:rgba(255,255,255,0.15);outline:1px solid rgba(255,255,255,0.4);border-radius:2px;min-width:20px;cursor:text;}
+  .ws-btn.editing{border-style:dashed;opacity:0.85;}
+  .ws-btn-edit-tip{position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);font-family:var(--font-mono);font-size:7px;color:var(--muted2);letter-spacing:1px;white-space:nowrap;opacity:0;transition:opacity .2s;pointer-events:none;background:var(--panel);padding:2px 5px;border-radius:2px;border:1px solid var(--border);}
+  .ws-btn:hover .ws-btn-edit-tip{opacity:1;}
+  .hL{display:flex;align-items:center;gap:14px;position:relative;}
+  /* .logo handled in orange outline block above */
   .logo-sub{font-size:9px;color:var(--muted2);letter-spacing:2px;margin-top:2px;}
   .sep{width:1px;height:28px;background:var(--border);}
   .ff-btn{display:flex;align-items:center;gap:6px;background:#7a3a00;border:1px solid #5a2800;border-radius:4px;padding:5px 11px;cursor:pointer;font-family:var(--font-mono);font-size:10px;color:#ffe0b2;text-decoration:none;transition:all .2s;letter-spacing:1px;}
@@ -74,8 +81,10 @@
   .app-icon{width:28px;height:28px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:16px;background:#bbb49e;border:1px solid var(--border);}
   .app-name{font-family:var(--font-display);font-weight:600;font-size:12px;color:var(--text);}
   .app-desc{font-size:9px;color:var(--muted2);line-height:1.5;}
-  .app-badge{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--accent);opacity:0.5;}
-  .app-nt{position:absolute;top:7px;right:7px;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);opacity:0;transition:opacity .15s;background:var(--border);border-radius:2px;cursor:pointer;}
+  /* ── TEXTES ORANGES — MEILLEUR DÉTOURAGE ── */
+  .app-badge{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--accent);opacity:0.7;}
+  .logo{font-family:var(--font-display);font-weight:800;font-size:16px;color:var(--accent);letter-spacing:4px;}
+  .ticker-item.tk-date-item .tk-day-name{font-family:var(--font-display);font-weight:800;font-size:15px;color:var(--accent);letter-spacing:2px;margin-right:8px;}  .app-nt{position:absolute;top:7px;right:7px;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);opacity:0;transition:opacity .15s;background:var(--border);border-radius:2px;cursor:pointer;}
   .app-card:hover .app-nt{opacity:1;}
   .app-nt:hover{color:var(--blue);background:var(--border2);}
 
@@ -88,7 +97,25 @@
   .app-card-sm .app-badge{font-size:7px;letter-spacing:1.5px;white-space:nowrap;flex-shrink:0;opacity:0.45;}
   .app-card-sm .app-nt{top:50%;transform:translateY(-50%);}
   .app-card-sm .app-offline-dot{top:50%;transform:translateY(-50%);}
-  /* Bouton supprimer carte utilitaire custom */
+  /* ── ÉDITION INLINE UTILITAIRES CUSTOM ── */
+  .app-card-sm.editing{border-color:var(--accent);background:var(--panel2);box-shadow:0 0 0 2px rgba(191,54,12,0.18);}
+  .app-edit-overlay{display:none;position:absolute;inset:0;background:var(--panel2);border:1px solid var(--accent);border-radius:5px;flex-direction:column;gap:4px;padding:7px 9px;z-index:10;}
+  .app-card-sm.editing .app-edit-overlay{display:flex;}
+  .app-edit-overlay .ae-row{display:flex;gap:5px;align-items:center;}
+  .app-edit-overlay .ae-emoji{width:30px;background:var(--panel);border:1px solid var(--border);border-radius:3px;outline:none;padding:3px 5px;font-size:14px;text-align:center;font-family:var(--font-mono);color:var(--text);}
+  .app-edit-overlay .ae-name{flex:1;background:var(--panel);border:1px solid var(--border);border-radius:3px;outline:none;padding:3px 7px;font-family:var(--font-display);font-size:11px;font-weight:600;color:var(--text);}
+  .app-edit-overlay .ae-url{flex:1;background:var(--panel);border:1px solid var(--border);border-radius:3px;outline:none;padding:3px 7px;font-family:var(--font-mono);font-size:9px;color:var(--text);}
+  .app-edit-overlay .ae-badge{width:70px;background:var(--panel);border:1px solid var(--border);border-radius:3px;outline:none;padding:3px 5px;font-family:var(--font-mono);font-size:9px;color:var(--accent);text-transform:uppercase;}
+  .app-edit-overlay .ae-input:focus{border-color:var(--accent);}
+  .app-edit-overlay .ae-btns{display:flex;gap:5px;justify-content:flex-end;margin-top:2px;}
+  .app-edit-overlay .ae-save{background:var(--accent);border:none;border-radius:3px;color:#fff;font-family:var(--font-mono);font-size:9px;padding:3px 10px;cursor:pointer;letter-spacing:1px;font-weight:700;}
+  .app-edit-overlay .ae-cancel{background:transparent;border:1px solid var(--border);border-radius:3px;color:var(--muted2);font-family:var(--font-mono);font-size:9px;padding:3px 10px;cursor:pointer;letter-spacing:1px;}
+  .app-edit-overlay .ae-save:hover{filter:brightness(1.15);}
+  .app-edit-overlay .ae-cancel:hover{border-color:var(--muted);color:var(--text);}
+  /* Bouton crayon pour cartes custom */
+  .app-edit-btn{position:absolute;bottom:50%;left:28px;transform:translateY(50%);width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);opacity:0;transition:opacity .15s;background:var(--border);border-radius:2px;cursor:pointer;border:none;line-height:1;z-index:2;}
+  .app-card:hover .app-edit-btn{opacity:1;}
+  .app-edit-btn:hover{color:var(--accent);background:var(--border2);}
   .app-del{position:absolute;bottom:50%;right:28px;transform:translateY(50%);width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);opacity:0;transition:opacity .15s;background:var(--border);border-radius:2px;cursor:pointer;border:none;line-height:1;z-index:2;}
   .app-card:hover .app-del{opacity:1;}
   .app-del:hover{color:var(--red);background:var(--border2);}
@@ -326,7 +353,19 @@
   #pointage-banner.visible{display:flex;}
   @keyframes ptg-slide-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
   @keyframes ptg-pulse{0%,100%{background:#b91c1c;}50%{background:#dc2626;}}
+  /* ── BANDEAUX : LUMINOSITÉ PROGRESSIVE SELON ÉCHÉANCE ── */
   #pointage-banner.visible{display:flex;animation:ptg-slide-in .3s ease, ptg-pulse 1.8s ease-in-out infinite;}
+  #pointage-banner.urgency-low   { filter:brightness(1.0); box-shadow:0 3px 16px rgba(0,0,0,0.4); }
+  #pointage-banner.urgency-med   { filter:brightness(1.18); box-shadow:0 3px 24px rgba(220,38,38,0.55),0 0 40px rgba(220,38,38,0.2); }
+  #pointage-banner.urgency-high  { filter:brightness(1.38); box-shadow:0 3px 32px rgba(220,38,38,0.75),0 0 60px rgba(220,38,38,0.35); }
+  #pointage-banner.urgency-now   { filter:brightness(1.6);  box-shadow:0 3px 40px rgba(220,38,38,0.95),0 0 80px rgba(220,38,38,0.5); animation:ptg-slide-in .3s ease, ptg-pulse-fast .8s ease-in-out infinite !important; }
+  @keyframes ptg-pulse-fast{0%,100%{background:#b91c1c;}50%{background:#ef2929;}}
+
+  #aic-banner.urgency-low   { filter:brightness(1.0); box-shadow:0 3px 16px rgba(0,0,0,0.4); }
+  #aic-banner.urgency-med   { filter:brightness(1.18); box-shadow:0 3px 24px rgba(224,112,32,0.55),0 0 40px rgba(224,112,32,0.2); }
+  #aic-banner.urgency-high  { filter:brightness(1.38); box-shadow:0 3px 32px rgba(224,112,32,0.75),0 0 60px rgba(224,112,32,0.35); }
+  #aic-banner.urgency-now   { filter:brightness(1.6);  box-shadow:0 3px 40px rgba(224,112,32,0.95),0 0 80px rgba(224,112,32,0.5); animation:aic-slide-in .3s ease, aic-pulse-fast .8s ease-in-out infinite !important; }
+  @keyframes aic-pulse-fast{0%,100%{background:#c05a00;}50%{background:#f07830;}}
   .ptg-icon{font-size:18px;animation:badger-bounce 1.1s ease-in-out infinite;flex-shrink:0;}
   .ptg-label{font-family:var(--font-display);font-weight:800;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#fff;white-space:nowrap;flex-shrink:0;text-shadow:0 1px 4px rgba(0,0,0,0.4);}
   .ptg-msg{font-family:var(--font-mono);font-size:10px;color:#fff;flex:1;letter-spacing:0.5px;}
@@ -456,7 +495,7 @@
   .ticker-item.tk-velo-nogo .tk-val{color:var(--red);}
   .ticker-item.tk-btc .tk-val{color:var(--gold);}
   .ticker-item.tk-affaire .tk-val{color:var(--orange);}
-  .ticker-item.tk-date-item .tk-day-name{font-family:var(--font-display);font-weight:800;font-size:15px;color:var(--accent);letter-spacing:2px;margin-right:8px;}
+  /* .tk-date-item .tk-day-name handled in orange outline block above */
   /* ── BOUTON PAUSE TICKER ── */
   .ticker-pause-btn{flex-shrink:0;display:flex;align-items:center;justify-content:center;width:28px;height:28px;margin:0 6px 0 8px;border-radius:3px;border:1px solid var(--border2);background:transparent;cursor:pointer;color:var(--muted2);font-size:11px;transition:all .15s;user-select:none;}
   .ticker-pause-btn:hover{border-color:var(--accent);color:var(--accent);background:#bab296;}
@@ -857,41 +896,47 @@
       </svg>
       MEGA
     </a>
-    <button class="ws-btn" onclick="openAnnotateur()" title="Ouvrir Annotateur" style="color:#e0f0ff;border-color:#2a5a90;background:#1a3a60;">
+    <button class="ws-btn" onclick="openAnnotateur()" title="Ouvrir Annotateur · Double-clic pour renommer" style="color:#e0f0ff;border-color:#2a5a90;background:#1a3a60;position:relative;">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M3 15l5-5 4 4 3-3 6 6"/>
       </svg>
-      ANNOTATEUR
+      <span class="ws-btn-label" id="hbtn-annotateur" data-key="hbtn_annotateur" ondblclick="editHBtn(event,this)">ANNOTATEUR</span>
+      <span class="ws-btn-edit-tip">✎ Dbl-clic pour renommer</span>
     </button>
-    <button class="ws-btn" onclick="openHCalc()" title="Calculateur heures départ" style="color:#fff0c0;border-color:#806000;background:#4a3800;">
+    <button class="ws-btn" onclick="openHCalc()" title="Calculateur heures départ · Double-clic pour renommer" style="color:#fff0c0;border-color:#806000;background:#4a3800;position:relative;">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
       </svg>
-      HORAIRES
+      <span class="ws-btn-label" id="hbtn-horaires" data-key="hbtn_horaires" ondblclick="editHBtn(event,this)">HORAIRES</span>
+      <span class="ws-btn-edit-tip">✎ Dbl-clic pour renommer</span>
     </button>
-    <button class="ws-btn" onclick="openLogBoulot()" title="Ouvrir Log Boulot" style="color:#ffe0c0;border-color:#a05010;background:#5a2a00;">
+    <button class="ws-btn" onclick="openLogBoulot()" title="Ouvrir Log Boulot · Double-clic pour renommer" style="color:#ffe0c0;border-color:#a05010;background:#5a2a00;position:relative;">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
       </svg>
-      LOG BOULOT
+      <span class="ws-btn-label" id="hbtn-logboulot" data-key="hbtn_logboulot" ondblclick="editHBtn(event,this)">LOG BOULOT</span>
+      <span class="ws-btn-edit-tip">✎ Dbl-clic pour renommer</span>
     </button>
-    <button class="ws-btn" onclick="openWorkspace()" title="Ouvrir Workspace">
+    <button class="ws-btn" onclick="openWorkspace()" title="Ouvrir Workspace · Double-clic pour renommer" style="position:relative;">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
       </svg>
-      WORKSPACE
+      <span class="ws-btn-label" id="hbtn-workspace" data-key="hbtn_workspace" ondblclick="editHBtn(event,this)">WORKSPACE</span>
+      <span class="ws-btn-edit-tip">✎ Dbl-clic pour renommer</span>
     </button>
-    <button class="ws-btn" onclick="testPointageBanner()" title="Tester le bandeau rappel pointage Eurécia" style="color:#ffd0d0;border-color:#901010;background:#5a0808;">
+    <button class="ws-btn" onclick="testPointageBanner()" title="Tester le bandeau rappel pointage Eurécia · Double-clic pour renommer" style="color:#ffd0d0;border-color:#901010;background:#5a0808;position:relative;">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
       </svg>
-      TEST POINTAGE
+      <span class="ws-btn-label" id="hbtn-testptg" data-key="hbtn_testptg" ondblclick="editHBtn(event,this)">TEST POINTAGE</span>
+      <span class="ws-btn-edit-tip">✎ Dbl-clic pour renommer</span>
     </button>
-    <button class="ws-btn" onclick="testAicBanner()" title="Tester le bandeau AIC journalière" style="color:#ffe0b2;border-color:#7a3a00;background:#5a2800;">
+    <button class="ws-btn" onclick="testAicBanner()" title="Tester le bandeau AIC journalière · Double-clic pour renommer" style="color:#ffe0b2;border-color:#7a3a00;background:#5a2800;position:relative;">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
       </svg>
-      TEST AIC
+      <span class="ws-btn-label" id="hbtn-testaic" data-key="hbtn_testaic" ondblclick="editHBtn(event,this)">TEST AIC</span>
+      <span class="ws-btn-edit-tip">✎ Dbl-clic pour renommer</span>
     </button>
   </div>
   <div class="hR">
@@ -1587,10 +1632,26 @@ function buildApps(){
       iconHtml = `<div class="app-icon">${a.emoji}</div>`;
     }
 
-    // Bouton supprimer uniquement pour les utilitaires custom
-    const delBtn = a.custom ? `<button class="app-del" title="Supprimer" onclick="deleteCustomApp(event,'${escHtml(a.name)}')">✕</button>` : '';
+    // Bouton supprimer + bouton éditer uniquement pour les utilitaires custom
+    const delBtn  = a.custom ? `<button class="app-del"      title="Supprimer"  onclick="deleteCustomApp(event,'${escHtml(a.name)}')">✕</button>` : '';
+    const editBtn = a.custom ? `<button class="app-edit-btn" title="Modifier"   onclick="openEditCustomApp(event,'${escHtml(a.name)}')">✎</button>` : '';
+    const editOverlay = a.custom ? `
+      <div class="app-edit-overlay" id="editov-${escHtml(a.name).replace(/[^a-z0-9]/gi,'_')}">
+        <div class="ae-row">
+          <input class="ae-emoji ae-input" type="text" value="${escHtml(a.emoji)}" maxlength="4" placeholder="🔗">
+          <input class="ae-name  ae-input" type="text" value="${escHtml(a.name)}"  maxlength="32" placeholder="Nom">
+          <input class="ae-badge ae-input" type="text" value="${escHtml(a.badge||'')}" maxlength="12" placeholder="BADGE">
+        </div>
+        <div class="ae-row">
+          <input class="ae-url ae-input" type="url" value="${escHtml(a.url||'')}" maxlength="300" placeholder="https://…" style="flex:1">
+        </div>
+        <div class="ae-btns">
+          <button class="ae-cancel" onclick="closeEditCustomApp(event,'${escHtml(a.name).replace(/[^a-z0-9]/gi,'_')}')">ANNULER</button>
+          <button class="ae-save"   onclick="saveEditCustomApp(event,'${escHtml(a.name)}','${escHtml(a.name).replace(/[^a-z0-9]/gi,'_')}')">✓ SAUVER</button>
+        </div>
+      </div>` : '';
 
-    c.innerHTML=`<div class="app-offline-dot"></div><div class="app-nt" title="Nouvel onglet">↗</div>${iconHtml}<div class="app-name">${a.name}</div><div class="app-desc">${a.desc}</div><div class="app-badge">${a.badge}</div>${delBtn}`;
+    c.innerHTML=`<div class="app-offline-dot"></div><div class="app-nt" title="Nouvel onglet">↗</div>${iconHtml}<div class="app-name">${a.name}</div><div class="app-desc">${a.desc}</div><div class="app-badge">${a.badge}</div>${delBtn}${editBtn}${editOverlay}`;
 
     const doOpen = () => {
       trackRecent(a);
@@ -1606,6 +1667,8 @@ function buildApps(){
     c.addEventListener('click',e=>{
       if(e.target.classList.contains('app-nt'))return;
       if(e.target.classList.contains('app-del'))return;
+      if(e.target.classList.contains('app-edit-btn'))return;
+      if(e.target.closest('.app-edit-overlay'))return;
       doOpen();
     });
     c.querySelector('.app-nt').addEventListener('click',e=>{e.stopPropagation();trackRecent(a);window.open(a.url||a.file,'_blank','noopener');});
@@ -1649,6 +1712,36 @@ function deleteCustomApp(e, name){
   e.stopPropagation();
   const customs = loadCustomApps().filter(a => a.name !== name);
   saveCustomApps(customs);
+  buildApps();
+}
+
+function openEditCustomApp(e, name){
+  e.stopPropagation();
+  const safeId = name.replace(/[^a-z0-9]/gi,'_');
+  const card = document.querySelector(`[data-name="${CSS.escape(name)}"]`);
+  if(card){ card.classList.add('editing'); }
+}
+
+function closeEditCustomApp(e, safeId){
+  e.stopPropagation();
+  const ov = document.getElementById('editov-'+safeId);
+  if(ov){ const card = ov.closest('.app-card'); if(card) card.classList.remove('editing'); }
+}
+
+function saveEditCustomApp(e, oldName, safeId){
+  e.stopPropagation();
+  const ov = document.getElementById('editov-'+safeId);
+  if(!ov) return;
+  const newEmoji = ov.querySelector('.ae-emoji').value.trim() || '🔗';
+  const newName  = ov.querySelector('.ae-name').value.trim()  || oldName;
+  const newBadge = (ov.querySelector('.ae-badge').value.trim() || 'CUSTOM').toUpperCase();
+  const newUrl   = ov.querySelector('.ae-url').value.trim();
+  const customs  = loadCustomApps();
+  const idx      = customs.findIndex(a => a.name === oldName);
+  if(idx !== -1){
+    customs[idx] = { ...customs[idx], name:newName, emoji:newEmoji, badge:newBadge, url:newUrl, custom:true };
+    saveCustomApps(customs);
+  }
   buildApps();
 }
 
@@ -2554,12 +2647,18 @@ updateToggleUI();buildApps();buildFavs();loadTodos();renderTodos();loadNotes();r
           : `⏱ Heure de badger ! Créneau ${active.label}`;
       }
       banner.classList.add('visible');
+      // Urgence progressive selon temps restant
+      banner.classList.remove('urgency-low','urgency-med','urgency-high','urgency-now');
+      if (diff <= 0)       banner.classList.add('urgency-now');
+      else if (diff <= 5)  banner.classList.add('urgency-high');
+      else if (diff <= 15) banner.classList.add('urgency-med');
+      else                 banner.classList.add('urgency-low');
       // Décaler week-bar et ticker-bar vers le bas
       const bannerH = banner.offsetHeight || 34;
       if (weekBar) weekBar.style.top = (83 + bannerH) + 'px';
       if (tickerBar) tickerBar.style.top = (83 + bannerH + 26) + 'px';
     } else {
-      banner.classList.remove('visible');
+      banner.classList.remove('visible','urgency-low','urgency-med','urgency-high','urgency-now');
       if (weekBar) weekBar.style.top = '';
       if (tickerBar) tickerBar.style.top = '';
     }
@@ -2613,8 +2712,14 @@ updateToggleUI();buildApps();buildFavs();loadTodos();renderTodos();loadNotes();r
           : `⏱ 11h30 — heure de remplir l'AIC journalière BE meca !`;
       }
       banner.classList.add('visible');
+      // Urgence progressive selon temps restant
+      banner.classList.remove('urgency-low','urgency-med','urgency-high','urgency-now');
+      if (diff <= 0)       banner.classList.add('urgency-now');
+      else if (diff <= 5)  banner.classList.add('urgency-high');
+      else if (diff <= 15) banner.classList.add('urgency-med');
+      else                 banner.classList.add('urgency-low');
     } else {
-      banner.classList.remove('visible');
+      banner.classList.remove('visible','urgency-low','urgency-med','urgency-high','urgency-now');
     }
   }
 
@@ -2795,7 +2900,48 @@ updateToggleUI();buildApps();buildFavs();loadTodos();renderTodos();loadNotes();r
   }, true);
 })();
 
-// ── BANDE DÉFILANTE ────────────────────────────────────────────
+// ── BOUTONS UTILITAIRES ÉDITABLES ──────────────────────────────
+const HBTN_KEY = 'launcher_hbtns';
+function loadHBtnLabels(){
+  try{ return JSON.parse(localStorage.getItem(HBTN_KEY)||'{}'); } catch{ return {}; }
+}
+function saveHBtnLabel(key, val){
+  const d = loadHBtnLabels(); d[key]=val; localStorage.setItem(HBTN_KEY, JSON.stringify(d));
+}
+function applyHBtnLabels(){
+  const saved = loadHBtnLabels();
+  document.querySelectorAll('.ws-btn-label[data-key]').forEach(el=>{
+    const v = saved[el.dataset.key];
+    if(v) el.textContent = v;
+  });
+}
+window.editHBtn = function(e, el){
+  e.stopPropagation(); // ne pas déclencher le onclick du bouton
+  el.contentEditable = 'true';
+  el.focus();
+  // Sélectionner tout le texte
+  const range = document.createRange(); range.selectNodeContents(el);
+  const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+  el.classList.add('editing');
+  function commit(){
+    el.contentEditable = 'false';
+    el.classList.remove('editing');
+    const val = el.textContent.trim() || el.dataset.key.replace('hbtn_','').toUpperCase();
+    el.textContent = val;
+    saveHBtnLabel(el.dataset.key, val);
+    el.removeEventListener('blur', commit);
+    el.removeEventListener('keydown', onKey);
+  }
+  function onKey(ev){
+    if(ev.key==='Enter'){ ev.preventDefault(); el.blur(); }
+    if(ev.key==='Escape'){ el.textContent=loadHBtnLabels()[el.dataset.key]||el.textContent; el.blur(); }
+  }
+  el.addEventListener('blur', commit);
+  el.addEventListener('keydown', onKey);
+};
+applyHBtnLabels();
+
+
 let tickerBtc = null;
 let tickerBtcTs = 0;
 
