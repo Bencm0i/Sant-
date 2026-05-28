@@ -98,20 +98,21 @@
   .app-card-sm .app-nt{top:50%;transform:translateY(-50%);}
   .app-card-sm .app-offline-dot{top:50%;transform:translateY(-50%);}
   /* ── ÉDITION INLINE UTILITAIRES CUSTOM ── */
-  .app-card-sm.editing{border-color:var(--accent);background:var(--panel2);box-shadow:0 0 0 2px rgba(191,54,12,0.18);}
-  .app-edit-overlay{display:none;position:absolute;inset:0;background:var(--panel2);border:1px solid var(--accent);border-radius:5px;flex-direction:column;gap:4px;padding:7px 9px;z-index:10;}
-  .app-card-sm.editing .app-edit-overlay{display:flex;}
-  .app-edit-overlay .ae-row{display:flex;gap:5px;align-items:center;}
-  .app-edit-overlay .ae-emoji{width:30px;background:var(--panel);border:1px solid var(--border);border-radius:3px;outline:none;padding:3px 5px;font-size:14px;text-align:center;font-family:var(--font-mono);color:var(--text);}
-  .app-edit-overlay .ae-name{flex:1;background:var(--panel);border:1px solid var(--border);border-radius:3px;outline:none;padding:3px 7px;font-family:var(--font-display);font-size:11px;font-weight:600;color:var(--text);}
-  .app-edit-overlay .ae-url{flex:1;background:var(--panel);border:1px solid var(--border);border-radius:3px;outline:none;padding:3px 7px;font-family:var(--font-mono);font-size:9px;color:var(--text);}
-  .app-edit-overlay .ae-badge{width:70px;background:var(--panel);border:1px solid var(--border);border-radius:3px;outline:none;padding:3px 5px;font-family:var(--font-mono);font-size:9px;color:var(--accent);text-transform:uppercase;}
-  .app-edit-overlay .ae-input:focus{border-color:var(--accent);}
-  .app-edit-overlay .ae-btns{display:flex;gap:5px;justify-content:flex-end;margin-top:2px;}
-  .app-edit-overlay .ae-save{background:var(--accent);border:none;border-radius:3px;color:#fff;font-family:var(--font-mono);font-size:9px;padding:3px 10px;cursor:pointer;letter-spacing:1px;font-weight:700;}
-  .app-edit-overlay .ae-cancel{background:transparent;border:1px solid var(--border);border-radius:3px;color:var(--muted2);font-family:var(--font-mono);font-size:9px;padding:3px 10px;cursor:pointer;letter-spacing:1px;}
-  .app-edit-overlay .ae-save:hover{filter:brightness(1.15);}
-  .app-edit-overlay .ae-cancel:hover{border-color:var(--muted);color:var(--text);}
+  .app-card-sm.editing{border-color:var(--accent) !important;background:var(--panel2) !important;box-shadow:0 0 0 2px rgba(191,54,12,0.2);flex-direction:column !important;align-items:stretch !important;padding:8px 10px !important;gap:6px !important;height:auto !important;cursor:default;}
+  .app-card-sm.editing .app-edit-content{display:none;}
+  .app-card-sm .app-edit-form{display:none;flex-direction:column;gap:5px;}
+  .app-card-sm.editing .app-edit-form{display:flex;}
+  .ae-row{display:flex;gap:5px;align-items:center;}
+  .ae-emoji{width:32px;background:var(--panel);border:1px solid var(--border);border-radius:3px;outline:none;padding:3px 4px;font-size:14px;text-align:center;color:var(--text);}
+  .ae-name {flex:1;background:var(--panel);border:1px solid var(--border);border-radius:3px;outline:none;padding:3px 7px;font-family:var(--font-display);font-size:11px;font-weight:600;color:var(--text);}
+  .ae-badge{width:68px;background:var(--panel);border:1px solid var(--border);border-radius:3px;outline:none;padding:3px 5px;font-family:var(--font-mono);font-size:9px;color:var(--accent);text-transform:uppercase;}
+  .ae-url  {flex:1;background:var(--panel);border:1px solid var(--border);border-radius:3px;outline:none;padding:3px 7px;font-family:var(--font-mono);font-size:9px;color:var(--text);}
+  .ae-emoji:focus,.ae-name:focus,.ae-badge:focus,.ae-url:focus{border-color:var(--accent);}
+  .ae-btns {display:flex;gap:5px;justify-content:flex-end;}
+  .ae-save  {background:var(--accent);border:none;border-radius:3px;color:#fff;font-family:var(--font-mono);font-size:9px;padding:3px 11px;cursor:pointer;letter-spacing:1px;font-weight:700;}
+  .ae-cancel{background:transparent;border:1px solid var(--border);border-radius:3px;color:var(--muted2);font-family:var(--font-mono);font-size:9px;padding:3px 10px;cursor:pointer;letter-spacing:1px;}
+  .ae-save:hover{filter:brightness(1.12);}
+  .ae-cancel:hover{border-color:var(--muted);color:var(--text);}
   /* Bouton crayon pour cartes custom */
   .app-edit-btn{position:absolute;bottom:50%;left:28px;transform:translateY(50%);width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);opacity:0;transition:opacity .15s;background:var(--border);border-radius:2px;cursor:pointer;border:none;line-height:1;z-index:2;}
   .app-card:hover .app-edit-btn{opacity:1;}
@@ -1634,24 +1635,33 @@ function buildApps(){
 
     // Bouton supprimer + bouton éditer uniquement pour les utilitaires custom
     const delBtn  = a.custom ? `<button class="app-del"      title="Supprimer"  onclick="deleteCustomApp(event,'${escHtml(a.name)}')">✕</button>` : '';
-    const editBtn = a.custom ? `<button class="app-edit-btn" title="Modifier"   onclick="openEditCustomApp(event,'${escHtml(a.name)}')">✎</button>` : '';
-    const editOverlay = a.custom ? `
-      <div class="app-edit-overlay" id="editov-${escHtml(a.name).replace(/[^a-z0-9]/gi,'_')}">
+    const editBtn = a.custom ? `<button class="app-edit-btn" title="Modifier"   onclick="openEditCustomApp(event,this)">✎</button>` : '';
+    const editForm = a.custom ? `
+      <div class="app-edit-form">
         <div class="ae-row">
-          <input class="ae-emoji ae-input" type="text" value="${escHtml(a.emoji)}" maxlength="4" placeholder="🔗">
-          <input class="ae-name  ae-input" type="text" value="${escHtml(a.name)}"  maxlength="32" placeholder="Nom">
-          <input class="ae-badge ae-input" type="text" value="${escHtml(a.badge||'')}" maxlength="12" placeholder="BADGE">
+          <input class="ae-emoji" type="text"  value="${escHtml(a.emoji)}"       maxlength="4"   placeholder="🔗" title="Icône">
+          <input class="ae-name"  type="text"  value="${escHtml(a.name)}"        maxlength="32"  placeholder="Nom">
+          <input class="ae-badge" type="text"  value="${escHtml(a.badge||'')}"   maxlength="12"  placeholder="BADGE">
         </div>
         <div class="ae-row">
-          <input class="ae-url ae-input" type="url" value="${escHtml(a.url||'')}" maxlength="300" placeholder="https://…" style="flex:1">
+          <input class="ae-url"   type="url"   value="${escHtml(a.url||'')}"     maxlength="300" placeholder="https://…">
         </div>
         <div class="ae-btns">
-          <button class="ae-cancel" onclick="closeEditCustomApp(event,'${escHtml(a.name).replace(/[^a-z0-9]/gi,'_')}')">ANNULER</button>
-          <button class="ae-save"   onclick="saveEditCustomApp(event,'${escHtml(a.name)}','${escHtml(a.name).replace(/[^a-z0-9]/gi,'_')}')">✓ SAUVER</button>
+          <button class="ae-cancel" onclick="closeEditCustomApp(event,this)">ANNULER</button>
+          <button class="ae-save"   onclick="saveEditCustomApp(event,this,'${escHtml(a.name)}')">✓ SAUVER</button>
         </div>
       </div>` : '';
 
-    c.innerHTML=`<div class="app-offline-dot"></div><div class="app-nt" title="Nouvel onglet">↗</div>${iconHtml}<div class="app-name">${a.name}</div><div class="app-desc">${a.desc}</div><div class="app-badge">${a.badge}</div>${delBtn}${editBtn}${editOverlay}`;
+    c.innerHTML=`
+      <div class="app-offline-dot"></div>
+      <div class="app-nt" title="Nouvel onglet">↗</div>
+      <div class="app-edit-content" style="display:contents">
+        ${iconHtml}
+        <div class="app-name">${a.name}</div>
+        <div class="app-badge">${a.badge}</div>
+        ${delBtn}${editBtn}
+      </div>
+      ${editForm}`;
 
     const doOpen = () => {
       trackRecent(a);
@@ -1668,7 +1678,8 @@ function buildApps(){
       if(e.target.classList.contains('app-nt'))return;
       if(e.target.classList.contains('app-del'))return;
       if(e.target.classList.contains('app-edit-btn'))return;
-      if(e.target.closest('.app-edit-overlay'))return;
+      if(e.target.closest('.app-edit-form'))return;
+      if(c.classList.contains('editing'))return;
       doOpen();
     });
     c.querySelector('.app-nt').addEventListener('click',e=>{e.stopPropagation();trackRecent(a);window.open(a.url||a.file,'_blank','noopener');});
@@ -1715,27 +1726,30 @@ function deleteCustomApp(e, name){
   buildApps();
 }
 
-function openEditCustomApp(e, name){
+function openEditCustomApp(e, btn){
   e.stopPropagation();
-  const safeId = name.replace(/[^a-z0-9]/gi,'_');
-  const card = document.querySelector(`[data-name="${CSS.escape(name)}"]`);
-  if(card){ card.classList.add('editing'); }
+  const card = btn.closest('.app-card');
+  if(!card) return;
+  card.classList.add('editing');
+  // Focus sur le champ nom
+  const nameIn = card.querySelector('.ae-name');
+  if(nameIn) setTimeout(()=>{ nameIn.focus(); nameIn.select(); }, 30);
 }
 
-function closeEditCustomApp(e, safeId){
+function closeEditCustomApp(e, btn){
   e.stopPropagation();
-  const ov = document.getElementById('editov-'+safeId);
-  if(ov){ const card = ov.closest('.app-card'); if(card) card.classList.remove('editing'); }
+  const card = btn.closest('.app-card');
+  if(card) card.classList.remove('editing');
 }
 
-function saveEditCustomApp(e, oldName, safeId){
+function saveEditCustomApp(e, btn, oldName){
   e.stopPropagation();
-  const ov = document.getElementById('editov-'+safeId);
-  if(!ov) return;
-  const newEmoji = ov.querySelector('.ae-emoji').value.trim() || '🔗';
-  const newName  = ov.querySelector('.ae-name').value.trim()  || oldName;
-  const newBadge = (ov.querySelector('.ae-badge').value.trim() || 'CUSTOM').toUpperCase();
-  const newUrl   = ov.querySelector('.ae-url').value.trim();
+  const card = btn.closest('.app-card');
+  if(!card) return;
+  const newEmoji = (card.querySelector('.ae-emoji').value.trim()) || '🔗';
+  const newName  = (card.querySelector('.ae-name').value.trim())  || oldName;
+  const newBadge = (card.querySelector('.ae-badge').value.trim() || 'CUSTOM').toUpperCase();
+  const newUrl   =  card.querySelector('.ae-url').value.trim();
   const customs  = loadCustomApps();
   const idx      = customs.findIndex(a => a.name === oldName);
   if(idx !== -1){
