@@ -613,7 +613,40 @@
   .hcalc-info{font-family:var(--font-mono);font-size:9px;color:var(--muted2);line-height:1.7;border-top:1px solid var(--border);padding-top:10px;}
   .hcalc-info b{color:var(--text);}
 
-  /* ── RESET STORAGE MODAL ── */
+  /* ── CONVERTISSEUR HEURES MODAL ── */
+  .hconv-overlay{position:fixed;inset:0;background:rgba(10,15,20,0.65);z-index:800;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+  .hconv-overlay.open{display:flex;}
+  .hconv-modal{background:var(--panel2);border:1px solid var(--border2);border-radius:6px;width:380px;max-width:calc(100vw - 32px);box-shadow:0 8px 40px rgba(0,0,0,0.55);overflow:hidden;}
+  .hconv-bar{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border);background:var(--panel);}
+  .hconv-bar-title{font-family:var(--font-display);font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--text);flex:1;}
+  .hconv-close{background:transparent;border:1px solid var(--border);border-radius:3px;padding:3px 9px;font-family:var(--font-mono);font-size:9px;color:var(--muted2);cursor:pointer;letter-spacing:1px;transition:all .15s;}
+  .hconv-close:hover{border-color:var(--red);color:var(--red);}
+  .hconv-body{padding:16px;}
+  .hconv-section{margin-bottom:14px;}
+  .hconv-section-title{font-family:var(--font-display);font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted2);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+  .hconv-section-title::after{content:'';flex:1;height:1px;background:var(--border);}
+  .hconv-input-row{display:flex;align-items:center;gap:8px;}
+  .hconv-input{flex:1;background:var(--panel);border:1px solid var(--border);border-radius:3px;outline:none;padding:8px 10px;font-family:var(--font-mono);font-size:14px;font-weight:700;color:var(--text);transition:border-color .15s;text-align:center;}
+  .hconv-input:focus{border-color:var(--accent);}
+  .hconv-input::placeholder{font-weight:400;font-size:11px;color:var(--muted);}
+  .hconv-arrow{font-size:16px;color:var(--muted2);flex-shrink:0;}
+  .hconv-result{flex:1;background:var(--bar-bg);border:1px solid var(--border);border-radius:3px;padding:8px 10px;font-family:var(--font-mono);font-size:14px;font-weight:700;color:var(--accent);text-align:center;cursor:pointer;transition:all .15s;letter-spacing:0.5px;user-select:all;}
+  .hconv-result:hover{background:var(--border);border-color:var(--accent);}
+  .hconv-result.copied{background:#b4e8b4;border-color:var(--green);color:var(--green);}
+  .hconv-hint{font-family:var(--font-mono);font-size:8px;color:var(--muted);letter-spacing:1px;text-align:center;margin-top:5px;}
+  .hconv-examples{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+  .hconv-ex{background:var(--panel);border:1px solid var(--border);border-radius:3px;padding:3px 8px;font-family:var(--font-mono);font-size:9px;color:var(--muted2);cursor:pointer;transition:all .15s;letter-spacing:0.5px;}
+  .hconv-ex:hover{border-color:var(--accent);color:var(--accent);background:var(--panel2);}
+  .hconv-multi-wrap{margin-top:10px;}
+  .hconv-multi-input{width:100%;background:var(--panel);border:1px solid var(--border);border-radius:3px;outline:none;padding:7px 10px;font-family:var(--font-mono);font-size:10px;color:var(--text);resize:vertical;min-height:60px;transition:border-color .15s;}
+  .hconv-multi-input:focus{border-color:var(--accent);}
+  .hconv-multi-result{width:100%;background:var(--bar-bg);border:1px solid var(--border);border-radius:3px;padding:7px 10px;font-family:var(--font-mono);font-size:10px;color:var(--text);min-height:60px;margin-top:6px;white-space:pre-wrap;cursor:pointer;}
+  .hconv-multi-result:hover{border-color:var(--accent);}
+  .hconv-total-row{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--panel);border:1px solid var(--border);border-radius:3px;margin-top:6px;}
+  .hconv-total-label{font-family:var(--font-mono);font-size:9px;color:var(--muted2);letter-spacing:1px;text-transform:uppercase;}
+  .hconv-total-val{font-family:var(--font-display);font-weight:800;font-size:15px;color:var(--accent);}
+
+  /* ── FIN CONVERTISSEUR HEURES ── */
   .reset-overlay{position:fixed;inset:0;background:rgba(10,15,20,0.75);z-index:900;display:none;align-items:center;justify-content:center;backdrop-filter:blur(6px);}
   .reset-overlay.open{display:flex;}
   .reset-modal{background:var(--panel2);border:1px solid var(--red);border-radius:6px;width:360px;max-width:calc(100vw - 32px);box-shadow:0 8px 40px rgba(0,0,0,0.7),0 0 0 1px rgba(192,48,24,0.15);overflow:hidden;animation:reset-pop .18s ease;}
@@ -1484,6 +1517,7 @@ const APPS=[
   {file:'calendrier_2026_2027.html',       name:'Calendrier',       desc:'2026 – 2027',                 emoji:'📅',badge:'PLANNING'},
   {file:'pointage_heures_par_affaire.html',name:'Pointage Heures',  desc:'Suivi heures par affaire',    emoji:'⏱',badge:'TRAVAIL'},
   {file:'calcul_horaire.html',             name:'Calcul Horaire',   desc:'Calculateur de temps',        emoji:'🕐',badge:'TRAVAIL'},
+  {name:'Conv. Heures',                    desc:'Littéral ↔ Décimal · 1h30 = 1.5',emoji:'⏱',badge:'OUTIL', action:'hconv'},
 
   {file:'conversion_industrielle.html',    name:'Conversion',       desc:'Unités industrielles',        emoji:'🔧',badge:'OUTIL'},
   {file:'tableau_blanc_v2.html',           name:'Tableau Blanc',    desc:'Canvas de dessin libre',      emoji:'🖊',badge:'OUTIL'},
@@ -1581,6 +1615,7 @@ function renderRecent(){
       if(item.action==='conges'){openConges();return;}
       if(item.action==='dcpdf'){openDcpdf();return;}
       if(item.action==='pdfredact'){openPdfRedact();return;}
+      if(item.action==='hconv'){openHConv();return;}
       if(item.url){window.open(item.url,'_blank','noopener');return;}
       if(item.file) openApp(item.file);
     });
@@ -1670,6 +1705,7 @@ function buildApps(){
       if(a.action==='conges'){openConges();return;}
       if(a.action==='dcpdf'){openDcpdf();return;}
       if(a.action==='pdfredact'){openPdfRedact();return;}
+      if(a.action==='hconv'){openHConv();return;}
       if(a.url){window.open(a.url,'_blank','noopener');return;}
       openApp(a.file);
     };
@@ -3457,6 +3493,161 @@ document.addEventListener('keydown', e=>{
   }
 });
 
+// ══════════════════════════════════════════════════════════════════
+//  CONVERTISSEUR HEURES
+// ══════════════════════════════════════════════════════════════════
+window.openHConv = function(){
+  document.getElementById('hconvOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  document.getElementById('hconv-lit').focus();
+};
+window.closeHConv = function(){
+  document.getElementById('hconvOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+};
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape' && document.getElementById('hconvOverlay')?.classList.contains('open')) closeHConv();
+});
+document.addEventListener('DOMContentLoaded', ()=>{
+  const hconvOv = document.getElementById('hconvOverlay');
+  if(hconvOv) hconvOv.addEventListener('click', e=>{ if(e.target===e.currentTarget) closeHConv(); });
+});
+
+// Parse une valeur littérale en minutes
+function hconvParseLit(s){
+  s = s.trim().toLowerCase().replace(',','.');
+  // formats : 1h30m, 1h30, 1h, 30m, 30min, 1:30, 90m, 1.5h, 90
+  let m;
+  // 1h30m ou 1h30 ou 1H30
+  m = s.match(/^(\d+)[h:](\d{1,2})m?$/);
+  if(m) return parseInt(m[1])*60 + parseInt(m[2]);
+  // 1h ou 2h
+  m = s.match(/^(\d+)h$/);
+  if(m) return parseInt(m[1])*60;
+  // 30m ou 30min
+  m = s.match(/^(\d+)m(?:in)?$/);
+  if(m) return parseInt(m[1]);
+  // 1.5h ou 2.25h
+  m = s.match(/^(\d+\.?\d*)h$/);
+  if(m) return Math.round(parseFloat(m[1])*60);
+  // nombre pur décimal avec h implicite : 1.5 ou 2.25
+  m = s.match(/^(\d+\.\d+)$/);
+  if(m) return Math.round(parseFloat(m[1])*60);
+  // nombre entier pur → minutes directes si < 24, sinon heures? → on traite comme minutes si ≤ 999
+  m = s.match(/^(\d+)$/);
+  if(m){ const n=parseInt(m[1]); return n<=24?n*60:n; }
+  return null;
+}
+
+// Minutes → chaîne littérale "Xh YYm" ou "Xh" ou "YYm"
+function hconvMinsToLit(mins){
+  const neg = mins < 0; mins = Math.abs(mins);
+  const h = Math.floor(mins/60), m = mins%60;
+  let s = h>0 ? h+'h' : '';
+  if(m>0) s += (h>0 ? String(m).padStart(2,'0') : m)+'m';
+  if(!s) s = '0h';
+  return (neg?'-':'')+s;
+}
+
+// Minutes → décimal arrondi 4 décimales
+function hconvMinsToDecStr(mins){
+  const v = mins/60;
+  // Affiche jusqu'à 4 décimales mais retire les zéros inutiles
+  return parseFloat(v.toFixed(4)).toString().replace('.',',');
+}
+
+function hconvLitToDecFn(){
+  const raw = document.getElementById('hconv-lit').value;
+  const out = document.getElementById('hconv-dec-out');
+  if(!raw.trim()){ out.textContent='—'; return; }
+  const mins = hconvParseLit(raw);
+  if(mins === null){ out.textContent='?'; return; }
+  out.textContent = hconvMinsToDecStr(mins);
+  out.classList.remove('copied');
+}
+
+function hconvDecToLitFn(){
+  const raw = document.getElementById('hconv-dec').value.replace(',','.');
+  const out = document.getElementById('hconv-lit-out');
+  if(!raw.trim()){ out.textContent='—'; return; }
+  const v = parseFloat(raw);
+  if(isNaN(v)){ out.textContent='?'; return; }
+  const mins = Math.round(v*60);
+  out.textContent = hconvMinsToLit(mins);
+  out.classList.remove('copied');
+}
+
+function hconvSetLit(v){
+  document.getElementById('hconv-lit').value=v;
+  hconvLitToDecFn();
+  document.getElementById('hconv-lit').focus();
+}
+function hconvSetDec(v){
+  document.getElementById('hconv-dec').value=v;
+  hconvDecToLitFn();
+  document.getElementById('hconv-dec').focus();
+}
+
+function hconvCopy(el){
+  const txt = el.textContent;
+  if(!txt || txt==='—'||txt==='?') return;
+  navigator.clipboard.writeText(txt.replace(',','.')).then(()=>{
+    el.classList.add('copied');
+    const prev = el.textContent;
+    el.textContent = '✓ Copié';
+    setTimeout(()=>{ el.textContent=prev; el.classList.remove('copied'); }, 1200);
+  });
+}
+
+function hconvMultiFn(){
+  const lines = document.getElementById('hconv-multi').value.split('\n');
+  const outEl  = document.getElementById('hconv-multi-out');
+  const totEl  = document.getElementById('hconv-total');
+  let totalMins = 0;
+  const rows = [];
+
+  lines.forEach(line=>{
+    const s = line.trim();
+    if(!s){ rows.push(''); return; }
+    // Essai littéral
+    const mins = hconvParseLit(s);
+    if(mins !== null){
+      totalMins += mins;
+      const dec = hconvMinsToDecStr(mins);
+      const lit = hconvMinsToLit(mins);
+      // Si l'entrée ressemble à du décimal pur, on affiche → littéral
+      const isDecInput = /^\d+[.,]\d+$/.test(s)||(/^\d+$/.test(s)&&parseInt(s)<=24);
+      if(isDecInput){
+        rows.push(`${s.padEnd(10)} →  ${lit.padStart(6)}  (${dec}h)`);
+      } else {
+        rows.push(`${s.padEnd(10)} →  ${dec}h  (${lit})`);
+      }
+    } else {
+      rows.push(`${s.padEnd(10)} →  ?`);
+    }
+  });
+
+  outEl.textContent = rows.join('\n') || '—';
+  if(totalMins > 0){
+    const tLit = hconvMinsToLit(totalMins);
+    const tDec = hconvMinsToDecStr(totalMins);
+    totEl.textContent = `${tLit}  =  ${tDec}h`;
+  } else {
+    totEl.textContent = '—';
+  }
+}
+
+function hconvCopyMulti(){
+  const el = document.getElementById('hconv-multi-out');
+  const txt = el.textContent;
+  if(!txt||txt==='—') return;
+  navigator.clipboard.writeText(txt).then(()=>{
+    const prev = el.textContent;
+    el.textContent = '✓ Copié !';
+    setTimeout(()=>{ el.textContent=prev; }, 1200);
+  });
+}
+
 </script>
 
 <!-- ════ AJOUTER UTILITAIRE MODAL ════════════════════════════════ -->
@@ -3537,5 +3728,69 @@ document.addEventListener('keydown', e=>{
     </div>
   </div>
 </div>
+<!-- ════ CONVERTISSEUR HEURES MODAL ═══════════════════════════════ -->
+<div class="hconv-overlay" id="hconvOverlay">
+  <div class="hconv-modal">
+    <div class="hconv-bar">
+      <span style="font-size:15px">⏱</span>
+      <span class="hconv-bar-title">CONV. HEURES — LITTÉRAL ↔ DÉCIMAL</span>
+      <button class="hconv-close" onclick="closeHConv()">✕ FERMER</button>
+    </div>
+    <div class="hconv-body">
+
+      <!-- Section 1 : Littéral → Décimal -->
+      <div class="hconv-section">
+        <div class="hconv-section-title">Littéral → Décimal</div>
+        <div class="hconv-input-row">
+          <input class="hconv-input" id="hconv-lit" placeholder="ex : 1h30, 2h15, 45m" oninput="hconvLitToDecFn()">
+          <span class="hconv-arrow">→</span>
+          <div class="hconv-result" id="hconv-dec-out" title="Cliquer pour copier" onclick="hconvCopy(this)">—</div>
+        </div>
+        <div class="hconv-hint">Formats : 1h30 · 1h30m · 1:30 · 90m · 90min · 1,5h</div>
+        <div class="hconv-examples">
+          <span class="hconv-ex" onclick="hconvSetLit('7h35')">7h35</span>
+          <span class="hconv-ex" onclick="hconvSetLit('1h30')">1h30</span>
+          <span class="hconv-ex" onclick="hconvSetLit('2h15')">2h15</span>
+          <span class="hconv-ex" onclick="hconvSetLit('0h45')">0h45</span>
+          <span class="hconv-ex" onclick="hconvSetLit('8h00')">8h00</span>
+          <span class="hconv-ex" onclick="hconvSetLit('4h30')">4h30</span>
+          <span class="hconv-ex" onclick="hconvSetLit('0h20')">0h20</span>
+        </div>
+      </div>
+
+      <!-- Section 2 : Décimal → Littéral -->
+      <div class="hconv-section">
+        <div class="hconv-section-title">Décimal → Littéral</div>
+        <div class="hconv-input-row">
+          <input class="hconv-input" id="hconv-dec" placeholder="ex : 1.5, 2.25, 7.583" oninput="hconvDecToLitFn()">
+          <span class="hconv-arrow">→</span>
+          <div class="hconv-result" id="hconv-lit-out" title="Cliquer pour copier" onclick="hconvCopy(this)">—</div>
+        </div>
+        <div class="hconv-hint">Formats : 1.5 · 1,5 · 2.25 · 7.583…</div>
+        <div class="hconv-examples">
+          <span class="hconv-ex" onclick="hconvSetDec('7.583')">7.583</span>
+          <span class="hconv-ex" onclick="hconvSetDec('1.5')">1.5</span>
+          <span class="hconv-ex" onclick="hconvSetDec('2.25')">2.25</span>
+          <span class="hconv-ex" onclick="hconvSetDec('0.75')">0.75</span>
+          <span class="hconv-ex" onclick="hconvSetDec('4.5')">4.5</span>
+          <span class="hconv-ex" onclick="hconvSetDec('0.333')">0.333</span>
+        </div>
+      </div>
+
+      <!-- Section 3 : Conversion multiple -->
+      <div class="hconv-section">
+        <div class="hconv-section-title">Saisie multiple &amp; total</div>
+        <textarea class="hconv-multi-input" id="hconv-multi" placeholder="Entrez plusieurs valeurs, une par ligne :&#10;1h30&#10;2h15&#10;0h45&#10;3.5&#10;2,25" oninput="hconvMultiFn()"></textarea>
+        <div class="hconv-multi-result" id="hconv-multi-out" title="Cliquer pour copier" onclick="hconvCopyMulti()">—</div>
+        <div class="hconv-total-row">
+          <span class="hconv-total-label">⅀ Total</span>
+          <span class="hconv-total-val" id="hconv-total">—</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
