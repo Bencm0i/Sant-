@@ -699,6 +699,7 @@
   .htrav-metric-val.ok{color:var(--olive);}
   .htrav-metric-val.partial{color:var(--gold);}
   .htrav-metric-val.none{color:var(--muted);}
+  .htrav-metric-val.err{color:var(--red);}
   .htrav-bar-wrap{margin-bottom:8px;}
   .htrav-bar-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
   .htrav-bar-lbl{font-size:8px;color:var(--muted2);letter-spacing:1px;text-transform:uppercase;}
@@ -3036,12 +3037,16 @@ updateToggleUI();buildApps();buildFavs();loadTodos();renderTodos();loadNotes();r
       pctEl.style.color = pct>=100 ? 'var(--olive)' : pct>60 ? 'var(--gold)' : 'var(--muted)';
     }
 
+    // Pause midi (calculée ici pour être accessible dans les deux blocs)
+    const pauseMidi = (timeToMins(data.in2)!==null && timeToMins(data.in3)!==null)
+      ? timeToMins(data.in3)-timeToMins(data.in2) : null;
+    const pauseDisplay = pauseMidi!==null ? minsToHStr(pauseMidi) : '—';
+    const pauseTropCourte = pauseMidi!==null && pauseMidi < 40;
+
     // Métriques
     const resultsEl = document.getElementById('htravResults');
     if(resultsEl){
-      const pauseMidi = (timeToMins(data.in2)!==null && timeToMins(data.in3)!==null)
-        ? timeToMins(data.in3)-timeToMins(data.in2) : null;
-      const pauseDisplay = pauseMidi!==null ? minsToHStr(pauseMidi) : '—';
+      const clsP = pauseMidi===null ? 'none' : pauseTropCourte ? 'err' : 'ok';
       const clsW = workedMin===null?'none':pct>=100?'ok':'partial';
       const clsD = diffMin===null?'none':diffMin>=0?'ok':'partial';
       resultsEl.innerHTML = `
@@ -3059,7 +3064,7 @@ updateToggleUI();buildApps();buildFavs();loadTodos();renderTodos();loadNotes();r
         </div>
         <div class="htrav-metric">
           <div class="htrav-metric-label">Pause midi</div>
-          <div class="htrav-metric-val">${pauseDisplay}</div>
+          <div class="htrav-metric-val ${clsP}" title="${pauseTropCourte?'⚠ Pause inférieure au minimum légal de 40 mn':''}">${pauseDisplay}${pauseTropCourte?' ⚠':''}</div>
         </div>`;
     }
 
@@ -3071,6 +3076,7 @@ updateToggleUI();buildApps();buildFavs();loadTodos();renderTodos();loadNotes();r
       else {
         lines.push(`<b>Arrivée</b> ${data.in1} · <b>Pauses fixes</b> 10mn matin + 10mn apm = 20mn déduits`);
         if(!data.in2 || !data.in3) lines.push('⚠ Pause midi non renseignée — durée estimée à 45mn');
+        else if(pauseTropCourte) lines.push(`<b style="color:var(--red)">✗ Pause midi trop courte (${minsToHStr(pauseMidi)}) — minimum obligatoire : 40 mn</b>`);
         if(departMin!==null) lines.push(`<b>Départ calculé</b> pour ${minsToHStr(target)} de présence nette : <b>${minsToTime(departMin)}</b>${data.isManual?' <span style="color:var(--gold)">(correction manuelle)</span>':''}`);
       }
       infoEl.innerHTML = lines.join('<br>');
