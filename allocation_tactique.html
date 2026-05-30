@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ALLOCATION TACTIQUE</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230d0f0a'/><polygon points='16,4 28,12 28,20 16,28 4,20 4,12' fill='none' stroke='%236b7c3a' stroke-width='2'/><polygon points='16,9 23,13 23,19 16,23 9,19 9,13' fill='%23c8b560' opacity='0.15'/><line x1='16' y1='4' x2='16' y2='28' stroke='%23c8b560' stroke-width='1' opacity='0.4'/><line x1='4' y1='12' x2='28' y2='20' stroke='%23c8b560' stroke-width='1' opacity='0.4'/><line x1='4' y1='20' x2='28' y2='12' stroke='%23c8b560' stroke-width='1' opacity='0.4'/><circle cx='16' cy='16' r='3' fill='%23c8b560'/></svg>">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700;900&display=swap');
+
+  :root {
+    --bg: #0d0f0a;
+    --bg2: #131509;
+    --bg3: #1a1d0f;
+    --grid: #1e2110;
+    --olive: #6b7c3a;
+    --olive2: #8a9e4a;
+    --khaki: #c8b560;
+    --amber: #d4870a;
+    --red: #c0392b;
+    --green: #4a7c3f;
+    --text: #b8c490;
+    --text2: #7a8a50;
+    --text3: #4a5530;
+    --mono: 'Share Tech Mono', monospace;
+    --sans: 'Barlow Condensed', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  header {
+    border-bottom: 1px solid var(--olive);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    background: var(--bg2);
+  }
+
+  .logo {
+    font-family: var(--sans);
+    font-weight: 900;
+    font-size: 22px;
+    letter-spacing: 6px;
+    color: var(--khaki);
+    text-transform: uppercase;
+  }
+
+  .tagline {
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  .formula-bar {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--text2);
+    border: 1px solid var(--grid);
+    padding: 6px 12px;
+    background: var(--bg3);
+  }
+
+  .formula-bar span { color: var(--khaki); }
+
+  .main {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 0;
+    height: calc(100vh - 57px);
+  }
+
+  /* PANEL GAUCHE */
+  .panel-left {
+    border-right: 1px solid var(--olive);
+    background: var(--bg2);
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .section-label {
+    font-family: var(--sans);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    color: var(--text3);
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--grid);
+    padding-bottom: 6px;
+    margin-bottom: 12px;
+  }
+
+  .slider-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+
+  .slider-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text2);
+  }
+
+  .slider-label .val {
+    color: var(--khaki);
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  input[type=range] {
+    width: 100%;
+    height: 4px;
+    -webkit-appearance: none;
+    background: var(--grid);
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    background: var(--khaki);
+    border: 2px solid var(--bg);
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-runnable-track {
+    height: 4px;
+    background: linear-gradient(90deg, var(--olive2) var(--pct, 50%), var(--grid) var(--pct, 50%));
+  }
+
+  .capital-input {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--olive);
+    background: var(--bg3);
+    padding: 8px 12px;
+  }
+
+  .capital-input input {
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--khaki);
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 22px;
+    width: 100%;
+  }
+
+  .capital-input .unit {
+    color: var(--text3);
+    font-size: 12px;
+  }
+
+  /* RATIO DISPLAY */
+  .ratio-global {
+    border: 1px solid var(--olive2);
+    padding: 12px;
+    background: var(--bg3);
+    text-align: center;
+  }
+
+  .ratio-global .ratio-val {
+    font-family: var(--sans);
+    font-weight: 900;
+    font-size: 42px;
+    color: var(--khaki);
+    line-height: 1;
+  }
+
+  .ratio-global .ratio-label {
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--text3);
+    margin-top: 4px;
+  }
+
+  .ratio-bar {
+    height: 4px;
+    background: var(--grid);
+    margin-top: 10px;
+    position: relative;
+  }
+
+  .ratio-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--red), var(--amber), var(--olive2));
+    transition: width 0.4s ease;
+  }
+
+  /* PANEL DROIT */
+  .panel-right {
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .top-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  /* ALLOCATION BAR */
+  .alloc-section {
+    border: 1px solid var(--olive);
+    background: var(--bg2);
+    padding: 16px;
+  }
+
+  .alloc-bar-container {
+    display: flex;
+    height: 32px;
+    gap: 2px;
+    margin-top: 12px;
+    overflow: hidden;
+  }
+
+  .alloc-segment {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-family: var(--sans);
+    font-weight: 700;
+    letter-spacing: 1px;
+    transition: all 0.4s ease;
+    overflow: hidden;
+    white-space: nowrap;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .alloc-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    color: var(--text2);
+  }
+
+  .legend-dot {
+    width: 8px;
+    height: 8px;
+    flex-shrink: 0;
+  }
+
+  /* TABLE ACTIFS */
+  .table-section {
+    border: 1px solid var(--olive);
+    background: var(--bg2);
+    padding: 16px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+  }
+
+  th {
+    font-family: var(--sans);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: var(--text3);
+    text-align: left;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--grid);
+    text-transform: uppercase;
+  }
+
+  th.right { text-align: right; }
+
+  td {
+    padding: 7px 8px;
+    border-bottom: 1px solid var(--grid);
+    vertical-align: middle;
+  }
+
+  tr:hover td { background: var(--bg3); }
+
+  .actif-name {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text);
+  }
+
+  .actif-classe {
+    font-size: 9px;
+    color: var(--text3);
+    letter-spacing: 2px;
+  }
+
+  .ratio-cell {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 16px;
+    text-align: right;
+  }
+
+  .alloc-cell {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--khaki);
+    text-align: right;
+  }
+
+  .montant-cell {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text2);
+    text-align: right;
+  }
+
+  .bar-cell {
+    width: 80px;
+  }
+
+  .mini-bar {
+    height: 6px;
+    background: var(--grid);
+    position: relative;
+  }
+
+  .mini-bar-fill {
+    height: 100%;
+    transition: width 0.4s ease;
+  }
+
+  /* RISK BADGE */
+  .risk-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    font-size: 9px;
+    font-family: var(--sans);
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  /* MINI CHART */
+  .chart-section {
+    border: 1px solid var(--olive);
+    background: var(--bg2);
+    padding: 16px;
+  }
+
+  canvas { display: block; }
+
+  .stars {
+    color: var(--amber);
+    font-size: 10px;
+  }
+
+  .toggle-btn {
+    width: 28px;
+    height: 16px;
+    border: 1px solid var(--olive);
+    background: var(--bg3);
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+
+  .toggle-btn.active {
+    background: var(--olive);
+    border-color: var(--olive2);
+  }
+
+  .toggle-btn::after {
+    content: '';
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: var(--text3);
+    top: 2px;
+    left: 2px;
+    transition: all 0.2s;
+  }
+
+  .toggle-btn.active::after {
+    background: var(--khaki);
+    left: 14px;
+  }
+
+  tr.disabled td {
+    opacity: 0.3;
+  }
+
+  tr.disabled .toggle-btn {
+    opacity: 1;
+  }
+
+  .footer-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--grid);
+    border: 1px solid var(--olive);
+  }
+
+  .stat-box {
+    background: var(--bg2);
+    padding: 12px;
+    text-align: center;
+  }
+
+  .stat-val {
+    font-family: var(--sans);
+    font-weight: 900;
+    font-size: 24px;
+    color: var(--khaki);
+  }
+
+  .stat-lbl {
+    font-size: 9px;
+    color: var(--text3);
+    letter-spacing: 2px;
+    margin-top: 3px;
+  }
+
+  .slider-hints {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: var(--text3);
+    letter-spacing: 1px;
+    margin-top: 3px;
+  }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--olive); }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">ALLOCATION TACTIQUE</div>
+    <div class="tagline">Répartition par ratio décision</div>
+  </div>
+  <div class="formula-bar">
+    RATIO = <span>(Espérance × Temps)</span> / <span>(Risque × Urgence)</span>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- PANEL GAUCHE -->
+  <div class="panel-left">
+
+    <div>
+      <div class="section-label">Capital à allouer</div>
+      <div class="capital-input">
+        <input type="number" id="capital" value="10000" min="100" step="100">
+        <span class="unit">€</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Paramètres investisseur</div>
+
+      <div class="slider-row">
+        <div class="slider-label">
+          <span>HORIZON</span>
+          <span class="val" id="val-horizon">7 ans</span>
+        </div>
+        <input type="range" id="sl-horizon" min="1" max="20" value="7" oninput="update()">
+        <div class="slider-hints"><span>1 an</span><span>20 ans</span></div>
+      </div>
+
+      <div class="slider-row">
+        <div class="slider-label">
+          <span>TOLÉRANCE RISQUE</span>
+          <span class="val" id="val-risque">5 / 10</span>
+        </div>
+        <input type="range" id="sl-risque" min="1" max="10" value="5" oninput="update()">
+        <div class="slider-hints"><span>1 = défensif</span><span>10 = agressif</span></div>
+      </div>
+
+      <div class="slider-row">
+        <div class="slider-label">
+          <span>URGENCE LIQUIDITÉ</span>
+          <span class="val" id="val-urgence">3 / 10</span>
+        </div>
+        <input type="range" id="sl-urgence" min="1" max="10" value="3" oninput="update()">
+        <div class="slider-hints"><span>1 = pas pressé</span><span>10 = besoin cash</span></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Ratio global portefeuille</div>
+      <div class="ratio-global">
+        <div class="ratio-val" id="ratio-global">—</div>
+        <div class="ratio-label">SCORE DÉCISION MOYEN</div>
+        <div class="ratio-bar"><div class="ratio-bar-fill" id="ratio-bar-fill"></div></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Légende risque</div>
+      <div style="display:flex;flex-direction:column;gap:5px;font-size:10px;">
+        <div><span class="risk-badge" style="background:#1a3a1a;color:#4a9a4a;">FAIBLE</span> — obligations, livrets</div>
+        <div><span class="risk-badge" style="background:#2a2a0a;color:#c8b020;">MODÉRÉ</span> — ETF, SCPI, or</div>
+        <div><span class="risk-badge" style="background:#2a1a0a;color:#d4870a;">ÉLEVÉ</span> — actions, immo</div>
+        <div><span class="risk-badge" style="background:#2a0a0a;color:#c0392b;">SPÉCULATIF</span> — crypto, levier</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- PANEL DROIT -->
+  <div class="panel-right">
+
+    <div class="top-row">
+      <div class="alloc-section">
+        <div class="section-label">Répartition visuelle</div>
+        <div class="alloc-bar-container" id="alloc-bar"></div>
+        <div class="alloc-legend" id="alloc-legend"></div>
+      </div>
+
+      <div class="footer-stats">
+        <div class="stat-box">
+          <div class="stat-val" id="stat-esperance">—</div>
+          <div class="stat-lbl">ESP. ANNUELLE</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="stat-risque-moy">—</div>
+          <div class="stat-lbl">RISQUE MOY.</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="stat-liquide">—</div>
+          <div class="stat-lbl">LIQUIDITÉ</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val" id="stat-actifs">—</div>
+          <div class="stat-lbl">ACTIFS</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-section">
+      <div class="section-label">Classes d'actifs — ratio par profil</div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:32px"></th>
+            <th>ACTIF</th>
+            <th>CLASSE</th>
+            <th>RISQUE</th>
+            <th class="right">ESP.</th>
+            <th class="right">RATIO</th>
+            <th class="right">PLAFOND</th>
+            <th class="right">ALLOC.</th>
+            <th class="right">MONTANT</th>
+            <th class="bar-cell"></th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+
+    <div class="chart-section">
+      <div class="section-label">Ratio par actif (visualisation)</div>
+      <canvas id="chart" height="120"></canvas>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const ACTIFS = [
+  { id:'livret_reg', nom:'Livret A / LEP / LDDS', classe:'ÉPARGNE',    risque:1,  esperance:3,   liquidite:10, horizon_min:0, couleur:'#3a5a3a', plafond: 45000 },
+  { id:'livret_bank',nom:'Super Livret bancaire',  classe:'ÉPARGNE',    risque:1,  esperance:2,   liquidite:10, horizon_min:0, couleur:'#2a4a2a', plafond: null  },
+  { id:'cat',        nom:'Compte à terme',         classe:'ÉPARGNE',    risque:1,  esperance:3.5, liquidite:4,  horizon_min:0, couleur:'#3a4a2a', plafond: null  },
+  { id:'fonds_e',    nom:'Fonds €',                classe:'ASSURANCE',  risque:2,  esperance:4,   liquidite:6,  horizon_min:1, couleur:'#4a6a3a', plafond: null  },
+  { id:'oblig',      nom:'Obligations',            classe:'TAUX',       risque:2,  esperance:5,   liquidite:7,  horizon_min:2, couleur:'#5a7a3a', plafond: null  },
+  { id:'scpi',       nom:'SCPI',                   classe:'IMMO',       risque:4,  esperance:7,   liquidite:2,  horizon_min:8, couleur:'#7a8a2a', plafond: null  },
+  { id:'or',         nom:'Or / XAU',               classe:'MATIÈRES',   risque:3,  esperance:5,   liquidite:7,  horizon_min:5, couleur:'#c8b020', plafond: null  },
+  { id:'etf_world',  nom:'ETF Monde MSCI',         classe:'ACTIONS',    risque:5,  esperance:8,   liquidite:8,  horizon_min:5, couleur:'#8a9e2a', plafond: null  },
+  { id:'etf_em',     nom:'ETF Émerg.',             classe:'ACTIONS',    risque:6,  esperance:9,   liquidite:7,  horizon_min:7, couleur:'#a0a020', plafond: null  },
+  { id:'actions',    nom:'Actions indiv.',         classe:'ACTIONS',    risque:7,  esperance:10,  liquidite:7,  horizon_min:5, couleur:'#c0a010', plafond: null  },
+  { id:'pea_pme',    nom:'PEA-PME',                classe:'ACTIONS',    risque:7,  esperance:10,  liquidite:5,  horizon_min:8, couleur:'#d4a010', plafond: null  },
+  { id:'btc',        nom:'Bitcoin / BTC',          classe:'CRYPTO',     risque:9,  esperance:12,  liquidite:9,  horizon_min:4, couleur:'#d4870a', plafond: null  },
+  { id:'altcoin',    nom:'Altcoins',               classe:'CRYPTO',     risque:10, esperance:14,  liquidite:8,  horizon_min:3, couleur:'#c05010', plafond: null  },
+  { id:'levier',     nom:'Levier / Options',       classe:'DÉRIVÉS',    risque:10, esperance:15,  liquidite:9,  horizon_min:0, couleur:'#c0392b', plafond: null  },
+];
+
+// Disabled state
+const disabled = new Set();
+
+function toggleActif(id) {
+  if (disabled.has(id)) disabled.delete(id);
+  else disabled.add(id);
+  update();
+}
+
+function riskLabel(r) {
+  if (r <= 2) return { lbl:'FAIBLE',     bg:'#1a3a1a', fg:'#4a9a4a' };
+  if (r <= 4) return { lbl:'MODÉRÉ',     bg:'#2a2a0a', fg:'#c8b020' };
+  if (r <= 7) return { lbl:'ÉLEVÉ',      bg:'#2a1a0a', fg:'#d4870a' };
+  return             { lbl:'SPÉCULATIF', bg:'#2a0a0a', fg:'#c0392b' };
+}
+
+function computeRatio(actif, horizon, tolRisque, urgence) {
+  // Pénalité si horizon insuffisant
+  const horizonFactor = horizon >= actif.horizon_min
+    ? Math.min(1 + (horizon - actif.horizon_min) * 0.08, 2.0)
+    : Math.max(0.1, 1 - (actif.horizon_min - horizon) * 0.15);
+
+  // Tolérance risque : effet exponentiel sur les actifs risqués
+  // tolRisque faible = pénalise fortement les actifs risqués
+  // tolRisque élevé = les favorise
+  const tolFactor = Math.pow(tolRisque / 5, actif.risque * 0.3);
+
+  // Urgence pénalise les actifs illiquides
+  const urgenceFactor = 1 + urgence * 0.08 * (10 - actif.liquidite) / 10;
+
+  const ratio = (actif.esperance * horizonFactor * tolFactor) / (actif.risque * urgenceFactor);
+  return ratio;
+}
+
+function update() {
+  const horizon  = +document.getElementById('sl-horizon').value;
+  const tolRisque= +document.getElementById('sl-risque').value;
+  const urgence  = +document.getElementById('sl-urgence').value;
+  const capital  = +document.getElementById('capital').value || 10000;
+
+  document.getElementById('val-horizon').textContent = horizon + ' an' + (horizon>1?'s':'');
+  document.getElementById('val-risque').textContent  = tolRisque + ' / 10';
+  document.getElementById('val-urgence').textContent = urgence + ' / 10';
+
+  // Update slider tracks
+  ['sl-horizon','sl-risque','sl-urgence'].forEach(id => {
+    const el = document.getElementById(id);
+    const pct = (el.value - el.min) / (el.max - el.min) * 100;
+    el.style.setProperty('--pct', pct + '%');
+  });
+
+  // Compute ratios — only active assets
+  const withRatio = ACTIFS.map(a => ({
+    ...a,
+    ratio: computeRatio(a, horizon, tolRisque, urgence),
+    active: !disabled.has(a.id)
+  }));
+
+  // Normalize to allocation (only active assets)
+  const activeRatios = withRatio.map(a => a.active ? Math.max(a.ratio, 0.3) : 0);
+  const totalRatio = activeRatios.reduce((s,r) => s+r, 0);
+  let allocs = activeRatios.map(r => totalRatio > 0 ? r / totalRatio : 0);
+
+  // Apply plafond caps — redistribute excess iteratively
+  let capped = false;
+  const capReached = new Array(ACTIFS.length).fill(false);
+  for (let iter = 0; iter < 10; iter++) {
+    let excess = 0;
+    allocs = allocs.map((a, i) => {
+      const actif = ACTIFS[i];
+      if (!withRatio[i].active || capReached[i]) return a;
+      if (actif.plafond && a * capital > actif.plafond) {
+        excess += a * capital - actif.plafond;
+        capReached[i] = true;
+        capped = true;
+        return actif.plafond / capital;
+      }
+      return a;
+    });
+    if (excess === 0) break;
+    // Redistribute excess to uncapped active assets proportionally
+    const uncappedTotal = allocs.reduce((s, a, i) =>
+      withRatio[i].active && !capReached[i] ? s + a : s, 0);
+    if (uncappedTotal === 0) break;
+    allocs = allocs.map((a, i) =>
+      withRatio[i].active && !capReached[i] ? a + (a / uncappedTotal) * (excess / capital) : a);
+  }
+
+  // Sort by ratio desc
+  const sorted = withRatio
+    .map((a,i) => ({ ...a, alloc: allocs[i] }))
+    .sort((a,b) => b.ratio - a.ratio);
+
+  const activeAssets = sorted.filter(a => a.active);
+  const maxRatio = activeAssets.length > 0 ? activeAssets[0].ratio : 1;
+  const globalRatio = activeAssets.reduce((s,a) => s + a.ratio * a.alloc, 0);
+
+  // Render table
+  const tbody = document.getElementById('table-body');
+  tbody.innerHTML = '';
+  sorted.forEach(a => {
+    const rk = riskLabel(a.risque);
+    const isCapped = a.active && a.plafond && (a.alloc * capital) >= a.plafond * 0.99;
+    const pct = a.active ? (a.alloc * 100).toFixed(1) : '—';
+    const montant = a.active ? parseInt(a.alloc * capital).toLocaleString('fr-FR') + ' €' : '—';
+    const plafondTxt = a.plafond ? (a.plafond / 1000).toFixed(0) + 'k€' : '∞';
+    const ratioNorm = (a.ratio / maxRatio * 100).toFixed(0);
+    const ratioColor = a.active
+      ? (a.ratio > globalRatio * 1.2 ? '#8ab020' : a.ratio > globalRatio * 0.7 ? '#c8b020' : '#c05020')
+      : '#2a3015';
+
+    tbody.innerHTML += `
+      <tr class="${a.active ? '' : 'disabled'}">
+        <td><div class="toggle-btn ${a.active ? 'active' : ''}" onclick="toggleActif('${a.id}')"></div></td>
+        <td><div class="actif-name">${a.nom}</div></td>
+        <td><div class="actif-classe">${a.classe}</div></td>
+        <td><span class="risk-badge" style="background:${rk.bg};color:${rk.fg}">${rk.lbl}</span></td>
+        <td style="text-align:right;font-family:var(--sans);font-weight:700;color:var(--text2)">${a.esperance}%</td>
+        <td class="ratio-cell" style="color:${ratioColor}">${a.ratio.toFixed(2)}</td>
+        <td style="text-align:right;font-size:11px;color:${isCapped ? '#d4870a' : 'var(--text3)'}">
+          ${plafondTxt}${isCapped ? ' ⚠' : ''}
+        </td>
+        <td class="alloc-cell">${pct}${a.active ? '%' : ''}</td>
+        <td class="montant-cell" style="color:${isCapped ? '#d4870a' : 'var(--text2)'}">${montant}</td>
+        <td class="bar-cell">
+          <div class="mini-bar">
+            <div class="mini-bar-fill" style="width:${a.active ? ratioNorm : 0}%;background:${a.couleur}"></div>
+          </div>
+        </td>
+      </tr>`;
+  });
+
+  // Alloc bar
+  const allocBar = document.getElementById('alloc-bar');
+  const allocLegend = document.getElementById('alloc-legend');
+  allocBar.innerHTML = '';
+  allocLegend.innerHTML = '';
+  sorted.forEach(a => {
+    if (!a.active) return;
+    const pct = (a.alloc * 100).toFixed(1);
+    const seg = document.createElement('div');
+    seg.className = 'alloc-segment';
+    seg.style.width = pct + '%';
+    seg.style.background = a.couleur;
+    seg.style.color = '#000';
+    seg.title = `${a.nom}: ${pct}%`;
+    if (parseFloat(pct) > 6) seg.textContent = pct + '%';
+    allocBar.appendChild(seg);
+
+    if (parseFloat(pct) > 2) {
+      allocLegend.innerHTML += `
+        <div class="legend-item">
+          <div class="legend-dot" style="background:${a.couleur}"></div>
+          <span>${a.nom.split(' ')[0]} ${pct}%</span>
+        </div>`;
+    }
+  });
+
+  // Global ratio
+  document.getElementById('ratio-global').textContent = globalRatio.toFixed(2);
+  const ratioBarPct = Math.min(globalRatio / 3 * 100, 100);
+  document.getElementById('ratio-bar-fill').style.width = ratioBarPct + '%';
+
+  // Stats
+  const espMoy = activeAssets.reduce((s,a) => s + a.esperance * a.alloc, 0);
+  const risqueMoy = activeAssets.reduce((s,a) => s + a.risque * a.alloc, 0);
+  const liquiditeMoy = activeAssets.reduce((s,a) => s + a.liquidite * a.alloc, 0);
+
+  document.getElementById('stat-esperance').textContent = espMoy.toFixed(1) + '%';
+  document.getElementById('stat-risque-moy').textContent = risqueMoy.toFixed(1) + '/10';
+  document.getElementById('stat-liquide').textContent = liquiditeMoy.toFixed(1) + '/10';
+  document.getElementById('stat-actifs').textContent = activeAssets.length;
+
+  // Chart
+  drawChart(activeAssets, maxRatio);
+}
+
+function drawChart(sorted, maxRatio) {
+  const canvas = document.getElementById('chart');
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.parentElement.offsetWidth - 32;
+  const H = 120;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  const n = sorted.length;
+  const barW = (W - 20) / n - 4;
+  const padL = 10;
+
+  sorted.forEach((a, i) => {
+    const x = padL + i * ((W - 20) / n);
+    const h = (a.ratio / (maxRatio * 1.1)) * (H - 30);
+    const y = H - 20 - h;
+
+    // Bar
+    ctx.fillStyle = a.couleur + 'cc';
+    ctx.fillRect(x, y, barW, h);
+
+    // Top line
+    ctx.fillStyle = a.couleur;
+    ctx.fillRect(x, y, barW, 2);
+
+    // Label
+    ctx.fillStyle = '#4a5530';
+    ctx.font = `bold 8px 'Barlow Condensed', sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(a.nom.split(' ')[0].substring(0,6).toUpperCase(), x + barW/2, H - 6);
+
+    // Value
+    ctx.fillStyle = '#8a9e4a';
+    ctx.font = `bold 9px 'Share Tech Mono', monospace`;
+    ctx.fillText(a.ratio.toFixed(1), x + barW/2, y - 3);
+  });
+
+  // Baseline
+  ctx.strokeStyle = '#1e2110';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(padL, H - 20);
+  ctx.lineTo(W - 10, H - 20);
+  ctx.stroke();
+}
+
+document.getElementById('capital').addEventListener('input', update);
+window.addEventListener('resize', update);
+update();
+</script>
+</body>
+</html>
