@@ -123,6 +123,35 @@
   /* Bouton + Ajouter utilitaire */
   .apps-add-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:7px 10px;background:transparent;border:1px dashed var(--border2);border-radius:5px;cursor:pointer;font-family:var(--font-mono);font-size:10px;color:var(--muted2);letter-spacing:1px;transition:all .18s;}
   .apps-add-btn:hover{border-color:var(--accent);color:var(--accent);background:#c8c0a8;}
+  /* ── WIDGET STATUT BARRES (inline) ── */
+  .bsw-panel{background:var(--panel);border:1px solid var(--border);border-radius:5px;overflow:hidden;margin-bottom:0;}
+  .bsw-header{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--header-bg);flex-wrap:wrap;}
+  .bsw-clock{font-family:var(--font-mono);font-size:16px;font-weight:700;color:var(--text);letter-spacing:3px;min-width:72px;}
+  .bsw-day{font-family:var(--font-mono);font-size:8px;color:var(--muted2);letter-spacing:2px;text-transform:uppercase;flex:1;}
+  .bsw-now{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:2px;font-family:var(--font-mono);font-size:9px;letter-spacing:.5px;font-weight:700;}
+  .bsw-now.sactive{background:#1a3a10;color:#7ecf5a;}
+  .bsw-now.ssoon{background:#3a2a00;color:#e0a830;}
+  .bsw-now.snone{background:var(--panel2);color:var(--muted2);}
+  .bsw-body{display:grid;grid-template-columns:1fr 1fr;border-top:none;}
+  .bsw-section{padding:10px 12px;border-right:1px solid var(--border);}
+  .bsw-section:last-child{border-right:none;}
+  .bsw-sec-lbl{font-family:var(--font-display);font-size:8px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted2);margin-bottom:7px;}
+  .bsw-rows{display:flex;flex-direction:column;gap:0;margin-bottom:7px;}
+  .bsw-row{display:flex;align-items:center;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border);}
+  .bsw-row:last-child{border-bottom:none;}
+  .bsw-lbl{font-family:var(--font-mono);font-size:9px;color:var(--muted2);}
+  .bsw-badge{display:inline-flex;align-items:center;padding:1px 6px;border-radius:2px;font-family:var(--font-mono);font-size:8px;font-weight:700;letter-spacing:1px;}
+  .bb-active{background:#1a3a10;color:#7ecf5a;}
+  .bb-dism{background:#3a0a0a;color:#e06060;}
+  .bb-wait{background:#3a2a00;color:#e0a830;}
+  .bb-off{background:var(--panel2);color:var(--muted);}
+  .bsw-slot{display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--border);}
+  .bsw-slot:last-child{border-bottom:none;}
+  .bsw-slot-time{font-family:var(--font-mono);font-size:10px;font-weight:700;color:var(--text);min-width:38px;}
+  .bsw-slot-info{font-family:var(--font-mono);font-size:8px;color:var(--muted2);flex:1;}
+  .bsw-reset-btn{display:flex;align-items:center;justify-content:center;gap:4px;width:100%;padding:5px 6px;background:transparent;border:1px solid var(--border2);border-radius:3px;cursor:pointer;font-family:var(--font-mono);font-size:8px;color:var(--muted2);letter-spacing:.5px;transition:all .15s;}
+  .bsw-reset-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--panel2);}
+
   /* ── MODAL STATUT BARRES ── */
   .bstat-overlay{position:fixed;inset:0;background:rgba(10,15,20,0.65);z-index:700;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px);}
   .bstat-overlay.open{display:flex;}
@@ -1288,7 +1317,30 @@
     </div><!-- end col1 -->
 
     <div><!-- col2: Todo + Notes -->
-    <div class="slabel">Todo</div>
+
+    <!-- ── WIDGET STATUT BARRES ── -->
+    <div class="slabel">Statut Barres</div>
+    <div class="bsw-panel" id="bswPanel">
+      <div class="bsw-header">
+        <div class="bsw-clock" id="bsw-clock">--:--:--</div>
+        <div class="bsw-day" id="bsw-day">—</div>
+        <div class="bsw-now" id="bsw-now"><span id="bsw-now-txt">…</span></div>
+      </div>
+      <div class="bsw-body">
+        <div class="bsw-section">
+          <div class="bsw-sec-lbl">AIC — 11h30</div>
+          <div class="bsw-rows" id="bsw-aic"></div>
+          <button class="bsw-reset-btn" onclick="bswResetAic()">↺ Réactiver AIC</button>
+        </div>
+        <div class="bsw-section">
+          <div class="bsw-sec-lbl">Pointage Eurécia</div>
+          <div class="bsw-rows" id="bsw-ptg"></div>
+          <button class="bsw-reset-btn" onclick="bswResetPtg()">↺ Réactiver créneaux</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="slabel" style="margin-top:14px">Todo</div>
     <div class="todo-panel">
       <div class="todo-header">
         <div class="todo-title">TÂCHES</div>
@@ -3738,6 +3790,92 @@ window.testAicBanner = function(){
     if(msg) msg.textContent = "Rappel : remplir l'AIC journalière BE meca";
   }, 8000);
 };
+
+// ── WIDGET STATUT BARRES INLINE ──────────────────────────────────
+(function(){
+  const AIC_KEY='aic_dismissed', PTG_KEY='ptg_dismissed';
+  const CRENEAUX=[{h:7,m:30,l:'7h30'},{h:12,m:25,l:'12h25'},{h:13,m:0,l:'13h00'},{h:15,m:40,l:'15h40'}];
+  const WIN=30;
+
+  function todayKey(){const d=new Date();return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;}
+  function getAicDism(){try{const r=JSON.parse(localStorage.getItem(AIC_KEY)||'{}');return r.day===todayKey()&&r.done===true;}catch{return false;}}
+  function getPtgDism(){try{const r=JSON.parse(localStorage.getItem(PTG_KEY)||'{}');if(r.day!==todayKey())return[];return r.slots||[];}catch{return[];}}
+  function pad(n){return String(n).padStart(2,'0');}
+
+  function bswUpdate(){
+    const clk=document.getElementById('bsw-clock');
+    if(!clk)return;
+    const now=new Date();
+    const dow=now.getDay();
+    const isWd=dow>=1&&dow<=5;
+    const h=now.getHours(),mi=now.getMinutes(),s=now.getSeconds();
+    const nowMins=h*60+mi;
+    const jours=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+
+    clk.textContent=`${pad(h)}:${pad(mi)}:${pad(s)}`;
+    document.getElementById('bsw-day').textContent=jours[dow]+(isWd?' · OUVRÉ':' · WE');
+
+    const aicDism=getAicDism();
+    const ptgDism=getPtgDism();
+    const aicC=11*60+30;
+    const aicInWin=isWd&&nowMins>=aicC-WIN&&nowMins<aicC+WIN;
+
+    // AIC rows
+    let aicHtml='';
+    if(!isWd){
+      aicHtml=`<div class="bsw-row"><span class="bsw-lbl">Barre AIC</span><span class="bsw-badge bb-off">WE</span></div>`;
+    } else {
+      let badge,txt;
+      if(aicDism){badge='bb-dism';txt='DISMISS';}
+      else if(aicInWin){const diff=aicC-nowMins;badge='bb-active';txt=diff>0?`+${diff}m`:'NOW';}
+      else if(nowMins<aicC-WIN){const diff=aicC-WIN-nowMins;badge='bb-wait';txt=`${diff}m`;}
+      else{badge='bb-off';txt='PASSÉ';}
+      aicHtml+=`<div class="bsw-row"><span class="bsw-lbl">11h00–12h00</span><span class="bsw-badge ${badge}">${txt}</span></div>`;
+      aicHtml+=`<div class="bsw-row"><span class="bsw-lbl">Dismiss</span><span class="bsw-badge ${aicDism?'bb-dism':'bb-active'}">${aicDism?'OUI':'NON'}</span></div>`;
+    }
+    document.getElementById('bsw-aic').innerHTML=aicHtml;
+
+    // Pointage rows
+    let ptgHtml='';
+    CRENEAUX.forEach(c=>{
+      const cM=c.h*60+c.m;
+      const inWin=isWd&&nowMins>=cM-WIN&&nowMins<cM+WIN;
+      const dism=ptgDism.includes(c.l);
+      let badge,info;
+      if(!isWd){badge='bb-off';info='WE';}
+      else if(dism){badge='bb-dism';info='DISMISS';}
+      else if(inWin){const diff=cM-nowMins;badge='bb-active';info=diff>0?`+${diff}m`:'NOW';}
+      else if(nowMins<cM-WIN){const diff=cM-WIN-nowMins;badge='bb-wait';info=`${diff}m`;}
+      else{badge='bb-off';info='—';}
+      ptgHtml+=`<div class="bsw-slot"><span class="bsw-slot-time">${c.l}</span><span class="bsw-badge ${badge}">${info}</span></div>`;
+    });
+    document.getElementById('bsw-ptg').innerHTML=ptgHtml;
+
+    // Bandeau global
+    const nowEl=document.getElementById('bsw-now');
+    const nowTxt=document.getElementById('bsw-now-txt');
+    const anyPtgActive=isWd&&CRENEAUX.some(c=>{const cM=c.h*60+c.m;return nowMins>=cM-WIN&&nowMins<cM+WIN&&!ptgDism.includes(c.l);});
+    if(!isWd){
+      nowEl.className='bsw-now snone';nowTxt.textContent='Week-end';
+    } else if((aicInWin&&!aicDism)||anyPtgActive){
+      const w=[];if(aicInWin&&!aicDism)w.push('AIC');if(anyPtgActive)w.push('Pointage');
+      nowEl.className='bsw-now sactive';nowTxt.textContent='● '+w.join(' + ');
+    } else {
+      const nexts=[];
+      if(!aicDism&&nowMins<aicC-WIN)nexts.push({t:aicC-WIN,n:'AIC'});
+      CRENEAUX.forEach(c=>{const cM=c.h*60+c.m-WIN;if(!ptgDism.includes(c.l)&&nowMins<cM)nexts.push({t:cM,n:c.l});});
+      nexts.sort((a,b)=>a.t-b.t);
+      if(nexts.length){nowEl.className='bsw-now ssoon';nowTxt.textContent=`⏱ ${nexts[0].n} dans ${nexts[0].t-nowMins}m`;}
+      else{nowEl.className='bsw-now snone';nowTxt.textContent='Tout passé';}
+    }
+  }
+
+  window.bswResetAic=function(){localStorage.removeItem('aic_dismissed');bswUpdate();};
+  window.bswResetPtg=function(){localStorage.removeItem('ptg_dismissed');bswUpdate();};
+
+  bswUpdate();
+  setInterval(bswUpdate,1000);
+})();
 
 // ── MODAL STATUT BARRES AIC & POINTAGE ──────────────────────────
 (function(){
