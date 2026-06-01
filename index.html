@@ -123,6 +123,41 @@
   /* Bouton + Ajouter utilitaire */
   .apps-add-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:7px 10px;background:transparent;border:1px dashed var(--border2);border-radius:5px;cursor:pointer;font-family:var(--font-mono);font-size:10px;color:var(--muted2);letter-spacing:1px;transition:all .18s;}
   .apps-add-btn:hover{border-color:var(--accent);color:var(--accent);background:#c8c0a8;}
+  /* ── MODAL STATUT BARRES ── */
+  .bstat-overlay{position:fixed;inset:0;background:rgba(10,15,20,0.65);z-index:700;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px);}
+  .bstat-overlay.open{display:flex;}
+  .bstat-modal{background:var(--panel);border:1px solid var(--border2);border-radius:6px;width:420px;max-width:96vw;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.4);}
+  .bstat-bar{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--header-bg);}
+  .bstat-bar-title{font-family:var(--font-display);font-weight:800;font-size:11px;color:var(--accent);letter-spacing:3px;text-transform:uppercase;flex:1;}
+  .bstat-close{background:transparent;border:1px solid var(--border);border-radius:3px;color:var(--muted2);font-family:var(--font-mono);font-size:9px;padding:3px 9px;cursor:pointer;letter-spacing:1px;transition:all .15s;}
+  .bstat-close:hover{border-color:var(--red);color:var(--red);}
+  .bstat-body{padding:16px;}
+  .bstat-clock{font-family:var(--font-mono);font-size:22px;font-weight:700;color:var(--text);letter-spacing:3px;margin-bottom:4px;}
+  .bstat-day{font-family:var(--font-mono);font-size:9px;color:var(--muted2);letter-spacing:2px;margin-bottom:14px;}
+  .bstat-now{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:4px;font-family:var(--font-mono);font-size:10px;letter-spacing:.5px;margin-bottom:14px;}
+  .bstat-now.sactive{background:#1a3a10;color:#7ecf5a;border:1px solid #2e6020;}
+  .bstat-now.ssoon{background:#3a2a00;color:#e0a830;border:1px solid #6a4a00;}
+  .bstat-now.snone{background:var(--panel2);color:var(--muted2);border:1px solid var(--border);}
+  .bstat-section{margin-bottom:12px;}
+  .bstat-sec-title{font-family:var(--font-display);font-size:9px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:var(--muted2);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+  .bstat-sec-title::after{content:'';flex:1;height:1px;background:var(--border);}
+  .bstat-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);}
+  .bstat-row:last-child{border-bottom:none;}
+  .bstat-lbl{font-family:var(--font-mono);font-size:10px;color:var(--muted2);}
+  .bstat-val{font-family:var(--font-mono);font-size:10px;font-weight:700;}
+  .bstat-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:2px;font-family:var(--font-mono);font-size:9px;font-weight:700;letter-spacing:1px;}
+  .bb-active{background:#1a3a10;color:#7ecf5a;}
+  .bb-dism{background:#3a0a0a;color:#e06060;}
+  .bb-wait{background:#3a2a00;color:#e0a830;}
+  .bb-off{background:var(--panel2);color:var(--muted);}
+  .bstat-slots{display:flex;flex-direction:column;gap:0;}
+  .bstat-slot{display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--border);}
+  .bstat-slot:last-child{border-bottom:none;}
+  .bstat-slot-time{font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--text);min-width:46px;}
+  .bstat-slot-info{font-family:var(--font-mono);font-size:9px;color:var(--muted2);flex:1;}
+  .bstat-reset-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:8px;padding:7px 10px;background:transparent;border:1px solid var(--border2);border-radius:3px;cursor:pointer;font-family:var(--font-mono);font-size:9px;color:var(--muted2);letter-spacing:1px;transition:all .15s;}
+  .bstat-reset-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--panel2);}
+
   /* Modal ajouter utilitaire */
   .addutil-overlay{position:fixed;inset:0;background:rgba(10,15,20,0.65);z-index:700;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px);}
   .addutil-overlay.open{display:flex;}
@@ -1019,6 +1054,10 @@
       </svg>
       <span class="ws-btn-label" id="hbtn-testaic" data-key="hbtn_testaic" ondblclick="editHBtn(event,this)">TEST AIC</span>
       <span class="ws-btn-edit-tip">✎ Dbl-clic pour renommer</span>
+    </button>
+    <button class="ws-btn" onclick="openBstatModal()" title="Statut des barres AIC & Pointage" style="color:#b8d8ff;border-color:#2a5a90;background:#1a3a60;position:relative;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span class="ws-btn-label">STATUT BARRES</span>
     </button>
   </div>
   <div class="hR">
@@ -3700,6 +3739,115 @@ window.testAicBanner = function(){
   }, 8000);
 };
 
+// ── MODAL STATUT BARRES AIC & POINTAGE ──────────────────────────
+(function(){
+  const AIC_KEY='aic_dismissed', PTG_KEY='ptg_dismissed';
+  const CRENEAUX=[{h:7,m:30,l:'7h30'},{h:12,m:25,l:'12h25'},{h:13,m:0,l:'13h00'},{h:15,m:40,l:'15h40'}];
+  const WIN=30;
+  let _timer=null;
+
+  function todayKey(){const d=new Date();return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;}
+  function getAicDism(){try{const r=JSON.parse(localStorage.getItem(AIC_KEY)||'{}');return r.day===todayKey()&&r.done===true;}catch{return false;}}
+  function getPtgDism(){try{const r=JSON.parse(localStorage.getItem(PTG_KEY)||'{}');if(r.day!==todayKey())return[];return r.slots||[];}catch{return[];}}
+  function pad(n){return String(n).padStart(2,'0');}
+
+  function bstatUpdate(){
+    const now=new Date();
+    const dow=now.getDay();
+    const isWd=dow>=1&&dow<=5;
+    const h=now.getHours(),mi=now.getMinutes(),s=now.getSeconds();
+    const nowMins=h*60+mi;
+    const jours=['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+
+    const clk=document.getElementById('bstat-clock');
+    const dayEl=document.getElementById('bstat-day');
+    const nowEl=document.getElementById('bstat-now');
+    const nowTxt=document.getElementById('bstat-now-txt');
+    const aicRows=document.getElementById('bstat-aic-rows');
+    const ptgRows=document.getElementById('bstat-ptg-rows');
+    if(!clk)return;
+
+    clk.textContent=`${pad(h)}:${pad(mi)}:${pad(s)}`;
+    dayEl.textContent=jours[dow]+(isWd?' · JOUR OUVRÉ':' · WEEK-END');
+
+    const aicDism=getAicDism();
+    const ptgDism=getPtgDism();
+    const aicC=11*60+30;
+    const aicInWin=isWd&&nowMins>=aicC-WIN&&nowMins<aicC+WIN;
+
+    // AIC rows
+    let aicHtml='';
+    {
+      let badge,info;
+      if(!isWd){badge='bb-off';info='Week-end';}
+      else if(aicDism){badge='bb-dism';info='Dismissée aujourd\'hui';}
+      else if(aicInWin){const diff=aicC-nowMins;badge='bb-active';info=diff>0?`Active — dans ${diff} min`:'Active — 11h30 dépassé';}
+      else if(nowMins<aicC-WIN){const diff=aicC-WIN-nowMins;badge='bb-wait';info=`En attente — dans ${diff} min`;}
+      else{badge='bb-off';info='Fenêtre passée (11h00–12h00)';}
+      aicHtml+=`<div class="bstat-row"><span class="bstat-lbl">Fenêtre 11h00 → 12h00</span><span class="bstat-badge ${badge}">${badge==='bb-active'?'ACTIVE':badge==='bb-dism'?'DISMISS':badge==='bb-wait'?'BIENTÔT':'OFF'}</span></div>`;
+      aicHtml+=`<div class="bstat-row"><span class="bstat-lbl">État</span><span class="bstat-val" style="font-size:9px">${info}</span></div>`;
+      aicHtml+=`<div class="bstat-row"><span class="bstat-lbl">Dismiss today</span><span class="bstat-badge ${aicDism?'bb-dism':'bb-active'}">${aicDism?'OUI':'NON'}</span></div>`;
+    }
+    aicRows.innerHTML=aicHtml;
+
+    // Pointage rows
+    let ptgHtml='';
+    CRENEAUX.forEach(c=>{
+      const cM=c.h*60+c.m;
+      const inWin=isWd&&nowMins>=cM-WIN&&nowMins<cM+WIN;
+      const dism=ptgDism.includes(c.l);
+      let badge,info;
+      if(!isWd){badge='bb-off';info='Week-end';}
+      else if(dism){badge='bb-dism';info='Dismissée';}
+      else if(inWin){const diff=cM-nowMins;badge='bb-active';info=diff>0?`dans ${diff} min`:'heure dépassée';}
+      else if(nowMins<cM-WIN){const diff=cM-WIN-nowMins;badge='bb-wait';info=`dans ${diff} min`;}
+      else{badge='bb-off';info='passée';}
+      ptgHtml+=`<div class="bstat-slot"><span class="bstat-slot-time">${c.l}</span><span class="bstat-slot-info">${info}</span><span class="bstat-badge ${badge}">${badge==='bb-active'?'ACTIVE':badge==='bb-dism'?'DISMISS':badge==='bb-wait'?'BIENTÔT':'—'}</span></div>`;
+    });
+    ptgRows.innerHTML=ptgHtml;
+
+    // Bandeau global
+    const anyPtgActive=isWd&&CRENEAUX.some(c=>{const cM=c.h*60+c.m;return nowMins>=cM-WIN&&nowMins<cM+WIN&&!ptgDism.includes(c.l);});
+    if(!isWd){
+      nowEl.className='bstat-now snone';nowTxt.textContent='Week-end — barres inactives';
+    } else if((aicInWin&&!aicDism)||anyPtgActive){
+      const which=[];
+      if(aicInWin&&!aicDism)which.push('AIC');
+      if(anyPtgActive)which.push('Pointage');
+      nowEl.className='bstat-now sactive';nowTxt.textContent='Barre(s) active(s) : '+which.join(' + ');
+    } else {
+      const nexts=[];
+      if(!aicDism&&nowMins<aicC-WIN)nexts.push({t:aicC-WIN,n:'AIC'});
+      CRENEAUX.forEach(c=>{const cM=c.h*60+c.m-WIN;if(!ptgDism.includes(c.l)&&nowMins<cM)nexts.push({t:cM,n:'Pointage '+c.l});});
+      nexts.sort((a,b)=>a.t-b.t);
+      if(nexts.length){nowEl.className='bstat-now ssoon';nowTxt.textContent=`Prochain : ${nexts[0].n} dans ${nexts[0].t-nowMins} min`;}
+      else{nowEl.className='bstat-now snone';nowTxt.textContent='Tous les créneaux sont passés';}
+    }
+  }
+
+  window.openBstatModal=function(){
+    document.getElementById('bstatOverlay').classList.add('open');
+    bstatUpdate();
+    _timer=setInterval(bstatUpdate,1000);
+  };
+  window.closeBstatModal=function(){
+    document.getElementById('bstatOverlay').classList.remove('open');
+    clearInterval(_timer);
+  };
+  window.bstatResetAic=function(){
+    localStorage.removeItem('aic_dismissed');
+    bstatUpdate();
+  };
+  window.bstatResetPtg=function(){
+    localStorage.removeItem('ptg_dismissed');
+    bstatUpdate();
+  };
+
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape'&&document.getElementById('bstatOverlay')?.classList.contains('open'))closeBstatModal();
+  });
+})();
+
 window.openPdfRedact = function(){
   const overlay = document.getElementById('pdfredactOverlay');
   const iframe  = document.getElementById('pdfredactIframe');
@@ -4016,6 +4164,41 @@ function hcwCopyMulti(){
     </div>
   </div>
 </div>
+<!-- ════ MODAL STATUT BARRES AIC & POINTAGE ════════════════════ -->
+<div class="bstat-overlay" id="bstatOverlay" onclick="if(event.target===this)closeBstatModal()">
+  <div class="bstat-modal">
+    <div class="bstat-bar">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span class="bstat-bar-title">STATUT BARRES</span>
+      <button class="bstat-close" onclick="closeBstatModal()">✕ FERMER</button>
+    </div>
+    <div class="bstat-body">
+      <div class="bstat-clock" id="bstat-clock">--:--:--</div>
+      <div class="bstat-day" id="bstat-day">—</div>
+      <div class="bstat-now snone" id="bstat-now">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span id="bstat-now-txt">Calcul...</span>
+      </div>
+
+      <div class="bstat-section">
+        <div class="bstat-sec-title">AIC journalière — 11h30</div>
+        <div class="bstat-slots" id="bstat-aic-rows"></div>
+        <button class="bstat-reset-btn" onclick="bstatResetAic()">
+          ↺ Réactiver barre AIC (effacer dismiss)
+        </button>
+      </div>
+
+      <div class="bstat-section">
+        <div class="bstat-sec-title">Pointage Eurécia — créneaux</div>
+        <div class="bstat-slots" id="bstat-ptg-rows"></div>
+        <button class="bstat-reset-btn" onclick="bstatResetPtg()">
+          ↺ Réactiver tous les créneaux pointage
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ════ CONVERTISSEUR HEURES MODAL ═══════════════════════════════ -->
 <div class="hconv-overlay" id="hconvOverlay">
   <div class="hconv-modal">
