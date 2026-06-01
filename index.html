@@ -431,6 +431,24 @@
   #aic-banner.urgency-high  { filter:brightness(1.38); box-shadow:0 3px 32px rgba(224,112,32,0.75),0 0 60px rgba(224,112,32,0.35); }
   #aic-banner.urgency-now   { filter:brightness(1.6);  box-shadow:0 3px 40px rgba(224,112,32,0.95),0 0 80px rgba(224,112,32,0.5); animation:aic-slide-in .3s ease, aic-pulse-fast .8s ease-in-out infinite !important; }
   @keyframes aic-pulse-fast{0%,100%{background:#c05a00;}50%{background:#f07830;}}
+
+  /* ── CLIGNOTEMENT 3 MINUTES AVANT ── */
+  @keyframes blink-aic  { 0%,49%{opacity:1;} 50%,100%{opacity:0.08;} }
+  @keyframes blink-ptg  { 0%,49%{opacity:1;} 50%,100%{opacity:0.08;} }
+  #aic-banner.urgency-blink {
+    animation: aic-slide-in .3s ease, blink-aic .55s step-end infinite !important;
+    filter: brightness(1.7) !important;
+    box-shadow: 0 3px 48px rgba(224,112,32,1), 0 0 90px rgba(224,112,32,0.6) !important;
+    outline: 3px solid #fff;
+    outline-offset: -3px;
+  }
+  #pointage-banner.urgency-blink {
+    animation: ptg-slide-in .3s ease, blink-ptg .55s step-end infinite !important;
+    filter: brightness(1.7) !important;
+    box-shadow: 0 3px 48px rgba(220,38,38,1), 0 0 90px rgba(220,38,38,0.6) !important;
+    outline: 3px solid #fff;
+    outline-offset: -3px;
+  }
   .ptg-icon{font-size:18px;animation:badger-bounce 1.1s ease-in-out infinite;flex-shrink:0;}
   .ptg-label{font-family:var(--font-display);font-weight:800;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#fff;white-space:nowrap;flex-shrink:0;text-shadow:0 1px 4px rgba(0,0,0,0.4);}
   .ptg-msg{font-family:var(--font-mono);font-size:10px;color:#fff;flex:1;letter-spacing:0.5px;}
@@ -2898,8 +2916,9 @@ updateToggleUI();buildApps();buildFavs();loadTodos();renderTodos();loadNotes();r
       }
       banner.classList.add('visible');
       // Urgence progressive selon temps restant
-      banner.classList.remove('urgency-low','urgency-med','urgency-high','urgency-now');
+      banner.classList.remove('urgency-low','urgency-med','urgency-high','urgency-now','urgency-blink');
       if (diff <= 0)       banner.classList.add('urgency-now');
+      else if (diff <= 3)  { banner.classList.add('urgency-high'); banner.classList.add('urgency-blink'); }
       else if (diff <= 5)  banner.classList.add('urgency-high');
       else if (diff <= 15) banner.classList.add('urgency-med');
       else                 banner.classList.add('urgency-low');
@@ -2908,14 +2927,14 @@ updateToggleUI();buildApps();buildFavs();loadTodos();renderTodos();loadNotes();r
       if (weekBar) weekBar.style.top = (83 + bannerH) + 'px';
       if (tickerBar) tickerBar.style.top = (83 + bannerH + 26) + 'px';
     } else {
-      banner.classList.remove('visible','urgency-low','urgency-med','urgency-high','urgency-now');
+      banner.classList.remove('visible','urgency-low','urgency-med','urgency-high','urgency-now','urgency-blink');
       if (weekBar) weekBar.style.top = '';
       if (tickerBar) tickerBar.style.top = '';
     }
   }
 
   checkPointageBanner();
-  setInterval(checkPointageBanner, 30000); // vérif toutes les 30s
+  setInterval(checkPointageBanner, 10000); // vérif toutes les 10s
 })();
 
 // ── BANNIÈRE AIC JOURNALIÈRE — 11h30 (tous les jours ouvrés) ──────
@@ -2963,18 +2982,19 @@ updateToggleUI();buildApps();buildFavs();loadTodos();renderTodos();loadNotes();r
       }
       banner.classList.add('visible');
       // Urgence progressive selon temps restant
-      banner.classList.remove('urgency-low','urgency-med','urgency-high','urgency-now');
+      banner.classList.remove('urgency-low','urgency-med','urgency-high','urgency-now','urgency-blink');
       if (diff <= 0)       banner.classList.add('urgency-now');
+      else if (diff <= 3)  { banner.classList.add('urgency-high'); banner.classList.add('urgency-blink'); }
       else if (diff <= 5)  banner.classList.add('urgency-high');
       else if (diff <= 15) banner.classList.add('urgency-med');
       else                 banner.classList.add('urgency-low');
     } else {
-      banner.classList.remove('visible','urgency-low','urgency-med','urgency-high','urgency-now');
+      banner.classList.remove('visible','urgency-low','urgency-med','urgency-high','urgency-now','urgency-blink');
     }
   }
 
   checkAicBanner();
-  setInterval(checkAicBanner, 30000);
+  setInterval(checkAicBanner, 10000);
 })();
 
 // ── HEURES TRAVAILLÉES — Saisie pointage + calcul départ ─────────────
