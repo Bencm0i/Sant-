@@ -1149,6 +1149,7 @@
     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
     OUVRIR EURÉCIA ↗
   </a>
+  <button class="ptg-close" onclick="snoozePointageBanner()" title="+5 min">+5'</button>
   <button class="ptg-close" onclick="dismissPointageBanner()">✕</button>
 </div>
 
@@ -1161,6 +1162,7 @@
     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
     OUVRIR AIC ↗
   </a>
+  <button class="aic-close" onclick="snoozeAicBanner()" title="+5 min">+5'</button>
   <button class="aic-close" onclick="dismissAicBanner()">✕</button>
 </div>
 
@@ -2856,8 +2858,9 @@ updateToggleUI();buildApps();buildFavs();loadTodos();renderTodos();loadNotes();r
     { h: 13, m: 0,  label: '13h00' },
     { h: 15, m: 40, label: '15h40' },
   ];
-  const WINDOW_MIN = 30; // minutes avant le créneau
+  const WINDOW_MIN = 10; // minutes avant le créneau
   const DISMISS_KEY = 'ptg_dismissed'; // stocke les créneaux dismissés today
+  const SNOOZE_KEY  = 'ptg_snooze';   // snooze par créneau
 
   function getTodayKey() {
     const d = new Date();
@@ -2871,6 +2874,35 @@ updateToggleUI();buildApps();buildFavs();loadTodos();renderTodos();loadNotes();r
       return raw;
     } catch { return { day: getTodayKey(), slots: [] }; }
   }
+
+  function getSnooze() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(SNOOZE_KEY) || '{}');
+      if (raw.day !== getTodayKey()) return { day: getTodayKey(), slots: {} };
+      return raw;
+    } catch { return { day: getTodayKey(), slots: {} }; }
+  }
+
+  function isSnoozed(label) {
+    const sn = getSnooze();
+    const until = sn.slots[label];
+    if (!until) return false;
+    return Date.now() < until;
+  }
+
+  window.snoozePointageBanner = function() {
+    const now = new Date();
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    const active = CRENEAUX.find(c => {
+      const cMins = c.h * 60 + c.m;
+      return nowMins >= cMins - WINDOW_MIN && nowMins < cMins + WINDOW_MIN;
+    });
+    if (!active) return;
+    const sn = getSnooze();
+    sn.slots[active.label] = Date.now() + 5 * 60 * 1000; // +5 min
+    localStorage.setItem(SNOOZE_KEY, JSON.stringify(sn));
+    document.getElementById('pointage-banner').classList.remove('visible');
+  };
 
   window.dismissPointageBanner = function() {
     const now = new Date();
@@ -2886,6 +2918,26 @@ updateToggleUI();buildApps();buildFavs();loadTodos();renderTodos();loadNotes();r
     document.getElementById('pointage-banner').classList.remove('visible');
   };
 
+  let _ptgWasBlink = false;
+  let _ptgTitleInterval = null;
+
+  function ptgStartTitleBlink() {
+    if (_ptgTitleInterval) return;
+    const orig = document.title;
+    let on = true;
+    _ptgTitleInterval = setInterval(() => {
+      document.title = on ? '🔴 POINTAGE !' : orig;
+      on = !on;
+    }, 550);
+  }
+
+  function ptgStopTitleBlink() {
+    if (!_ptgTitleInterval) return;
+    clearInterval(_ptgTitleInterval);
+    _ptgTitleInterval = null;
+    document.title = document.title.replace(/^🔴 POINTAGE ! ?/, '');
+  }
+
   function checkPointageBanner() {
     const banner = document.getElementById('pointage-banner');
     const weekBar = document.getElementById('week-bar');
@@ -2894,7 +2946,7 @@ updateToggleUI();buildApps();buildFavs();loadTodos();renderTodos();loadNotes();r
     const now = new Date();
     const dow = now.getDay();
     // Seulement jours ouvrés
-    if (dow < 1 || dow > 5) { banner.classList.remove('visible'); return; }
+    if (dow < 1 || dow > 5) { banner.classList.remove('visible'); ptgStopTitleBlink(); return; }
 
     const nowMins = now.getHours() * 60 + now.getMinutes();
     const dismissed = getDismissed();
@@ -2902,7 +2954,8 @@ updateToggleUI();buildApps();buildFavs();loadTodos();renderTodos();loadNotes();r
     const active = CRENEAUX.find(c => {
       const cMins = c.h * 60 + c.m;
       return nowMins >= cMins - WINDOW_MIN && nowMins < cMins + WINDOW_MIN
-             && !dismissed.slots.includes(c.label);
+             && !dismissed.slots.includes(c.label)
+             && !isSnoozed(c.label);
     });
 
     if (active) {
@@ -2917,17 +2970,29 @@ updateToggleUI();buildApps();buildFavs();loadTodos();renderTodos();loadNotes();r
       banner.classList.add('visible');
       // Urgence progressive selon temps restant
       banner.classList.remove('urgency-low','urgency-med','urgency-high','urgency-now','urgency-blink');
+      const isBlink = diff <= 3 && diff > 0;
       if (diff <= 0)       banner.classList.add('urgency-now');
       else if (diff <= 3)  { banner.classList.add('urgency-high'); banner.classList.add('urgency-blink'); }
       else if (diff <= 5)  banner.classList.add('urgency-high');
-      else if (diff <= 15) banner.classList.add('urgency-med');
+      else if (diff <= 10) banner.classList.add('urgency-med');
       else                 banner.classList.add('urgency-low');
+      // Focus tab + title blink quand urgency-blink ou urgency-now
+      const needFocus = diff <= 3;
+      if (needFocus && !_ptgWasBlink) {
+        try { window.focus(); } catch(e) {}
+        ptgStartTitleBlink();
+      } else if (!needFocus) {
+        ptgStopTitleBlink();
+      }
+      _ptgWasBlink = needFocus;
       // Décaler week-bar et ticker-bar vers le bas
       const bannerH = banner.offsetHeight || 34;
       if (weekBar) weekBar.style.top = (83 + bannerH) + 'px';
       if (tickerBar) tickerBar.style.top = (83 + bannerH + 26) + 'px';
     } else {
       banner.classList.remove('visible','urgency-low','urgency-med','urgency-high','urgency-now','urgency-blink');
+      ptgStopTitleBlink();
+      _ptgWasBlink = false;
       if (weekBar) weekBar.style.top = '';
       if (tickerBar) tickerBar.style.top = '';
     }
@@ -2940,8 +3005,9 @@ updateToggleUI();buildApps();buildFavs();loadTodos();renderTodos();loadNotes();r
 // ── BANNIÈRE AIC JOURNALIÈRE — 11h30 (tous les jours ouvrés) ──────
 (function initAicBanner() {
   const AIC_H = 11, AIC_M = 30;
-  const WINDOW_MIN = 30;
+  const WINDOW_MIN = 10;
   const AIC_DISMISS_KEY = 'aic_dismissed';
+  const AIC_SNOOZE_KEY  = 'aic_snooze';
 
   function getTodayKey() {
     const d = new Date();
@@ -2955,18 +3021,54 @@ updateToggleUI();buildApps();buildFavs();loadTodos();renderTodos();loadNotes();r
     } catch { return false; }
   }
 
+  function isSnoozed() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(AIC_SNOOZE_KEY) || '{}');
+      if (raw.day !== getTodayKey()) return false;
+      return Date.now() < (raw.until || 0);
+    } catch { return false; }
+  }
+
+  window.snoozeAicBanner = function() {
+    localStorage.setItem(AIC_SNOOZE_KEY, JSON.stringify({ day: getTodayKey(), until: Date.now() + 5 * 60 * 1000 }));
+    document.getElementById('aic-banner').classList.remove('visible');
+    aicStopTitleBlink();
+  };
+
   window.dismissAicBanner = function() {
     localStorage.setItem(AIC_DISMISS_KEY, JSON.stringify({ day: getTodayKey(), done: true }));
     document.getElementById('aic-banner').classList.remove('visible');
+    aicStopTitleBlink();
   };
+
+  let _aicWasBlink = false;
+  let _aicTitleInterval = null;
+
+  function aicStartTitleBlink() {
+    if (_aicTitleInterval) return;
+    const orig = document.title;
+    let on = true;
+    _aicTitleInterval = setInterval(() => {
+      document.title = on ? '🟠 AIC !' : orig;
+      on = !on;
+    }, 550);
+  }
+
+  function aicStopTitleBlink() {
+    if (!_aicTitleInterval) return;
+    clearInterval(_aicTitleInterval);
+    _aicTitleInterval = null;
+    document.title = document.title.replace(/^🟠 AIC ! ?/, '');
+  }
 
   function checkAicBanner() {
     const banner = document.getElementById('aic-banner');
     if (!banner) return;
     const now = new Date();
     const dow = now.getDay();
-    if (dow < 1 || dow > 5) { banner.classList.remove('visible'); return; }
-    if (isDismissedToday()) { banner.classList.remove('visible'); return; }
+    if (dow < 1 || dow > 5) { banner.classList.remove('visible'); aicStopTitleBlink(); return; }
+    if (isDismissedToday()) { banner.classList.remove('visible'); aicStopTitleBlink(); return; }
+    if (isSnoozed()) { banner.classList.remove('visible'); return; }
 
     const nowMins = now.getHours() * 60 + now.getMinutes();
     const cMins   = AIC_H * 60 + AIC_M;
@@ -2986,10 +3088,21 @@ updateToggleUI();buildApps();buildFavs();loadTodos();renderTodos();loadNotes();r
       if (diff <= 0)       banner.classList.add('urgency-now');
       else if (diff <= 3)  { banner.classList.add('urgency-high'); banner.classList.add('urgency-blink'); }
       else if (diff <= 5)  banner.classList.add('urgency-high');
-      else if (diff <= 15) banner.classList.add('urgency-med');
+      else if (diff <= 10) banner.classList.add('urgency-med');
       else                 banner.classList.add('urgency-low');
+      // Focus tab + title blink
+      const needFocus = diff <= 3;
+      if (needFocus && !_aicWasBlink) {
+        try { window.focus(); } catch(e) {}
+        aicStartTitleBlink();
+      } else if (!needFocus) {
+        aicStopTitleBlink();
+      }
+      _aicWasBlink = needFocus;
     } else {
       banner.classList.remove('visible','urgency-low','urgency-med','urgency-high','urgency-now','urgency-blink');
+      aicStopTitleBlink();
+      _aicWasBlink = false;
     }
   }
 
@@ -3890,8 +4003,8 @@ window.testAicBanner = function(){
     }
   }
 
-  window.bswResetAic=function(){localStorage.removeItem('aic_dismissed');bswUpdate();};
-  window.bswResetPtg=function(){localStorage.removeItem('ptg_dismissed');bswUpdate();};
+  window.bswResetAic=function(){localStorage.removeItem('aic_dismissed');localStorage.removeItem('aic_snooze');bswUpdate();};
+  window.bswResetPtg=function(){localStorage.removeItem('ptg_dismissed');localStorage.removeItem('ptg_snooze');bswUpdate();};
 
   bswUpdate();
   setInterval(bswUpdate,1000);
