@@ -1088,23 +1088,11 @@
       <span class="ws-btn-label" id="hbtn-workspace" data-key="hbtn_workspace" ondblclick="editHBtn(event,this)">WORKSPACE</span>
       <span class="ws-btn-edit-tip">✎ Dbl-clic pour renommer</span>
     </button>
-    <button class="ws-btn" onclick="testPointageBanner()" title="Tester le bandeau rappel pointage Eurécia · Double-clic pour renommer" style="color:#ffd0d0;border-color:#901010;background:#5a0808;position:relative;">
+    <button class="ws-btn" onclick="testFocusBanner()" title="Tester le focus tab — simule une alerte urgency-blink" style="color:#d0f0ff;border-color:#1a6090;background:#0a3050;position:relative;">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+        <path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>
       </svg>
-      <span class="ws-btn-label" id="hbtn-testptg" data-key="hbtn_testptg" ondblclick="editHBtn(event,this)">TEST POINTAGE</span>
-      <span class="ws-btn-edit-tip">✎ Dbl-clic pour renommer</span>
-    </button>
-    <button class="ws-btn" onclick="testAicBanner()" title="Tester le bandeau AIC journalière · Double-clic pour renommer" style="color:#ffe0b2;border-color:#7a3a00;background:#5a2800;position:relative;">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-      </svg>
-      <span class="ws-btn-label" id="hbtn-testaic" data-key="hbtn_testaic" ondblclick="editHBtn(event,this)">TEST AIC</span>
-      <span class="ws-btn-edit-tip">✎ Dbl-clic pour renommer</span>
-    </button>
-    <button class="ws-btn" onclick="openBstatModal()" title="Statut des barres AIC & Pointage" style="color:#b8d8ff;border-color:#2a5a90;background:#1a3a60;position:relative;">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      <span class="ws-btn-label">STATUT BARRES</span>
+      <span class="ws-btn-label">TEST FOCUS</span>
     </button>
   </div>
   <div class="hR">
@@ -3898,29 +3886,32 @@ document.addEventListener('keydown', e=>{
 });
 
 // ── TEST BANDEAU POINTAGE EURÉCIA ──────────────────────────────
-window.testPointageBanner = function(){
+window.testFocusBanner = function(){
+  // Simule une alerte urgency-blink sur la barre pointage : title blink + window.focus()
   const banner = document.getElementById('pointage-banner');
   if(!banner) return;
-  banner.classList.add('visible');
+  banner.classList.add('visible','urgency-high','urgency-blink');
   const msg = document.getElementById('ptg-msg');
-  if(msg) msg.textContent = '⚡ MODE TEST — Affichage normal entre 07h00 et 09h00 · Fermeture auto dans 8s';
-  clearTimeout(window._ptgTestTimer);
-  window._ptgTestTimer = setTimeout(() => {
-    banner.classList.remove('visible');
+  if(msg) msg.textContent = '⚡ TEST FOCUS — title blink actif · fermeture auto dans 8s';
+  // Déclenche le même mécanisme que le vrai blink
+  try { window.focus(); } catch(e) {}
+  if(typeof ptgStartTitleBlink === 'function') ptgStartTitleBlink();
+  else {
+    // fallback inline si la fonction n'est pas exposée globalement
+    clearInterval(window._testFocusInterval);
+    const orig = document.title;
+    let on = true;
+    window._testFocusInterval = setInterval(() => {
+      document.title = on ? '🔴 POINTAGE !' : orig;
+      on = !on;
+    }, 550);
+  }
+  clearTimeout(window._testFocusTimer);
+  window._testFocusTimer = setTimeout(() => {
+    banner.classList.remove('visible','urgency-high','urgency-blink');
     if(msg) msg.textContent = 'Rappel : penser à badger sur Eurécia';
-  }, 8000);
-};
-
-window.testAicBanner = function(){
-  const banner = document.getElementById('aic-banner');
-  if(!banner) return;
-  banner.classList.add('visible');
-  const msg = document.getElementById('aic-msg');
-  if(msg) msg.textContent = '⚡ MODE TEST — Affichage normal à 11h30 · Fermeture auto dans 8s';
-  clearTimeout(window._aicTestTimer);
-  window._aicTestTimer = setTimeout(() => {
-    banner.classList.remove('visible');
-    if(msg) msg.textContent = "Rappel : remplir l'AIC journalière BE meca";
+    clearInterval(window._testFocusInterval);
+    document.title = document.title.replace(/^🔴 POINTAGE ! ?/, '');
   }, 8000);
 };
 
