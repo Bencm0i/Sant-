@@ -848,6 +848,44 @@
   .hcw-total-label{font-size:8px;color:var(--muted2);letter-spacing:1px;text-transform:uppercase;}
   .hcw-total-val{font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--accent);}
 
+  /* ── WIDGET NOMBRE ALÉATOIRE ── */
+  .rng-panel{background:var(--panel);border:1px solid var(--border);border-radius:5px;overflow:hidden;}
+  .rng-header{padding:9px 13px;border-bottom:1px solid var(--border);background:var(--header-bg);display:flex;align-items:center;gap:8px;}
+  .rng-title{font-family:var(--font-display);font-size:10px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--text);flex:1;}
+  .rng-clear-btn{background:transparent;border:1px solid var(--border);border-radius:2px;padding:2px 8px;font-family:var(--font-mono);font-size:8px;color:var(--muted2);cursor:pointer;letter-spacing:1px;transition:all .15s;}
+  .rng-clear-btn:hover{border-color:var(--red);color:var(--red);}
+  .rng-body{padding:11px 13px;display:flex;flex-direction:column;gap:9px;}
+  .rng-range-row{display:flex;align-items:center;gap:7px;}
+  .rng-range-lbl{font-family:var(--font-mono);font-size:9px;color:var(--muted2);letter-spacing:1px;white-space:nowrap;}
+  .rng-input{width:58px;background:var(--panel2);border:1px solid var(--border);border-radius:3px;outline:none;padding:4px 7px;font-family:var(--font-mono);font-size:11px;color:var(--text);text-align:center;transition:border-color .15s;}
+  .rng-input:focus{border-color:var(--accent);}
+  .rng-sep{font-family:var(--font-mono);font-size:11px;color:var(--muted);}
+  .rng-generate-btn{margin-left:auto;background:var(--accent);border:none;border-radius:3px;color:#fff;font-family:var(--font-mono);font-size:10px;padding:5px 13px;cursor:pointer;letter-spacing:1px;font-weight:700;transition:filter .15s;}
+  .rng-generate-btn:hover{filter:brightness(1.15);}
+  .rng-generate-btn:active{transform:scale(0.97);}
+  .rng-result-wrap{background:#b8b09a;border:1px solid var(--border);border-radius:4px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:48px;}
+  .rng-result-num{font-family:var(--font-display);font-weight:800;font-size:28px;color:var(--text);letter-spacing:2px;line-height:1;transition:all .2s;}
+  .rng-result-num.anim{color:var(--accent);transform:scale(1.08);}
+  .rng-result-meta{font-family:var(--font-mono);font-size:8px;color:var(--muted2);text-align:right;line-height:1.6;}
+  .rng-copy-btn{background:transparent;border:1px solid var(--border2);border-radius:2px;padding:2px 7px;font-family:var(--font-mono);font-size:8px;color:var(--muted2);cursor:pointer;letter-spacing:1px;transition:all .15s;flex-shrink:0;}
+  .rng-copy-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .rng-copy-btn.ok{border-color:var(--green);color:var(--green);}
+  .rng-hist-label{font-family:var(--font-display);font-size:8px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted2);display:flex;align-items:center;gap:6px;}
+  .rng-hist-label::after{content:'';flex:1;height:1px;background:var(--border);}
+  .rng-hist-list{display:flex;flex-direction:column;gap:2px;max-height:140px;overflow-y:auto;}
+  .rng-hist-list::-webkit-scrollbar{width:4px;}
+  .rng-hist-list::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+  .rng-hist-item{display:flex;align-items:center;gap:7px;padding:3px 6px;border-radius:2px;border:1px solid transparent;transition:background .12s;cursor:default;}
+  .rng-hist-item:hover{background:var(--panel2);border-color:var(--border);}
+  .rng-hist-item.rng-hist-new{background:#c4c0a8;border-color:var(--border2);}
+  .rng-hist-num{font-family:var(--font-display);font-weight:700;font-size:13px;color:var(--text);min-width:38px;}
+  .rng-hist-range{font-family:var(--font-mono);font-size:8px;color:var(--muted2);flex:1;}
+  .rng-hist-time{font-family:var(--font-mono);font-size:8px;color:var(--muted);letter-spacing:.5px;}
+  .rng-hist-copy{background:transparent;border:none;font-size:10px;cursor:pointer;opacity:0;transition:opacity .15s;padding:0 2px;color:var(--muted2);}
+  .rng-hist-item:hover .rng-hist-copy{opacity:1;}
+  .rng-hist-copy:hover{color:var(--accent);}
+  .rng-empty{font-family:var(--font-mono);font-size:9px;color:var(--muted);text-align:center;padding:10px 0;letter-spacing:1px;}
+
 </style>
 </head>
 <body>
@@ -1318,6 +1356,35 @@
         <div class="hcw-total-row">
           <span class="hcw-total-label">⅀ Total</span>
           <span class="hcw-total-val" id="hcw-total">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Widget Nombre Aléatoire -->
+    <div class="slabel" style="margin-top:14px">Nombre Aléatoire</div>
+    <div class="rng-panel" id="rngPanel">
+      <div class="rng-header">
+        <span style="font-size:13px">🎲</span>
+        <div class="rng-title">TIRAGE ALÉATOIRE</div>
+        <button class="rng-clear-btn" onclick="rngClearHistory()" title="Effacer l'historique">✕ VIDER</button>
+      </div>
+      <div class="rng-body">
+        <div class="rng-range-row">
+          <span class="rng-range-lbl">DE</span>
+          <input class="rng-input" id="rngMin" type="number" value="1">
+          <span class="rng-sep">—</span>
+          <span class="rng-range-lbl">À</span>
+          <input class="rng-input" id="rngMax" type="number" value="100">
+          <button class="rng-generate-btn" onclick="rngGenerate()">TIRER ↯</button>
+        </div>
+        <div class="rng-result-wrap" id="rngResultWrap">
+          <div class="rng-result-num" id="rngResultNum">—</div>
+          <div class="rng-result-meta" id="rngResultMeta"></div>
+          <button class="rng-copy-btn" id="rngCopyBtn" onclick="rngCopy()" style="display:none">⎘ COPIER</button>
+        </div>
+        <div class="rng-hist-label">Historique</div>
+        <div class="rng-hist-list" id="rngHistList">
+          <div class="rng-empty">// Aucun tirage</div>
         </div>
       </div>
     </div>
@@ -4524,6 +4591,124 @@ function hcwCopyMulti(){
     </div>
   </div>
 </div>
+
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+//  WIDGET NOMBRE ALÉATOIRE — avec historique localStorage
+// ══════════════════════════════════════════════════════════════════
+(function initRng() {
+  const RNG_KEY      = 'launcher_rng_history';
+  const RNG_MAX_HIST = 30;
+  let   _lastNum     = null;
+
+  /* ── Persistence ── */
+  function loadHist() {
+    try { return JSON.parse(localStorage.getItem(RNG_KEY) || '[]'); }
+    catch { return []; }
+  }
+  function saveHist(arr) {
+    localStorage.setItem(RNG_KEY, JSON.stringify(arr));
+  }
+
+  /* ── Rendu historique ── */
+  function renderHist(highlightIdx) {
+    const list = document.getElementById('rngHistList');
+    if (!list) return;
+    const hist = loadHist();
+    if (!hist.length) {
+      list.innerHTML = '<div class="rng-empty">// Aucun tirage</div>';
+      return;
+    }
+    list.innerHTML = '';
+    hist.forEach((entry, i) => {
+      const item = document.createElement('div');
+      item.className = 'rng-hist-item' + (i === 0 && highlightIdx === 0 ? ' rng-hist-new' : '');
+      item.innerHTML = `
+        <span class="rng-hist-num">${entry.n}</span>
+        <span class="rng-hist-range">[${entry.min} – ${entry.max}]</span>
+        <span class="rng-hist-time">${entry.t}</span>
+        <button class="rng-hist-copy" title="Copier" onclick="(function(b,v){navigator.clipboard.writeText(v).then(()=>{b.textContent='✓';setTimeout(()=>b.textContent='⎘',1200);});})(this,'${entry.n}')">⎘</button>
+      `;
+      list.appendChild(item);
+    });
+    // Retirer la classe highlight après animation
+    if (highlightIdx === 0) {
+      const first = list.querySelector('.rng-hist-new');
+      if (first) setTimeout(() => first.classList.remove('rng-hist-new'), 800);
+    }
+  }
+
+  /* ── Génération ── */
+  window.rngGenerate = function () {
+    const minEl = document.getElementById('rngMin');
+    const maxEl = document.getElementById('rngMax');
+    let min = parseInt(minEl.value, 10);
+    let max = parseInt(maxEl.value, 10);
+    if (isNaN(min) || isNaN(max)) return;
+    if (min > max) { [min, max] = [max, min]; minEl.value = min; maxEl.value = max; }
+
+    const num  = Math.floor(Math.random() * (max - min + 1)) + min;
+    _lastNum   = num;
+
+    // Affichage résultat avec animation
+    const numEl  = document.getElementById('rngResultNum');
+    const metaEl = document.getElementById('rngResultMeta');
+    const copyBtn = document.getElementById('rngCopyBtn');
+
+    numEl.classList.remove('anim');
+    void numEl.offsetWidth; // reflow
+    numEl.textContent = num;
+    numEl.classList.add('anim');
+    setTimeout(() => numEl.classList.remove('anim'), 300);
+
+    const now  = new Date();
+    const hhmm = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':' + String(now.getSeconds()).padStart(2,'0');
+    metaEl.textContent = `Plage [${min} – ${max}]\n${hhmm}`;
+    if (copyBtn) copyBtn.style.display = '';
+
+    // Historique
+    const hist  = loadHist();
+    hist.unshift({ n: num, min, max, t: hhmm });
+    if (hist.length > RNG_MAX_HIST) hist.pop();
+    saveHist(hist);
+    renderHist(0);
+  };
+
+  /* ── Copier le dernier résultat ── */
+  window.rngCopy = function () {
+    if (_lastNum === null) return;
+    const btn = document.getElementById('rngCopyBtn');
+    navigator.clipboard.writeText(String(_lastNum)).then(() => {
+      if (btn) { btn.textContent = '✓ COPIÉ'; btn.classList.add('ok'); }
+      setTimeout(() => { if (btn) { btn.textContent = '⎘ COPIER'; btn.classList.remove('ok'); } }, 1500);
+    });
+  };
+
+  /* ── Vider l'historique ── */
+  window.rngClearHistory = function () {
+    saveHist([]);
+    renderHist(-1);
+    _lastNum = null;
+    const numEl   = document.getElementById('rngResultNum');
+    const metaEl  = document.getElementById('rngResultMeta');
+    const copyBtn = document.getElementById('rngCopyBtn');
+    if (numEl)   numEl.textContent  = '—';
+    if (metaEl)  metaEl.textContent = '';
+    if (copyBtn) copyBtn.style.display = 'none';
+  };
+
+  /* ── Entrée clavier ── */
+  document.addEventListener('keydown', function(e) {
+    const active = document.activeElement;
+    const inRng  = active && (active.id === 'rngMin' || active.id === 'rngMax');
+    if (inRng && e.key === 'Enter') { e.preventDefault(); window.rngGenerate(); }
+  });
+
+  /* ── Init ── */
+  renderHist(-1);
+})();
+</script>
 
 </body>
 </html>
