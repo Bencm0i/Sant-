@@ -1,0 +1,393 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-mono, monospace); }
+.wrap { padding: 1rem; max-width: 600px; margin: 0 auto; }
+.clock-display {
+  text-align: center;
+  padding: 1.5rem 1rem 1rem;
+  background: var(--color-background-secondary);
+  border-radius: var(--border-radius-lg);
+  border: 0.5px solid var(--color-border-tertiary);
+  margin-bottom: 1rem;
+}
+.time-big {
+  font-size: clamp(3rem, 15vw, 6rem);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--color-text-primary);
+  line-height: 1;
+  transition: color 0.2s;
+}
+.time-big.alert { animation: blink-red 0.6s step-start infinite; }
+@keyframes blink-red {
+  0%, 100% { color: #E24B4A; }
+  50% { color: var(--color-text-primary); }
+}
+.date-line {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin-top: 6px;
+  font-family: var(--font-sans);
+}
+.next-event {
+  margin-top: 10px;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  color: var(--color-text-secondary);
+  min-height: 18px;
+}
+.next-event span { color: var(--color-text-primary); font-weight: 500; }
+.alert-banner {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #FCEBEB;
+  border: 0.5px solid #F09595;
+  border-radius: var(--border-radius-md);
+  margin-bottom: 1rem;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: #A32D2D;
+  animation: pulse-border 1s ease-in-out infinite;
+}
+.alert-banner.show { display: flex; }
+@keyframes pulse-border {
+  0%, 100% { border-color: #F09595; }
+  50% { border-color: #E24B4A; }
+}
+.alert-icon { font-size: 20px; flex-shrink: 0; }
+.events-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+  margin-bottom: 1rem;
+}
+.event-card {
+  background: var(--color-background-primary);
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-md);
+  padding: 10px 12px;
+  position: relative;
+}
+.event-card.active-event {
+  border-color: #E24B4A;
+  background: #FCEBEB;
+}
+.event-label {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  font-family: var(--font-sans);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.event-input {
+  width: 100%;
+  font-size: 18px;
+  font-family: var(--font-mono, monospace);
+  font-weight: 500;
+  border: none;
+  background: transparent;
+  color: var(--color-text-primary);
+  padding: 0;
+  outline: none;
+  cursor: pointer;
+}
+.event-input:focus {
+  border-bottom: 1.5px solid #378ADD;
+}
+.event-icon {
+  font-size: 16px;
+  color: var(--color-text-secondary);
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+.event-card.active-event .event-icon { color: #A32D2D; }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1rem; }
+.btn {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: var(--border-radius-md);
+  border: 0.5px solid var(--color-border-secondary);
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  display: flex; align-items: center; gap: 6px;
+}
+.btn:hover { background: var(--color-background-secondary); }
+.btn.danger {
+  border-color: #F09595;
+  color: #A32D2D;
+  background: #FCEBEB;
+}
+.btn.danger:hover { background: #F7C1C1; }
+.btn.primary {
+  border-color: #85B7EB;
+  color: #185FA5;
+  background: #E6F1FB;
+}
+.btn.primary:hover { background: #B5D4F4; }
+.save-msg {
+  font-size: 12px;
+  font-family: var(--font-sans);
+  color: #3B6D11;
+  display: none;
+  align-items: center;
+  gap: 4px;
+}
+.save-msg.show { display: flex; }
+.timeline {
+  background: var(--color-background-secondary);
+  border-radius: var(--border-radius-md);
+  border: 0.5px solid var(--color-border-tertiary);
+  padding: 10px 14px;
+  margin-bottom: 1rem;
+}
+.timeline-title {
+  font-size: 12px;
+  font-family: var(--font-sans);
+  color: var(--color-text-secondary);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.timeline-bar {
+  position: relative;
+  height: 8px;
+  background: var(--color-border-tertiary);
+  border-radius: 4px;
+  margin-bottom: 6px;
+  overflow: visible;
+}
+.timeline-fill {
+  height: 100%;
+  background: #378ADD;
+  border-radius: 4px;
+  transition: width 1s linear;
+}
+.timeline-markers {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  font-family: var(--font-mono, monospace);
+  color: var(--color-text-secondary);
+}
+.marker-dot {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-background-primary);
+  border: 1.5px solid #378ADD;
+}
+.marker-dot.passed { background: #378ADD; }
+</style>
+
+<div class="wrap">
+  <h2 class="sr-only">Horloge de pointage avec alertes configurables</h2>
+
+  <div id="alert-banner" class="alert-banner">
+    <i class="ti ti-alarm alert-icon" aria-hidden="true"></i>
+    <span id="alert-text">C'est l'heure de ...</span>
+  </div>
+
+  <div class="clock-display">
+    <div class="time-big" id="clock">00:00:00</div>
+    <div class="date-line" id="dateline"></div>
+    <div class="next-event" id="next-event"></div>
+  </div>
+
+  <div class="timeline">
+    <div class="timeline-title">Progression de la journée</div>
+    <div class="timeline-bar">
+      <div class="timeline-fill" id="tl-fill" style="width:0%"></div>
+    </div>
+    <div class="timeline-markers" id="tl-markers"></div>
+  </div>
+
+  <div class="events-grid" id="events-grid"></div>
+
+  <div class="btn-row">
+    <button class="btn primary" onclick="saveSettings()"><i class="ti ti-device-floppy" aria-hidden="true"></i> Sauvegarder</button>
+    <button class="btn danger" onclick="testAlert()"><i class="ti ti-bell-ringing" aria-hidden="true"></i> Tester l'alerte</button>
+    <div class="save-msg" id="save-msg"><i class="ti ti-check" aria-hidden="true"></i> Sauvegardé</div>
+  </div>
+</div>
+
+<script>
+const EVENTS_DEF = [
+  { key: 'arrivee',   label: 'Arrivée matin',    icon: 'ti-sunrise',       default: '08:00' },
+  { key: 'dejeuner',  label: 'Déjeuner',          icon: 'ti-tools-kitchen-2',default: '12:00' },
+  { key: 'pause1',    label: 'Pause matin',       icon: 'ti-coffee',        default: '10:00' },
+  { key: 'retour',    label: 'Retour pause',      icon: 'ti-arrow-back-up', default: '10:15' },
+  { key: 'pause2',    label: 'Pause déj. fin',    icon: 'ti-arrow-back-up', default: '13:30' },
+  { key: 'depart',    label: 'Départ soir',       icon: 'ti-moon',          default: '17:30' },
+];
+
+let settings = {};
+let alertActive = false;
+let alertTimeout = null;
+let lastTriggered = {};
+
+function loadSettings() {
+  try {
+    const s = localStorage.getItem('pointage_v1');
+    if (s) settings = JSON.parse(s);
+  } catch(e) {}
+  EVENTS_DEF.forEach(e => {
+    if (!settings[e.key]) settings[e.key] = e.default;
+  });
+}
+
+function saveSettings() {
+  EVENTS_DEF.forEach(e => {
+    const el = document.getElementById('input_' + e.key);
+    if (el) settings[e.key] = el.value;
+  });
+  try { localStorage.setItem('pointage_v1', JSON.stringify(settings)); } catch(e) {}
+  const msg = document.getElementById('save-msg');
+  msg.classList.add('show');
+  setTimeout(() => msg.classList.remove('show'), 2000);
+}
+
+function buildGrid() {
+  const grid = document.getElementById('events-grid');
+  grid.innerHTML = '';
+  EVENTS_DEF.forEach(e => {
+    const card = document.createElement('div');
+    card.className = 'event-card';
+    card.id = 'card_' + e.key;
+    card.innerHTML = `
+      <div class="event-label">${e.label}</div>
+      <input class="event-input" type="time" id="input_${e.key}" value="${settings[e.key]}" />
+      <i class="ti ${e.icon} event-icon" aria-hidden="true"></i>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function timeToMins(t) {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function minsToTime(m) {
+  return String(Math.floor(m/60)).padStart(2,'0') + ':' + String(m%60).padStart(2,'0');
+}
+
+function tick() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2,'0');
+  const m = String(now.getMinutes()).padStart(2,'0');
+  const s = String(now.getSeconds()).padStart(2,'0');
+  document.getElementById('clock').textContent = h + ':' + m + ':' + s;
+
+  const days = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+  const months = ['jan.','fév.','mar.','avr.','mai','juin','juil.','août','sep.','oct.','nov.','déc.'];
+  document.getElementById('dateline').textContent =
+    days[now.getDay()] + ' ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+
+  const nowMins = now.getHours() * 60 + now.getMinutes();
+  const nowSecs = nowMins * 60 + now.getSeconds();
+
+  // collect events sorted
+  const evs = EVENTS_DEF.map(e => ({
+    key: e.key,
+    label: e.label,
+    mins: timeToMins(document.getElementById('input_' + e.key)?.value || settings[e.key])
+  })).sort((a, b) => a.mins - b.mins);
+
+  // find active event (within 1 minute window)
+  let currentAlert = null;
+  evs.forEach(ev => {
+    const evSecs = ev.mins * 60;
+    const diff = nowSecs - evSecs;
+    if (diff >= 0 && diff < 60) {
+      const key = ev.key + '_' + Math.floor(nowSecs / 60);
+      if (!lastTriggered[key]) {
+        lastTriggered[key] = true;
+        triggerAlert(ev.label);
+      }
+      currentAlert = ev;
+    }
+  });
+
+  EVENTS_DEF.forEach(e => {
+    const card = document.getElementById('card_' + e.key);
+    if (card) {
+      const evMins = timeToMins(document.getElementById('input_' + e.key)?.value || settings[e.key]);
+      const diff = nowMins * 60 + now.getSeconds() - evMins * 60;
+      card.className = 'event-card' + (diff >= 0 && diff < 60 ? ' active-event' : '');
+    }
+  });
+
+  // next event
+  let next = evs.find(ev => ev.mins > nowMins);
+  const nextEl = document.getElementById('next-event');
+  if (next) {
+    const diff = next.mins - nowMins;
+    nextEl.innerHTML = `Prochain : <span>${next.label} à ${minsToTime(next.mins)}</span> (dans ${diff} min)`;
+  } else {
+    nextEl.textContent = 'Journée terminée';
+  }
+
+  // timeline
+  const first = evs[0];
+  const last = evs[evs.length - 1];
+  if (first && last && last.mins > first.mins) {
+    const pct = Math.min(100, Math.max(0, (nowMins - first.mins) / (last.mins - first.mins) * 100));
+    document.getElementById('tl-fill').style.width = pct.toFixed(1) + '%';
+    
+    const markers = document.getElementById('tl-markers');
+    if (markers.children.length === 0) {
+      evs.forEach(ev => {
+        const span = document.createElement('span');
+        span.textContent = minsToTime(ev.mins);
+        markers.appendChild(span);
+      });
+    }
+  }
+}
+
+function triggerAlert(label) {
+  const banner = document.getElementById('alert-banner');
+  const clockEl = document.getElementById('clock');
+  document.getElementById('alert-text').textContent = 'C\'est l\'heure : ' + label;
+  banner.classList.add('show');
+  clockEl.classList.add('alert');
+  if (alertTimeout) clearTimeout(alertTimeout);
+  alertTimeout = setTimeout(() => {
+    banner.classList.remove('show');
+    clockEl.classList.remove('alert');
+  }, 30000);
+
+  try {
+    const ctx = new AudioContext();
+    [0, 0.3, 0.6].forEach(t => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = 880;
+      g.gain.setValueAtTime(0.3, ctx.currentTime + t);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.25);
+      o.start(ctx.currentTime + t);
+      o.stop(ctx.currentTime + t + 0.25);
+    });
+  } catch(e) {}
+}
+
+function testAlert() {
+  triggerAlert('Test — alarme fonctionnelle');
+}
+
+loadSettings();
+buildGrid();
+tick();
+setInterval(tick, 1000);
+</script>
