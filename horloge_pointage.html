@@ -397,50 +397,8 @@ body{
 .btn.save-btn:hover{background:#3A3010;}
 .btn.test-btn{border-color:#8A2020;color:#F5A0A0;background:#2A1010;}
 .btn.test-btn:hover{background:#3A1010;}
-.btn.log-btn{border-color:#286820;color:#90C870;background:#101A10;}
-.btn.log-btn:hover{background:#182A18;}
 .saved-flash{font-size:11px;font-family:system-ui,sans-serif;color:#90C870;display:none;align-items:center;gap:4px;}
 .saved-flash.show{display:flex;}
-
-/* Log section */
-.log-face{
-  border-top:1px solid rgba(255,255,255,0.06);
-  padding-top:10px;
-}
-.log-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
-.log-title{font-size:8px;letter-spacing:0.2em;text-transform:uppercase;color:#666360;font-family:system-ui,sans-serif;}
-.log-clear{font-size:10px;font-family:system-ui,sans-serif;color:#555;background:none;border:none;cursor:pointer;padding:2px 6px;border-radius:3px;display:flex;align-items:center;gap:3px;}
-.log-clear:hover{color:#F5A0A0;background:#3D0C0A;}
-.log-empty{font-size:11px;color:#555;font-family:system-ui,sans-serif;font-style:italic;text-align:center;padding:8px 0;}
-
-/* Log as mini punch card */
-.log-card{
-  background:var(--card-paper2);
-  border:1px solid var(--card-border);
-  border-radius:2px;
-  overflow:hidden;
-}
-.log-sprockets{
-  display:flex;padding:3px 6px;gap:0;
-  background:rgba(0,0,0,0.06);
-  border-bottom:1px solid rgba(0,0,0,0.08);
-  justify-content:space-between;
-}
-.log-sprocket{width:5px;height:5px;border-radius:50%;background:rgba(0,0,0,0.25);}
-.log-entries{padding:4px 8px 6px;}
-.log-entry{
-  display:flex;align-items:baseline;gap:6px;
-  padding:3px 0;
-  border-bottom:1px dotted rgba(0,0,0,0.1);
-  font-size:10px;
-}
-.log-entry:last-child{border-bottom:none;}
-.log-time{font-family:'Courier New',Courier,monospace;color:var(--card-ink);font-weight:700;flex-shrink:0;font-size:11px;}
-.log-dots{flex:1;border-bottom:1px dotted var(--card-border);margin-bottom:3px;min-width:6px;}
-.log-label{font-family:system-ui,sans-serif;color:var(--card-ink-mid);flex-shrink:0;font-size:10px;}
-.log-badge{font-size:8px;font-family:system-ui,sans-serif;padding:1px 4px;border-radius:8px;flex-shrink:0;}
-.log-badge.auto{background:#C8D8F0;color:#183060;border:1px solid #8AAAD8;}
-.log-badge.manual{background:#C8DCC0;color:#184010;border:1px solid #88B870;}
 
 /* Bottom machine panel */
 .machine-bottom{
@@ -552,26 +510,10 @@ body{
         <button class="btn test-btn" onclick="testAlert()">
           <i class="ti ti-bell-ringing"></i> Tester
         </button>
-        <button class="btn log-btn" onclick="logManual()">
-          <i class="ti ti-clock-check"></i> Pointer
-        </button>
         <div class="saved-flash" id="saved-flash"><i class="ti ti-check"></i> Sauvegardé</div>
       </div>
 
-      <!-- Log -->
-      <div class="log-face">
-        <div class="log-header">
-          <span class="log-title"><i class="ti ti-receipt"></i> Journal du jour</span>
-          <button class="log-clear" onclick="clearLog()"><i class="ti ti-trash"></i> Effacer</button>
-        </div>
-        <div id="log-wrap">
-          <div class="log-empty" id="log-empty">Aucun pointage enregistré</div>
-          <div class="log-card" id="log-card" style="display:none">
-            <div class="log-sprockets" id="log-sprockets"></div>
-            <div class="log-entries" id="log-entries"></div>
-          </div>
-        </div>
-      </div>
+
     </div>
   </div>
 
@@ -585,16 +527,12 @@ body{
 const PROFILES = {
   semaine: [
     { key:'arrivee',  label:'Arrivée',       icon:'ti-sunrise',         default:'08:00' },
-    { key:'pause1',   label:'Pause matin',   icon:'ti-coffee',          default:'10:00' },
-    { key:'retour1',  label:'Retour pause',  icon:'ti-arrow-back-up',   default:'10:15' },
     { key:'dejeuner', label:'Déjeuner',      icon:'ti-tools-kitchen-2', default:'12:00' },
     { key:'pause2',   label:'Retour déj.',   icon:'ti-arrow-back-up',   default:'13:30' },
     { key:'depart',   label:'Départ',        icon:'ti-moon',            default:'17:30' },
   ],
   vendredi: [
     { key:'arrivee',  label:'Arrivée',       icon:'ti-sunrise',         default:'08:00' },
-    { key:'pause1',   label:'Pause matin',   icon:'ti-coffee',          default:'10:00' },
-    { key:'retour1',  label:'Retour pause',  icon:'ti-arrow-back-up',   default:'10:15' },
     { key:'dejeuner', label:'Déjeuner',      icon:'ti-tools-kitchen-2', default:'11:45' },
     { key:'pause2',   label:'Retour déj.',   icon:'ti-arrow-back-up',   default:'12:45' },
     { key:'depart',   label:'Départ',        icon:'ti-sun',             default:'16:00' },
@@ -605,8 +543,6 @@ let currentProfile = 'semaine';
 let settings = { semaine:{}, vendredi:{} };
 let alertTimeout = null;
 let lastTriggered = {};
-let logEntries = [];
-let logDate = '';
 
 // ── Storage ───────────────────────────────────────────────────────────────────
 function todayKey(){
@@ -621,9 +557,6 @@ function loadAll(){
       const p=JSON.parse(s);
       if(p.settings) settings=p.settings;
       if(p.profile)  currentProfile=p.profile;
-      const today=todayKey();
-      if(p.logDate===today && p.logEntries){ logEntries=p.logEntries; logDate=today; }
-      else { logEntries=[]; logDate=today; }
     }
   }catch(e){}
   ['semaine','vendredi'].forEach(pr=>{
@@ -633,7 +566,7 @@ function loadAll(){
 }
 
 function saveAll(){
-  try{ localStorage.setItem('pointage_v4',JSON.stringify({settings,profile:currentProfile,logEntries,logDate:todayKey()})); }catch(e){}
+  try{ localStorage.setItem('pointage_v4',JSON.stringify({settings,profile:currentProfile})); }catch(e){}
 }
 
 // ── Profile ───────────────────────────────────────────────────────────────────
@@ -699,12 +632,6 @@ function buildSprockets(id,count){
   el.innerHTML='';
   for(let i=0;i<count;i++){ const d=document.createElement('div');d.className='sprocket';el.appendChild(d); }
 }
-function buildLogSprockets(){
-  const el=document.getElementById('log-sprockets'); if(!el)return;
-  el.innerHTML='';
-  for(let i=0;i<18;i++){ const d=document.createElement('div');d.className='log-sprocket';el.appendChild(d); }
-}
-
 // ── Grid ──────────────────────────────────────────────────────────────────────
 function buildGrid(){
   const grid=document.getElementById('events-grid');
@@ -743,43 +670,6 @@ function calcWorkTime(nowMins){
   let afternoon=0;
   if(nowMins>ret){ afternoon=Math.min(nowMins,dep)-ret; if(afternoon<0)afternoon=0; }
   return morning+afternoon;
-}
-
-// ── Log ───────────────────────────────────────────────────────────────────────
-function addLogEntry(time,label,type){
-  if(type==='auto'){
-    const mk=time.slice(0,5);
-    if(logEntries.some(e=>e.time.slice(0,5)===mk&&e.label===label))return;
-  }
-  logEntries.push({time,label,type});
-  saveAll();renderLog();
-}
-
-function logManual(){
-  const nowMins=new Date().getHours()*60+new Date().getMinutes();
-  const evs=PROFILES[currentProfile].map(e=>({...e,mins:getEvMins(e.key)}));
-  const closest=evs.reduce((b,ev)=>Math.abs(ev.mins-nowMins)<Math.abs(b.mins-nowMins)?ev:b,evs[0]);
-  addLogEntry(nowHHMMSS(),closest.label+' (manuel)','manual');
-}
-
-function clearLog(){ logEntries=[];saveAll();renderLog(); }
-
-function renderLog(){
-  const empty=document.getElementById('log-empty');
-  const card=document.getElementById('log-card');
-  const entries=document.getElementById('log-entries');
-  if(logEntries.length===0){ empty.style.display='block';card.style.display='none';return; }
-  empty.style.display='none';card.style.display='block';
-  buildLogSprockets();
-  entries.innerHTML='';
-  [...logEntries].reverse().forEach(entry=>{
-    const row=document.createElement('div');row.className='log-entry';
-    row.innerHTML=`<span class="log-time">${entry.time}</span>
-      <span class="log-dots"></span>
-      <span class="log-label">${entry.label}</span>
-      <span class="log-badge ${entry.type}">${entry.type==='auto'?'auto':'manuel'}</span>`;
-    entries.appendChild(row);
-  });
 }
 
 // ── Alert ─────────────────────────────────────────────────────────────────────
@@ -836,7 +726,6 @@ function tick(){
       if(!lastTriggered[key]){
         lastTriggered[key]=true;
         triggerAlert(ev.label);
-        addLogEntry(h+':'+m+':'+s,ev.label,'auto');
       }
     }
     const card=document.getElementById('card_'+ev.key);
@@ -867,7 +756,6 @@ buildSprockets('sprockets-top',20);
 buildSprockets('sprockets-bot',20);
 buildGrid();
 buildTimeline();
-renderLog();
 tick();
 setInterval(tick,1000);
 </script>
