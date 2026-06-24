@@ -133,6 +133,15 @@ body{
   box-shadow:0 0 6px rgba(200,120,32,0.4);}
 .ptab.active.fri{background:#285898;border-color:#4080C8;color:#E8F0FC;
   box-shadow:0 0 6px rgba(40,88,152,0.4);}
+.auto-badge{
+  font-size:8px;font-family:system-ui,sans-serif;
+  padding:2px 6px;border-radius:8px;
+  background:#1A2840;border:1px solid #3060A8;color:#80B0E8;
+  letter-spacing:0.08em;
+  display:none;align-items:center;gap:3px;
+  margin-left:4px;
+}
+.auto-badge.show{display:inline-flex;}
 
 /* Alert banner on face */
 .alert-banner{
@@ -155,6 +164,14 @@ body{
   padding:3px;
   margin-bottom:10px;
   box-shadow:inset 0 2px 8px rgba(0,0,0,0.8);
+  transition:border-color 0.1s;
+}
+.card-slot-opening.alert{
+  animation:slot-blink 0.5s step-start infinite;
+}
+@keyframes slot-blink{
+  0%,100%{border-color:#E83028;box-shadow:inset 0 2px 8px rgba(0,0,0,0.8),0 0 12px rgba(232,48,40,0.7);}
+  50%{border-color:#111;box-shadow:inset 0 2px 8px rgba(0,0,0,0.8);}
 }
 .slot-rails{
   display:flex;justify-content:space-between;
@@ -472,12 +489,13 @@ body{
 
     <!-- Profile tabs -->
     <div class="profile-tabs">
-      <button class="ptab active" id="tab-semaine" onclick="switchProfile('semaine')">
+      <button class="ptab active" id="tab-semaine" onclick="switchProfileManual('semaine')">
         <i class="ti ti-briefcase"></i> Semaine
       </button>
-      <button class="ptab fri" id="tab-vendredi" onclick="switchProfile('vendredi')">
+      <button class="ptab fri" id="tab-vendredi" onclick="switchProfileManual('vendredi')">
         <i class="ti ti-sun"></i> Vendredi
       </button>
+      <span class="auto-badge" id="auto-badge"><i class="ti ti-robot"></i> auto</span>
     </div>
 
     <!-- Alert banner -->
@@ -487,7 +505,7 @@ body{
     </div>
 
     <!-- Card slot opening -->
-    <div class="card-slot-opening">
+    <div class="card-slot-opening" id="card-slot">
       <div class="slot-rails"><div class="slot-rail"></div><div class="slot-rail"></div></div>
 
       <!-- PUNCH CARD -->
@@ -619,6 +637,8 @@ function saveAll(){
 }
 
 // ── Profile ───────────────────────────────────────────────────────────────────
+let autoProfileActive = false; // true si bascule auto vendredi en cours
+
 function switchProfile(p){
   // Persist current inputs
   PROFILES[currentProfile].forEach(e=>{
@@ -634,8 +654,18 @@ function switchProfile(p){
   saveAll();
 }
 
+function switchProfileManual(p){
+  autoProfileActive=false;
+  document.getElementById('auto-badge').classList.remove('show');
+  switchProfile(p);
+}
+
 function autoDetectProfile(){
-  if(new Date().getDay()===5) currentProfile='vendredi';
+  if(new Date().getDay()===5){
+    currentProfile='vendredi';
+    autoProfileActive=true;
+    document.getElementById('auto-badge').classList.add('show');
+  }
 }
 
 function saveSettings(){
@@ -756,12 +786,13 @@ function renderLog(){
 function triggerAlert(label){
   const banner=document.getElementById('alert-banner');
   const clockEl=document.getElementById('clock');
+  const slotEl=document.getElementById('card-slot');
   document.getElementById('alert-text').textContent='Pointage : '+label;
-  banner.classList.add('show'); clockEl.classList.add('alert');
+  banner.classList.add('show'); clockEl.classList.add('alert'); slotEl.classList.add('alert');
   document.getElementById('led-alert').classList.add('on');
   if(alertTimeout)clearTimeout(alertTimeout);
   alertTimeout=setTimeout(()=>{
-    banner.classList.remove('show'); clockEl.classList.remove('alert');
+    banner.classList.remove('show'); clockEl.classList.remove('alert'); slotEl.classList.remove('alert');
     document.getElementById('led-alert').classList.remove('on');
   },30000);
   try{
@@ -831,6 +862,7 @@ autoDetectProfile();
 document.getElementById('tab-semaine').className='ptab'+(currentProfile==='semaine'?' active':'');
 document.getElementById('tab-vendredi').className='ptab fri'+(currentProfile==='vendredi'?' active':'');
 document.getElementById('profile-name').textContent=currentProfile==='vendredi'?'Vendredi':'Semaine';
+if(autoProfileActive) document.getElementById('auto-badge').classList.add('show');
 buildSprockets('sprockets-top',20);
 buildSprockets('sprockets-bot',20);
 buildGrid();
