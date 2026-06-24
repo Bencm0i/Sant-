@@ -6,598 +6,838 @@
 <title>Pointeuse — Aventech</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
-:root {
-  --bg: #F1EFE8;
-  --bg-card: #FAFAF8;
-  --bg-card2: #FFFFFF;
-  --border: #C8C6BC;
-  --border-light: #E0DED6;
-  --text: #2C2C2A;
-  --text-mid: #5F5E5A;
-  --text-muted: #888780;
-  --blue: #378ADD;
-  --blue-bg: #E6F1FB;
-  --blue-border: #85B7EB;
-  --blue-dark: #185FA5;
-  --red: #E24B4A;
-  --red-bg: #FCEBEB;
-  --red-border: #F09595;
-  --red-dark: #A32D2D;
-  --green: #3B6D11;
-  --green-bg: #EAF3DE;
-  --led-on: #639922;
-  --radius: 8px;
-  --radius-lg: 12px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #1C1C1A;
-    --bg-card: #252523;
-    --bg-card2: #2E2E2B;
-    --border: #444441;
-    --border-light: #383836;
-    --text: #F1EFE8;
-    --text-mid: #B4B2A9;
-    --text-muted: #888780;
-    --blue-bg: #0C2F52;
-    --blue-border: #185FA5;
-    --red-bg: #3D1111;
-    --red-border: #791F1F;
-    --green-bg: #17340A;
-  }
+:root{
+  --bg:#D6D2C4;
+  --machine-body:#B8B5A8;
+  --machine-face:#2A2925;
+  --machine-border:#1A1917;
+  --machine-rivet:#888580;
+  --slot-bg:#1C1B18;
+  --slot-inner:#0A0A08;
+  --card-paper:#F5F0E0;
+  --card-paper2:#EDE8D5;
+  --card-ink:#1A1410;
+  --card-ink-mid:#4A4030;
+  --card-ink-muted:#8A7A60;
+  --card-border:#C8BFA0;
+  --card-hole:#D6CDB8;
+  --card-hole-shadow:#B8AF98;
+  --punch-red:#C8352A;
+  --punch-red-light:#F5DDD9;
+  --amber:#C87820;
+  --amber-bg:#FBF0DA;
+  --blue:#2860A8;
+  --blue-bg:#D8E8F8;
+  --green:#3A6818;
+  --green-bg:#DAECD0;
+  --led-green:#58B820;
+  --led-red:#E83028;
+  --radius:6px;
 }
 
-body {
-  font-family: 'Courier New', Courier, monospace;
-  background: var(--bg);
-  min-height: 100vh;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 2rem 1rem;
-  color: var(--text);
+body{
+  font-family:'Courier New',Courier,monospace;
+  background:var(--bg);
+  background-image:
+    repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.04) 3px,rgba(0,0,0,0.04) 4px),
+    repeating-linear-gradient(90deg,transparent,transparent 3px,rgba(0,0,0,0.04) 3px,rgba(0,0,0,0.04) 4px);
+  min-height:100vh;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  padding:2rem 1rem 3rem;
 }
 
-.machine {
-  width: 100%;
-  max-width: 560px;
-  background: var(--bg-card);
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 1.25rem;
-  position: relative;
+/* ── Machine body ── */
+.machine{
+  width:100%;max-width:520px;
+  background:var(--machine-body);
+  border:3px solid var(--machine-border);
+  border-radius:10px;
+  padding:0;
+  position:relative;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.2),
+    inset 0 -2px 0 rgba(0,0,0,0.3),
+    0 8px 32px rgba(0,0,0,0.5),
+    0 2px 4px rgba(0,0,0,0.4);
 }
 
-.machine::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 20px; right: 20px;
-  height: 3px;
-  background: repeating-linear-gradient(90deg, var(--border) 0, var(--border) 6px, transparent 6px, transparent 10px);
-  border-radius: 2px;
-  opacity: 0.4;
+/* Top rivets */
+.machine-rivets{
+  display:flex;
+  justify-content:space-between;
+  padding:8px 14px 0;
+}
+.rivet{
+  width:10px;height:10px;border-radius:50%;
+  background:radial-gradient(circle at 35% 35%,#C8C5B8,#7A7870);
+  box-shadow:inset 0 1px 2px rgba(0,0,0,0.4),0 1px 0 rgba(255,255,255,0.15);
 }
 
-.machine-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  border-bottom: 1px solid var(--border-light);
-  padding-bottom: 10px;
-  margin-bottom: 1rem;
-  padding-top: 6px;
-}
-.machine-brand {
-  font-size: 10px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  font-family: system-ui, sans-serif;
-  flex: 1;
-}
-.machine-model {
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-  font-family: system-ui, sans-serif;
-}
-.led {
-  width: 9px; height: 9px;
-  border-radius: 50%;
-  background: var(--led-on);
-  flex-shrink: 0;
-}
-.led.alert { background: var(--red); animation: led-blink 0.5s step-start infinite; }
-@keyframes led-blink { 0%,100% { opacity:1 } 50% { opacity:0.15 } }
-
-/* Alert ribbon */
-.alert-ribbon {
-  display: none;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: var(--red-bg);
-  border: 1px solid var(--red-border);
-  border-radius: var(--radius);
-  margin-bottom: 0.75rem;
-  font-size: 13px;
-  color: var(--red-dark);
-  font-family: system-ui, sans-serif;
-  animation: ribbon-pulse 1s ease-in-out infinite;
-}
-.alert-ribbon.show { display: flex; }
-@keyframes ribbon-pulse {
-  0%,100% { border-color: var(--red-border); }
-  50% { border-color: var(--red); }
+/* Face plate */
+.face{
+  background:var(--machine-face);
+  margin:6px 10px;
+  border-radius:6px;
+  border:2px solid var(--machine-border);
+  box-shadow:inset 0 2px 8px rgba(0,0,0,0.6),0 1px 0 rgba(255,255,255,0.08);
+  padding:12px 14px;
 }
 
-/* Card slot */
-.card-slot {
-  background: var(--bg-card2);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 1rem 1.25rem 1rem;
-  margin-bottom: 1rem;
+/* Brand plate */
+.brand-plate{
+  display:flex;align-items:center;gap:10px;
+  border-bottom:1px solid rgba(255,255,255,0.08);
+  padding-bottom:10px;margin-bottom:12px;
 }
-.card-perfs {
-  display: flex;
-  gap: 5px;
-  margin-bottom: 10px;
+.brand-text{
+  flex:1;
+  font-size:9px;letter-spacing:0.25em;text-transform:uppercase;
+  color:#888580;
+  font-family:system-ui,sans-serif;
 }
-.perf {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: var(--border);
+.model-text{
+  font-size:9px;letter-spacing:0.1em;
+  color:#666360;font-family:system-ui,sans-serif;
+}
+.led-group{display:flex;gap:6px;align-items:center;}
+.led{
+  width:8px;height:8px;border-radius:50%;
+  box-shadow:0 0 4px currentColor;
+}
+.led-power{background:var(--led-green);color:var(--led-green);}
+.led-alert{background:#333;color:#333;box-shadow:none;}
+.led-alert.on{background:var(--led-red);color:var(--led-red);animation:led-blink 0.5s step-start infinite;}
+@keyframes led-blink{0%,100%{opacity:1}50%{opacity:0.1}}
+
+/* Profile tabs on face */
+.profile-tabs{
+  display:flex;gap:4px;margin-bottom:10px;
+}
+.ptab{
+  font-family:system-ui,sans-serif;
+  font-size:9px;letter-spacing:0.12em;text-transform:uppercase;
+  padding:4px 10px;
+  border:1px solid #444;
+  border-radius:3px;
+  background:#333;
+  color:#888;
+  cursor:pointer;
+  transition:all 0.15s;
+}
+.ptab:hover{background:#3A3A38;color:#AAA;}
+.ptab.active{background:#C87820;border-color:#E09040;color:#FFF8EC;font-weight:700;
+  box-shadow:0 0 6px rgba(200,120,32,0.4);}
+.ptab.active.fri{background:#285898;border-color:#4080C8;color:#E8F0FC;
+  box-shadow:0 0 6px rgba(40,88,152,0.4);}
+
+/* Alert banner on face */
+.alert-banner{
+  display:none;align-items:center;gap:8px;
+  padding:7px 10px;
+  background:#3D0C0A;border:1px solid #8A2020;border-radius:4px;
+  margin-bottom:10px;
+  font-size:12px;color:#F5A0A0;
+  font-family:system-ui,sans-serif;
+  animation:ablink 1s ease-in-out infinite;
+}
+.alert-banner.show{display:flex;}
+@keyframes ablink{0%,100%{border-color:#8A2020}50%{border-color:#E83028}}
+
+/* Card slot opening */
+.card-slot-opening{
+  background:var(--slot-bg);
+  border:2px solid #111;
+  border-radius:3px;
+  padding:3px;
+  margin-bottom:10px;
+  box-shadow:inset 0 2px 8px rgba(0,0,0,0.8);
+}
+.slot-rails{
+  display:flex;justify-content:space-between;
+  padding:0 6px;margin-bottom:4px;
+}
+.slot-rail{width:3px;height:100%;min-height:6px;background:#333;border-radius:1px;}
+
+/* ── PUNCH CARD ── */
+.punchcard{
+  background:var(--card-paper);
+  background-image:
+    linear-gradient(180deg,rgba(0,0,0,0.03) 0%,transparent 8%,transparent 92%,rgba(0,0,0,0.04) 100%);
+  border:1px solid var(--card-border);
+  border-radius:2px 2px 0 0;
+  position:relative;
+  overflow:hidden;
+  box-shadow:0 1px 4px rgba(0,0,0,0.2);
+}
+/* Aging texture */
+.punchcard::before{
+  content:'';
+  position:absolute;inset:0;
+  background:repeating-linear-gradient(
+    180deg,
+    transparent 0px,transparent 11px,
+    rgba(0,0,0,0.04) 11px,rgba(0,0,0,0.04) 12px
+  );
+  pointer-events:none;
+}
+/* Corner cut top-right */
+.punchcard::after{
+  content:'';
+  position:absolute;top:0;right:0;
+  width:0;height:0;
+  border-style:solid;
+  border-width:0 18px 18px 0;
+  border-color:transparent var(--slot-bg) transparent transparent;
 }
 
-/* Clock */
-.time-display { text-align: center; padding: 0.5rem 0 0.75rem; }
-.time-big {
-  font-size: clamp(3.5rem, 14vw, 5.5rem);
-  font-weight: 400;
-  letter-spacing: 0.06em;
-  color: var(--text);
-  line-height: 1;
+/* Sprocket holes row */
+.sprocket-row{
+  display:flex;
+  padding:4px 8px;
+  gap:0;
+  background:rgba(0,0,0,0.06);
+  border-bottom:1px solid rgba(0,0,0,0.08);
+  justify-content:space-between;
 }
-.time-big.alert { animation: clock-blink 0.6s step-start infinite; }
-@keyframes clock-blink {
-  0%,100% { color: var(--red); }
-  50% { color: var(--text); }
-}
-.date-stamp {
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  color: var(--text-muted);
-  margin-top: 6px;
+.sprocket{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--slot-bg);
+  box-shadow:inset 0 1px 2px rgba(0,0,0,0.5);
+  flex-shrink:0;
 }
 
-/* Timeline */
-.tl-section { margin: 0.75rem 0 0.5rem; }
-.tl-label {
-  font-size: 10px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  font-family: system-ui, sans-serif;
-  margin-bottom: 8px;
-}
-.tl-track {
-  position: relative;
-  height: 6px;
-  background: var(--border-light);
-  border-radius: 3px;
-  margin-bottom: 8px;
-}
-.tl-fill {
-  height: 100%;
-  background: var(--blue);
-  border-radius: 3px;
-  transition: width 1s linear;
-}
-.tl-markers { position: relative; height: 24px; }
-.tl-marker {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  transform: translateX(-50%);
-}
-.tl-dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  border: 1.5px solid var(--blue);
-  background: var(--bg-card2);
-  margin-bottom: 2px;
-  transition: background 0.3s;
-}
-.tl-dot.passed { background: var(--blue); }
-.tl-tick-label {
-  font-size: 9px;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-.tl-next {
-  font-size: 12px;
-  color: var(--text-muted);
-  font-family: system-ui, sans-serif;
-  margin-top: 8px;
-  min-height: 16px;
-}
-.tl-next strong { color: var(--text); }
+/* Card content */
+.card-body{padding:8px 12px 10px;}
 
-/* Ticket separator */
-.ticket-line {
-  border-top: 1px dashed var(--border);
-  margin-top: 0.75rem;
-  padding-top: 0.75rem;
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-  font-family: system-ui, sans-serif;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+/* Clock section on card */
+.card-clock-row{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:6px;
 }
-.work-time { color: var(--text); font-weight: 600; font-size: 13px; }
+.card-company{
+  font-size:8px;letter-spacing:0.18em;text-transform:uppercase;
+  color:var(--card-ink-muted);
+  font-family:'Courier New',Courier,monospace;
+}
+.card-seq{font-size:8px;color:var(--card-ink-muted);}
 
-/* Events grid */
-.events-title {
-  font-size: 10px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  font-family: system-ui, sans-serif;
-  margin-bottom: 8px;
+.time-big{
+  display:block;text-align:center;
+  font-size:clamp(3rem,13vw,5rem);
+  font-weight:700;
+  letter-spacing:0.04em;
+  color:var(--card-ink);
+  line-height:1;
+  font-family:'Courier New',Courier,monospace;
+  text-shadow:1px 1px 0 rgba(0,0,0,0.12);
 }
-.events-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 6px;
-  margin-bottom: 1rem;
-}
-.ev-card {
-  background: var(--bg-card2);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius);
-  padding: 8px 10px;
-  position: relative;
-  transition: border-color 0.2s, background 0.2s;
-}
-.ev-card.firing {
-  border-color: var(--red);
-  background: var(--red-bg);
-}
-.ev-label {
-  font-size: 10px;
-  color: var(--text-muted);
-  font-family: system-ui, sans-serif;
-  margin-bottom: 3px;
-}
-.ev-input {
-  width: 100%;
-  font-size: 16px;
-  font-family: 'Courier New', Courier, monospace;
-  font-weight: 500;
-  border: none;
-  background: transparent;
-  color: var(--text);
-  padding: 0;
-  outline: none;
-  cursor: pointer;
-}
-.ev-input:focus { border-bottom: 1.5px solid var(--blue); }
-.ev-icon {
-  font-size: 13px;
-  color: var(--text-muted);
-  position: absolute;
-  top: 8px; right: 8px;
-}
-.ev-card.firing .ev-icon { color: var(--red-dark); }
+.time-big.alert{animation:tblink 0.6s step-start infinite;}
+@keyframes tblink{0%,100%{color:var(--punch-red)}50%{color:var(--card-ink)}}
 
-/* Buttons */
-.action-row {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  align-items: center;
+.date-row{
+  text-align:center;
+  font-size:10px;letter-spacing:0.14em;
+  color:var(--card-ink-mid);
+  margin-top:4px;margin-bottom:8px;
+  font-family:'Courier New',Courier,monospace;
 }
-.btn {
-  font-family: system-ui, sans-serif;
-  font-size: 12px;
-  padding: 7px 12px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--bg-card2);
-  color: var(--text);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  transition: background 0.15s;
-}
-.btn:hover { background: var(--bg-card); }
-.btn.save-btn { border-color: var(--blue-border); color: var(--blue-dark); background: var(--blue-bg); }
-.btn.save-btn:hover { background: #B5D4F4; }
-.btn.test-btn { border-color: var(--red-border); color: var(--red-dark); background: var(--red-bg); }
-.btn.test-btn:hover { background: #F7C1C1; }
-.saved-flash {
-  font-size: 12px;
-  font-family: system-ui, sans-serif;
-  color: var(--green);
-  display: none;
-  align-items: center;
-  gap: 4px;
-}
-.saved-flash.show { display: flex; }
 
-/* Responsive */
-@media (max-width: 400px) {
-  body { padding: 1rem 0.5rem; }
-  .machine { padding: 1rem; }
-  .events-grid { grid-template-columns: repeat(2, 1fr); }
+/* Punched holes grid (decorative columns header) */
+.holes-header{
+  display:flex;justify-content:space-between;
+  padding:0 4px;
+  margin-bottom:3px;
+}
+.hole-col-label{
+  font-size:7px;color:var(--card-ink-muted);
+  font-family:'Courier New',Courier,monospace;
+  letter-spacing:0.05em;
+  width:14px;text-align:center;
+}
+
+/* Timeline as punched bar */
+.tl-section{margin:6px 0 8px;}
+.tl-label{
+  font-size:8px;letter-spacing:0.14em;text-transform:uppercase;
+  color:var(--card-ink-muted);
+  font-family:system-ui,sans-serif;
+  margin-bottom:5px;
+}
+.tl-track{
+  position:relative;height:8px;
+  background:repeating-linear-gradient(90deg,
+    var(--card-hole) 0,var(--card-hole) 6px,
+    var(--card-paper2) 6px,var(--card-paper2) 10px);
+  border-radius:2px;
+  border:1px solid var(--card-border);
+  margin-bottom:6px;
+  overflow:hidden;
+}
+.tl-fill{
+  height:100%;
+  background:repeating-linear-gradient(90deg,
+    var(--card-ink) 0,var(--card-ink) 6px,
+    rgba(26,20,16,0.7) 6px,rgba(26,20,16,0.7) 10px);
+  border-radius:2px 0 0 2px;
+  transition:width 1s linear;
+}
+.tl-markers{position:relative;height:22px;}
+.tl-marker{
+  position:absolute;
+  display:flex;flex-direction:column;align-items:center;
+  transform:translateX(-50%);
+}
+.tl-dot{
+  width:6px;height:6px;border-radius:50%;
+  border:1.5px solid var(--card-ink-mid);
+  background:var(--card-paper);
+  margin-bottom:2px;
+  transition:background 0.3s,border-color 0.3s;
+}
+.tl-dot.passed{background:var(--card-ink);border-color:var(--card-ink);}
+.tl-tick-label{font-size:8px;color:var(--card-ink-muted);white-space:nowrap;}
+.tl-next{
+  font-size:11px;color:var(--card-ink-mid);
+  font-family:system-ui,sans-serif;
+  margin-top:4px;min-height:15px;
+}
+.tl-next strong{color:var(--card-ink);}
+
+/* Ticket line */
+.card-sep{
+  border-top:1px dashed var(--card-border);
+  margin:8px 0 6px;
+  display:flex;justify-content:space-between;align-items:center;
+  padding-top:6px;
+  font-size:10px;color:var(--card-ink-muted);
+  font-family:'Courier New',Courier,monospace;
+  letter-spacing:0.06em;
+}
+.work-time{color:var(--card-ink);font-weight:700;font-size:12px;}
+
+/* Bottom sprocket */
+.sprocket-row-bottom{
+  display:flex;padding:4px 8px;gap:0;
+  background:rgba(0,0,0,0.06);
+  border-top:1px solid rgba(0,0,0,0.08);
+  justify-content:space-between;
+}
+
+/* ── Below card: controls on face ── */
+.controls-face{padding:10px 0 2px;}
+
+.events-title{
+  font-size:8px;letter-spacing:0.2em;text-transform:uppercase;
+  color:#666360;font-family:system-ui,sans-serif;
+  margin-bottom:8px;
+}
+.events-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(110px,1fr));
+  gap:5px;
+  margin-bottom:10px;
+}
+.ev-card{
+  background:#222220;
+  border:1px solid #333;
+  border-radius:4px;
+  padding:7px 9px;
+  position:relative;
+  transition:border-color 0.2s,background 0.2s;
+}
+.ev-card.firing{border-color:#8A2020;background:#3D0C0A;}
+.ev-label{
+  font-size:9px;color:#666360;
+  font-family:system-ui,sans-serif;margin-bottom:3px;
+}
+.ev-input{
+  width:100%;font-size:15px;
+  font-family:'Courier New',Courier,monospace;font-weight:700;
+  border:none;background:transparent;
+  color:#D8D4C8;padding:0;outline:none;cursor:pointer;
+}
+.ev-input:focus{border-bottom:1.5px solid var(--amber);}
+.ev-icon{font-size:12px;color:#555;position:absolute;top:7px;right:7px;}
+.ev-card.firing .ev-icon{color:#F5A0A0;}
+
+.action-row{display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-bottom:10px;}
+.btn{
+  font-family:system-ui,sans-serif;font-size:11px;
+  padding:6px 11px;
+  border-radius:4px;
+  border:1px solid #444;
+  background:#2A2925;color:#AAA;
+  cursor:pointer;
+  display:flex;align-items:center;gap:5px;
+  transition:background 0.15s;
+}
+.btn:hover{background:#333;}
+.btn.save-btn{border-color:#C87820;color:#E09840;background:#2A2010;}
+.btn.save-btn:hover{background:#3A3010;}
+.btn.test-btn{border-color:#8A2020;color:#F5A0A0;background:#2A1010;}
+.btn.test-btn:hover{background:#3A1010;}
+.btn.log-btn{border-color:#286820;color:#90C870;background:#101A10;}
+.btn.log-btn:hover{background:#182A18;}
+.saved-flash{font-size:11px;font-family:system-ui,sans-serif;color:#90C870;display:none;align-items:center;gap:4px;}
+.saved-flash.show{display:flex;}
+
+/* Log section */
+.log-face{
+  border-top:1px solid rgba(255,255,255,0.06);
+  padding-top:10px;
+}
+.log-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.log-title{font-size:8px;letter-spacing:0.2em;text-transform:uppercase;color:#666360;font-family:system-ui,sans-serif;}
+.log-clear{font-size:10px;font-family:system-ui,sans-serif;color:#555;background:none;border:none;cursor:pointer;padding:2px 6px;border-radius:3px;display:flex;align-items:center;gap:3px;}
+.log-clear:hover{color:#F5A0A0;background:#3D0C0A;}
+.log-empty{font-size:11px;color:#555;font-family:system-ui,sans-serif;font-style:italic;text-align:center;padding:8px 0;}
+
+/* Log as mini punch card */
+.log-card{
+  background:var(--card-paper2);
+  border:1px solid var(--card-border);
+  border-radius:2px;
+  overflow:hidden;
+}
+.log-sprockets{
+  display:flex;padding:3px 6px;gap:0;
+  background:rgba(0,0,0,0.06);
+  border-bottom:1px solid rgba(0,0,0,0.08);
+  justify-content:space-between;
+}
+.log-sprocket{width:5px;height:5px;border-radius:50%;background:rgba(0,0,0,0.25);}
+.log-entries{padding:4px 8px 6px;}
+.log-entry{
+  display:flex;align-items:baseline;gap:6px;
+  padding:3px 0;
+  border-bottom:1px dotted rgba(0,0,0,0.1);
+  font-size:10px;
+}
+.log-entry:last-child{border-bottom:none;}
+.log-time{font-family:'Courier New',Courier,monospace;color:var(--card-ink);font-weight:700;flex-shrink:0;font-size:11px;}
+.log-dots{flex:1;border-bottom:1px dotted var(--card-border);margin-bottom:3px;min-width:6px;}
+.log-label{font-family:system-ui,sans-serif;color:var(--card-ink-mid);flex-shrink:0;font-size:10px;}
+.log-badge{font-size:8px;font-family:system-ui,sans-serif;padding:1px 4px;border-radius:8px;flex-shrink:0;}
+.log-badge.auto{background:#C8D8F0;color:#183060;border:1px solid #8AAAD8;}
+.log-badge.manual{background:#C8DCC0;color:#184010;border:1px solid #88B870;}
+
+/* Bottom machine panel */
+.machine-bottom{
+  background:var(--machine-body);
+  padding:6px 14px 10px;
+  display:flex;justify-content:center;gap:12px;
+}
+.knob{
+  width:18px;height:18px;border-radius:50%;
+  background:radial-gradient(circle at 35% 35%,#D0CCC0,#888580);
+  box-shadow:inset 0 1px 3px rgba(0,0,0,0.5),0 1px 0 rgba(255,255,255,0.2);
+  position:relative;
+}
+.knob::after{
+  content:'';position:absolute;top:50%;left:50%;
+  width:2px;height:6px;
+  background:#333;
+  transform:translate(-50%,-70%);
+  border-radius:1px;
+}
+
+@media(max-width:400px){
+  body{padding:1rem 0.5rem 2rem;}
+  .events-grid{grid-template-columns:repeat(2,1fr);}
 }
 </style>
 </head>
 <body>
 
 <div class="machine">
-
-  <div class="machine-header">
-    <span class="machine-brand">Pointeuse · Aventech</span>
-    <span class="machine-model">PT-2025</span>
-    <div class="led" id="led"></div>
+  <div class="machine-rivets">
+    <div class="rivet"></div><div class="rivet"></div><div class="rivet"></div>
+    <div class="rivet"></div><div class="rivet"></div><div class="rivet"></div>
   </div>
 
-  <div id="alert-ribbon" class="alert-ribbon">
-    <i class="ti ti-bell-ringing"></i>
-    <span id="alert-text">Pointage</span>
-  </div>
-
-  <div class="card-slot">
-    <div class="card-perfs" id="perfs"></div>
-
-    <div class="time-display">
-      <div class="time-big" id="clock">00:00:00</div>
-      <div class="date-stamp" id="dateline"></div>
-    </div>
-
-    <div class="tl-section">
-      <div class="tl-label">Progression journée</div>
-      <div class="tl-track">
-        <div class="tl-fill" id="tl-fill" style="width:0%"></div>
+  <div class="face">
+    <!-- Brand -->
+    <div class="brand-plate">
+      <span class="brand-text">Aventech · Pointeuse</span>
+      <span class="model-text">PT-2025</span>
+      <div class="led-group">
+        <div class="led led-power" title="Alimentation"></div>
+        <div class="led led-alert" id="led-alert" title="Alerte"></div>
       </div>
-      <div class="tl-markers" id="tl-markers"></div>
     </div>
 
-    <div class="tl-next" id="tl-next"></div>
+    <!-- Profile tabs -->
+    <div class="profile-tabs">
+      <button class="ptab active" id="tab-semaine" onclick="switchProfile('semaine')">
+        <i class="ti ti-briefcase"></i> Semaine
+      </button>
+      <button class="ptab fri" id="tab-vendredi" onclick="switchProfile('vendredi')">
+        <i class="ti ti-sun"></i> Vendredi
+      </button>
+    </div>
 
-    <div class="ticket-line">
-      <span>Temps travaillé</span>
-      <span class="work-time" id="work-time">—</span>
+    <!-- Alert banner -->
+    <div class="alert-banner" id="alert-banner">
+      <i class="ti ti-bell-ringing"></i>
+      <span id="alert-text">Pointage</span>
+    </div>
+
+    <!-- Card slot opening -->
+    <div class="card-slot-opening">
+      <div class="slot-rails"><div class="slot-rail"></div><div class="slot-rail"></div></div>
+
+      <!-- PUNCH CARD -->
+      <div class="punchcard" id="punchcard">
+        <div class="sprocket-row" id="sprockets-top"></div>
+
+        <div class="card-body">
+          <div class="card-clock-row">
+            <span class="card-company">Aventech S.A.</span>
+            <span class="card-seq" id="card-seq">N° —</span>
+          </div>
+
+          <div class="time-big" id="clock">00:00:00</div>
+          <div class="date-row" id="dateline"></div>
+
+          <div class="tl-section">
+            <div class="tl-label">Progression</div>
+            <div class="tl-track"><div class="tl-fill" id="tl-fill" style="width:0%"></div></div>
+            <div class="tl-markers" id="tl-markers"></div>
+          </div>
+
+          <div class="tl-next" id="tl-next"></div>
+
+          <div class="card-sep">
+            <span>Temps travaillé</span>
+            <span class="work-time" id="work-time">—</span>
+          </div>
+        </div>
+
+        <div class="sprocket-row-bottom" id="sprockets-bot"></div>
+      </div>
+      <!-- END PUNCH CARD -->
+    </div>
+
+    <!-- Controls -->
+    <div class="controls-face">
+      <div class="events-title">Horaires — <span id="profile-name">Semaine</span></div>
+      <div class="events-grid" id="events-grid"></div>
+
+      <div class="action-row">
+        <button class="btn save-btn" onclick="saveSettings()">
+          <i class="ti ti-device-floppy"></i> Sauvegarder
+        </button>
+        <button class="btn test-btn" onclick="testAlert()">
+          <i class="ti ti-bell-ringing"></i> Tester
+        </button>
+        <button class="btn log-btn" onclick="logManual()">
+          <i class="ti ti-clock-check"></i> Pointer
+        </button>
+        <div class="saved-flash" id="saved-flash"><i class="ti ti-check"></i> Sauvegardé</div>
+      </div>
+
+      <!-- Log -->
+      <div class="log-face">
+        <div class="log-header">
+          <span class="log-title"><i class="ti ti-receipt"></i> Journal du jour</span>
+          <button class="log-clear" onclick="clearLog()"><i class="ti ti-trash"></i> Effacer</button>
+        </div>
+        <div id="log-wrap">
+          <div class="log-empty" id="log-empty">Aucun pointage enregistré</div>
+          <div class="log-card" id="log-card" style="display:none">
+            <div class="log-sprockets" id="log-sprockets"></div>
+            <div class="log-entries" id="log-entries"></div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <div class="events-title">Horaires</div>
-  <div class="events-grid" id="events-grid"></div>
-
-  <div class="action-row">
-    <button class="btn save-btn" onclick="saveSettings()">
-      <i class="ti ti-device-floppy"></i> Sauvegarder
-    </button>
-    <button class="btn test-btn" onclick="testAlert()">
-      <i class="ti ti-bell-ringing"></i> Tester
-    </button>
-    <div class="saved-flash" id="saved-flash">
-      <i class="ti ti-check"></i> Sauvegardé
-    </div>
+  <div class="machine-bottom">
+    <div class="knob"></div><div class="knob"></div><div class="knob"></div>
   </div>
-
 </div>
 
 <script>
-const EVENTS_DEF = [
-  { key:'arrivee',  label:'Arrivée',       icon:'ti-sunrise',          default:'08:00' },
-  { key:'pause1',   label:'Pause matin',   icon:'ti-coffee',           default:'10:00' },
-  { key:'retour1',  label:'Retour pause',  icon:'ti-arrow-back-up',    default:'10:15' },
-  { key:'dejeuner', label:'Déjeuner',      icon:'ti-tools-kitchen-2',  default:'12:00' },
-  { key:'pause2',   label:'Retour déj.',   icon:'ti-arrow-back-up',    default:'13:30' },
-  { key:'depart',   label:'Départ',        icon:'ti-moon',             default:'17:30' },
-];
+// ── Profiles ─────────────────────────────────────────────────────────────────
+const PROFILES = {
+  semaine: [
+    { key:'arrivee',  label:'Arrivée',       icon:'ti-sunrise',         default:'08:00' },
+    { key:'pause1',   label:'Pause matin',   icon:'ti-coffee',          default:'10:00' },
+    { key:'retour1',  label:'Retour pause',  icon:'ti-arrow-back-up',   default:'10:15' },
+    { key:'dejeuner', label:'Déjeuner',      icon:'ti-tools-kitchen-2', default:'12:00' },
+    { key:'pause2',   label:'Retour déj.',   icon:'ti-arrow-back-up',   default:'13:30' },
+    { key:'depart',   label:'Départ',        icon:'ti-moon',            default:'17:30' },
+  ],
+  vendredi: [
+    { key:'arrivee',  label:'Arrivée',       icon:'ti-sunrise',         default:'08:00' },
+    { key:'pause1',   label:'Pause matin',   icon:'ti-coffee',          default:'10:00' },
+    { key:'retour1',  label:'Retour pause',  icon:'ti-arrow-back-up',   default:'10:15' },
+    { key:'dejeuner', label:'Déjeuner',      icon:'ti-tools-kitchen-2', default:'11:45' },
+    { key:'pause2',   label:'Retour déj.',   icon:'ti-arrow-back-up',   default:'12:45' },
+    { key:'depart',   label:'Départ',        icon:'ti-sun',             default:'16:00' },
+  ],
+};
 
-let settings = {};
+let currentProfile = 'semaine';
+let settings = { semaine:{}, vendredi:{} };
 let alertTimeout = null;
 let lastTriggered = {};
+let logEntries = [];
+let logDate = '';
 
-function loadSettings() {
-  try { const s = localStorage.getItem('pointage_v2'); if (s) settings = JSON.parse(s); } catch(e) {}
-  EVENTS_DEF.forEach(e => { if (!settings[e.key]) settings[e.key] = e.default; });
+// ── Storage ───────────────────────────────────────────────────────────────────
+function todayKey(){
+  const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
 
-function saveSettings() {
-  EVENTS_DEF.forEach(e => {
-    const el = document.getElementById('input_' + e.key);
-    if (el) settings[e.key] = el.value;
+function loadAll(){
+  try{
+    const s=localStorage.getItem('pointage_v4');
+    if(s){
+      const p=JSON.parse(s);
+      if(p.settings) settings=p.settings;
+      if(p.profile)  currentProfile=p.profile;
+      const today=todayKey();
+      if(p.logDate===today && p.logEntries){ logEntries=p.logEntries; logDate=today; }
+      else { logEntries=[]; logDate=today; }
+    }
+  }catch(e){}
+  ['semaine','vendredi'].forEach(pr=>{
+    if(!settings[pr]) settings[pr]={};
+    PROFILES[pr].forEach(e=>{ if(!settings[pr][e.key]) settings[pr][e.key]=e.default; });
   });
-  try { localStorage.setItem('pointage_v2', JSON.stringify(settings)); } catch(e) {}
-  buildTimeline();
-  const f = document.getElementById('saved-flash');
-  f.classList.add('show');
-  setTimeout(() => f.classList.remove('show'), 2000);
 }
 
-function buildGrid() {
-  const grid = document.getElementById('events-grid');
-  grid.innerHTML = '';
-  EVENTS_DEF.forEach(e => {
-    const card = document.createElement('div');
-    card.className = 'ev-card';
-    card.id = 'card_' + e.key;
-    card.innerHTML = `<div class="ev-label">${e.label}</div>
-      <input class="ev-input" type="time" id="input_${e.key}" value="${settings[e.key]}" />
+function saveAll(){
+  try{ localStorage.setItem('pointage_v4',JSON.stringify({settings,profile:currentProfile,logEntries,logDate:todayKey()})); }catch(e){}
+}
+
+// ── Profile ───────────────────────────────────────────────────────────────────
+function switchProfile(p){
+  // Persist current inputs
+  PROFILES[currentProfile].forEach(e=>{
+    const el=document.getElementById('input_'+e.key);
+    if(el) settings[currentProfile][e.key]=el.value;
+  });
+  currentProfile=p;
+  document.getElementById('tab-semaine').className='ptab'+(p==='semaine'?' active':'');
+  document.getElementById('tab-vendredi').className='ptab fri'+(p==='vendredi'?' active':'');
+  document.getElementById('profile-name').textContent=p==='vendredi'?'Vendredi':'Semaine';
+  buildGrid();
+  buildTimeline();
+  saveAll();
+}
+
+function autoDetectProfile(){
+  if(new Date().getDay()===5) currentProfile='vendredi';
+}
+
+function saveSettings(){
+  PROFILES[currentProfile].forEach(e=>{
+    const el=document.getElementById('input_'+e.key);
+    if(el) settings[currentProfile][e.key]=el.value;
+  });
+  saveAll();
+  buildTimeline();
+  const f=document.getElementById('saved-flash');
+  f.classList.add('show');
+  setTimeout(()=>f.classList.remove('show'),2000);
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function timeToMins(t){ if(!t)return 0; const[h,m]=t.split(':').map(Number);return h*60+m; }
+function minsToHHMM(m){ return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); }
+function pct(v,a,b){ return Math.min(100,Math.max(0,(v-a)/(b-a)*100)); }
+function getEvMins(key){
+  const el=document.getElementById('input_'+key);
+  return timeToMins(el?el.value:(settings[currentProfile][key]||'00:00'));
+}
+function nowHHMMSS(){
+  const n=new Date();
+  return String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')+':'+String(n.getSeconds()).padStart(2,'0');
+}
+
+// ── Build sprockets ───────────────────────────────────────────────────────────
+function buildSprockets(id,count){
+  const el=document.getElementById(id); if(!el)return;
+  el.innerHTML='';
+  for(let i=0;i<count;i++){ const d=document.createElement('div');d.className='sprocket';el.appendChild(d); }
+}
+function buildLogSprockets(){
+  const el=document.getElementById('log-sprockets'); if(!el)return;
+  el.innerHTML='';
+  for(let i=0;i<18;i++){ const d=document.createElement('div');d.className='log-sprocket';el.appendChild(d); }
+}
+
+// ── Grid ──────────────────────────────────────────────────────────────────────
+function buildGrid(){
+  const grid=document.getElementById('events-grid');
+  grid.innerHTML='';
+  PROFILES[currentProfile].forEach(e=>{
+    const val=settings[currentProfile][e.key]||e.default;
+    const card=document.createElement('div');
+    card.className='ev-card';card.id='card_'+e.key;
+    card.innerHTML=`<div class="ev-label">${e.label}</div>
+      <input class="ev-input" type="time" id="input_${e.key}" value="${val}"/>
       <i class="ti ${e.icon} ev-icon"></i>`;
     grid.appendChild(card);
   });
-  buildPerfs();
 }
 
-function buildPerfs() {
-  const perfs = document.getElementById('perfs');
-  perfs.innerHTML = '';
-  for (let i = 0; i < 14; i++) {
-    const d = document.createElement('div');
-    d.className = 'perf';
-    perfs.appendChild(d);
-  }
-}
-
-function timeToMins(t) {
-  if (!t) return 0;
-  const [h, m] = t.split(':').map(Number);
-  return h * 60 + m;
-}
-function minsToHHMM(m) {
-  return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
-}
-function pct(val, min, max) {
-  return Math.min(100, Math.max(0, (val - min) / (max - min) * 100));
-}
-function getEvMins(key) {
-  const el = document.getElementById('input_' + key);
-  return timeToMins(el ? el.value : settings[key]);
-}
-
-function buildTimeline() {
-  const evs = EVENTS_DEF.map(e => ({ ...e, mins: getEvMins(e.key) })).sort((a, b) => a.mins - b.mins);
-  const first = evs[0].mins, last = evs[evs.length - 1].mins;
-  if (last <= first) return;
-  const container = document.getElementById('tl-markers');
-  container.innerHTML = '';
-  evs.forEach(ev => {
-    const p = pct(ev.mins, first, last);
-    const wrap = document.createElement('div');
-    wrap.className = 'tl-marker';
-    wrap.id = 'marker_' + ev.key;
-    wrap.style.left = p.toFixed(1) + '%';
-    wrap.innerHTML = `<div class="tl-dot" id="dot_${ev.key}"></div>
-      <div class="tl-tick-label">${minsToHHMM(ev.mins)}</div>`;
-    container.appendChild(wrap);
+// ── Timeline ──────────────────────────────────────────────────────────────────
+function buildTimeline(){
+  const evs=PROFILES[currentProfile].map(e=>({...e,mins:getEvMins(e.key)})).sort((a,b)=>a.mins-b.mins);
+  const first=evs[0].mins,last=evs[evs.length-1].mins;
+  if(last<=first)return;
+  const c=document.getElementById('tl-markers'); c.innerHTML='';
+  evs.forEach(ev=>{
+    const p=pct(ev.mins,first,last);
+    const w=document.createElement('div');
+    w.className='tl-marker';w.id='marker_'+ev.key;w.style.left=p.toFixed(1)+'%';
+    w.innerHTML=`<div class="tl-dot" id="dot_${ev.key}"></div><div class="tl-tick-label">${minsToHHMM(ev.mins)}</div>`;
+    c.appendChild(w);
   });
 }
 
-function calcWorkTime(nowMins) {
-  const arr = getEvMins('arrivee');
-  const dej = getEvMins('dejeuner');
-  const ret = getEvMins('pause2');
-  const dep = getEvMins('depart');
-  if (nowMins < arr) return null;
-  let morning = Math.min(nowMins, dej) - arr;
-  if (morning < 0) morning = 0;
-  let afternoon = 0;
-  if (nowMins > ret) {
-    afternoon = Math.min(nowMins, dep) - ret;
-    if (afternoon < 0) afternoon = 0;
-  }
-  return morning + afternoon;
+// ── Work time ─────────────────────────────────────────────────────────────────
+function calcWorkTime(nowMins){
+  const arr=getEvMins('arrivee'),dej=getEvMins('dejeuner'),ret=getEvMins('pause2'),dep=getEvMins('depart');
+  if(nowMins<arr)return null;
+  let morning=Math.min(nowMins,dej)-arr; if(morning<0)morning=0;
+  let afternoon=0;
+  if(nowMins>ret){ afternoon=Math.min(nowMins,dep)-ret; if(afternoon<0)afternoon=0; }
+  return morning+afternoon;
 }
 
-function tick() {
-  const now = new Date();
-  const h = String(now.getHours()).padStart(2, '0');
-  const m = String(now.getMinutes()).padStart(2, '0');
-  const s = String(now.getSeconds()).padStart(2, '0');
-  document.getElementById('clock').textContent = h + ':' + m + ':' + s;
+// ── Log ───────────────────────────────────────────────────────────────────────
+function addLogEntry(time,label,type){
+  if(type==='auto'){
+    const mk=time.slice(0,5);
+    if(logEntries.some(e=>e.time.slice(0,5)===mk&&e.label===label))return;
+  }
+  logEntries.push({time,label,type});
+  saveAll();renderLog();
+}
 
-  const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
-  const months = ['JAN','FÉV','MAR','AVR','MAI','JUN','JUL','AOÛ','SEP','OCT','NOV','DÉC'];
-  document.getElementById('dateline').textContent =
-    days[now.getDay()] + ' ' + String(now.getDate()).padStart(2, '0') + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+function logManual(){
+  const nowMins=new Date().getHours()*60+new Date().getMinutes();
+  const evs=PROFILES[currentProfile].map(e=>({...e,mins:getEvMins(e.key)}));
+  const closest=evs.reduce((b,ev)=>Math.abs(ev.mins-nowMins)<Math.abs(b.mins-nowMins)?ev:b,evs[0]);
+  addLogEntry(nowHHMMSS(),closest.label+' (manuel)','manual');
+}
 
-  const nowMins = now.getHours() * 60 + now.getMinutes();
-  const nowSecs = nowMins * 60 + now.getSeconds();
+function clearLog(){ logEntries=[];saveAll();renderLog(); }
 
-  const evs = EVENTS_DEF.map(e => ({ ...e, mins: getEvMins(e.key) })).sort((a, b) => a.mins - b.mins);
-  const first = evs[0].mins, last = evs[evs.length - 1].mins;
+function renderLog(){
+  const empty=document.getElementById('log-empty');
+  const card=document.getElementById('log-card');
+  const entries=document.getElementById('log-entries');
+  if(logEntries.length===0){ empty.style.display='block';card.style.display='none';return; }
+  empty.style.display='none';card.style.display='block';
+  buildLogSprockets();
+  entries.innerHTML='';
+  [...logEntries].reverse().forEach(entry=>{
+    const row=document.createElement('div');row.className='log-entry';
+    row.innerHTML=`<span class="log-time">${entry.time}</span>
+      <span class="log-dots"></span>
+      <span class="log-label">${entry.label}</span>
+      <span class="log-badge ${entry.type}">${entry.type==='auto'?'auto':'manuel'}</span>`;
+    entries.appendChild(row);
+  });
+}
 
-  evs.forEach(ev => {
-    const evSecs = ev.mins * 60;
-    const diff = nowSecs - evSecs;
-    if (diff >= 0 && diff < 60) {
-      const key = ev.key + '_' + Math.floor(nowSecs / 60);
-      if (!lastTriggered[key]) {
-        lastTriggered[key] = true;
+// ── Alert ─────────────────────────────────────────────────────────────────────
+function triggerAlert(label){
+  const banner=document.getElementById('alert-banner');
+  const clockEl=document.getElementById('clock');
+  document.getElementById('alert-text').textContent='Pointage : '+label;
+  banner.classList.add('show'); clockEl.classList.add('alert');
+  document.getElementById('led-alert').classList.add('on');
+  if(alertTimeout)clearTimeout(alertTimeout);
+  alertTimeout=setTimeout(()=>{
+    banner.classList.remove('show'); clockEl.classList.remove('alert');
+    document.getElementById('led-alert').classList.remove('on');
+  },30000);
+  try{
+    const ctx=new AudioContext();
+    [0,0.35,0.7].forEach(t=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.type='square';o.frequency.value=660;
+      g.gain.setValueAtTime(0.15,ctx.currentTime+t);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+t+0.2);
+      o.start(ctx.currentTime+t);o.stop(ctx.currentTime+t+0.25);
+    });
+  }catch(e){}
+}
+function testAlert(){ triggerAlert('Test alarme'); }
+
+// ── Tick ──────────────────────────────────────────────────────────────────────
+function tick(){
+  const now=new Date();
+  const h=String(now.getHours()).padStart(2,'0');
+  const m=String(now.getMinutes()).padStart(2,'0');
+  const s=String(now.getSeconds()).padStart(2,'0');
+  document.getElementById('clock').textContent=h+':'+m+':'+s;
+
+  const days=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+  const months=['JAN','FÉV','MAR','AVR','MAI','JUN','JUL','AOÛ','SEP','OCT','NOV','DÉC'];
+  document.getElementById('dateline').textContent=
+    days[now.getDay()]+' '+String(now.getDate()).padStart(2,'0')+' '+months[now.getMonth()]+' '+now.getFullYear();
+  document.getElementById('card-seq').textContent='N° '+String(now.getDate()).padStart(2,'0')+String(now.getMonth()+1).padStart(2,'0');
+
+  const nowMins=now.getHours()*60+now.getMinutes();
+  const nowSecs=nowMins*60+now.getSeconds();
+
+  const evs=PROFILES[currentProfile].map(e=>({...e,mins:getEvMins(e.key)})).sort((a,b)=>a.mins-b.mins);
+  const first=evs[0].mins,last=evs[evs.length-1].mins;
+
+  evs.forEach(ev=>{
+    const evSecs=ev.mins*60,diff=nowSecs-evSecs;
+    if(diff>=0&&diff<60){
+      const key=ev.key+'_'+Math.floor(nowSecs/60);
+      if(!lastTriggered[key]){
+        lastTriggered[key]=true;
         triggerAlert(ev.label);
+        addLogEntry(h+':'+m+':'+s,ev.label,'auto');
       }
     }
-    const card = document.getElementById('card_' + ev.key);
-    if (card) {
-      card.className = 'ev-card' + (nowSecs - ev.mins * 60 >= 0 && nowSecs - ev.mins * 60 < 60 ? ' firing' : '');
-    }
-    const dot = document.getElementById('dot_' + ev.key);
-    if (dot) dot.className = 'tl-dot' + (ev.mins <= nowMins ? ' passed' : '');
+    const card=document.getElementById('card_'+ev.key);
+    if(card) card.className='ev-card'+(nowSecs-ev.mins*60>=0&&nowSecs-ev.mins*60<60?' firing':'');
+    const dot=document.getElementById('dot_'+ev.key);
+    if(dot) dot.className='tl-dot'+(ev.mins<=nowMins?' passed':'');
   });
 
-  if (last > first) {
-    document.getElementById('tl-fill').style.width = pct(nowMins, first, last).toFixed(1) + '%';
-  }
+  if(last>first) document.getElementById('tl-fill').style.width=pct(nowMins,first,last).toFixed(1)+'%';
 
-  const next = evs.find(ev => ev.mins > nowMins);
-  const nextEl = document.getElementById('tl-next');
-  if (next) {
-    const diff = next.mins - nowMins;
-    nextEl.innerHTML = `Prochain : <strong>${next.label} ${minsToHHMM(next.mins)}</strong> — dans ${diff} min`;
-  } else {
-    nextEl.innerHTML = '<strong>Journée terminée</strong>';
-  }
+  const next=evs.find(ev=>ev.mins>nowMins);
+  const nextEl=document.getElementById('tl-next');
+  if(next){ const diff=next.mins-nowMins; nextEl.innerHTML=`Prochain : <strong>${next.label} ${minsToHHMM(next.mins)}</strong> — dans ${diff} min`; }
+  else nextEl.innerHTML='<strong>Journée terminée</strong>';
 
-  const wt = calcWorkTime(nowMins);
-  const wtEl = document.getElementById('work-time');
-  if (wt !== null && wt > 0) {
-    wtEl.textContent = Math.floor(wt / 60) + 'h' + String(wt % 60).padStart(2, '0');
-  } else {
-    wtEl.textContent = '—';
-  }
-
-  const led = document.getElementById('led');
-  led.className = document.getElementById('alert-ribbon').classList.contains('show') ? 'led alert' : 'led';
+  const wt=calcWorkTime(nowMins);
+  document.getElementById('work-time').textContent=(wt!==null&&wt>0)?Math.floor(wt/60)+'h'+String(wt%60).padStart(2,'0'):'—';
 }
 
-function triggerAlert(label) {
-  const ribbon = document.getElementById('alert-ribbon');
-  const clockEl = document.getElementById('clock');
-  document.getElementById('alert-text').textContent = 'Pointage : ' + label;
-  ribbon.classList.add('show');
-  clockEl.classList.add('alert');
-  if (alertTimeout) clearTimeout(alertTimeout);
-  alertTimeout = setTimeout(() => {
-    ribbon.classList.remove('show');
-    clockEl.classList.remove('alert');
-  }, 30000);
-  try {
-    const ctx = new AudioContext();
-    [0, 0.35, 0.7].forEach(t => {
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.connect(g); g.connect(ctx.destination);
-      o.type = 'square';
-      o.frequency.value = 660;
-      g.gain.setValueAtTime(0.15, ctx.currentTime + t);
-      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.2);
-      o.start(ctx.currentTime + t);
-      o.stop(ctx.currentTime + t + 0.25);
-    });
-  } catch(e) {}
-}
-
-function testAlert() { triggerAlert('Test alarme'); }
-
-loadSettings();
+// ── Init ──────────────────────────────────────────────────────────────────────
+loadAll();
+autoDetectProfile();
+document.getElementById('tab-semaine').className='ptab'+(currentProfile==='semaine'?' active':'');
+document.getElementById('tab-vendredi').className='ptab fri'+(currentProfile==='vendredi'?' active':'');
+document.getElementById('profile-name').textContent=currentProfile==='vendredi'?'Vendredi':'Semaine';
+buildSprockets('sprockets-top',20);
+buildSprockets('sprockets-bot',20);
 buildGrid();
 buildTimeline();
+renderLog();
 tick();
-setInterval(tick, 1000);
+setInterval(tick,1000);
 </script>
 </body>
 </html>
