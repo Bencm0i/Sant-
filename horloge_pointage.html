@@ -110,8 +110,13 @@ body{
 }
 .led-power{background:var(--led-green);color:var(--led-green);}
 .led-alert{background:#333;color:#333;box-shadow:none;}
-.led-alert.on{background:var(--led-red);color:var(--led-red);animation:led-blink 0.5s step-start infinite;}
-@keyframes led-blink{0%,100%{opacity:1}50%{opacity:0.1}}
+.led-alert.on{
+  background:var(--led-red);color:var(--led-red);
+  width:12px;height:12px;
+  animation:led-blink 0.35s step-start infinite;
+  box-shadow:0 0 8px var(--led-red),0 0 16px rgba(232,48,40,0.6);
+}
+@keyframes led-blink{0%,100%{opacity:1;box-shadow:0 0 10px var(--led-red),0 0 20px rgba(232,48,40,0.8);}50%{opacity:0.1;box-shadow:none;}}
 
 /* Profile tabs on face */
 .profile-tabs{
@@ -145,16 +150,64 @@ body{
 
 /* Alert banner on face */
 .alert-banner{
-  display:none;align-items:center;gap:8px;
-  padding:7px 10px;
-  background:#3D0C0A;border:1px solid #8A2020;border-radius:4px;
+  display:none;align-items:center;gap:10px;
+  padding:12px 14px;
+  background:#5C0A08;
+  border:3px solid #E83028;
+  border-radius:6px;
   margin-bottom:10px;
-  font-size:12px;color:#F5A0A0;
+  font-size:16px;font-weight:700;color:#FFD0CC;
   font-family:system-ui,sans-serif;
-  animation:ablink 1s ease-in-out infinite;
+  letter-spacing:0.05em;
+  text-transform:uppercase;
+  animation:ablink 0.4s step-start infinite;
+  box-shadow:0 0 18px rgba(232,48,40,0.8),inset 0 0 12px rgba(232,48,40,0.3);
 }
+.alert-banner .ti{font-size:22px;animation:iconShake 0.3s infinite;}
 .alert-banner.show{display:flex;}
-@keyframes ablink{0%,100%{border-color:#8A2020}50%{border-color:#E83028}}
+@keyframes ablink{0%,100%{background:#5C0A08;border-color:#E83028;box-shadow:0 0 22px rgba(232,48,40,0.9),inset 0 0 12px rgba(232,48,40,0.3);}50%{background:#8A1510;border-color:#FF6050;box-shadow:0 0 40px rgba(255,80,60,1),inset 0 0 20px rgba(255,80,60,0.4);}}
+@keyframes iconShake{0%,100%{transform:rotate(-15deg);}50%{transform:rotate(15deg);}}
+
+/* Overlay plein écran */
+#alarm-overlay{
+  display:none;
+  position:fixed;inset:0;
+  z-index:9999;
+  pointer-events:none;
+  animation:ovBlink 0.4s step-start infinite;
+}
+#alarm-overlay.show{display:block;}
+@keyframes ovBlink{
+  0%,100%{background:rgba(220,20,10,0.18);}
+  50%{background:rgba(255,60,40,0.38);}
+}
+/* Bordure rouge clignotante autour de l'écran */
+#alarm-overlay::after{
+  content:'';
+  position:absolute;inset:0;
+  border:8px solid #E83028;
+  animation:borderPulse 0.4s step-start infinite;
+  pointer-events:none;
+}
+@keyframes borderPulse{
+  0%,100%{border-color:#E83028;opacity:1;}
+  50%{border-color:#FF6050;opacity:0.5;}
+}
+/* Label POINTAGE centré */
+#alarm-overlay::before{
+  content:'▶ POINTAGE ◀';
+  position:absolute;
+  top:18px;left:50%;transform:translateX(-50%);
+  font-family:system-ui,sans-serif;
+  font-size:clamp(18px,5vw,28px);
+  font-weight:900;
+  letter-spacing:0.25em;
+  color:#FF6050;
+  text-shadow:0 0 12px rgba(255,80,60,0.9),0 2px 0 rgba(0,0,0,0.8);
+  animation:ovBlink 0.4s step-start infinite;
+  white-space:nowrap;
+  pointer-events:none;
+}
 
 /* Card slot opening */
 .card-slot-opening{
@@ -252,8 +305,11 @@ body{
   font-family:'Courier New',Courier,monospace;
   text-shadow:1px 1px 0 rgba(0,0,0,0.12);
 }
-.time-big.alert{animation:tblink 0.6s step-start infinite;}
-@keyframes tblink{0%,100%{color:var(--punch-red)}50%{color:var(--card-ink)}}
+.time-big.alert{
+  animation:tblink 0.35s step-start infinite;
+  text-shadow:0 0 16px rgba(220,40,30,0.9);
+}
+@keyframes tblink{0%,100%{color:#FF3020;text-shadow:0 0 22px rgba(255,50,30,1);}50%{color:var(--card-ink);text-shadow:none;}}
 
 .date-row{
   text-align:center;
@@ -428,6 +484,7 @@ body{
 </head>
 <body>
 
+<div id="alarm-overlay"></div>
 <div class="machine">
   <div class="machine-rivets">
     <div class="rivet"></div><div class="rivet"></div><div class="rivet"></div>
@@ -677,24 +734,42 @@ function triggerAlert(label){
   const banner=document.getElementById('alert-banner');
   const clockEl=document.getElementById('clock');
   const slotEl=document.getElementById('card-slot');
-  document.getElementById('alert-text').textContent='Pointage : '+label;
-  banner.classList.add('show'); clockEl.classList.add('alert'); slotEl.classList.add('alert');
+  const overlay=document.getElementById('alarm-overlay');
+  document.getElementById('alert-text').textContent='⚠ Pointage : '+label+' ⚠';
+  banner.classList.add('show');
+  clockEl.classList.add('alert');
+  slotEl.classList.add('alert');
+  overlay.classList.add('show');
   document.getElementById('led-alert').classList.add('on');
   if(alertTimeout)clearTimeout(alertTimeout);
   alertTimeout=setTimeout(()=>{
-    banner.classList.remove('show'); clockEl.classList.remove('alert'); slotEl.classList.remove('alert');
+    banner.classList.remove('show');
+    clockEl.classList.remove('alert');
+    slotEl.classList.remove('alert');
+    overlay.classList.remove('show');
     document.getElementById('led-alert').classList.remove('on');
   },30000);
+  // Son plus agressif : sirène montante x3
   try{
     const ctx=new AudioContext();
-    [0,0.35,0.7].forEach(t=>{
+    const totalDuration=3.0;
+    // 3 rafales de bip + sweep
+    [0,0.5,1.0,1.5,2.0,2.5].forEach((t,i)=>{
       const o=ctx.createOscillator(),g=ctx.createGain();
       o.connect(g);g.connect(ctx.destination);
-      o.type='square';o.frequency.value=660;
-      g.gain.setValueAtTime(0.15,ctx.currentTime+t);
-      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+t+0.2);
-      o.start(ctx.currentTime+t);o.stop(ctx.currentTime+t+0.25);
+      o.type='sawtooth';
+      o.frequency.setValueAtTime(440+i*80,ctx.currentTime+t);
+      o.frequency.linearRampToValueAtTime(880+i*80,ctx.currentTime+t+0.3);
+      g.gain.setValueAtTime(0.0,ctx.currentTime+t);
+      g.gain.linearRampToValueAtTime(0.4,ctx.currentTime+t+0.05);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+t+0.35);
+      o.start(ctx.currentTime+t);
+      o.stop(ctx.currentTime+t+0.4);
     });
+  }catch(e){}
+  // Vibration mobile (si supportée)
+  try{
+    if(navigator.vibrate) navigator.vibrate([300,100,300,100,600]);
   }catch(e){}
 }
 function testAlert(){ triggerAlert('Test alarme'); }
