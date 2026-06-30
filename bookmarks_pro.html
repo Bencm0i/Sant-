@@ -1658,23 +1658,10 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(250
     <!-- COL 2 vide -->
     <div></div>
 
-    <!-- SIDEBAR HOME ASSISTANT : raccourcis Lovelace, ancrée à droite -->
+    <!-- SIDEBAR ANCRÉE À DROITE : raccourcis fréquents + fond & galerie -->
     <div id="haSidebar" class="ha-sidebar">
       <div class="ha-sidebar-inner">
         <div class="ha-sidebar-head">
-          <span class="card-title">🏠 Tableaux Lovelace</span>
-          <div style="display:flex;gap:6px;">
-            <button class="card-action" onclick="haEditConfig()" title="Configurer l'URL de Home Assistant">⚙️</button>
-            <button class="card-action" onclick="lcAddShortcut()" title="Ajouter un raccourci">➕</button>
-          </div>
-        </div>
-        <div id="haList" class="ha-list">
-          <div id="haPlaceholder" style="padding:14px 16px;font-size:0.78rem;color:var(--muted);">
-            Aucune configuration. Clique sur ⚙️ pour renseigner l'URL de ton Home Assistant.
-          </div>
-        </div>
-
-        <div class="ha-sidebar-head" style="border-top:1.5px solid rgba(250,249,246,0.6);border-bottom:none;">
           <span class="card-title">⭐ Raccourcis fréquents</span>
         </div>
         <div id="freqShortcutsRow" style="padding:4px 16px 16px;display:flex;flex-wrap:wrap;gap:8px;flex-shrink:0;"></div>
@@ -1691,7 +1678,7 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(250
         </div>
       </div>
     </div>
-    <button id="haTab" class="ha-tab" onclick="haToggleSidebar()" title="Afficher / masquer les raccourcis Lovelace">🏠</button>
+    <button id="haTab" class="ha-tab" onclick="haToggleSidebar()" title="Afficher / masquer les raccourcis">⭐</button>
 
     <style>
       .freq-shortcut{display:flex;flex-direction:column;align-items:center;gap:2px;width:54px;text-decoration:none;cursor:pointer;}
@@ -1768,131 +1755,6 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(250
 
     <script>
       (function(){
-        function haNormalizeUrl(raw){
-          if(!raw) return '';
-          let s = raw.trim();
-          if(!/^https?:\/\//i.test(s)) s = 'http://' + s;
-          try{
-            const u = new URL(s);
-            return u.origin; // ne garde que protocole + host + port, supprime tout chemin/hash/query
-          }catch(e){
-            return s.replace(/\/$/,'');
-          }
-        }
-
-        function haCfg(){
-          // auto-nettoyage d'une URL déjà enregistrée avec un chemin (ex: /lovelace/11)
-          const stored = localStorage.getItem('haUrl') || '';
-          const clean = haNormalizeUrl(stored);
-          if(clean && clean !== stored) localStorage.setItem('haUrl', clean);
-          return { url: clean };
-        }
-
-        window.haEditConfig = function(){
-          const cfg = haCfg();
-          const url = prompt("URL de ton Home Assistant :", cfg.url || "http://192.168.50.234:8123");
-          if(url === null) return;
-          localStorage.setItem('haUrl', haNormalizeUrl(url));
-          haLoad();
-        };
-
-        // ── Raccourcis Lovelace ──
-        function lcGet(){
-          try{ return JSON.parse(localStorage.getItem('haLovelaceShortcuts') || '[]'); }
-          catch(e){ return []; }
-        }
-        function lcSave(arr){ localStorage.setItem('haLovelaceShortcuts', JSON.stringify(arr)); }
-
-        function lcCard(s, i){
-          const card = document.createElement('div');
-          card.className = 'lc-card';
-          card.innerHTML = `
-            <div class="lc-icon">${s.icon || '🏠'}</div>
-            <div class="lc-name">${s.name}</div>
-            <div class="lc-actions">
-              <button class="lc-edit" title="Modifier">✎</button>
-              <button class="lc-del" title="Supprimer">✕</button>
-            </div>`;
-          card.addEventListener('click', (e) => {
-            if(e.target.closest('.lc-actions')) return;
-            const cfg = haCfg();
-            if(!cfg.url){ alert("Configure d'abord l'URL de Home Assistant (⚙️)."); return; }
-            let full;
-            try{
-              const path = (s.path || '').trim();
-              full = new URL(path.startsWith('/') ? path : '/' + path, cfg.url).href;
-            }catch(err){
-              alert("Chemin de raccourci invalide : " + s.path);
-              return;
-            }
-            window.open(full, '_blank');
-          });
-          card.querySelector('.lc-edit').onclick = (e) => { e.stopPropagation(); lcEditShortcut(i); };
-          card.querySelector('.lc-del').onclick  = (e) => { e.stopPropagation(); lcDeleteShortcut(i); };
-          return card;
-        }
-
-        window.lcAddShortcut = function(){
-          const cfg = haCfg();
-          if(!cfg.url){ haEditConfig(); return; }
-          const name = prompt("Nom du raccourci (ex: Salon, Sécurité, Énergie…) :");
-          if(!name || !name.trim()) return;
-          const path = prompt("Chemin du tableau Lovelace (ex: /lovelace/salon ou /lovelace-0/0) :", "/lovelace/0");
-          if(path === null || !path.trim()) return;
-          const icon = (prompt("Emoji pour l'icône (optionnel) :", "🏠") || "🏠").trim();
-          const arr = lcGet();
-          arr.push({ name: name.trim(), path: path.trim(), icon });
-          lcSave(arr);
-          haLoad();
-        };
-
-        function lcEditShortcut(i){
-          const arr = lcGet();
-          const s = arr[i];
-          const name = prompt("Nom :", s.name);
-          if(name === null || !name.trim()) return;
-          const path = prompt("Chemin :", s.path);
-          if(path === null || !path.trim()) return;
-          const icon = (prompt("Emoji :", s.icon) || s.icon).trim();
-          arr[i] = { name: name.trim(), path: path.trim(), icon };
-          lcSave(arr);
-          haLoad();
-        }
-
-        function lcDeleteShortcut(i){
-          if(!confirm("Supprimer ce raccourci ?")) return;
-          const arr = lcGet();
-          arr.splice(i, 1);
-          lcSave(arr);
-          haLoad();
-        }
-
-        window.haLoad = function(){
-          const list = document.getElementById('haList');
-          const cfg = haCfg();
-          if(!cfg.url){
-            list.innerHTML = '<div id="haPlaceholder" style="padding:14px 16px;font-size:0.78rem;color:var(--muted);">Aucune configuration. Clique sur ⚙️ pour renseigner l\'URL de ton Home Assistant.</div>';
-            return;
-          }
-          const shortcuts = lcGet();
-          list.innerHTML = '';
-          if(!shortcuts.length){
-            const empty = document.createElement('div');
-            empty.style.cssText = 'padding:14px 16px;font-size:0.78rem;color:var(--muted);';
-            empty.textContent = 'Aucun raccourci. Clique sur ➕ pour ajouter tes tableaux Lovelace préférés.';
-            list.appendChild(empty);
-          }
-          const grid = document.createElement('div');
-          grid.className = 'lc-grid';
-          shortcuts.forEach((s, i) => grid.appendChild(lcCard(s, i)));
-          const addBtn = document.createElement('button');
-          addBtn.className = 'lc-add';
-          addBtn.textContent = '+ Ajouter un raccourci';
-          addBtn.onclick = lcAddShortcut;
-          grid.appendChild(addBtn);
-          list.appendChild(grid);
-        };
-
         window.haToggleSidebar = function(){
           const sidebar = document.getElementById('haSidebar');
           const tab = document.getElementById('haTab');
@@ -1901,11 +1763,10 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(250
             sidebar.classList.add('open');
             tab.classList.add('shifted');
             tab.textContent = '✕';
-            haLoad();
           } else {
             sidebar.classList.remove('open');
             tab.classList.remove('shifted');
-            tab.textContent = '🏠';
+            tab.textContent = '⭐';
           }
         };
       })();
@@ -3413,6 +3274,7 @@ const DEFAULT_LAUNCHER = [
   {emoji:'📧', name:'Gmail',    url:'https://mail.google.com/',  x:80, y:490},
   {emoji:'📺', name:'YouTube',  url:'https://www.youtube.com/',  x:80, y:600},
   {emoji:'🌐', name:'Google',   url:'https://www.google.com/',   x:80, y:710},
+  {emoji:'🏭', name:'Aventech', url:'https://aventech-e.com/',   x:80, y:820},
 ];
 
 let launcherLinks  = [];
@@ -3431,6 +3293,16 @@ const _lch = {
 function launcherLoad(){
   try{ launcherLinks = JSON.parse(localStorage.getItem('dashboard_launcher')||'null') || DEFAULT_LAUNCHER.map(l=>({...l})); }
   catch(e){ launcherLinks = DEFAULT_LAUNCHER.map(l=>({...l})); }
+  // migration ponctuelle : ajoute le raccourci Aventech s'il manque (profil déjà existant)
+  if(!localStorage.getItem('launcher_aventech_added')){
+    const hasAventech = launcherLinks.some(l => /aventech/i.test(l.name) || /aventech/i.test(l.url||''));
+    if(!hasAventech){
+      const maxY = launcherLinks.reduce((m,l)=>Math.max(m, l.y||0), 0);
+      launcherLinks.push({emoji:'🏭', name:'Aventech', url:'https://aventech-e.com/', x:80, y:maxY+110});
+      launcherSave();
+    }
+    localStorage.setItem('launcher_aventech_added', '1');
+  }
 }
 function launcherSave(){ localStorage.setItem('dashboard_launcher', JSON.stringify(launcherLinks)); }
 
