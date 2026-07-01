@@ -1556,9 +1556,6 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(250
     <input id="page-title" value="Mon Tableau ✨" oninput="save()">
     <div style="display:flex;gap:8px;align-items:center">
       <span class="save-dot" id="saveDot"></span>
-      <button class="bg-btn" onclick="exportVault()">⬇ Exporter</button>
-      <button class="bg-btn" onclick="document.getElementById('vaultImport').click()">⬆ Importer</button>
-      <button class="bg-btn" onclick="resetAll()" style="color:#f87171;border-color:rgba(248,113,113,0.3)">🗑 Réinitialiser</button>
     </div>
   </div>
 
@@ -1851,7 +1848,7 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(250
           </div>
         </div>
 
-        <div class="ha-sidebar-head" style="border-top:1.5px solid rgba(250,249,246,0.6);border-bottom:none;">
+        <div class="ha-sidebar-head" style="border-top:1.5px solid rgba(250,249,246,0.6);">
           <span class="card-title">🖼 Fond &amp; Galerie</span>
         </div>
         <div style="padding:10px 16px 16px;display:flex;flex-direction:column;gap:8px;flex-shrink:0;">
@@ -1861,8 +1858,22 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(250
           <button class="bg-btn" onclick="saveBgFavorite()" style="width:100%;justify-content:center;">💾 Sauvegarder ce fond</button>
           <div id="bgFavRow" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:2px;"></div>
         </div>
+
+        <div class="ha-sidebar-head" style="border-top:1.5px solid rgba(250,249,246,0.6);border-bottom:none;">
+          <span class="card-title">💾 Sauvegarde</span>
+        </div>
+        <div class="vault-btn-row" style="padding:10px 16px 16px;">
+          <button class="bg-btn vault-btn" onclick="exportVault()">⬇ Exporter</button>
+          <button class="bg-btn vault-btn" onclick="document.getElementById('vaultImport').click()">⬆ Importer</button>
+          <button class="bg-btn vault-btn" onclick="resetAll()" style="color:#f87171;border-color:rgba(248,113,113,0.3)">🗑 Réinit.</button>
+        </div>
       </div>
     </div>
+
+    <style>
+      .vault-btn-row{display:flex;gap:6px;flex-shrink:0;}
+      .vault-btn{flex:1;justify-content:center;padding:7px 4px;font-size:0.62rem;letter-spacing:0.01em;white-space:nowrap;}
+    </style>
     <button id="haTab" class="ha-tab" onclick="haToggleSidebar()" title="Afficher / masquer les raccourcis">⭐</button>
 
     <style>
