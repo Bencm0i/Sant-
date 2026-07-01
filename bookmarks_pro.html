@@ -1685,9 +1685,96 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(250
         </div>
       </div>
 
+      <!-- PROGRESSION JOURNÉE -->
+      <div class="card" id="prWidget">
+        <div class="card-head">
+          <span class="card-title">📊 Progression journée</span>
+          <div style="display:flex;gap:4px;align-items:center">
+            <button class="card-action" onclick="prSyncFromCh()" title="Synchroniser depuis Horaire Aventech">↻</button>
+            <button class="card-action" onclick="prToggleCollapse()" title="Réduire / agrandir" id="prCollapseBtn">﹀</button>
+          </div>
+        </div>
+        <div id="prBody">
+          <div class="pr-fields">
+            <div class="pr-field">
+              <span class="pr-label">Arrivée</span>
+              <input type="time" id="prArrive" value="08:00">
+            </div>
+            <div class="pr-field">
+              <span class="pr-label">Début pause</span>
+              <input type="time" id="prPs" value="12:15">
+            </div>
+            <div class="pr-field">
+              <span class="pr-label">Fin pause</span>
+              <input type="time" id="prPe" value="12:55">
+            </div>
+            <div class="pr-field">
+              <span class="pr-label">Départ prévu</span>
+              <input type="time" id="prDepart" value="16:10">
+            </div>
+          </div>
+
+          <div class="pr-status" id="prStatus">—</div>
+
+          <div class="pr-bar-wrap">
+            <div class="pr-bar" id="prBar">
+              <div class="pr-bar-lunch" id="prBarLunch"></div>
+              <div class="pr-bar-fill" id="prBarFill"></div>
+              <div class="pr-bar-now" id="prBarNow"><span class="pr-bar-now-dot"></span></div>
+            </div>
+            <div class="pr-bar-labels">
+              <span id="prLabelStart">—</span>
+              <span id="prLabelEnd">—</span>
+            </div>
+          </div>
+
+          <div class="pr-results">
+            <div class="pr-metric">
+              <div class="pr-metric-label">Travail effectué</div>
+              <div class="pr-metric-value" id="prVDone">—</div>
+            </div>
+            <div class="pr-metric">
+              <div class="pr-metric-label">Temps restant</div>
+              <div class="pr-metric-value ch-ok" id="prVLeft">—</div>
+            </div>
+            <div class="pr-metric" style="grid-column:span 2">
+              <div class="pr-metric-label">Avancement</div>
+              <div class="pr-metric-value" id="prVPercent">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <style>
+      .pr-fields{padding:12px 16px 2px;display:flex;flex-direction:column;gap:9px;}
+      .pr-field{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+      .pr-label{font-size:0.7rem;font-weight:700;color:var(--muted);}
+      .pr-field input[type=time]{font-family:'Nunito',sans-serif;font-size:0.78rem;font-weight:700;color:var(--text);background:rgba(250,249,246,0.55);border:1.5px solid var(--border);border-radius:10px;padding:5px 8px;outline:none;transition:border-color 0.15s;}
+      .pr-field input[type=time]:focus{border-color:var(--c2);}
+
+      .pr-status{margin:12px 16px 4px;padding:8px 12px;border-radius:12px;font-size:0.72rem;font-weight:800;text-align:center;}
+      .pr-status.s-before{background:rgba(91,109,158,0.15);color:var(--c2);}
+      .pr-status.s-working{background:rgba(63,146,112,0.15);color:var(--c4);}
+      .pr-status.s-lunch{background:rgba(184,134,47,0.15);color:var(--c5);}
+      .pr-status.s-done{background:rgba(181,87,122,0.15);color:var(--c1);}
+
+      .pr-bar-wrap{padding:10px 16px 4px;}
+      .pr-bar{position:relative;height:14px;border-radius:8px;background:rgba(250,249,246,0.5);border:1px solid var(--border);overflow:hidden;}
+      .pr-bar-fill{position:absolute;top:0;left:0;bottom:0;background:linear-gradient(90deg,var(--c1),var(--c2));border-radius:8px 0 0 8px;transition:width 0.4s;width:0%;}
+      .pr-bar-lunch{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(45deg,rgba(107,104,100,0.35),rgba(107,104,100,0.35) 4px,rgba(107,104,100,0.15) 4px,rgba(107,104,100,0.15) 8px);z-index:2;left:0%;width:0%;}
+      .pr-bar-now{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--text);z-index:3;transition:left 0.4s;left:0%;}
+      .pr-bar-now-dot{position:absolute;top:-4px;left:-3px;width:8px;height:8px;border-radius:50%;background:var(--text);box-shadow:0 0 0 3px rgba(250,249,246,0.7);}
+      .pr-bar-labels{display:flex;justify-content:space-between;font-size:0.6rem;font-weight:700;color:var(--muted);margin-top:5px;}
+
+      .pr-results{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 16px 16px;}
+      .pr-metric{background:rgba(250,249,246,0.5);border:1px solid rgba(250,249,246,0.75);border-radius:12px;padding:8px 10px;}
+      .pr-metric-label{font-size:0.58rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px;}
+      .pr-metric-value{font-size:1rem;font-weight:800;color:var(--text);}
+      #prBody.pr-collapsed{display:none;}
+      #prCollapseBtn{font-size:0.85rem;}
+
       .ch-daybar{display:flex;gap:6px;padding:12px 16px 4px;flex-wrap:wrap;}
       .ch-day{padding:5px 12px;border-radius:20px;font-family:'Nunito',sans-serif;font-size:0.68rem;font-weight:800;cursor:pointer;border:1.5px solid var(--border);background:rgba(250,249,246,0.55);color:var(--muted);transition:all 0.15s;}
       .ch-day:hover{border-color:var(--c2);color:var(--c2);}
@@ -4653,6 +4740,133 @@ function chInit(){
 }
 
 document.addEventListener('DOMContentLoaded', chInit);
+
+// ══════════════════════════════════════════
+// ── PROGRESSION JOURNÉE ──
+// ══════════════════════════════════════════
+let prTimer = null;
+
+function prToMin(t){ const [h,m]=t.split(':').map(Number); return h*60+m; }
+function prFmt(n){ n = Math.max(0, Math.round(n)); const h=Math.floor(n/60),m=n%60; return h>0 ? h+'h'+(m>0?String(m).padStart(2,'0'):'') : m+' min'; }
+
+function prSyncFromCh(){
+  const a  = document.getElementById('chArrive');
+  const p1 = document.getElementById('chPs');
+  const p2 = document.getElementById('chPe');
+  const d  = document.getElementById('chVDep');
+  if(a && a.value)  document.getElementById('prArrive').value = a.value;
+  if(p1 && p1.value) document.getElementById('prPs').value = p1.value;
+  if(p2 && p2.value) document.getElementById('prPe').value = p2.value;
+  if(d && /\d+h\d+/.test(d.textContent)){
+    const [hh, mm] = d.textContent.split('h');
+    document.getElementById('prDepart').value = String(hh).padStart(2,'0') + ':' + String(mm || '0').padStart(2,'0');
+  }
+  prCompute();
+}
+
+function prCompute(){
+  const arriveEl = document.getElementById('prArrive');
+  const psEl     = document.getElementById('prPs');
+  const peEl     = document.getElementById('prPe');
+  const depEl    = document.getElementById('prDepart');
+  if(!arriveEl.value || !psEl.value || !peEl.value || !depEl.value) return;
+
+  const arrive = prToMin(arriveEl.value);
+  const ps     = prToMin(psEl.value);
+  const pe     = prToMin(peEl.value);
+  const depart = prToMin(depEl.value);
+
+  const now = new Date();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+
+  const morningWork   = Math.max(0, ps - arrive);
+  const afternoonWork = Math.max(0, depart - pe);
+  const totalWork  = morningWork + afternoonWork;
+  const totalSpan  = Math.max(1, depart - arrive);
+
+  let elapsedWork, statusClass, statusText;
+
+  if (nowMin <= arrive){
+    elapsedWork = 0; statusClass = 's-before'; statusText = '🌅 Avant embauche';
+  } else if (nowMin <= ps){
+    elapsedWork = nowMin - arrive; statusClass = 's-working'; statusText = '💼 En cours (matin)';
+  } else if (nowMin <= pe){
+    elapsedWork = morningWork; statusClass = 's-lunch'; statusText = '🍽 Pause déjeuner';
+  } else if (nowMin <= depart){
+    elapsedWork = morningWork + (nowMin - pe); statusClass = 's-working'; statusText = '💼 En cours (après-midi)';
+  } else {
+    elapsedWork = totalWork; statusClass = 's-done'; statusText = '✅ Journée terminée';
+  }
+
+  const percent   = totalWork > 0 ? Math.min(100, Math.max(0, (elapsedWork / totalWork) * 100)) : 0;
+  const remaining = Math.max(0, totalWork - elapsedWork);
+
+  document.getElementById('prVDone').textContent    = prFmt(elapsedWork) + ' / ' + prFmt(totalWork);
+  document.getElementById('prVLeft').textContent    = nowMin >= depart ? '—' : prFmt(remaining);
+  document.getElementById('prVPercent').textContent = Math.round(percent) + '%';
+
+  const statusEl = document.getElementById('prStatus');
+  statusEl.className = 'pr-status ' + statusClass;
+  statusEl.textContent = statusText;
+
+  // Barre temporelle : position "maintenant" sur la plage arrivée → départ (pause visible en hachures)
+  const nowPct        = Math.min(100, Math.max(0, ((nowMin - arrive) / totalSpan) * 100));
+  const lunchLeftPct   = Math.min(100, Math.max(0, ((ps - arrive) / totalSpan) * 100));
+  const lunchWidthPct  = Math.min(100 - lunchLeftPct, Math.max(0, ((pe - ps) / totalSpan) * 100));
+
+  document.getElementById('prBarFill').style.width   = nowPct + '%';
+  document.getElementById('prBarLunch').style.left   = lunchLeftPct + '%';
+  document.getElementById('prBarLunch').style.width  = lunchWidthPct + '%';
+  document.getElementById('prBarNow').style.left     = nowPct + '%';
+
+  document.getElementById('prLabelStart').textContent = arriveEl.value;
+  document.getElementById('prLabelEnd').textContent   = depEl.value;
+
+  localStorage.setItem('dashboard_pr_arrive', arriveEl.value);
+  localStorage.setItem('dashboard_pr_ps', psEl.value);
+  localStorage.setItem('dashboard_pr_pe', peEl.value);
+  localStorage.setItem('dashboard_pr_depart', depEl.value);
+}
+
+function prToggleCollapse(){
+  const body = document.getElementById('prBody');
+  const btn  = document.getElementById('prCollapseBtn');
+  const collapsed = body.classList.toggle('pr-collapsed');
+  btn.textContent = collapsed ? '﹀' : '︿';
+  localStorage.setItem('dashboard_pr_collapsed', collapsed ? '1' : '0');
+}
+
+function prInit(){
+  const a  = localStorage.getItem('dashboard_pr_arrive');
+  const p1 = localStorage.getItem('dashboard_pr_ps');
+  const p2 = localStorage.getItem('dashboard_pr_pe');
+  const d  = localStorage.getItem('dashboard_pr_depart');
+  if(a)  document.getElementById('prArrive').value = a;
+  if(p1) document.getElementById('prPs').value = p1;
+  if(p2) document.getElementById('prPe').value = p2;
+  if(d){
+    document.getElementById('prDepart').value = d;
+  } else {
+    // Pas de valeur sauvegardée : on tente de récupérer le départ calculé par le widget Horaire Aventech
+    const chDep = document.getElementById('chVDep');
+    if(chDep && /\d+h\d+/.test(chDep.textContent)){
+      const [hh, mm] = chDep.textContent.split('h');
+      document.getElementById('prDepart').value = String(hh).padStart(2,'0') + ':' + String(mm || '0').padStart(2,'0');
+    }
+  }
+
+  ['prArrive','prPs','prPe','prDepart'].forEach(id => document.getElementById(id).addEventListener('input', prCompute));
+
+  if(localStorage.getItem('dashboard_pr_collapsed') === '1'){
+    document.getElementById('prBody').classList.add('pr-collapsed');
+    document.getElementById('prCollapseBtn').textContent = '﹀';
+  }
+
+  prCompute();
+  prTimer = setInterval(prCompute, 30000);
+}
+
+document.addEventListener('DOMContentLoaded', prInit);
 
 // ══════════════════════════════════════════
 // ── YOUTUBE SEARCH ──
