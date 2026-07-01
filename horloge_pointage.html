@@ -741,6 +741,7 @@ function triggerAlert(label){
   slotEl.classList.add('alert');
   overlay.classList.add('show');
   document.getElementById('led-alert').classList.add('on');
+  startTitleBlink(label);
   if(alertTimeout)clearTimeout(alertTimeout);
   alertTimeout=setTimeout(()=>{
     banner.classList.remove('show');
@@ -748,6 +749,7 @@ function triggerAlert(label){
     slotEl.classList.remove('alert');
     overlay.classList.remove('show');
     document.getElementById('led-alert').classList.remove('on');
+    stopTitleBlink();
   },30000);
   // Son plus agressif : sirène montante x3
   try{
@@ -773,6 +775,24 @@ function triggerAlert(label){
   }catch(e){}
 }
 function testAlert(){ triggerAlert('Test alarme'); }
+
+// ── Title blink (onglet) ─────────────────────────────────────────────────────
+const originalTitle=document.title;
+let titleBlinkInterval=null;
+let titleBlinkOn=false;
+function startTitleBlink(label){
+  if(titleBlinkInterval)clearInterval(titleBlinkInterval);
+  titleBlinkOn=true;
+  document.title='⏰ POINTAGE : '+label;
+  titleBlinkInterval=setInterval(()=>{
+    titleBlinkOn=!titleBlinkOn;
+    document.title=titleBlinkOn?('⏰ POINTAGE : '+label):originalTitle;
+  },800);
+}
+function stopTitleBlink(){
+  if(titleBlinkInterval){clearInterval(titleBlinkInterval);titleBlinkInterval=null;}
+  document.title=originalTitle;
+}
 
 // ── Tick ──────────────────────────────────────────────────────────────────────
 function tick(){
