@@ -1695,6 +1695,13 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(250
           </div>
         </div>
         <div id="prBody">
+          <div class="ch-daybar" id="prDayRow">
+            <button class="ch-day" data-day="lun">Lun</button>
+            <button class="ch-day" data-day="mar">Mar</button>
+            <button class="ch-day" data-day="mer">Mer</button>
+            <button class="ch-day" data-day="jeu">Jeu</button>
+            <button class="ch-day" data-day="ven">Ven</button>
+          </div>
           <div class="pr-fields">
             <div class="pr-field">
               <span class="pr-label">Arrivée</span>
@@ -4746,10 +4753,38 @@ document.addEventListener('DOMContentLoaded', chInit);
 // ══════════════════════════════════════════
 let prTimer = null;
 
+const PR_DEFAULT = {
+  lun: { arrive:'08:00', ps:'12:15', pe:'12:55', depart:'16:10' },
+  mar: { arrive:'08:00', ps:'12:15', pe:'12:55', depart:'16:10' },
+  mer: { arrive:'08:00', ps:'12:15', pe:'12:55', depart:'16:10' },
+  jeu: { arrive:'08:00', ps:'12:15', pe:'12:55', depart:'16:10' },
+  ven: { arrive:'08:00', ps:'12:15', pe:'12:55', depart:'15:30' }
+};
+
+function prTodayKey(){
+  const map = {1:'lun',2:'mar',3:'mer',4:'jeu',5:'ven'};
+  return map[new Date().getDay()] || 'lun';
+}
+
+let prSel = localStorage.getItem('dashboard_pr_day') || prTodayKey();
+if(!PR_DEFAULT[prSel]) prSel = 'lun';
+
 function prToMin(t){ const [h,m]=t.split(':').map(Number); return h*60+m; }
 function prFmt(n){ n = Math.max(0, Math.round(n)); const h=Math.floor(n/60),m=n%60; return h>0 ? h+'h'+(m>0?String(m).padStart(2,'0'):'') : m+' min'; }
 
+function prLoadDay(day){
+  const def = PR_DEFAULT[day] || PR_DEFAULT.lun;
+  document.getElementById('prArrive').value = localStorage.getItem('dashboard_pr_arrive_'+day) || def.arrive;
+  document.getElementById('prPs').value     = localStorage.getItem('dashboard_pr_ps_'+day)     || def.ps;
+  document.getElementById('prPe').value     = localStorage.getItem('dashboard_pr_pe_'+day)     || def.pe;
+  document.getElementById('prDepart').value = localStorage.getItem('dashboard_pr_depart_'+day) || def.depart;
+}
+
 function prSyncFromCh(){
+  // On bascule sur le même jour que celui sélectionné dans Horaire Aventech
+  prSel = (typeof chSel !== 'undefined' && CH_DAYS[chSel]) ? chSel : prSel;
+  document.querySelectorAll('#prDayRow .ch-day').forEach(b => b.classList.toggle('active', b.dataset.day === prSel));
+
   const a  = document.getElementById('chArrive');
   const p1 = document.getElementById('chPs');
   const p2 = document.getElementById('chPe');
@@ -4822,10 +4857,12 @@ function prCompute(){
   document.getElementById('prLabelStart').textContent = arriveEl.value;
   document.getElementById('prLabelEnd').textContent   = depEl.value;
 
-  localStorage.setItem('dashboard_pr_arrive', arriveEl.value);
-  localStorage.setItem('dashboard_pr_ps', psEl.value);
-  localStorage.setItem('dashboard_pr_pe', peEl.value);
-  localStorage.setItem('dashboard_pr_depart', depEl.value);
+  // Sauvegarde spécifique au jour sélectionné (le vendredi garde son propre horaire)
+  localStorage.setItem('dashboard_pr_arrive_'+prSel, arriveEl.value);
+  localStorage.setItem('dashboard_pr_ps_'+prSel, psEl.value);
+  localStorage.setItem('dashboard_pr_pe_'+prSel, peEl.value);
+  localStorage.setItem('dashboard_pr_depart_'+prSel, depEl.value);
+  localStorage.setItem('dashboard_pr_day', prSel);
 }
 
 function prToggleCollapse(){
@@ -4837,23 +4874,21 @@ function prToggleCollapse(){
 }
 
 function prInit(){
-  const a  = localStorage.getItem('dashboard_pr_arrive');
-  const p1 = localStorage.getItem('dashboard_pr_ps');
-  const p2 = localStorage.getItem('dashboard_pr_pe');
-  const d  = localStorage.getItem('dashboard_pr_depart');
-  if(a)  document.getElementById('prArrive').value = a;
-  if(p1) document.getElementById('prPs').value = p1;
-  if(p2) document.getElementById('prPe').value = p2;
-  if(d){
-    document.getElementById('prDepart').value = d;
-  } else {
-    // Pas de valeur sauvegardée : on tente de récupérer le départ calculé par le widget Horaire Aventech
-    const chDep = document.getElementById('chVDep');
-    if(chDep && /\d+h\d+/.test(chDep.textContent)){
-      const [hh, mm] = chDep.textContent.split('h');
-      document.getElementById('prDepart').value = String(hh).padStart(2,'0') + ':' + String(mm || '0').padStart(2,'0');
-    }
-  }
+  prLoadDay(prSel);
+
+  document.querySelectorAll('#prDayRow .ch-day').forEach(b => {
+    b.classList.toggle('active', b.dataset.day === prSel);
+  });
+
+  document.getElementById('prDayRow').addEventListener('click', e => {
+    const btn = e.target.closest('.ch-day');
+    if(!btn) return;
+    document.querySelectorAll('#prDayRow .ch-day').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    prSel = btn.dataset.day;
+    prLoadDay(prSel);
+    prCompute();
+  });
 
   ['prArrive','prPs','prPe','prDepart'].forEach(id => document.getElementById(id).addEventListener('input', prCompute));
 
