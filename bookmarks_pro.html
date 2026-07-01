@@ -1630,7 +1630,90 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(250
         <div id="quickNotesSaved">✓ sauvegardé</div>
       </div>
 
+      <!-- CALCUL HORAIRE (Aventech) -->
+      <div class="card" id="chWidget">
+        <div class="card-head">
+          <span class="card-title">🕐 Horaire Aventech</span>
+          <button class="card-action" onclick="chToggleCollapse()" title="Réduire / agrandir" id="chCollapseBtn">﹀</button>
+        </div>
+        <div id="chBody">
+          <div class="ch-daybar" id="chDayRow">
+            <button class="ch-day active" data-day="lun">Lun</button>
+            <button class="ch-day" data-day="mar">Mar</button>
+            <button class="ch-day" data-day="mer">Mer</button>
+            <button class="ch-day" data-day="jeu">Jeu</button>
+            <button class="ch-day" data-day="ven">Ven</button>
+          </div>
+
+          <div class="ch-fields">
+            <div class="ch-field">
+              <span class="ch-label">Arrivée <em>(7h30–8h30)</em></span>
+              <input type="time" id="chArrive" value="08:00">
+            </div>
+            <div class="ch-field">
+              <span class="ch-label">Début pause</span>
+              <input type="time" id="chPs" value="12:15">
+            </div>
+            <div class="ch-field">
+              <span class="ch-label">Fin pause</span>
+              <input type="time" id="chPe" value="12:55">
+            </div>
+          </div>
+
+          <div class="ch-status" id="chStatus">—</div>
+
+          <div class="ch-results">
+            <div class="ch-metric">
+              <div class="ch-metric-label">Pause</div>
+              <div class="ch-metric-value" id="chVPause">—</div>
+            </div>
+            <div class="ch-metric">
+              <div class="ch-metric-label">Travail matin</div>
+              <div class="ch-metric-value" id="chVMatin">—</div>
+            </div>
+            <div class="ch-metric">
+              <div class="ch-metric-label">Départ au plus tôt</div>
+              <div class="ch-metric-value ch-ok" id="chVDep">—</div>
+            </div>
+            <div class="ch-metric">
+              <div class="ch-metric-label">Temps requis</div>
+              <div class="ch-metric-value" id="chVTotal">—</div>
+            </div>
+          </div>
+
+          <div class="ch-info" id="chInfo">Sélectionnez un jour et saisissez vos heures.</div>
+        </div>
+      </div>
+
     </div>
+
+    <style>
+      .ch-daybar{display:flex;gap:6px;padding:12px 16px 4px;flex-wrap:wrap;}
+      .ch-day{padding:5px 12px;border-radius:20px;font-family:'Nunito',sans-serif;font-size:0.68rem;font-weight:800;cursor:pointer;border:1.5px solid var(--border);background:rgba(250,249,246,0.55);color:var(--muted);transition:all 0.15s;}
+      .ch-day:hover{border-color:var(--c2);color:var(--c2);}
+      .ch-day.active{background:linear-gradient(90deg,var(--c1),var(--c2));color:#fff;border-color:transparent;}
+      .ch-fields{padding:8px 16px 2px;display:flex;flex-direction:column;gap:9px;}
+      .ch-field{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+      .ch-label{font-size:0.7rem;font-weight:700;color:var(--muted);}
+      .ch-label em{font-style:normal;font-weight:600;opacity:0.75;}
+      .ch-field input[type=time]{font-family:'Nunito',sans-serif;font-size:0.78rem;font-weight:700;color:var(--text);background:rgba(250,249,246,0.55);border:1.5px solid var(--border);border-radius:10px;padding:5px 8px;outline:none;transition:border-color 0.15s;}
+      .ch-field input[type=time]:focus{border-color:var(--c2);}
+      .ch-status{margin:12px 16px 10px;padding:8px 12px;border-radius:12px;font-size:0.72rem;font-weight:800;text-align:center;}
+      .ch-status.s-ok{background:rgba(63,146,112,0.15);color:var(--c4);}
+      .ch-status.s-warn{background:rgba(184,134,47,0.15);color:var(--c5);}
+      .ch-status.s-err{background:rgba(181,87,122,0.18);color:var(--c1);}
+      .ch-results{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 16px 10px;}
+      .ch-metric{background:rgba(250,249,246,0.5);border:1px solid rgba(250,249,246,0.75);border-radius:12px;padding:8px 10px;}
+      .ch-metric-label{font-size:0.58rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px;}
+      .ch-metric-value{font-size:1rem;font-weight:800;color:var(--text);}
+      .ch-metric-value.ch-ok{color:var(--c4);}
+      .ch-metric-value.ch-warn{color:var(--c5);}
+      .ch-metric-value.ch-err{color:var(--c1);}
+      .ch-info{margin:0 16px 16px;padding:10px 12px;background:rgba(250,249,246,0.4);border-radius:12px;font-size:0.68rem;color:var(--muted);line-height:1.6;}
+      .ch-info strong{color:var(--text);}
+      #chBody.ch-collapsed{display:none;}
+      #chCollapseBtn{font-size:0.85rem;}
+    </style>
     <!-- COL 2 vide -->
     <div></div>
 
@@ -4469,6 +4552,107 @@ function txInit(){
 }
 
 document.addEventListener('DOMContentLoaded', txInit);
+
+// ══════════════════════════════════════════
+// ── CALCUL HORAIRE (Aventech) ──
+// ══════════════════════════════════════════
+const CH_DAYS = {
+  lun: { label:'Lundi',    workMin: 450, pmEndRef:'16:10', departPlage:'15h40 – 16h40' },
+  mar: { label:'Mardi',    workMin: 450, pmEndRef:'16:10', departPlage:'15h40 – 16h40' },
+  mer: { label:'Mercredi', workMin: 450, pmEndRef:'16:10', departPlage:'15h40 – 16h40' },
+  jeu: { label:'Jeudi',    workMin: 450, pmEndRef:'16:10', departPlage:'15h40 – 16h40' },
+  ven: { label:'Vendredi', workMin: 390, pmEndRef:'15:30', departPlage:'14h50' }
+};
+let chSel = localStorage.getItem('dashboard_ch_day') || 'lun';
+if(!CH_DAYS[chSel]) chSel = 'lun';
+
+function chToMin(t){ const [h,m]=t.split(':').map(Number); return h*60+m; }
+function chToHHMM(n){ return String(Math.floor(n/60)).padStart(2,'0')+'h'+String(n%60).padStart(2,'0'); }
+function chFmt(n){ const h=Math.floor(n/60),m=n%60; return h>0 ? h+'h'+(m>0?String(m).padStart(2,'0'):'') : m+' min'; }
+
+function chCompute(){
+  const day = CH_DAYS[chSel];
+  const arriveEl = document.getElementById('chArrive');
+  const psEl = document.getElementById('chPs');
+  const peEl = document.getElementById('chPe');
+  if(!arriveEl.value || !psEl.value || !peEl.value) return;
+
+  const arrive = chToMin(arriveEl.value);
+  const ps     = chToMin(psEl.value);
+  const pe     = chToMin(peEl.value);
+
+  const pauseDur = pe - ps;
+  const matin    = ps - arrive;
+  const depMin   = pe + (day.workMin - matin);
+
+  document.getElementById('chVPause').textContent = chFmt(pauseDur);
+  document.getElementById('chVMatin').textContent = chFmt(matin);
+  document.getElementById('chVDep').textContent   = chToHHMM(depMin);
+  document.getElementById('chVTotal').textContent = chFmt(day.workMin);
+
+  document.getElementById('chVPause').className = 'ch-metric-value ' + (pauseDur < 40 ? 'ch-err' : pauseDur > 120 ? 'ch-warn' : '');
+
+  const arriveOk = arrive >= chToMin('07:30') && arrive <= chToMin('08:30');
+
+  let sc = 's-ok', st = '✓ Horaires valides';
+  if (!arriveOk){ sc = 's-warn'; st = '⚠ Arrivée hors plage (7h30–8h30)'; }
+  else if (pauseDur < 40){ sc = 's-err'; st = '✗ Pause trop courte (min. 40 min)'; }
+  else if (pauseDur > 120){ sc = 's-warn'; st = '⚠ Pause > 2h (max. autorisé)'; }
+
+  const statusEl = document.getElementById('chStatus');
+  statusEl.className = 'ch-status ' + sc;
+  statusEl.textContent = st;
+
+  document.getElementById('chInfo').innerHTML =
+    `<strong>${day.label}</strong> — Officiel : ${arriveEl.value.replace(':','h')}–${psEl.value.replace(':','h')} / ${peEl.value.replace(':','h')}–${day.pmEndRef.replace(':','h')}<br>` +
+    `Temps requis : <strong>${chFmt(day.workMin)}</strong> · Plage de départ : <strong>${day.departPlage}</strong>`;
+
+  localStorage.setItem('dashboard_ch_day', chSel);
+  localStorage.setItem('dashboard_ch_arrive', arriveEl.value);
+  localStorage.setItem('dashboard_ch_ps', psEl.value);
+  localStorage.setItem('dashboard_ch_pe', peEl.value);
+}
+
+function chToggleCollapse(){
+  const body = document.getElementById('chBody');
+  const btn  = document.getElementById('chCollapseBtn');
+  const collapsed = body.classList.toggle('ch-collapsed');
+  btn.textContent = collapsed ? '﹀' : '︿';
+  localStorage.setItem('dashboard_ch_collapsed', collapsed ? '1' : '0');
+}
+
+function chInit(){
+  const savedArrive = localStorage.getItem('dashboard_ch_arrive');
+  const savedPs = localStorage.getItem('dashboard_ch_ps');
+  const savedPe = localStorage.getItem('dashboard_ch_pe');
+  if(savedArrive) document.getElementById('chArrive').value = savedArrive;
+  if(savedPs) document.getElementById('chPs').value = savedPs;
+  if(savedPe) document.getElementById('chPe').value = savedPe;
+
+  document.querySelectorAll('#chDayRow .ch-day').forEach(b => {
+    b.classList.toggle('active', b.dataset.day === chSel);
+  });
+
+  document.getElementById('chDayRow').addEventListener('click', e => {
+    const btn = e.target.closest('.ch-day');
+    if(!btn) return;
+    document.querySelectorAll('#chDayRow .ch-day').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    chSel = btn.dataset.day;
+    chCompute();
+  });
+
+  ['chArrive','chPs','chPe'].forEach(id => document.getElementById(id).addEventListener('input', chCompute));
+
+  if(localStorage.getItem('dashboard_ch_collapsed') === '1'){
+    document.getElementById('chBody').classList.add('ch-collapsed');
+    document.getElementById('chCollapseBtn').textContent = '﹀';
+  }
+
+  chCompute();
+}
+
+document.addEventListener('DOMContentLoaded', chInit);
 
 // ══════════════════════════════════════════
 // ── YOUTUBE SEARCH ──
