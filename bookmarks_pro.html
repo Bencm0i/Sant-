@@ -2749,13 +2749,10 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(255
         </div>
         <div class="gal-list-scroll" id="galListScroll"></div>
       </div>
-      <!-- MUSIC PLAYER -->
-      <div id="musicPlayer" style="display:none">
-        <div class="music-head">
-    </div>
-
+      <!-- MUSIC PLAYER (placeholder réel : voir #musicPlayer en bas, hors colonne supprimée) -->
   </div>
 </div>
+</div><!-- /#mainPage -->
 
 <!-- Éléments cachés requis par le JS (col-right supprimée) -->
 <div style="display:none">
@@ -4475,7 +4472,7 @@ function showKbFlash(text){
 
 document.addEventListener('keydown', (e) => {
   const tag = document.activeElement?.tagName?.toLowerCase();
-  const inInput = tag === 'input' || tag === 'textarea';
+  const inInput = tag === 'input' || tag === 'textarea' || document.activeElement?.isContentEditable;
 
   // Échap : ferme panneaux
   if(e.key === 'Escape'){
@@ -6407,7 +6404,6 @@ document.addEventListener('keydown', function(e){
       <button class="bgconfirm-btn cancel" onclick="bgConfirmCancel()">✕ Annuler</button>
       <button class="bgconfirm-btn apply" onclick="bgConfirmApply()">✓ Appliquer</button>
     </div>
-    <button class="bgconfirm-btn launcher" id="bgConfirmLauncher" onclick="bgConfirmApplyLauncher()" style="display:none;width:100%;margin-top:-4px;">🖥 Aussi sur le Launcher</button>
   </div>
 </div>
 <!-- SETTINGS MODAL -->
