@@ -272,6 +272,69 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(255
 }
 #editorToggleBtn:hover{opacity:1;}
 
+/* ── PANNEAU DESSIN LIBRE (tableau blanc, au-dessus de tout) ── */
+#drawCanvas{
+  position:fixed !important;inset:0;z-index:9990;
+  width:100%;height:100%;
+  background:transparent !important;
+  border-top:none !important;
+  pointer-events:none;
+  touch-action:none;
+  display:block !important;
+}
+#drawCanvas.draw-active{pointer-events:auto;cursor:crosshair;}
+#drawCanvas.draw-active.draw-erasing{cursor:cell;}
+#drawPanel {
+  position:fixed;top:30px;left:0;right:0;z-index:9992;
+  background:rgba(255,255,255,0.82);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-bottom:1.5px solid rgba(61,90,115,0.25);
+  box-shadow:0 4px 24px rgba(30,41,59,0.12);
+  transition:transform 0.3s ease,opacity 0.3s ease;
+}
+#drawPanel.draw-hidden{
+  transform:translateY(-120%);
+  opacity:0;
+  pointer-events:none;
+}
+.draw-panel-bar{
+  display:flex;align-items:center;gap:8px;padding:8px 14px;flex-wrap:wrap;
+}
+.draw-color-swatch{
+  width:22px;height:22px;border-radius:50%;border:2.5px solid transparent;
+  cursor:pointer;transition:transform 0.15s;flex-shrink:0;
+}
+.draw-color-swatch:hover{transform:scale(1.15);}
+.draw-color-swatch.active{border-color:var(--text);transform:scale(1.15);}
+.draw-color-inp{
+  width:22px;height:22px;border-radius:50%;border:1px solid rgba(61,90,115,0.25);
+  cursor:pointer;padding:0;overflow:hidden;outline:none;-webkit-appearance:none;flex-shrink:0;
+}
+.draw-color-inp::-webkit-color-swatch-wrapper{padding:0;}
+.draw-color-inp::-webkit-color-swatch{border:none;border-radius:50%;}
+.draw-size-range{width:80px;accent-color:var(--c2);cursor:pointer;flex-shrink:0;}
+.draw-sep{width:1px;height:20px;background:rgba(61,90,115,0.2);margin:0 2px;flex-shrink:0;}
+.draw-btn{
+  height:26px;min-width:26px;padding:0 8px;border-radius:7px;
+  background:rgba(61,90,115,0.08);border:1px solid rgba(61,90,115,0.18);
+  font-family:'Inter',sans-serif;font-size:0.75rem;font-weight:800;
+  color:var(--text);cursor:pointer;transition:all 0.12s;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.draw-btn:hover{background:rgba(61,90,115,0.22);border-color:var(--c2);color:var(--c2);}
+.draw-btn.active{background:rgba(61,90,115,0.3);border-color:var(--c2);color:var(--c2);}
+.draw-hint{font-size:0.62rem;font-weight:700;color:var(--muted);margin-left:auto;padding-right:4px;}
+#drawToggleBtn {
+  position:fixed;top:30px;right:16px;z-index:9993;
+  background:rgba(255,255,255,0.75);backdrop-filter:blur(10px);
+  border:1.5px solid rgba(61,90,115,0.25);border-top:none;
+  border-radius:0 0 14px 14px;box-shadow:0 4px 14px rgba(30,41,59,0.12);
+  width:52px;height:28px;font-size:0.82rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0.7;transition:opacity 0.15s;
+}
+#drawToggleBtn:hover{opacity:1;}
+#drawToggleBtn.active{opacity:1;background:rgba(61,90,115,0.18);border-color:var(--c2);}
+
 /* ── TICKER BAR ── */
 #tickerBar {
   position:fixed; top:0; left:0; right:0; z-index:900;
@@ -527,8 +590,6 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(255
   padding:14px 0; font-weight:600;
 }
 
-/* drawCanvas stub pour compatibilité resetAll */
-#drawCanvas { display:none; }
 .page{position:relative;z-index:1;width:100%;max-width:100%;padding:170px 0 60px;display:flex;flex-direction:column;gap:24px;}
 
 .site-header{padding:0 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
@@ -3325,29 +3386,145 @@ function bgConfirmCancel(){
   _pendingBgData = null;
 }
 
-// ── CANVAS PLEIN ÉCRAN ──
+// ── TABLEAU BLANC : CANVAS PLEIN ÉCRAN, DESSIN À MAIN LEVÉE ──
 // canvas/ctx initialisés dans initCanvas() appelé depuis window.onload
 let canvas, ctx;
-let drawing=false, currentColor='#6b4f5c', currentSize=3, history=[];
-let drawEnabled=false;
+let drawing=false, currentColor='#2b2b2b', currentSize=3, history=[];
+let drawEnabled=false, erasing=false;
+const DRAW_HISTORY_MAX = 25;
 
 function initCanvas(){
   canvas = document.getElementById('drawCanvas');
   if(!canvas) return;
   ctx = canvas.getContext('2d');
-  // canvas caché, pas d'events
+  resizeCanvas(true);
+  window.addEventListener('resize', () => resizeCanvas(false));
+
+  // Souris
+  canvas.addEventListener('mousedown', startDraw);
+  canvas.addEventListener('mousemove', draw);
+  window.addEventListener('mouseup', endDraw);
+  canvas.addEventListener('mouseleave', () => { if(drawing) endDraw(); });
+
+  // Tactile
+  canvas.addEventListener('touchstart', e => { startDraw(e.touches[0]); e.preventDefault(); }, {passive:false});
+  canvas.addEventListener('touchmove', e => { draw(e.touches[0]); e.preventDefault(); }, {passive:false});
+  canvas.addEventListener('touchend', e => { endDraw(); e.preventDefault(); }, {passive:false});
 }
 
-function toggleDrawMode(){ /* supprimé */ }
-function resizeCanvas(){ /* supprimé */ }
-function startDraw(){ /* supprimé */ }
-function draw(){ /* supprimé */ }
-function endDraw(){ /* supprimé */ }
-function setColor(){ /* supprimé */ }
-function setSize(){ /* supprimé */ }
-function undoDraw(){ /* supprimé */ }
-function clearCanvas(){ if(ctx) try{ ctx.clearRect(0,0,9999,9999); }catch(e){} localStorage.removeItem('dashboard_canvas'); }
-function saveCanvas(){ /* supprimé */ }
+function resizeCanvas(isInit){
+  if(!canvas) return;
+  // Sauvegarde le dessin courant avant de redimensionner (le canvas se vide sinon)
+  let prev = null;
+  if(!isInit && canvas.width && canvas.height){
+    try{ prev = canvas.toDataURL(); }catch(e){}
+  }
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const restore = prev || localStorage.getItem('dashboard_canvas');
+  if(restore){
+    const img = new Image();
+    img.onload = () => ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    img.src = restore;
+  }
+}
+
+function getDrawPos(e){
+  const r = canvas.getBoundingClientRect();
+  return { x: e.clientX - r.left, y: e.clientY - r.top };
+}
+
+function startDraw(e){
+  if(!drawEnabled || !ctx) return;
+  drawing = true;
+  // snapshot pour l'annulation
+  try{
+    history.push(canvas.toDataURL());
+    if(history.length > DRAW_HISTORY_MAX) history.shift();
+  }catch(err){}
+  const p = getDrawPos(e);
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+}
+
+function draw(e){
+  if(!drawing || !drawEnabled || !ctx) return;
+  const p = getDrawPos(e);
+  ctx.globalCompositeOperation = erasing ? 'destination-out' : 'source-over';
+  ctx.strokeStyle = currentColor;
+  ctx.lineWidth = erasing ? currentSize * 4 : currentSize;
+  ctx.lineTo(p.x, p.y);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(p.x, p.y);
+}
+
+function endDraw(){
+  if(!drawing) return;
+  drawing = false;
+  ctx.beginPath();
+  saveCanvas();
+}
+
+function drawSetColor(color, el){
+  currentColor = color;
+  erasing = false;
+  const btn = document.getElementById('drawEraserBtn');
+  if(btn) btn.classList.remove('active');
+  document.querySelectorAll('.draw-color-swatch').forEach(s => s.classList.remove('active'));
+  if(el && el.classList && el.classList.contains('draw-color-swatch')) el.classList.add('active');
+}
+
+function drawSetSize(val){
+  currentSize = parseInt(val, 10) || 3;
+}
+
+function drawToggleEraser(){
+  erasing = !erasing;
+  const btn = document.getElementById('drawEraserBtn');
+  if(btn) btn.classList.toggle('active', erasing);
+  if(erasing) document.querySelectorAll('.draw-color-swatch').forEach(s => s.classList.remove('active'));
+}
+
+function undoDraw(){
+  if(!ctx || !history.length) return;
+  const last = history.pop();
+  const img = new Image();
+  img.onload = () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    saveCanvas();
+  };
+  img.src = last;
+}
+function drawUndo(){ undoDraw(); }
+
+function clearCanvas(){
+  if(ctx) try{ ctx.clearRect(0,0,canvas ? canvas.width : 9999, canvas ? canvas.height : 9999); }catch(e){}
+  localStorage.removeItem('dashboard_canvas');
+}
+function drawClearAll(){
+  if(!confirm('Effacer tout le tableau blanc ?')) return;
+  history = [];
+  clearCanvas();
+}
+
+function saveCanvas(){
+  if(!canvas) return;
+  try{ localStorage.setItem('dashboard_canvas', canvas.toDataURL()); }catch(e){}
+}
+
+function drawPanelToggle(){
+  drawEnabled = !drawEnabled;
+  const panel = document.getElementById('drawPanel');
+  const btn = document.getElementById('drawToggleBtn');
+  if(panel) panel.classList.toggle('draw-hidden', !drawEnabled);
+  if(btn) btn.classList.toggle('active', drawEnabled);
+  if(canvas) canvas.classList.toggle('draw-active', drawEnabled);
+}
+function toggleDrawMode(){ drawPanelToggle(); }
 
 // ── FIT TOGGLE (cover ↔ contain) ──
 let ssFit = 'cover'; // 'cover' | 'contain'
@@ -4476,6 +4653,8 @@ document.addEventListener('keydown', (e) => {
 
   // Échap : ferme panneaux
   if(e.key === 'Escape'){
+    // ferme tableau blanc
+    if(drawEnabled){ drawPanelToggle(); return; }
     // ferme lightbox
     const lb = document.getElementById('ssLightbox');
     if(lb && lb.classList.contains('open')){ ssCloseZoom(); return; }
@@ -6389,8 +6568,27 @@ document.addEventListener('keydown', function(e){
   <div id="ssLightboxFilename"></div>
 </div>
 
-<!-- drawCanvas stub (requis par resetAll JS) -->
-<canvas id="drawCanvas" style="display:none;"></canvas>
+<!-- TABLEAU BLANC : dessin à main levée par-dessus tout -->
+<canvas id="drawCanvas"></canvas>
+<div id="drawPanel" class="draw-hidden">
+  <div class="draw-panel-bar">
+    <div class="draw-color-swatch active" style="background:#2b2b2b" onclick="drawSetColor('#2b2b2b',this)" title="Noir"></div>
+    <div class="draw-color-swatch" style="background:#b3564f" onclick="drawSetColor('#b3564f',this)" title="Rouge"></div>
+    <div class="draw-color-swatch" style="background:#3d5a73" onclick="drawSetColor('#3d5a73',this)" title="Bleu"></div>
+    <div class="draw-color-swatch" style="background:#5a8a5a" onclick="drawSetColor('#5a8a5a',this)" title="Vert"></div>
+    <div class="draw-color-swatch" style="background:#d4a63c" onclick="drawSetColor('#d4a63c',this)" title="Jaune"></div>
+    <input type="color" class="draw-color-inp" value="#2b2b2b" oninput="drawSetColor(this.value,this)" title="Couleur personnalisée">
+    <div class="draw-sep"></div>
+    <span style="font-size:0.62rem;font-weight:700;color:var(--muted)">✏️</span>
+    <input type="range" class="draw-size-range" id="drawSizeRange" min="1" max="30" value="3" oninput="drawSetSize(this.value)" title="Épaisseur">
+    <div class="draw-sep"></div>
+    <button class="draw-btn" id="drawEraserBtn" onclick="drawToggleEraser()" title="Gomme">🧽</button>
+    <button class="draw-btn" onclick="drawUndo()" title="Annuler">↩</button>
+    <button class="draw-btn" onclick="drawClearAll()" title="Tout effacer" style="color:#b3564f;border-color:rgba(179,86,79,0.3)">🗑</button>
+    <span class="draw-hint">Dessine n'importe où sur l'écran, par-dessus tout</span>
+  </div>
+</div>
+<button id="drawToggleBtn" onclick="drawPanelToggle()" title="Afficher / masquer le tableau blanc">✏️</button>
 
 <button id="scrollTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Remonter en haut">↑</button>
 
