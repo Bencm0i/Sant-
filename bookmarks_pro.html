@@ -401,20 +401,6 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(255
 .ticker-item .ticker-dot {
   width:6px; height:6px; border-radius:50%; flex-shrink:0;
 }
-.ticker-item .ticker-del {
-  opacity:0; font-size:0.6rem; color:#b3564f; margin-left:2px;
-  transition:opacity 0.15s; background:none; border:none; cursor:pointer;
-  padding:0; font-family:'Inter',sans-serif;
-}
-.ticker-item:hover .ticker-del { opacity:1; }
-#tickerAddBtn {
-  height:30px; padding:0 12px;
-  background:rgba(61,90,115,0.15); border:none; border-left:1px solid rgba(61,90,115,0.25);
-  color:rgba(61,90,115,0.8); font-size:0.75rem; cursor:pointer;
-  font-family:'Inter',sans-serif; font-weight:800; transition:background 0.15s;
-  display:flex; align-items:center; gap:4px; flex-shrink:0;
-}
-#tickerAddBtn:hover { background:rgba(61,90,115,0.3); color:#dde1e6; }
 #tickerHideBtn, #tickerSpeedBtn {
   height:30px; padding:0 9px;
   background:rgba(61,90,115,0.08); border:none; border-left:1px solid rgba(61,90,115,0.18);
@@ -423,26 +409,6 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(255
   display:flex; align-items:center; flex-shrink:0;
 }
 #tickerHideBtn:hover, #tickerSpeedBtn:hover { background:rgba(61,90,115,0.22); color:#dde1e6; }
-#tickerAddForm {
-  position:fixed; right:0; top:30px; z-index:901;
-  background:rgba(12,6,35,0.95); backdrop-filter:blur(16px);
-  border:1.5px solid rgba(61,90,115,0.3); border-radius:0 0 0 12px;
-  padding:10px 12px; display:none; flex-direction:column; gap:6px; min-width:240px;
-}
-#tickerAddForm.open { display:flex; }
-#tickerAddForm input {
-  background:rgba(255,255,255,0.08); border:1px solid rgba(61,90,115,0.3);
-  border-radius:8px; padding:5px 10px; font-family:'Inter',sans-serif;
-  font-size:0.75rem; color:#dde1e6; outline:none; width:100%;
-}
-#tickerAddForm input::placeholder { color:rgba(61,90,115,0.5); }
-#tickerAddForm .ticker-form-row { display:flex; gap:6px; }
-#tickerAddForm button {
-  flex:1; padding:5px 0; border-radius:8px; border:none; cursor:pointer;
-  font-family:'Inter',sans-serif; font-size:0.72rem; font-weight:800;
-}
-#tickerAddForm .btn-add { background:linear-gradient(90deg,#464a63,#3d5a73); color:#fff; }
-#tickerAddForm .btn-cancel { background:rgba(255,255,255,0.07); color:rgba(255,255,255,0.55); }
 
 /* ── TODO ZONE ── */
 #todoCard {
@@ -2004,20 +1970,11 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(255
 <div id="tickerControls" style="position:fixed;top:0;right:0;z-index:902;display:flex;align-items:center;height:30px;">
   <button id="tickerSpeedBtn" onclick="tickerToggleSpeed()" title="Vitesse de défilement">⚡</button>
   <button id="tickerHideBtn" onclick="tickerToggleHide()" title="Masquer la barre">✕</button>
-  <button id="tickerAddBtn" onclick="tickerToggleForm()">＋ Ticker</button>
 </div>
 <div id="tickerSpeedPanel">
   <label>Vitesse de défilement</label>
   <input type="range" id="tickerSpeedSlider" min="10" max="120" step="5" value="30" oninput="tickerSetSpeed(this.value)">
   <div id="tickerSpeedVal">30s — Normal</div>
-</div>
-<div id="tickerAddForm">
-  <input type="text" id="tickerInput" placeholder="Texte du ticker…" maxlength="80"
-    onkeydown="if(event.key==='Enter') tickerSubmit()">
-  <div class="ticker-form-row">
-    <button class="btn-add" onclick="tickerSubmit()">✓ Ajouter</button>
-    <button class="btn-cancel" onclick="tickerToggleForm()">Annuler</button>
-  </div>
 </div>
 <button id="tickerRevealBtn" onclick="tickerToggleHide()" title="Afficher la barre ticker">▼ Ticker</button>
 
@@ -2269,6 +2226,28 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(255
     <!-- COL 1 : LIENS + DESSIN + NOTES -->
     <div class="col-left" style="display:flex;flex-direction:column;gap:16px">
 
+      <!-- HORLOGE ANALOGIQUE -->
+      <div class="card" id="clockWidget">
+        <div class="card-head">
+          <span class="card-title">🕐 Horloge</span>
+          <button class="card-action" onclick="clockToggleCollapse()" title="Réduire / agrandir" id="clockCollapseBtn">﹀</button>
+        </div>
+        <div id="clockBody">
+          <div class="clock-wrap">
+            <svg class="clock-face" viewBox="0 0 200 200" id="clockSvg">
+              <circle class="clock-rim" cx="100" cy="100" r="94"></circle>
+              <g id="clockTicks"></g>
+              <line id="clockHourHand" class="clock-hand clock-hand-hour" x1="100" y1="100" x2="100" y2="55"></line>
+              <line id="clockMinHand" class="clock-hand clock-hand-min" x1="100" y1="100" x2="100" y2="35"></line>
+              <line id="clockSecHand" class="clock-hand clock-hand-sec" x1="100" y1="100" x2="100" y2="28"></line>
+              <circle class="clock-center" cx="100" cy="100" r="5"></circle>
+            </svg>
+            <span class="clock-digital" id="clockDigital">--:--:--</span>
+            <span class="clock-date" id="clockDate"></span>
+          </div>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-head">
           <span class="card-title">🔗 Mes liens</span>
@@ -2320,6 +2299,24 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(255
             <button class="agenda-add-btn" onclick="agendaAddEvent()">＋</button>
           </div>
         </div>
+      </div>
+
+      <!-- TODO -->
+      <div id="todoCard">
+        <div class="todo-head">
+          <span class="todo-title">✅ Tâches</span>
+          <span class="todo-stats" id="todoStats"></span>
+        </div>
+        <div class="todo-input-row">
+          <input class="todo-input" id="todoInput" placeholder="Nouvelle tâche…" onkeydown="if(event.key==='Enter') todoAdd()">
+          <button class="todo-add-btn" onclick="todoAdd()">＋</button>
+        </div>
+        <div class="todo-filters">
+          <button class="todo-filter-btn active" onclick="todoSetFilter('all',this)">Toutes</button>
+          <button class="todo-filter-btn" onclick="todoSetFilter('active',this)">En cours</button>
+          <button class="todo-filter-btn" onclick="todoSetFilter('done',this)">Terminées</button>
+        </div>
+        <div class="todo-list" id="todoList"></div>
       </div>
 
       <!-- NOTES RAPIDES -->
@@ -2509,6 +2506,22 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(255
       .ch-info strong{color:var(--text);}
       #chBody.ch-collapsed{display:none;}
       #chCollapseBtn{font-size:0.85rem;}
+
+      /* HORLOGE ANALOGIQUE */
+      #clockBody.clock-collapsed{display:none;}
+      #clockCollapseBtn{font-size:0.85rem;}
+      .clock-wrap{display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px;}
+      .clock-face{width:150px;height:150px;}
+      .clock-face circle.clock-rim{fill:rgba(255,255,255,0.55);stroke:var(--border);stroke-width:2;}
+      .clock-face .clock-tick{stroke:var(--muted);stroke-width:2;}
+      .clock-face .clock-tick-major{stroke:var(--text);stroke-width:3;}
+      .clock-face .clock-hand{stroke-linecap:round;}
+      .clock-face .clock-hand-hour{stroke:var(--text);stroke-width:6;}
+      .clock-face .clock-hand-min{stroke:var(--c2);stroke-width:4.5;}
+      .clock-face .clock-hand-sec{stroke:var(--c1);stroke-width:2;}
+      .clock-face .clock-center{fill:var(--c1);}
+      .clock-digital{font-family:'Inter',sans-serif;font-size:0.85rem;font-weight:800;color:var(--text);letter-spacing:0.04em;}
+      .clock-date{font-family:'Inter',sans-serif;font-size:0.65rem;font-weight:600;color:var(--muted);text-transform:capitalize;}
     </style>
     <!-- COL 2 vide -->
     <div></div>
@@ -2817,7 +2830,6 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(255
 
 <!-- Éléments cachés requis par le JS (col-right supprimée) -->
 <div style="display:none">
-  <div id="todoCard"><span class="todo-stats" id="todoStats"></span><div class="todo-list" id="todoList"></div><input id="todoInput"><button onclick="todoAdd()"></button></div>
   <div id="ffDlCard"><div class="ffdl-list" id="ffDlList"></div><input id="ffDlSearch"><input type="file" id="ffDlFolderInput" webkitdirectory multiple onchange="ffDlLoadFromInput(this)"></div>
   <div id="transmissionCard"><div id="txList"></div><span id="txBadge"></span><span id="txDl"></span><span id="txUl"></span><span id="txCount"></span><input id="txHostInput" value="http://localhost:9091"></div>
   <div id="youtubeCard"><input id="ytSearchInput"><div id="ytHistory"></div><div id="ytHistWrap"></div><div id="ytShortcuts"></div></div>
@@ -3959,42 +3971,28 @@ function initApp(){
 // ══════════════════════════════════════════════
 // ── TICKER ──
 // ══════════════════════════════════════════════
-const TICKER_COLORS = ['#6b4f5c','#464a63','#3d5a73','#456b63','#5c5f4f','#b3564f','#6b5a3f','#5c4a63'];
-let tickerItems = [];
 let tickerHidden = false;
 let tickerSpeed = 30; // seconds
 
 function tickerLoad(){
-  try { tickerItems = JSON.parse(localStorage.getItem('dashboard_ticker') || '[]'); } catch(e){ tickerItems=[]; }
-  if(!tickerItems.length) tickerItems = [
-    { id:1, text:'🚀 Bienvenue sur votre tableau de bord', color:'#464a63' },
-    { id:2, text:'📅 Ajoutez vos infos importantes ici', color:'#3d5a73' },
-    { id:3, text:'✏️ Double-cliquez pour modifier un élément', color:'#456b63' },
-  ];
   tickerHidden = localStorage.getItem('dashboard_ticker_hidden') === '1';
   tickerSpeed = parseInt(localStorage.getItem('dashboard_ticker_speed') || '30');
-}
-
-function tickerSave(){
-  localStorage.setItem('dashboard_ticker', JSON.stringify(tickerItems));
 }
 
 function tickerRender(){
   const track = document.getElementById('tickerTrack');
   if(!track) return;
 
-  // Build items list (include next agenda event if any)
+  // Barre alimentée uniquement par le calendrier (agenda) et les tâches (todo)
   const allItems = tickerGetAllItems();
 
   // Duplicate for seamless loop
   const all = [...allItems, ...allItems];
-  track.innerHTML = all.map((item, i) => {
-    const isOriginal = i < allItems.length;
-    const isAgenda = item._agenda;
-    return `<span class="ticker-item" ondblclick="${isOriginal && !isAgenda ? `tickerEdit(${item.id})` : ''}" style="cursor:${isOriginal && !isAgenda?'pointer':'default'}">
+  track.innerHTML = all.map(item => {
+    const clickable = !!item._todo;
+    return `<span class="ticker-item" ${clickable ? `onclick="todoToggle(${item.todoId});tickerRender();"` : ''} style="cursor:${clickable ? 'pointer' : 'default'}">
       <span class="ticker-dot" style="background:${item.color}"></span>
       <span>${escHtml(item.text)}</span>
-      ${isOriginal && !isAgenda ? `<button class="ticker-del" onclick="event.stopPropagation();tickerDelete(${item.id})" title="Supprimer">✕</button>` : ''}
     </span>`;
   }).join('');
 
@@ -4022,42 +4020,53 @@ function tickerRender(){
 }
 
 function tickerGetAllItems(){
-  const items = [...tickerItems];
-  // Inject next agenda event
-  const next = tickerGetNextAgendaEvent();
-  if(next) items.push(next);
-  // Inject last Transmission download
-  const tx = tickerGetTxItem();
-  if(tx) items.push(tx);
+  const items = [...tickerGetAgendaItems(), ...tickerGetTodoItems()];
+  if(!items.length){
+    items.push({ id:'empty', text:'✨ Aucun événement à venir ni tâche en attente', color:'#456b63' });
+  }
   return items;
 }
 
-function tickerGetNextAgendaEvent(){
-  if(typeof agendaEvents === 'undefined') return null;
+// Tous les événements d'agenda à venir (aujourd'hui inclus)
+function tickerGetAgendaItems(){
+  if(typeof agendaEvents === 'undefined') return [];
   const today = new Date();
   today.setHours(0,0,0,0);
+  const months = ['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
   const keys = Object.keys(agendaEvents).sort();
+  const out = [];
   for(const key of keys){
     const d = new Date(key + 'T00:00:00');
-    if(d >= today && agendaEvents[key]?.length){
-      const ev = agendaEvents[key][0];
-      const diff = Math.round((d - today) / 86400000);
-      let label;
-      if(diff === 0) label = "Aujourd'hui";
-      else if(diff === 1) label = 'Demain';
-      else label = `Dans ${diff}j`;
-      const [y,m,day] = key.split('-');
-      const months = ['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
-      const dateStr = `${parseInt(day)} ${months[parseInt(m)-1]}`;
-      return {
-        id: 'agenda_'+key,
+    if(d < today || !agendaEvents[key]?.length) continue;
+    const diff = Math.round((d - today) / 86400000);
+    let label;
+    if(diff === 0) label = "Aujourd'hui";
+    else if(diff === 1) label = 'Demain';
+    else label = `Dans ${diff}j`;
+    const [y,m,day] = key.split('-');
+    const dateStr = `${parseInt(day)} ${months[parseInt(m)-1]}`;
+    agendaEvents[key].forEach(ev => {
+      out.push({
+        id: 'agenda_'+key+'_'+ev.text,
         text: `📅 ${label} (${dateStr}) — ${ev.text}`,
         color: ev.color || '#456b63',
         _agenda: true
-      };
-    }
+      });
+    });
   }
-  return null;
+  return out;
+}
+
+// Toutes les tâches non terminées
+function tickerGetTodoItems(){
+  if(typeof todoItems === 'undefined') return [];
+  return todoItems.filter(t => !t.done).map(t => ({
+    id: 'todo_'+t.id,
+    text: `☑️ ${t.text}`,
+    color: '#3d5a73',
+    _todo: true,
+    todoId: t.id
+  }));
 }
 
 function tickerToggleHide(){
@@ -4069,8 +4078,6 @@ function tickerToggleHide(){
 function tickerToggleSpeed(){
   const panel = document.getElementById('tickerSpeedPanel');
   if(panel) panel.classList.toggle('open');
-  // Close add form if open
-  document.getElementById('tickerAddForm').classList.remove('open');
 }
 
 function tickerSetSpeed(val){
@@ -4094,54 +4101,13 @@ function tickerUpdateSpeedLabel(val){
 
 function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-function tickerAdd(text){
-  if(!text.trim()) return;
-  const color = TICKER_COLORS[(tickerItems.length) % TICKER_COLORS.length];
-  tickerItems.push({ id: Date.now(), text: text.trim(), color });
-  tickerSave();
-  tickerRender();
-}
-
-function tickerDelete(id){
-  tickerItems = tickerItems.filter(t => t.id !== id);
-  tickerSave();
-  tickerRender();
-}
-
-function tickerEdit(id){
-  const item = tickerItems.find(t => t.id === id);
-  if(!item) return;
-  const newText = prompt('Modifier le ticker :', item.text);
-  if(newText !== null && newText.trim()){
-    item.text = newText.trim();
-    tickerSave();
-    tickerRender();
-  }
-}
-
-function tickerToggleForm(){
-  const form = document.getElementById('tickerAddForm');
-  form.classList.toggle('open');
-  if(form.classList.contains('open')) document.getElementById('tickerInput').focus();
-}
-
-function tickerSubmit(){
-  const inp = document.getElementById('tickerInput');
-  tickerAdd(inp.value);
-  inp.value = '';
-  tickerToggleForm();
-}
-
 function tickerInit(){
   tickerLoad();
   tickerRender();
-  // Close panels on outside click
+  // Close speed panel on outside click
   document.addEventListener('click', e => {
-    const form  = document.getElementById('tickerAddForm');
-    const btn   = document.getElementById('tickerAddBtn');
     const speed = document.getElementById('tickerSpeedPanel');
     const sBtn  = document.getElementById('tickerSpeedBtn');
-    if(form  && form.classList.contains('open')  && !form.contains(e.target)  && e.target !== btn)  form.classList.remove('open');
     if(speed && speed.classList.contains('open') && !speed.contains(e.target) && e.target !== sBtn) speed.classList.remove('open');
   });
 }
@@ -4158,6 +4124,7 @@ function todoLoad(){
 
 function todoSave(){
   localStorage.setItem('dashboard_todo', JSON.stringify(todoItems));
+  if(typeof tickerRender === 'function') tickerRender();
 }
 
 function todoRender(){
@@ -4218,6 +4185,7 @@ function todoSetFilter(f, btn){
 function todoInit(){
   todoLoad();
   todoRender();
+  if(typeof tickerRender === 'function') tickerRender();
 }
 
 // ── SETTINGS MODAL ──
@@ -5240,6 +5208,7 @@ function agendaInit(){
   agendaYear = now.getFullYear();
   agendaMonth = now.getMonth();
   agendaRender();
+  if(typeof tickerRender === 'function') tickerRender();
 }
 
 function agendaSave(){
@@ -5642,6 +5611,72 @@ function chInit(){
 }
 
 document.addEventListener('DOMContentLoaded', chInit);
+
+// ══════════════════════════════════════════
+// ── HORLOGE ANALOGIQUE ──
+// ══════════════════════════════════════════
+let clockTimer = null;
+
+function clockToggleCollapse(){
+  const body = document.getElementById('clockBody');
+  const btn  = document.getElementById('clockCollapseBtn');
+  const collapsed = body.classList.toggle('clock-collapsed');
+  btn.textContent = collapsed ? '﹀' : '︿';
+  localStorage.setItem('dashboard_clock_collapsed', collapsed ? '1' : '0');
+}
+
+function clockBuildTicks(){
+  const g = document.getElementById('clockTicks');
+  if(!g || g.childElementCount) return;
+  for(let i = 0; i < 60; i++){
+    const angle = i * 6;
+    const major = i % 5 === 0;
+    const r1 = major ? 78 : 84;
+    const r2 = 90;
+    const rad = (angle - 90) * Math.PI / 180;
+    const x1 = 100 + r1 * Math.cos(rad), y1 = 100 + r1 * Math.sin(rad);
+    const x2 = 100 + r2 * Math.cos(rad), y2 = 100 + r2 * Math.sin(rad);
+    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+    line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+    line.setAttribute('class', major ? 'clock-tick-major' : 'clock-tick');
+    g.appendChild(line);
+  }
+}
+
+function clockTick(){
+  const now = new Date();
+  const h = now.getHours() % 12;
+  const m = now.getMinutes();
+  const s = now.getSeconds();
+  const hDeg = h * 30 + m * 0.5;
+  const mDeg = m * 6 + s * 0.1;
+  const sDeg = s * 6;
+  const hourHand = document.getElementById('clockHourHand');
+  const minHand  = document.getElementById('clockMinHand');
+  const secHand  = document.getElementById('clockSecHand');
+  if(hourHand) hourHand.setAttribute('transform', `rotate(${hDeg} 100 100)`);
+  if(minHand)  minHand.setAttribute('transform', `rotate(${mDeg} 100 100)`);
+  if(secHand)  secHand.setAttribute('transform', `rotate(${sDeg} 100 100)`);
+  const digital = document.getElementById('clockDigital');
+  if(digital) digital.textContent = now.toLocaleTimeString('fr-FR');
+  const dateEl = document.getElementById('clockDate');
+  if(dateEl) dateEl.textContent = now.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long' });
+}
+
+function clockInit(){
+  clockBuildTicks();
+  clockTick();
+  if(clockTimer) clearInterval(clockTimer);
+  clockTimer = setInterval(clockTick, 1000);
+
+  if(localStorage.getItem('dashboard_clock_collapsed') === '1'){
+    document.getElementById('clockBody').classList.add('clock-collapsed');
+    document.getElementById('clockCollapseBtn').textContent = '﹀';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', clockInit);
 
 // ══════════════════════════════════════════
 // ── PROGRESSION JOURNÉE ──
