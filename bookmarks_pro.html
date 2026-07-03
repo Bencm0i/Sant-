@@ -2226,28 +2226,6 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(255
     <!-- COL 1 : LIENS + DESSIN + NOTES -->
     <div class="col-left" style="display:flex;flex-direction:column;gap:16px">
 
-      <!-- HORLOGE ANALOGIQUE -->
-      <div class="card" id="clockWidget">
-        <div class="card-head">
-          <span class="card-title">🕐 Horloge</span>
-          <button class="card-action" onclick="clockToggleCollapse()" title="Réduire / agrandir" id="clockCollapseBtn">﹀</button>
-        </div>
-        <div id="clockBody">
-          <div class="clock-wrap">
-            <svg class="clock-face" viewBox="0 0 200 200" id="clockSvg">
-              <circle class="clock-rim" cx="100" cy="100" r="94"></circle>
-              <g id="clockTicks"></g>
-              <line id="clockHourHand" class="clock-hand clock-hand-hour" x1="100" y1="100" x2="100" y2="55"></line>
-              <line id="clockMinHand" class="clock-hand clock-hand-min" x1="100" y1="100" x2="100" y2="35"></line>
-              <line id="clockSecHand" class="clock-hand clock-hand-sec" x1="100" y1="100" x2="100" y2="28"></line>
-              <circle class="clock-center" cx="100" cy="100" r="5"></circle>
-            </svg>
-            <span class="clock-digital" id="clockDigital">--:--:--</span>
-            <span class="clock-date" id="clockDate"></span>
-          </div>
-        </div>
-      </div>
-
       <div class="card">
         <div class="card-head">
           <span class="card-title">🔗 Mes liens</span>
@@ -2508,20 +2486,7 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(255
       #chCollapseBtn{font-size:0.85rem;}
 
       /* HORLOGE ANALOGIQUE */
-      #clockBody.clock-collapsed{display:none;}
-      #clockCollapseBtn{font-size:0.85rem;}
-      .clock-wrap{display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px;}
-      .clock-face{width:150px;height:150px;}
-      .clock-face circle.clock-rim{fill:rgba(255,255,255,0.55);stroke:var(--border);stroke-width:2;}
-      .clock-face .clock-tick{stroke:var(--muted);stroke-width:2;}
-      .clock-face .clock-tick-major{stroke:var(--text);stroke-width:3;}
-      .clock-face .clock-hand{stroke-linecap:round;}
-      .clock-face .clock-hand-hour{stroke:var(--text);stroke-width:6;}
-      .clock-face .clock-hand-min{stroke:var(--c2);stroke-width:4.5;}
-      .clock-face .clock-hand-sec{stroke:var(--c1);stroke-width:2;}
-      .clock-face .clock-center{fill:var(--c1);}
-      .clock-digital{font-family:'Inter',sans-serif;font-size:0.85rem;font-weight:800;color:var(--text);letter-spacing:0.04em;}
-      .clock-date{font-family:'Inter',sans-serif;font-size:0.65rem;font-weight:600;color:var(--muted);text-transform:capitalize;}
+
     </style>
     <!-- COL 2 vide -->
     <div></div>
@@ -3981,35 +3946,50 @@ function tickerLoad(){
 
 function tickerRender(){
   const track = document.getElementById('tickerTrack');
-  if(!track) return;
+  const bar = document.getElementById('tickerBar');
+  if(!track || !bar) return;
 
-  // Barre alimentée uniquement par le calendrier (agenda) et les tâches (todo)
-  const allItems = tickerGetAllItems();
+  const baseItems = tickerGetAllItems();
 
-  // Duplicate for seamless loop
-  const all = [...allItems, ...allItems];
-  track.innerHTML = all.map(item => {
+  const renderItem = item => {
     const clickable = !!item._todo;
     return `<span class="ticker-item" ${clickable ? `onclick="todoToggle(${item.todoId});tickerRender();"` : ''} style="cursor:${clickable ? 'pointer' : 'default'}">
       <span class="ticker-dot" style="background:${item.color}"></span>
       <span>${escHtml(item.text)}</span>
     </span>`;
-  }).join('');
+  };
+
+  // On répète le set de base tant qu'il ne couvre pas au moins la largeur de la barre,
+  // sinon la boucle est trop courte et le défilement semble "reprendre au milieu de la ligne"
+  const barWidth = bar.offsetWidth || window.innerWidth;
+  let repeatedItems = [...baseItems];
+  track.innerHTML = repeatedItems.map(renderItem).join('');
+  let guard = 0;
+  while(track.scrollWidth < barWidth && guard < 25){
+    repeatedItems = repeatedItems.concat(baseItems);
+    track.innerHTML = repeatedItems.map(renderItem).join('');
+    guard++;
+  }
+  const setWidth = track.scrollWidth;
+
+  // Doubler ce set (désormais assez large) pour une boucle infinie sans coupure
+  const all = [...repeatedItems, ...repeatedItems];
+  track.innerHTML = all.map(renderItem).join('');
 
   // Fix: force animation restart from position 0 by cloning the track element
   const parent = track.parentNode;
   const clone = track.cloneNode(true);
   parent.replaceChild(clone, track);
 
-  // Apply speed via CSS variable
-  const duration = Math.max(10, allItems.length * tickerSpeed / 3);
+  // Vitesse basée sur la largeur réelle du contenu (px/s constant), pas sur le nombre d'éléments
+  const pxPerSecond = 3000 / tickerSpeed;
+  const duration = Math.max(8, setWidth / pxPerSecond);
   document.documentElement.style.setProperty('--ticker-duration', duration + 's');
 
   // Apply hidden state
-  const bar = document.getElementById('tickerBar');
-  const controls = document.getElementById('tickerControls');
   const revealBtn = document.getElementById('tickerRevealBtn');
-  if(bar) bar.classList.toggle('ticker-hidden', tickerHidden);
+  const controls = document.getElementById('tickerControls');
+  bar.classList.toggle('ticker-hidden', tickerHidden);
   if(controls) controls.style.display = tickerHidden ? 'none' : 'flex';
   if(revealBtn) revealBtn.classList.toggle('show', tickerHidden);
 
@@ -5611,72 +5591,6 @@ function chInit(){
 }
 
 document.addEventListener('DOMContentLoaded', chInit);
-
-// ══════════════════════════════════════════
-// ── HORLOGE ANALOGIQUE ──
-// ══════════════════════════════════════════
-let clockTimer = null;
-
-function clockToggleCollapse(){
-  const body = document.getElementById('clockBody');
-  const btn  = document.getElementById('clockCollapseBtn');
-  const collapsed = body.classList.toggle('clock-collapsed');
-  btn.textContent = collapsed ? '﹀' : '︿';
-  localStorage.setItem('dashboard_clock_collapsed', collapsed ? '1' : '0');
-}
-
-function clockBuildTicks(){
-  const g = document.getElementById('clockTicks');
-  if(!g || g.childElementCount) return;
-  for(let i = 0; i < 60; i++){
-    const angle = i * 6;
-    const major = i % 5 === 0;
-    const r1 = major ? 78 : 84;
-    const r2 = 90;
-    const rad = (angle - 90) * Math.PI / 180;
-    const x1 = 100 + r1 * Math.cos(rad), y1 = 100 + r1 * Math.sin(rad);
-    const x2 = 100 + r2 * Math.cos(rad), y2 = 100 + r2 * Math.sin(rad);
-    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
-    line.setAttribute('x1', x1); line.setAttribute('y1', y1);
-    line.setAttribute('x2', x2); line.setAttribute('y2', y2);
-    line.setAttribute('class', major ? 'clock-tick-major' : 'clock-tick');
-    g.appendChild(line);
-  }
-}
-
-function clockTick(){
-  const now = new Date();
-  const h = now.getHours() % 12;
-  const m = now.getMinutes();
-  const s = now.getSeconds();
-  const hDeg = h * 30 + m * 0.5;
-  const mDeg = m * 6 + s * 0.1;
-  const sDeg = s * 6;
-  const hourHand = document.getElementById('clockHourHand');
-  const minHand  = document.getElementById('clockMinHand');
-  const secHand  = document.getElementById('clockSecHand');
-  if(hourHand) hourHand.setAttribute('transform', `rotate(${hDeg} 100 100)`);
-  if(minHand)  minHand.setAttribute('transform', `rotate(${mDeg} 100 100)`);
-  if(secHand)  secHand.setAttribute('transform', `rotate(${sDeg} 100 100)`);
-  const digital = document.getElementById('clockDigital');
-  if(digital) digital.textContent = now.toLocaleTimeString('fr-FR');
-  const dateEl = document.getElementById('clockDate');
-  if(dateEl) dateEl.textContent = now.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long' });
-}
-
-function clockInit(){
-  clockBuildTicks();
-  clockTick();
-  if(clockTimer) clearInterval(clockTimer);
-  clockTimer = setInterval(clockTick, 1000);
-
-  if(localStorage.getItem('dashboard_clock_collapsed') === '1'){
-    document.getElementById('clockBody').classList.add('clock-collapsed');
-    document.getElementById('clockCollapseBtn').textContent = '﹀';
-  }
-}
-
-document.addEventListener('DOMContentLoaded', clockInit);
 
 // ══════════════════════════════════════════
 // ── PROGRESSION JOURNÉE ──
