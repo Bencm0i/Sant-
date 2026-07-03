@@ -455,6 +455,16 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(255
 .todo-item:hover { background:rgba(255,255,255,0.65); }
 .todo-item.done { opacity:0.5; }
 .todo-item.done .todo-text { text-decoration:line-through; color:var(--muted); }
+.todo-item.priority { border-color:rgba(179,86,79,0.5); background:rgba(179,86,79,0.08); }
+.todo-item.priority .todo-text { color:#b3564f; font-weight:800; }
+.todo-priority-btn {
+  width:20px; height:20px; border-radius:6px; border:none;
+  background:transparent; font-size:0.7rem; cursor:pointer; flex-shrink:0;
+  opacity:0.3; filter:grayscale(1); display:flex; align-items:center; justify-content:center;
+  transition:opacity 0.15s, filter 0.15s;
+}
+.todo-priority-btn:hover { opacity:0.7; }
+.todo-priority-btn.active { opacity:1; filter:grayscale(0); }
 .todo-check {
   width:18px; height:18px; border-radius:6px; border:2px solid rgba(69,107,99,0.5);
   background:transparent; cursor:pointer; flex-shrink:0; display:flex; align-items:center;
@@ -3953,9 +3963,10 @@ function tickerRender(){
 
   const renderItem = item => {
     const clickable = !!item._todo;
+    const textStyle = item._priority ? `color:#e0716a;font-weight:800;` : '';
     return `<span class="ticker-item" ${clickable ? `onclick="todoToggle(${item.todoId});tickerRender();"` : ''} style="cursor:${clickable ? 'pointer' : 'default'}">
       <span class="ticker-dot" style="background:${item.color}"></span>
-      <span>${escHtml(item.text)}</span>
+      <span style="${textStyle}">${escHtml(item.text)}</span>
     </span>`;
   };
 
@@ -4037,16 +4048,20 @@ function tickerGetAgendaItems(){
   return out;
 }
 
-// Toutes les tâches non terminées
+// Toutes les tâches non terminées (priorité en rouge, en tête)
 function tickerGetTodoItems(){
   if(typeof todoItems === 'undefined') return [];
-  return todoItems.filter(t => !t.done).map(t => ({
-    id: 'todo_'+t.id,
-    text: `☑️ ${t.text}`,
-    color: '#3d5a73',
-    _todo: true,
-    todoId: t.id
-  }));
+  return todoItems
+    .filter(t => !t.done)
+    .sort((a,b) => (b.priority?1:0) - (a.priority?1:0))
+    .map(t => ({
+      id: 'todo_'+t.id,
+      text: t.priority ? `🔴 ${t.text}` : `☑️ ${t.text}`,
+      color: t.priority ? '#b3564f' : '#3d5a73',
+      _todo: true,
+      _priority: !!t.priority,
+      todoId: t.id
+    }));
 }
 
 function tickerToggleHide(){
@@ -4121,10 +4136,13 @@ function todoRender(){
     list.innerHTML = `<div class="todo-empty">${todoFilter==='done'?'Aucune tâche terminée 🎉':todoFilter==='active'?'Tout est fait ! 🎉':'Aucune tâche — ajoutez-en une ✨'}</div>`;
     return;
   }
+  // Priorité en tête (tant que non terminées)
+  visible = [...visible].sort((a,b) => (b.priority && !b.done ? 1:0) - (a.priority && !a.done ? 1:0));
   list.innerHTML = visible.map(item => `
-    <div class="todo-item${item.done?' done':''}" data-id="${item.id}">
+    <div class="todo-item${item.done?' done':''}${item.priority?' priority':''}" data-id="${item.id}">
       <div class="todo-check${item.done?' checked':''}" onclick="todoToggle(${item.id})">${item.done?'✓':''}</div>
       <input class="todo-text" value="${escHtml(item.text)}" onchange="todoEdit(${item.id},this.value)" onblur="todoEdit(${item.id},this.value)">
+      <button class="todo-priority-btn${item.priority?' active':''}" onclick="todoTogglePriority(${item.id})" title="Priorité">🚩</button>
       <button class="todo-del" onclick="todoDelete(${item.id})" title="Supprimer">✕</button>
     </div>
   `).join('');
@@ -4133,7 +4151,7 @@ function todoRender(){
 function todoAdd(){
   const inp = document.getElementById('todoInput');
   if(!inp.value.trim()) return;
-  todoItems.unshift({ id: Date.now(), text: inp.value.trim(), done: false });
+  todoItems.unshift({ id: Date.now(), text: inp.value.trim(), done: false, priority: false });
   inp.value = '';
   todoSave();
   todoRender();
@@ -4142,6 +4160,11 @@ function todoAdd(){
 function todoToggle(id){
   const item = todoItems.find(t=>t.id===id);
   if(item){ item.done = !item.done; todoSave(); todoRender(); }
+}
+
+function todoTogglePriority(id){
+  const item = todoItems.find(t=>t.id===id);
+  if(item){ item.priority = !item.priority; todoSave(); todoRender(); }
 }
 
 function todoDelete(id){
