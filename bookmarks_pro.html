@@ -992,6 +992,31 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(255
 .compact-link-favicon.loaded { opacity: 0.8; }
 .compact-link-item:hover .compact-link-favicon.loaded { opacity: 1; }
 
+/* ── ICÔNE PERSONNALISÉE ── */
+.compact-link-custom-icon {
+  position: absolute; inset: 2px;
+  width: calc(100% - 4px); height: calc(100% - 4px);
+  object-fit: cover; border-radius: 7px;
+}
+.emoji-picker-footer {
+  grid-column: 1 / -1; display:flex; flex-direction:column; gap:4px;
+  border-top:1px solid rgba(61,90,115,0.15); margin-top:6px; padding-top:6px;
+}
+.emoji-picker-custom-btn {
+  font-family:'Inter',sans-serif; font-size:0.65rem; font-weight:700;
+  background:rgba(61,90,115,0.1); border:1px dashed rgba(61,90,115,0.35);
+  border-radius:8px; padding:6px; cursor:pointer; color:var(--text);
+  display:flex; align-items:center; justify-content:center; gap:4px;
+  transition:background 0.12s;
+}
+.emoji-picker-custom-btn:hover { background:rgba(61,90,115,0.2); }
+.emoji-picker-remove-btn {
+  font-family:'Inter',sans-serif; font-size:0.62rem; font-weight:700;
+  background:rgba(179,86,79,0.1); border:1px dashed rgba(179,86,79,0.35);
+  border-radius:8px; padding:5px; cursor:pointer; color:#b3564f;
+}
+.emoji-picker-remove-btn:hover { background:rgba(179,86,79,0.2); }
+
 /* ── BARRE DE RECHERCHE liens ── */
 .links-search-wrap {
   padding: 8px 12px 0;
@@ -1940,6 +1965,10 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(255
 .btn.save-btn:hover{background:#3A3010;}
 .btn.test-btn{border-color:#8A2020;color:#F5A0A0;background:#2A1010;}
 .btn.test-btn:hover{background:#3A1010;}
+.btn.toggle-btn{border-color:#2A7A4A;color:#8AE0B0;background:#0F2A1A;}
+.btn.toggle-btn:hover{background:#153A22;}
+.btn.toggle-btn.off{border-color:#8A2020;color:#F5A0A0;background:#2A1010;}
+.btn.toggle-btn.off:hover{background:#3A1010;}
 .saved-flash{font-size:11px;font-family:system-ui,sans-serif;color:#90C870;display:none;align-items:center;gap:4px;}
 .saved-flash.show{display:flex;}
 
@@ -2139,6 +2168,9 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(255
         </button>
         <button class="btn test-btn" onclick="pzTestAlert()">
           <i class="ti ti-bell-ringing"></i> Tester
+        </button>
+        <button class="btn toggle-btn" id="alarm-toggle-btn" onclick="pzToggleAlarm()">
+          <i class="ti ti-bell" id="alarm-toggle-icon"></i> <span id="alarm-toggle-label">Alarme active</span>
         </button>
         <div class="saved-flash" id="saved-flash"><i class="ti ti-check"></i> Sauvegardé</div>
       </div>
@@ -2813,6 +2845,7 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(255
 </div>
 
 <div class="emoji-picker" id="emojiPicker" style="display:none"></div>
+<input type="file" id="customIconFileInput" accept="image/*" style="display:none" onchange="handleCustomIconFile(this)">
 
 <script>
 const EMOJIS=['🔗','🌐','📧','📁','🎵','🎬','📚','🛒','💼','🏠','⚙️','🎮','📊','🗓️','📸','🔑','💡','🚀','⭐','❤️','🌈','🎯','🔍','💬','📱','🖥️','🎨','📝','🏋️','🌿'];
@@ -3314,19 +3347,84 @@ function renderCompactLinks(){
   }
 }
 
+let customIconTargetIdx = null;
+
 function openEmojiCompact(e, idx){
   const picker = document.getElementById('emojiPicker');
   picker.innerHTML = '';
   EMOJIS.forEach(em => {
     const btn = document.createElement('button');
     btn.textContent = em;
-    btn.onclick = () => { compactLinks[idx].emoji = em; saveCompactLinks(); renderCompactLinks(); picker.style.display = 'none'; };
+    btn.onclick = () => { compactLinks[idx].emoji = em; delete compactLinks[idx].icon; saveCompactLinks(); renderCompactLinks(); picker.style.display = 'none'; };
     picker.appendChild(btn);
   });
+
+  const footer = document.createElement('div');
+  footer.className = 'emoji-picker-footer';
+
+  const customBtn = document.createElement('button');
+  customBtn.className = 'emoji-picker-custom-btn';
+  customBtn.innerHTML = '🖼️ Icône personnalisée…';
+  customBtn.onclick = (ev) => {
+    ev.stopPropagation();
+    customIconTargetIdx = idx;
+    document.getElementById('customIconFileInput').click();
+  };
+  footer.appendChild(customBtn);
+
+  if(compactLinks[idx] && compactLinks[idx].icon){
+    const rmBtn = document.createElement('button');
+    rmBtn.className = 'emoji-picker-remove-btn';
+    rmBtn.textContent = "✕ Retirer l'icône personnalisée";
+    rmBtn.onclick = (ev) => {
+      ev.stopPropagation();
+      delete compactLinks[idx].icon;
+      saveCompactLinks();
+      renderCompactLinks();
+      picker.style.display = 'none';
+    };
+    footer.appendChild(rmBtn);
+  }
+
+  picker.appendChild(footer);
+
   const r = e.target.getBoundingClientRect();
   picker.style.display = 'grid';
   picker.style.left = Math.min(r.left, window.innerWidth-230)+'px';
   picker.style.top = (r.bottom+6)+'px';
+}
+
+// ── Import d'une icône personnalisée (image locale → data URL redimensionnée) ──
+function handleCustomIconFile(input){
+  const file = input.files && input.files[0];
+  input.value = '';
+  if(!file || customIconTargetIdx === null) return;
+  const idx = customIconTargetIdx;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const img = new Image();
+    img.onload = () => {
+      // Redimensionne à 64x64 pour limiter la taille stockée en localStorage
+      const size = 64;
+      const canvas = document.createElement('canvas');
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      // Recadrage centré "cover"
+      const ratio = Math.max(size/img.width, size/img.height);
+      const w = img.width*ratio, h = img.height*ratio;
+      ctx.drawImage(img, (size-w)/2, (size-h)/2, w, h);
+      const dataUrl = canvas.toDataURL('image/png');
+      if(compactLinks[idx]){
+        compactLinks[idx].icon = dataUrl;
+        saveCompactLinks();
+        renderCompactLinks();
+      }
+      document.getElementById('emojiPicker').style.display = 'none';
+      customIconTargetIdx = null;
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 
 // ── RENDER LINKS (legacy — kept for vault import compat) ──
@@ -4590,12 +4688,27 @@ function filterLinks(q){
   const clearBtn = document.getElementById('linksSearchClear');
   clearBtn.classList.toggle('show', q.length > 0);
   const term = q.toLowerCase().trim();
-  document.querySelectorAll('#compactLinksWrap .compact-link-item').forEach((item, i) => {
-    const lk = compactLinks[i];
+  document.querySelectorAll('#compactLinksWrap .compact-link-item').forEach((item) => {
+    // Utilise l'index réel stocké sur l'élément (dataset.idx), car l'ordre DOM
+    // peut différer de l'ordre du tableau compactLinks (favoris fréquents réordonnés en haut).
+    const idx = parseInt(item.dataset.idx, 10);
+    const lk = compactLinks[idx];
     if(!lk) return;
     const match = !term || (lk.name||'').toLowerCase().includes(term) || (lk.url||'').toLowerCase().includes(term);
     item.classList.toggle('search-hidden', !match);
   });
+
+  // Si l'accordéon "Autres" est fermé, l'ouvrir automatiquement pendant une recherche
+  // pour que les résultats masqués dans le repli restent visibles.
+  const accBody = document.querySelector('#compactLinksWrap .cl-accordion-body');
+  const accBtn = document.querySelector('#compactLinksWrap .cl-accordion-btn');
+  if(accBody && accBtn){
+    if(term){
+      accBody.style.maxHeight = accBody.scrollHeight + 'px';
+    } else if(!clAccordionOpen){
+      accBody.style.maxHeight = '0';
+    }
+  }
 }
 
 function clearLinksSearch(){
@@ -4688,21 +4801,29 @@ function buildCompactLinkEl(lk, i){
 
   const emBtn = document.createElement('button');
   emBtn.className = 'compact-link-emoji-btn';
-  emBtn.textContent = lk.emoji || '🔗';
   emBtn.title = 'Changer icône';
   emBtn.onclick = (e) => { e.stopPropagation(); openEmojiCompact(e, i); };
-  if(lk.url){
-    try {
-      const domain = new URL(lk.url).hostname;
-      if(domain && !domain.startsWith('192.') && !domain.startsWith('10.') && !domain.startsWith('172.')){
-        const fav = document.createElement('img');
-        fav.className = 'compact-link-favicon';
-        fav.src = `https://www.google.com/s2/favicons?sz=32&domain=${domain}`;
-        fav.onload = () => fav.classList.add('loaded');
-        fav.onerror = () => fav.remove();
-        emBtn.appendChild(fav);
-      }
-    } catch(e){}
+  if(lk.icon){
+    // Icône personnalisée (image importée par l'utilisateur) : prioritaire sur emoji/favicon
+    const custom = document.createElement('img');
+    custom.className = 'compact-link-custom-icon';
+    custom.src = lk.icon;
+    emBtn.appendChild(custom);
+  } else {
+    emBtn.textContent = lk.emoji || '🔗';
+    if(lk.url){
+      try {
+        const domain = new URL(lk.url).hostname;
+        if(domain && !domain.startsWith('192.') && !domain.startsWith('10.') && !domain.startsWith('172.')){
+          const fav = document.createElement('img');
+          fav.className = 'compact-link-favicon';
+          fav.src = `https://www.google.com/s2/favicons?sz=32&domain=${domain}`;
+          fav.onload = () => fav.classList.add('loaded');
+          fav.onerror = () => fav.remove();
+          emBtn.appendChild(fav);
+        }
+      } catch(e){}
+    }
   }
   item.appendChild(emBtn);
 
@@ -6238,6 +6359,7 @@ let pzCurrentProfile = 'semaine';
 let pzSettings = { semaine:{}, vendredi:{} };
 let pzAlertTimeout = null;
 let pzLastTriggered = {};
+let pzAlarmEnabled = true;
 
 // ── Storage ───────────────────────────────────────────────────────────────────
 function pzTodayKey(){
@@ -6252,6 +6374,7 @@ function pzLoadAll(){
       const p=JSON.parse(s);
       if(p.pzSettings) pzSettings=p.pzSettings;
       if(p.profile)  pzCurrentProfile=p.profile;
+      if(typeof p.alarmEnabled==='boolean') pzAlarmEnabled=p.alarmEnabled;
     }
   }catch(e){}
   ['semaine','vendredi'].forEach(pr=>{
@@ -6261,7 +6384,7 @@ function pzLoadAll(){
 }
 
 function pzSaveAll(){
-  try{ localStorage.setItem('dashboard_pointage_v4',JSON.stringify({pzSettings,profile:pzCurrentProfile})); }catch(e){}
+  try{ localStorage.setItem('dashboard_pointage_v4',JSON.stringify({pzSettings,profile:pzCurrentProfile,alarmEnabled:pzAlarmEnabled})); }catch(e){}
 }
 
 // ── Profile ───────────────────────────────────────────────────────────────────
@@ -6420,6 +6543,28 @@ function pzTriggerAlert(label){
 }
 function pzTestAlert(){ pzTriggerAlert('Test alarme'); }
 
+// ── Toggle activation/désactivation de l'alarme de pointage ────────────────
+function pzUpdateAlarmToggleUI(){
+  const btn=document.getElementById('alarm-toggle-btn');
+  const icon=document.getElementById('alarm-toggle-icon');
+  const label=document.getElementById('alarm-toggle-label');
+  if(!btn) return;
+  if(pzAlarmEnabled){
+    btn.classList.remove('off');
+    icon.className='ti ti-bell';
+    label.textContent='Alarme active';
+  } else {
+    btn.classList.add('off');
+    icon.className='ti ti-bell-off';
+    label.textContent='Alarme coupée';
+  }
+}
+function pzToggleAlarm(){
+  pzAlarmEnabled=!pzAlarmEnabled;
+  pzSaveAll();
+  pzUpdateAlarmToggleUI();
+}
+
 // ── Title blink (onglet) ─────────────────────────────────────────────────────
 const pzOriginalTitle=document.title;
 let pzTitleBlinkInterval=null;
@@ -6464,7 +6609,7 @@ function pzTick(){
       const key=ev.key+'_'+Math.floor(nowSecs/60);
       if(!pzLastTriggered[key]){
         pzLastTriggered[key]=true;
-        pzTriggerAlert(ev.label);
+        if(pzAlarmEnabled) pzTriggerAlert(ev.label);
       }
     }
     const card=document.getElementById('card_'+ev.key);
@@ -6513,6 +6658,7 @@ pzBuildSprockets('sprockets-top',20);
 pzBuildSprockets('sprockets-bot',20);
 pzBuildGrid();
 pzBuildTimeline();
+pzUpdateAlarmToggleUI();
 pzTick();
 setInterval(pzTick,1000);
 
