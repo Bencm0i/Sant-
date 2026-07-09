@@ -129,6 +129,16 @@
   }
   .cost-chip button:hover{ color:var(--flashy); background:rgba(255,47,214,0.12); }
   .cost-chip button.lock-btn.locked{ color:var(--flashy); }
+  .mini-input{
+    background:var(--panel-2); border:1px solid var(--border); color:var(--txt);
+    font-family:inherit; font-size:11px; padding:4px 8px; border-radius:3px; width:120px;
+  }
+  .mini-input:focus{ outline:none; border-color:var(--flashy); }
+  button.mini-btn{
+    background:transparent; border:1px solid var(--flashy); color:var(--flashy); font-family:inherit;
+    font-size:11px; font-weight:600; padding:4px 10px; border-radius:3px; cursor:pointer;
+  }
+  button.mini-btn:hover{ background:var(--flashy); color:#05080a; }
   .hint{ color:var(--txt-dim); font-size:9.5px; margin-left:4px; }
 
   /* CHART */
@@ -238,8 +248,10 @@
     <div id="linesChips" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
   </div>
 
-  <div class="lines-row empty" id="costRow">
+  <div class="lines-row" id="costRow">
     <span class="lbl">Prix de revient</span>
+    <input type="number" id="costInput" step="0.01" placeholder="Valeur exacte…" class="mini-input">
+    <button id="costSetBtn" class="mini-btn">Définir</button>
     <div id="costChipWrap" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
   </div>
 
@@ -349,6 +361,8 @@
   loadLines();
   loadFreehand();
   loadCostLine();
+  renderLineList();
+  renderCostLine();
 
   const priceCanvas = document.getElementById('priceCanvas');
   const rsiCanvas = document.getElementById('rsiCanvas');
@@ -680,7 +694,7 @@
       pctx.setLineDash([7,4]);
       pctx.beginPath(); pctx.moveTo(PAD.l, y); pctx.lineTo(w-PAD.r, y); pctx.stroke();
       pctx.setLineDash([]);
-      const label = fmt(line.price,1);
+      const label = (line.locked ? '🔒 ' : '') + fmt(line.price,1);
       pctx.font = 'bold 10px IBM Plex Mono';
       const tw = pctx.measureText(label).width;
       pctx.fillStyle = active ? '#ffe27a' : '#ffb020';
@@ -849,6 +863,7 @@
     threshold = threshold || 7;
     let best = null, bestDist = Infinity;
     state.lines.forEach(line=>{
+      if(line.locked) return;
       const y = PAD.t + (currentChartH-PAD.t-PAD.b) * (1 - (line.price-currentPmin)/(currentPmax-currentPmin));
       const dist = Math.abs(y-my);
       if(dist < threshold && dist < bestDist){ best = line; bestDist = dist; }
@@ -887,8 +902,18 @@
     row.classList.remove('empty');
     const sorted = [...state.lines].sort((a,b)=>b.price-a.price);
     chips.innerHTML = sorted.map(l => `
-      <span class="line-chip" data-id="${l.id}">${fmt(l.price,1)}<button data-del="${l.id}" title="Supprimer">×</button></span>
+      <span class="line-chip" data-id="${l.id}">${fmt(l.price,1)}
+        <button data-lock="${l.id}" class="lock-btn${l.locked?' locked':''}" title="${l.locked?'Déverrouiller':'Verrouiller'}">${l.locked?'🔒':'🔓'}</button>
+        <button data-del="${l.id}" title="Supprimer">×</button>
+      </span>
     `).join('');
+    chips.querySelectorAll('button[data-lock]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const id = +btn.dataset.lock;
+        const line = state.lines.find(l=>l.id===id);
+        if(line){ line.locked = !line.locked; saveLines(); renderLineList(); draw(); }
+      });
+    });
     chips.querySelectorAll('button[data-del]').forEach(btn=>{
       btn.addEventListener('click', ()=>{
         const id = +btn.dataset.del;
@@ -900,11 +925,16 @@
   }
 
   function renderCostLine(){
-    const row = document.getElementById('costRow');
     const wrap = document.getElementById('costChipWrap');
-    if(!state.costLine){ row.classList.add('empty'); wrap.innerHTML=''; return; }
-    row.classList.remove('empty');
+    const input = document.getElementById('costInput');
+    const setBtn = document.getElementById('costSetBtn');
+    if(!state.costLine){
+      wrap.innerHTML = '';
+      input.disabled = false; setBtn.disabled = false;
+      return;
+    }
     const locked = state.costLine.locked;
+    input.disabled = locked; setBtn.disabled = locked;
     wrap.innerHTML = `
       <span class="line-chip cost-chip">${fmt(state.costLine.price,1)}
         <button data-action="lock" class="lock-btn${locked?' locked':''}" title="${locked?'Déverrouiller':'Verrouiller'}">${locked?'🔒':'🔓'}</button>
@@ -958,7 +988,7 @@
     }
     if(state.drawMode){
       const price = priceFromY(my);
-      state.lines.push({ id: state.nextLineId++, price });
+      state.lines.push({ id: state.nextLineId++, price, locked:false });
       saveLines();
       renderLineList();
       draw();
@@ -1227,6 +1257,23 @@
     document.getElementById('costBtn').classList.toggle('active', state.costMode);
     updateCanvasCursor();
   });
+
+  function setCostFromInput(){
+    if(state.costLine && state.costLine.locked) return;
+    const input = document.getElementById('costInput');
+    const val = parseFloat(input.value.replace(',', '.'));
+    if(isNaN(val) || val <= 0) return;
+    state.costLine = { price: val, locked: state.costLine ? state.costLine.locked : false };
+    saveCostLine();
+    renderCostLine();
+    draw();
+    input.value = '';
+  }
+  document.getElementById('costSetBtn').addEventListener('click', setCostFromInput);
+  document.getElementById('costInput').addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter') setCostFromInput();
+  });
+
   document.getElementById('clearFreehandBtn').addEventListener('click', ()=>{
     state.freehandStrokes = [];
     saveFreehand();
