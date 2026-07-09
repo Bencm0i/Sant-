@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BTC/USDT — Terminal</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+
+  :root{
+    --bg: #05080a;
+    --panel: #0c1116;
+    --panel-2: #10161c;
+    --grid: #1a2129;
+    --border: #202a33;
+    --txt: #d7e2e8;
+    --txt-dim: #5f7381;
+    --green: #00ff9d;
+    --green-dim: #0a3d2c;
+    --red: #ff4d5e;
+    --red-dim: #431018;
+    --cyan: #35c7ff;
+    --amber: #ffb020;
+    --violet: #a78bfa;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{
+    background:var(--bg); color:var(--txt);
+    font-family:'IBM Plex Mono', monospace;
+    height:100%;
+  }
+  #app{ display:flex; flex-direction:column; min-height:100vh; }
+
+  /* HEADER */
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 20px; border-bottom:1px solid var(--border);
+    background:linear-gradient(180deg, var(--panel-2), var(--panel));
+    flex-wrap:wrap; gap:10px;
+  }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .brand .dot{
+    width:9px; height:9px; border-radius:50%; background:var(--green);
+    box-shadow:0 0 8px var(--green); animation:pulse 1.6s infinite ease-in-out;
+  }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.35;} }
+  .brand h1{ font-size:15px; font-weight:600; letter-spacing:1px; color:var(--txt); }
+  .brand .sub{ font-size:10px; color:var(--txt-dim); letter-spacing:2px; }
+
+  .price-block{ text-align:right; }
+  .price-block .px{ font-size:26px; font-weight:700; letter-spacing:0.5px; }
+  .price-block .chg{ font-size:12px; font-weight:600; }
+  .up{ color:var(--green); } .down{ color:var(--red); }
+
+  .meta-row{ display:flex; gap:18px; font-size:10px; color:var(--txt-dim); margin-top:4px; flex-wrap:wrap; }
+  .meta-row span b{ color:var(--txt); font-weight:600; }
+
+  /* CONTROLS */
+  .controls{
+    display:flex; align-items:center; gap:8px; padding:10px 20px;
+    border-bottom:1px solid var(--border); background:var(--panel);
+    flex-wrap:wrap;
+  }
+  .tf-group{ display:flex; gap:4px; }
+  button.tf{
+    background:transparent; border:1px solid var(--border); color:var(--txt-dim);
+    font-family:inherit; font-size:11px; padding:5px 10px; border-radius:3px; cursor:pointer;
+    transition:all .15s;
+  }
+  button.tf:hover{ border-color:var(--cyan); color:var(--cyan); }
+  button.tf.active{ background:var(--cyan); color:#05080a; border-color:var(--cyan); font-weight:600; }
+
+  .divider{ width:1px; height:20px; background:var(--border); margin:0 6px; }
+
+  .toggle{
+    display:flex; align-items:center; gap:6px; font-size:11px; color:var(--txt-dim);
+    cursor:pointer; user-select:none; padding:5px 8px; border-radius:3px; border:1px solid transparent;
+  }
+  .toggle:hover{ border-color:var(--border); }
+  .toggle input{ accent-color:var(--cyan); cursor:pointer; }
+  .toggle.on{ color:var(--txt); }
+  .swatch{ width:9px; height:9px; border-radius:2px; display:inline-block; }
+
+  .refresh-btn{
+    margin-left:auto; background:var(--panel-2); border:1px solid var(--border); color:var(--txt-dim);
+    font-family:inherit; font-size:11px; padding:6px 12px; border-radius:3px; cursor:pointer;
+  }
+  .refresh-btn:hover{ color:var(--green); border-color:var(--green); }
+  .refresh-btn.loading{ color:var(--amber); border-color:var(--amber); }
+
+  /* CHART */
+  .chart-wrap{
+    flex:1; position:relative; padding:6px 0 0 0; display:flex; flex-direction:column;
+  }
+  #status{
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    color:var(--txt-dim); font-size:12px; letter-spacing:1px; text-align:center; z-index:5;
+  }
+  #status.hidden{ display:none; }
+
+  canvas{ display:block; width:100%; }
+  #priceCanvas{ height:58vh; min-height:340px; cursor:crosshair; }
+  #rsiCanvas{ height:14vh; min-height:90px; border-top:1px solid var(--grid); cursor:crosshair; }
+
+  .tooltip{
+    position:absolute; pointer-events:none; background:rgba(10,16,20,.96);
+    border:1px solid var(--border); border-radius:4px; padding:8px 10px; font-size:10.5px;
+    line-height:1.6; color:var(--txt-dim); z-index:10; display:none; white-space:nowrap;
+    box-shadow:0 4px 16px rgba(0,0,0,.5);
+  }
+  .tooltip b{ color:var(--txt); }
+  .tooltip .row{ display:flex; gap:10px; justify-content:space-between; }
+
+  .panel-label{
+    position:absolute; font-size:9.5px; color:var(--txt-dim); letter-spacing:1.5px;
+    text-transform:uppercase; padding:4px 8px; z-index:3;
+  }
+
+  footer{
+    padding:8px 20px; border-top:1px solid var(--border); background:var(--panel);
+    font-size:9.5px; color:var(--txt-dim); display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px;
+  }
+
+  @media (max-width:640px){
+    .price-block .px{ font-size:20px; }
+    .controls{ gap:6px; }
+    button.tf{ padding:4px 8px; font-size:10px; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="brand">
+      <span class="dot"></span>
+      <div>
+        <h1>BTC / USDT</h1>
+        <div class="sub">ICHIMOKU · KOUMORI TERMINAL</div>
+      </div>
+    </div>
+    <div class="price-block">
+      <div class="px" id="pxNow">—</div>
+      <div class="chg" id="pxChg">—</div>
+      <div class="meta-row">
+        <span>H24 <b id="mH24">—</b></span>
+        <span>L24 <b id="mL24">—</b></span>
+        <span>VOL <b id="mVol">—</b></span>
+      </div>
+    </div>
+  </header>
+
+  <div class="controls">
+    <div class="tf-group" id="tfGroup">
+      <button class="tf" data-tf="15m">15m</button>
+      <button class="tf" data-tf="1h">1H</button>
+      <button class="tf active" data-tf="4h">4H</button>
+      <button class="tf" data-tf="1d">1D</button>
+      <button class="tf" data-tf="1w">1W</button>
+    </div>
+    <div class="divider"></div>
+    <label class="toggle on" id="tgIchimoku">
+      <input type="checkbox" checked> <span class="swatch" style="background:var(--green)"></span> Ichimoku
+    </label>
+    <label class="toggle on" id="tgEma">
+      <input type="checkbox" checked> <span class="swatch" style="background:var(--violet)"></span> EMA 20/50
+    </label>
+    <label class="toggle on" id="tgRsi">
+      <input type="checkbox" checked> <span class="swatch" style="background:var(--cyan)"></span> RSI 14
+    </label>
+    <label class="toggle on" id="tgVol">
+      <input type="checkbox" checked> <span class="swatch" style="background:#3a4753"></span> Volume
+    </label>
+    <button class="refresh-btn" id="refreshBtn">⟳ ACTUALISER</button>
+  </div>
+
+  <div class="chart-wrap">
+    <div id="status">CONNEXION BINANCE…</div>
+    <span class="panel-label" style="top:52px; left:14px;">PRIX + ICHIMOKU KINKO HYO</span>
+    <canvas id="priceCanvas"></canvas>
+    <span class="panel-label" id="rsiLabel" style="left:14px;">RSI (14)</span>
+    <canvas id="rsiCanvas"></canvas>
+    <div class="tooltip" id="tooltip"></div>
+  </div>
+
+  <footer>
+    <span>Source : Binance Public API (klines, temps réel)</span>
+    <span id="lastUpdate">—</span>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  const state = {
+    tf: '4h',
+    candles: [],       // {t,o,h,l,c,v}
+    ichimoku: [],       // {tenkan,kijun,senkouA,senkouB,chikou}
+    ema20: [], ema50: [],
+    rsi: [],
+    show: { ichimoku:true, ema:true, rsi:true, vol:true },
+    hoverIdx: null,
+    loading: false
+  };
+
+  const TF_MAP = {
+    '15m': {interval:'15m', limit:300},
+    '1h':  {interval:'1h',  limit:300},
+    '4h':  {interval:'4h',  limit:300},
+    '1d':  {interval:'1d',  limit:300},
+    '1w':  {interval:'1w',  limit:260},
+  };
+
+  const priceCanvas = document.getElementById('priceCanvas');
+  const rsiCanvas = document.getElementById('rsiCanvas');
+  const pctx = priceCanvas.getContext('2d');
+  const rctx = rsiCanvas.getContext('2d');
+  const statusEl = document.getElementById('status');
+  const tooltip = document.getElementById('tooltip');
+  const rsiLabel = document.getElementById('rsiLabel');
+
+  // ---------- DATA FETCH ----------
+  async function fetchKlines(tf){
+    const cfg = TF_MAP[tf];
+    const url = `https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=${cfg.interval}&limit=${cfg.limit}`;
+    const res = await fetch(url);
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const raw = await res.json();
+    return raw.map(k => ({
+      t: k[0], o:+k[1], h:+k[2], l:+k[3], c:+k[4], v:+k[5]
+    }));
+  }
+
+  async function fetch24h(){
+    const res = await fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT');
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  }
+
+  // ---------- INDICATORS ----------
+  function highLow(arr, i, period, key){
+    let lo = Infinity, hi = -Infinity;
+    for(let j = Math.max(0, i-period+1); j <= i; j++){
+      hi = Math.max(hi, arr[j].h);
+      lo = Math.min(lo, arr[j].l);
+    }
+    return {hi, lo};
+  }
+
+  function computeIchimoku(candles){
+    const out = [];
+    for(let i=0;i<candles.length;i++){
+      const t9 = highLow(candles, i, 9);
+      const t26 = highLow(candles, i, 26);
+      const t52 = highLow(candles, i, 52);
+      const tenkan = (t9.hi + t9.lo)/2;
+      const kijun = (t26.hi + t26.lo)/2;
+      const senkouA_raw = (tenkan + kijun)/2;
+      const senkouB_raw = (t52.hi + t52.lo)/2;
+      out.push({ tenkan, kijun, senkouA_raw, senkouB_raw });
+    }
+    // shift senkou forward 26, chikou backward 26
+    const n = candles.length;
+    const displaced = out.map((d,i)=>({
+      tenkan: d.tenkan, kijun: d.kijun,
+      senkouA: null, senkouB: null, chikou: null
+    }));
+    for(let i=0;i<n;i++){
+      const fwd = i+26;
+      if(fwd < n+26){
+        if(!displaced[fwd]) displaced[fwd] = {tenkan:null,kijun:null,senkouA:null,senkouB:null,chikou:null};
+      }
+    }
+    // extend array by 26 future slots
+    for(let i=0;i<26;i++) displaced.push({tenkan:null,kijun:null,senkouA:null,senkouB:null,chikou:null});
+    for(let i=0;i<n;i++){
+      const fwd = i+26;
+      displaced[fwd].senkouA = out[i].senkouA_raw;
+      displaced[fwd].senkouB = out[i].senkouB_raw;
+    }
+    for(let i=26;i<n;i++){
+      displaced[i-26].chikou = candles[i].c;
+    }
+    return displaced; // length n+26
+  }
+
+  function computeEMA(candles, period){
+    const k = 2/(period+1);
+    const out = [];
+    let prev = null;
+    for(let i=0;i<candles.length;i++){
+      const c = candles[i].c;
+      if(i < period-1){ out.push(null); continue; }
+      if(prev === null){
+        let sum=0; for(let j=i-period+1;j<=i;j++) sum+=candles[j].c;
+        prev = sum/period;
+      } else {
+        prev = c*k + prev*(1-k);
+      }
+      out.push(prev);
+    }
+    return out;
+  }
+
+  function computeRSI(candles, period=14){
+    const out = new Array(candles.length).fill(null);
+    let gains=0, losses=0;
+    for(let i=1;i<candles.length;i++){
+      const diff = candles[i].c - candles[i-1].c;
+      const gain = diff>0?diff:0, loss = diff<0?-diff:0;
+      if(i <= period){
+        gains += gain; losses += loss;
+        if(i===period){
+          let avgG=gains/period, avgL=losses/period;
+          out[i] = avgL===0?100:100-(100/(1+avgG/avgL));
+          out._avgG=avgG; out._avgL=avgL;
+        }
+      } else {
+        out._avgG = (out._avgG*(period-1)+gain)/period;
+        out._avgL = (out._avgL*(period-1)+loss)/period;
+        out[i] = out._avgL===0?100:100-(100/(1+out._avgG/out._avgL));
+      }
+    }
+    return out;
+  }
+
+  // ---------- RENDER HELPERS ----------
+  function fmt(n, d=2){
+    if(n===null||n===undefined||isNaN(n)) return '—';
+    return n.toLocaleString('en-US', {minimumFractionDigits:d, maximumFractionDigits:d});
+  }
+  function fmtCompact(n){
+    if(n===null||n===undefined) return '—';
+    if(n>=1e9) return (n/1e9).toFixed(2)+'B';
+    if(n>=1e6) return (n/1e6).toFixed(2)+'M';
+    if(n>=1e3) return (n/1e3).toFixed(1)+'K';
+    return n.toFixed(2);
+  }
+
+  function setupCanvas(canvas, ctx){
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    return { w: rect.width, h: rect.height };
+  }
+
+  // ---------- MAIN DRAW ----------
+  const PAD = { l:8, r:56, t:14, b:20 };
+  const VOL_H_RATIO = 0.16;
+
+  function draw(){
+    if(!state.candles.length) return;
+    const dims = setupCanvas(priceCanvas, pctx);
+    drawPrice(dims);
+    if(state.show.rsi){
+      rsiCanvas.style.display = 'block';
+      rsiLabel.style.display = 'block';
+      const rdims = setupCanvas(rsiCanvas, rctx);
+      drawRSI(rdims);
+    } else {
+      rsiCanvas.style.display = 'none';
+      rsiLabel.style.display = 'none';
+    }
+  }
+
+  let visibleRange = { start: 0, end: 0 }; // indices into extended (ichimoku-length) series
+  let xScale = null, yScale = null;
+
+  function drawPrice(dims){
+    const {w,h} = dims;
+    pctx.clearRect(0,0,w,h);
+
+    const n = state.candles.length;
+    const ichi = state.ichimoku; // length n+26
+    const showFuture = state.show.ichimoku ? 26 : 0;
+    const totalLen = n + showFuture;
+
+    // visible window: last ~140 candles + future cloud space
+    const visibleCandles = Math.min(140, n);
+    const start = n - visibleCandles;
+    const end = totalLen; // include future cloud
+    visibleRange = {start, end};
+
+    const chartH = state.show.vol ? h*(1-VOL_H_RATIO) : h;
+    const volTop = chartH;
+    const volH = h - chartH - 4;
+
+    // price range across visible candles + cloud
+    let pmin = Infinity, pmax = -Infinity;
+    for(let i=start;i<n;i++){
+      pmin = Math.min(pmin, state.candles[i].l);
+      pmax = Math.max(pmax, state.candles[i].h);
+    }
+    if(state.show.ichimoku){
+      for(let i=start;i<end;i++){
+        const d = ichi[i];
+        if(!d) continue;
+        [d.tenkan,d.kijun,d.senkouA,d.senkouB,d.chikou].forEach(v=>{
+          if(v!==null && v!==undefined){ pmin=Math.min(pmin,v); pmax=Math.max(pmax,v); }
+        });
+      }
+    }
+    if(state.show.ema){
+      for(let i=start;i<n;i++){
+        if(state.ema20[i]!=null){ pmin=Math.min(pmin,state.ema20[i]); pmax=Math.max(pmax,state.ema20[i]); }
+        if(state.ema50[i]!=null){ pmin=Math.min(pmin,state.ema50[i]); pmax=Math.max(pmax,state.ema50[i]); }
+      }
+    }
+    const pad = (pmax-pmin)*0.06;
+    pmin -= pad; pmax += pad;
+
+    const nBars = end - start;
+    const barSlot = (w - PAD.l - PAD.r) / nBars;
+    const bodyW = Math.max(1.5, barSlot*0.62);
+
+    xScale = i => PAD.l + (i-start)*barSlot + barSlot/2;
+    yScale = p => PAD.t + (chartH-PAD.t-PAD.b) * (1 - (p-pmin)/(pmax-pmin));
+
+    // grid
+    pctx.strokeStyle = '#141b21';
+    pctx.lineWidth = 1;
+    const gridLines = 5;
+    pctx.font = '10px IBM Plex Mono';
+    for(let i=0;i<=gridLines;i++){
+      const py = PAD.t + (chartH-PAD.t-PAD.b)*i/gridLines;
+      pctx.beginPath();
+      pctx.moveTo(PAD.l, py); pctx.lineTo(w-PAD.r, py);
+      pctx.stroke();
+      const priceAt = pmax - (pmax-pmin)*i/gridLines;
+      pctx.fillStyle = '#5f7381';
+      pctx.fillText(fmt(priceAt,0), w-PAD.r+6, py+3);
+    }
+
+    // separator between current data and future cloud
+    if(showFuture>0){
+      const sepX = xScale(n) - barSlot/2;
+      pctx.strokeStyle = '#232d36';
+      pctx.setLineDash([3,3]);
+      pctx.beginPath(); pctx.moveTo(sepX, PAD.t); pctx.lineTo(sepX, chartH-PAD.b); pctx.stroke();
+      pctx.setLineDash([]);
+    }
+
+    // ---- Ichimoku cloud fill ----
+    if(state.show.ichimoku){
+      pctx.beginPath();
+      let started = false;
+      for(let i=start;i<end;i++){
+        const d = ichi[i];
+        if(!d || d.senkouA==null) continue;
+        const x = xScale(i), y = yScale(d.senkouA);
+        if(!started){ pctx.moveTo(x,y); started=true; } else pctx.lineTo(x,y);
+      }
+      for(let i=end-1;i>=start;i--){
+        const d = ichi[i];
+        if(!d || d.senkouB==null) continue;
+        pctx.lineTo(xScale(i), yScale(d.senkouB));
+      }
+      pctx.closePath();
+      const lastCloud = ichi[end-1];
+      const bullish = lastCloud && lastCloud.senkouA >= lastCloud.senkouB;
+      pctx.fillStyle = bullish ? 'rgba(0,255,157,0.09)' : 'rgba(255,77,94,0.09)';
+      pctx.fill();
+
+      // cloud borders
+      drawLine(ichi, start, end, d=>d.senkouA, bullish? 'rgba(0,255,157,0.5)':'rgba(255,77,94,0.35)', 1);
+      drawLine(ichi, start, end, d=>d.senkouB, bullish? 'rgba(255,77,94,0.35)':'rgba(0,255,157,0.5)', 1);
+
+      // tenkan / kijun
+      drawLine(ichi, start, Math.min(n,end), d=>d.tenkan, '#35c7ff', 1.3);
+      drawLine(ichi, start, Math.min(n,end), d=>d.kijun, '#ffb020', 1.3);
+      // chikou (dashed)
+      pctx.save();
+      pctx.setLineDash([4,3]);
+      drawLine(ichi, start, Math.min(n,end), d=>d.chikou, '#a78bfa', 1);
+      pctx.restore();
+    }
+
+    // ---- EMA ----
+    if(state.show.ema){
+      drawSeriesLine(state.ema20, start, n, '#a78bfa', 1.1, xScale, yScale);
+      drawSeriesLine(state.ema50, start, n, '#6d5bd0', 1.1, xScale, yScale);
+    }
+
+    // ---- Candles ----
+    for(let i=start;i<n;i++){
+      const c = state.candles[i];
+      const x = xScale(i);
+      const yO = yScale(c.o), yC = yScale(c.c), yH = yScale(c.h), yL = yScale(c.l);
+      const up = c.c >= c.o;
+      const col = up ? '#00ff9d' : '#ff4d5e';
+      pctx.strokeStyle = col;
+      pctx.fillStyle = col;
+      pctx.lineWidth = 1;
+      pctx.beginPath();
+      pctx.moveTo(x, yH); pctx.lineTo(x, yL);
+      pctx.stroke();
+      const bodyTop = Math.min(yO,yC), bodyH = Math.max(1, Math.abs(yC-yO));
+      pctx.fillRect(x-bodyW/2, bodyTop, bodyW, bodyH);
+    }
+
+    // ---- Volume ----
+    if(state.show.vol){
+      let vmax = 0;
+      for(let i=start;i<n;i++) vmax = Math.max(vmax, state.candles[i].v);
+      for(let i=start;i<n;i++){
+        const c = state.candles[i];
+        const x = xScale(i);
+        const vh = (c.v/vmax) * (volH-4);
+        const up = c.c >= c.o;
+        pctx.fillStyle = up ? 'rgba(0,255,157,0.35)' : 'rgba(255,77,94,0.35)';
+        pctx.fillRect(x-bodyW/2, h-vh-2, bodyW, vh);
+      }
+    }
+
+    // current price line
+    const lastC = state.candles[n-1];
+    const ly = yScale(lastC.c);
+    pctx.strokeStyle = '#5f7381';
+    pctx.setLineDash([2,3]);
+    pctx.beginPath(); pctx.moveTo(PAD.l, ly); pctx.lineTo(w-PAD.r, ly); pctx.stroke();
+    pctx.setLineDash([]);
+    pctx.fillStyle = lastC.c >= state.candles[n-2].c ? '#00ff9d' : '#ff4d5e';
+    pctx.fillRect(w-PAD.r, ly-8, PAD.r, 16);
+    pctx.fillStyle = '#05080a';
+    pctx.font = 'bold 10px IBM Plex Mono';
+    pctx.fillText(fmt(lastC.c,0), w-PAD.r+5, ly+3);
+
+    // hover crosshair
+    if(state.hoverIdx!=null && state.hoverIdx>=start && state.hoverIdx<n){
+      const i = state.hoverIdx;
+      const c = state.candles[i];
+      const x = xScale(i);
+      pctx.strokeStyle = '#3a4753';
+      pctx.beginPath(); pctx.moveTo(x, PAD.t); pctx.lineTo(x, chartH-PAD.b); pctx.stroke();
+    }
+  }
+
+  function drawLine(arr, start, end, accessor, color, width){
+    pctx.strokeStyle = color; pctx.lineWidth = width;
+    pctx.beginPath();
+    let started = false;
+    for(let i=start;i<end;i++){
+      const d = arr[i];
+      const v = d ? accessor(d) : null;
+      if(v==null){ started=false; continue; }
+      const x = xScale(i), y = yScale(v);
+      if(!started){ pctx.moveTo(x,y); started=true; } else pctx.lineTo(x,y);
+    }
+    pctx.stroke();
+  }
+  function drawSeriesLine(arr, start, end, color, width, xs, ys){
+    pctx.strokeStyle = color; pctx.lineWidth = width;
+    pctx.beginPath();
+    let started = false;
+    for(let i=start;i<end;i++){
+      const v = arr[i];
+      if(v==null){ started=false; continue; }
+      const x = xs(i), y = ys(v);
+      if(!started){ pctx.moveTo(x,y); started=true; } else pctx.lineTo(x,y);
+    }
+    pctx.stroke();
+  }
+
+  function drawRSI(dims){
+    const {w,h} = dims;
+    rctx.clearRect(0,0,w,h);
+    const start = visibleRange.start;
+    const n = state.candles.length;
+    const pad = {l:8,r:56,t:8,b:8};
+    const ys = v => pad.t + (h-pad.t-pad.b)*(1-v/100);
+    // bands
+    rctx.strokeStyle = '#141b21'; rctx.lineWidth=1;
+    [30,50,70].forEach(v=>{
+      rctx.beginPath(); rctx.moveTo(pad.l, ys(v)); rctx.lineTo(w-pad.r, ys(v)); rctx.stroke();
+      rctx.fillStyle = '#3a4753'; rctx.font='9px IBM Plex Mono';
+      rctx.fillText(v, w-pad.r+6, ys(v)+3);
+    });
+    rctx.strokeStyle = '#35c7ff'; rctx.lineWidth=1.3;
+    rctx.beginPath();
+    let started=false;
+    for(let i=start;i<n;i++){
+      const v = state.rsi[i];
+      if(v==null){ started=false; continue; }
+      const x = xScale ? xScale(i) : 0;
+      const y = ys(v);
+      if(!started){ rctx.moveTo(x,y); started=true; } else rctx.lineTo(x,y);
+    }
+    rctx.stroke();
+    const lastRsi = state.rsi[n-1];
+    if(lastRsi!=null){
+      rctx.fillStyle = lastRsi>70? '#ff4d5e' : lastRsi<30? '#00ff9d' : '#5f7381';
+      rctx.font='bold 10px IBM Plex Mono';
+      rctx.fillText(lastRsi.toFixed(1), 12, 14);
+    }
+  }
+
+  // ---------- INTERACTION ----------
+  priceCanvas.addEventListener('mousemove', (e)=>{
+    if(!xScale || !state.candles.length) return;
+    const rect = priceCanvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    const n = state.candles.length;
+    const barSlot = (rect.width - PAD.l - PAD.r) / (visibleRange.end - visibleRange.start);
+    let idx = Math.round((mx - PAD.l - barSlot/2)/barSlot) + visibleRange.start;
+    idx = Math.max(visibleRange.start, Math.min(n-1, idx));
+    state.hoverIdx = idx;
+    draw();
+    const c = state.candles[idx];
+    const d = state.ichimoku[idx];
+    tooltip.style.display = 'block';
+    tooltip.style.left = Math.min(mx+16, rect.width-190) + 'px';
+    tooltip.style.top = Math.max(my-10,0) + 'px';
+    tooltip.innerHTML = `
+      <div>${new Date(c.t).toLocaleString('fr-FR')}</div>
+      <div class="row"><span>O</span><b>${fmt(c.o,1)}</b></div>
+      <div class="row"><span>H</span><b>${fmt(c.h,1)}</b></div>
+      <div class="row"><span>L</span><b>${fmt(c.l,1)}</b></div>
+      <div class="row"><span>C</span><b>${fmt(c.c,1)}</b></div>
+      <div class="row"><span>Vol</span><b>${fmtCompact(c.v)}</b></div>
+      ${state.show.ichimoku && d ? `
+      <div class="row" style="margin-top:4px;"><span style="color:#35c7ff">Tenkan</span><b>${fmt(d.tenkan,1)}</b></div>
+      <div class="row"><span style="color:#ffb020">Kijun</span><b>${fmt(d.kijun,1)}</b></div>` : ''}
+      ${state.rsi[idx]!=null ? `<div class="row"><span>RSI</span><b>${state.rsi[idx].toFixed(1)}</b></div>` : ''}
+    `;
+  });
+  priceCanvas.addEventListener('mouseleave', ()=>{
+    state.hoverIdx = null; tooltip.style.display='none'; draw();
+  });
+
+  // ---------- CONTROLS ----------
+  document.getElementById('tfGroup').addEventListener('click', (e)=>{
+    const btn = e.target.closest('button.tf');
+    if(!btn) return;
+    document.querySelectorAll('button.tf').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    state.tf = btn.dataset.tf;
+    load();
+  });
+
+  function bindToggle(id, key){
+    const el = document.getElementById(id);
+    const input = el.querySelector('input');
+    el.addEventListener('click', (e)=>{
+      if(e.target !== input) input.checked = !input.checked;
+      state.show[key] = input.checked;
+      el.classList.toggle('on', input.checked);
+      draw();
+    });
+  }
+  bindToggle('tgIchimoku','ichimoku');
+  bindToggle('tgEma','ema');
+  bindToggle('tgRsi','rsi');
+  bindToggle('tgVol','vol');
+
+  document.getElementById('refreshBtn').addEventListener('click', load);
+
+  window.addEventListener('resize', ()=>{ if(!state.loading) draw(); });
+
+  // ---------- LOAD ----------
+  async function load(){
+    const btn = document.getElementById('refreshBtn');
+    btn.classList.add('loading'); btn.textContent = '⟳ CHARGEMENT…';
+    statusEl.classList.remove('hidden');
+    statusEl.textContent = 'RÉCUPÉRATION DES DONNÉES BINANCE…';
+    state.loading = true;
+    try{
+      const [candles, ticker] = await Promise.all([fetchKlines(state.tf), fetch24h()]);
+      state.candles = candles;
+      state.ichimoku = computeIchimoku(candles);
+      state.ema20 = computeEMA(candles, 20);
+      state.ema50 = computeEMA(candles, 50);
+      state.rsi = computeRSI(candles, 14);
+
+      const last = candles[candles.length-1];
+      const prevClose = +ticker.prevClosePrice;
+      const chgPct = +ticker.priceChangePercent;
+      document.getElementById('pxNow').textContent = '$' + fmt(last.c,1);
+      const chgEl = document.getElementById('pxChg');
+      chgEl.textContent = (chgPct>=0?'▲ ':'▼ ') + Math.abs(chgPct).toFixed(2) + '% (24h)';
+      chgEl.className = 'chg ' + (chgPct>=0?'up':'down');
+      document.getElementById('mH24').textContent = '$'+fmt(+ticker.highPrice,0);
+      document.getElementById('mL24').textContent = '$'+fmt(+ticker.lowPrice,0);
+      document.getElementById('mVol').textContent = fmtCompact(+ticker.volume)+' BTC';
+      document.getElementById('lastUpdate').textContent = 'Dernière mise à jour : ' + new Date().toLocaleTimeString('fr-FR');
+
+      statusEl.classList.add('hidden');
+      draw();
+    }catch(err){
+      statusEl.textContent = 'ERREUR DE CONNEXION — ' + err.message + ' — RÉESSAI DANS 5S';
+      setTimeout(load, 5000);
+    }finally{
+      state.loading = false;
+      btn.classList.remove('loading'); btn.textContent = '⟳ ACTUALISER';
+    }
+  }
+
+  load();
+  // auto-refresh every 60s
+  setInterval(()=>{ if(!state.loading) load(); }, 60000);
+})();
+</script>
+</body>
+</html>
