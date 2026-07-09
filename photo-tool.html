@@ -90,6 +90,14 @@
   .handle.se{ right:-8px; bottom:-8px; cursor:nwse-resize;}
   .handle::after{ content:''; position:absolute; inset:4px; background:var(--accent);}
 
+  .redact-rect{ position:absolute; border:1px dashed var(--danger); box-sizing:border-box; pointer-events:none;}
+  .redact-rect .del{
+    position:absolute; top:-9px; right:-9px; width:18px; height:18px; border-radius:50%;
+    background:var(--danger); color:#fff; font-size:11px; line-height:15px; text-align:center;
+    cursor:pointer; pointer-events:auto; border:2px solid var(--bg); font-family:var(--sans); font-weight:700;
+  }
+  .canvas-wrap.redacting{ cursor:crosshair;}
+
   /* status readout bar */
   .statusbar{
     display:flex; gap:18px; align-items:center; padding:8px 16px;
@@ -180,6 +188,7 @@
       <div class="canvas-wrap hidden" id="canvasWrap">
         <canvas id="viewCanvas"></canvas>
         <div id="darkenOverlay" style="position:absolute; inset:0; background:#000; opacity:0; pointer-events:none;"></div>
+        <div id="redactLayer" style="position:absolute; inset:0; pointer-events:none;"></div>
         <div class="crop-box hidden" id="cropBox">
           <div class="third v1"></div><div class="third v2"></div>
           <div class="third h1"></div><div class="third h2"></div>
@@ -234,6 +243,24 @@
         <button class="btn" id="flipH" title="Miroir horizontal">⇋ H</button>
         <button class="btn" id="flipV" title="Miroir vertical">⇵ V</button>
       </div>
+    </div>
+
+    <div class="section">
+      <h3>Caviardage</h3>
+      <button class="btn block" id="btnRedactMode" style="margin-bottom:10px;">✎ Activer le mode caviardage</button>
+      <div class="row">
+        <label>Couleur</label>
+        <select class="field" id="redactColor">
+          <option value="#000000">Noir plein</option>
+          <option value="#ffffff">Blanc plein</option>
+        </select>
+      </div>
+      <div class="export-info" style="margin:6px 0 10px;">Clique-glisse sur l'image pour masquer une zone (texte, visage, plaque…). <b id="stRedactCount">0 zone</b> en attente.</div>
+      <div class="row">
+        <button class="btn ghost block" id="btnRedactClear">Tout effacer</button>
+        <button class="btn primary block" id="btnRedactFlatten">Aplatir &amp; graver</button>
+      </div>
+      <div class="export-info" style="margin-top:6px;">L'aplatissement détruit définitivement les pixels d'origine sous les zones — irréversible, pour partage sûr en traitement IA.</div>
     </div>
 
     <div class="section">
@@ -362,6 +389,9 @@
       originalCanvas = cloneCanvas(c);
       currentCanvas = c;
       undoStack = []; $('btnUndo').disabled = true;
+      redactions = []; redactMode = false;
+      $('btnRedactMode').classList.remove('active'); $('btnRedactMode').textContent = '✎ Activer le mode caviardage';
+      canvasWrap.classList.remove('redacting');
       resetAdjustments(false);
       dropzone.classList.add('hidden');
       canvasWrap.classList.remove('hidden');
@@ -370,6 +400,7 @@
       setRatio('free', true);
       refreshOutFields(true);
       renderView();
+      renderRedactions();
     };
     img.onerror = () => alert("Impossible de lire ce fichier comme image.");
     img.src = URL.createObjectURL(file);
@@ -563,9 +594,104 @@
     syncCropBoxDOM();
   });
 
-  // ---- bake crop ----
+  // ---- caviardage (redaction) ----
+  const redactLayer = $('redactLayer');
+  let redactMode = false;
+  let redactions = [];   // {x,y,w,h} en % de l'image affichée
+  let redactDrag = null;
+
+  function renderRedactions(){
+    redactLayer.innerHTML = '';
+    redactions.forEach((r, i) => {
+      const div = document.createElement('div');
+      div.className = 'redact-rect';
+      div.style.left = r.x+'%'; div.style.top = r.y+'%'; div.style.width = r.w+'%'; div.style.height = r.h+'%';
+      div.style.background = $('redactColor').value;
+      const del = document.createElement('div');
+      del.className = 'del'; del.textContent = '×';
+      del.addEventListener('pointerdown', e => { e.stopPropagation(); redactions.splice(i,1); renderRedactions(); });
+      div.appendChild(del);
+      redactLayer.appendChild(div);
+    });
+    $('stRedactCount').textContent = `${redactions.length} zone${redactions.length>1?'s':''}`;
+  }
+  $('redactColor').addEventListener('change', renderRedactions);
+
+  $('btnRedactMode').addEventListener('click', () => {
+    redactMode = !redactMode;
+    $('btnRedactMode').classList.toggle('active', redactMode);
+    $('btnRedactMode').textContent = redactMode ? '✓ Mode caviardage actif' : '✎ Activer le mode caviardage';
+    canvasWrap.classList.toggle('redacting', redactMode);
+    cropBox.style.pointerEvents = redactMode ? 'none' : '';
+  });
+
+  canvasWrap.addEventListener('pointerdown', e => {
+    if (!redactMode || !currentCanvas) return;
+    if (e.target.closest('.del')) return;
+    e.preventDefault();
+    const rect = canvasWrap.getBoundingClientRect();
+    const start = pctFromEvent(e, rect);
+    redactDrag = { rect, start };
+    window.addEventListener('pointermove', onRedactDrag);
+    window.addEventListener('pointerup', endRedactDrag);
+  });
+  function onRedactDrag(e){
+    if (!redactDrag) return;
+    const p = pctFromEvent(e, redactDrag.rect);
+    const s = redactDrag.start;
+    redactDrag.current = {
+      x: Math.min(s.x,p.x), y: Math.min(s.y,p.y),
+      w: Math.abs(p.x-s.x), h: Math.abs(p.y-s.y)
+    };
+    renderRedactions();
+    if (redactDrag.current) renderPendingBox(redactDrag.current);
+  }
+  function renderPendingBox(box){
+    let el = redactLayer.querySelector('.pending');
+    if (!el){
+      el = document.createElement('div');
+      el.className = 'redact-rect pending';
+      redactLayer.appendChild(el);
+    }
+    el.style.left = box.x+'%'; el.style.top = box.y+'%'; el.style.width = box.w+'%'; el.style.height = box.h+'%';
+    el.style.background = $('redactColor').value;
+  }
+  function endRedactDrag(){
+    if (redactDrag && redactDrag.current && redactDrag.current.w > 1 && redactDrag.current.h > 1){
+      redactions.push(redactDrag.current);
+    }
+    redactDrag = null;
+    window.removeEventListener('pointermove', onRedactDrag);
+    window.removeEventListener('pointerup', endRedactDrag);
+    renderRedactions();
+  }
+  $('btnRedactClear').addEventListener('click', () => { redactions = []; renderRedactions(); });
+
+  // grave les rectangles en attente directement dans les pixels du canvas courant (destructif)
+  function flattenRedactionsInPlace(){
+    if (!redactions.length || !currentCanvas) return;
+    const ctx = currentCanvas.getContext('2d');
+    const W = currentCanvas.width, H = currentCanvas.height;
+    ctx.filter = 'none'; ctx.globalAlpha = 1;
+    redactions.forEach(r => {
+      ctx.fillStyle = $('redactColor').value;
+      ctx.fillRect(Math.round(r.x/100*W), Math.round(r.y/100*H), Math.round(r.w/100*W), Math.round(r.h/100*H));
+    });
+    redactions = [];
+    renderRedactions();
+  }
+  $('btnRedactFlatten').addEventListener('click', () => {
+    if (!redactions.length) return;
+    pushUndo();
+    flattenRedactionsInPlace();
+    renderView();
+    $('exportInfo').innerHTML = `Caviardage gravé sur <b>${currentCanvas.width}×${currentCanvas.height}px</b> — pixels d'origine détruits, image prête pour traitement IA.`;
+  });
+
+
   $('btnCropApply').addEventListener('click', () => {
     if (!currentCanvas) return;
+    flattenRedactionsInPlace();
     const W = currentCanvas.width, H = currentCanvas.height;
     const sx = Math.round(box.x/100*W), sy = Math.round(box.y/100*H);
     const sw = Math.max(1, Math.round(box.w/100*W)), sh = Math.max(1, Math.round(box.h/100*H));
@@ -582,6 +708,7 @@
 
   // ---- rotate / flip ----
   function rotate90(dir){
+    flattenRedactionsInPlace();
     pushUndo();
     const n = document.createElement('canvas');
     n.width = currentCanvas.height; n.height = currentCanvas.width;
@@ -594,6 +721,7 @@
     refreshOutFields(true); renderView();
   }
   function flip(axis){
+    flattenRedactionsInPlace();
     pushUndo();
     const n = document.createElement('canvas');
     n.width = currentCanvas.width; n.height = currentCanvas.height;
