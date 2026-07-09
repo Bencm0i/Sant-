@@ -172,6 +172,30 @@
     text-transform:uppercase; padding:4px 8px; z-index:3;
   }
 
+  /* MINI ENCADRÉ — HISTORIQUE COMPLET BTC (ÉCHELLE LOG) */
+  .full-hist-box{
+    position:absolute; top:52px; right:14px; width:190px; height:88px;
+    background:rgba(12,17,22,.88); border:1px solid var(--border); border-radius:5px;
+    padding:5px 8px 4px; z-index:4; pointer-events:none;
+    box-shadow:0 4px 14px rgba(0,0,0,.4); backdrop-filter:blur(2px);
+  }
+  .full-hist-box .fh-label{
+    font-size:8.5px; color:var(--txt-dim); letter-spacing:1px; text-transform:uppercase;
+    display:flex; justify-content:space-between; margin-bottom:2px;
+  }
+  .full-hist-box .fh-label .fh-scale{ color:var(--amber); }
+  .full-hist-box canvas{ width:100%; height:56px; display:block; }
+  .full-hist-box .fh-range{
+    display:flex; justify-content:space-between; font-size:8px; color:var(--txt-dim);
+    margin-top:1px; letter-spacing:0.3px;
+  }
+  @media (max-width:640px){
+    .full-hist-box{ width:132px; height:76px; top:46px; right:8px; padding:4px 6px 3px; }
+    .full-hist-box canvas{ height:46px; }
+    .full-hist-box .fh-label{ font-size:7.5px; }
+    .full-hist-box .fh-range{ font-size:7px; }
+  }
+
   footer{
     padding:8px 20px; border-top:1px solid var(--border); background:var(--panel);
     font-size:9.5px; color:var(--txt-dim); display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px;
@@ -263,6 +287,11 @@
     <div id="status">CONNEXION BINANCE…</div>
     <span class="panel-label" style="top:52px; left:14px;">PRIX + ICHIMOKU KINKO HYO</span>
     <canvas id="priceCanvas"></canvas>
+    <div class="full-hist-box" id="fullHistBox">
+      <div class="fh-label"><span>BTC · historique complet</span><span class="fh-scale">log</span></div>
+      <canvas id="fullHistCanvas"></canvas>
+      <div class="fh-range" id="fullHistRange"><span>—</span><span>—</span></div>
+    </div>
     <span class="panel-label" id="rsiLabel" style="left:14px;">RSI (14)</span>
     <canvas id="rsiCanvas"></canvas>
     <div class="tooltip" id="tooltip"></div>
@@ -1374,9 +1403,95 @@
     }
   }
 
+  // ---------- MINI ENCADRÉ — HISTORIQUE COMPLET BTC (ÉCHELLE LOG) ----------
+  const fullHistCanvas = document.getElementById('fullHistCanvas');
+  const fhctx = fullHistCanvas.getContext('2d');
+  const fullHistRange = document.getElementById('fullHistRange');
+  let fullHistData = null; // [{t,c}, ...] toute l'historique dispo (BTCUSDT, hebdo)
+
+  async function fetchFullHistory(){
+    // Bougies hebdomadaires depuis le tout début (listing Binance ~2017-08),
+    // limit=1000 couvre largement (~19 ans) donc on a bien "toute" l'historique.
+    const url = `https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1w&limit=1000`;
+    const res = await fetch(url);
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    const raw = await res.json();
+    return raw.map(k => ({ t:k[0], c:+k[4] }));
+  }
+
+  function drawFullHistory(){
+    if(!fullHistData || !fullHistData.length) return;
+    const dpr = window.devicePixelRatio || 1;
+    const rect = fullHistCanvas.getBoundingClientRect();
+    if(rect.width===0 || rect.height===0) return;
+    fullHistCanvas.width = rect.width * dpr;
+    fullHistCanvas.height = rect.height * dpr;
+    fhctx.setTransform(dpr,0,0,dpr,0,0);
+    const w = rect.width, h = rect.height;
+    fhctx.clearRect(0,0,w,h);
+
+    const closes = fullHistData.map(d=>d.c).filter(v=>v>0);
+    const logs = closes.map(v=>Math.log10(v));
+    const lmin = Math.min(...logs), lmax = Math.max(...logs);
+    const pad = 3;
+    const n = fullHistData.length;
+    const x = i => pad + (i/(n-1)) * (w - pad*2);
+    const y = v => {
+      const lv = Math.log10(v);
+      return h - 2 - ((lv - lmin)/(lmax - lmin || 1)) * (h - 6);
+    };
+
+    // zone remplie sous la courbe
+    fhctx.beginPath();
+    fhctx.moveTo(x(0), h);
+    fullHistData.forEach((d,i)=>fhctx.lineTo(x(i), y(d.c)));
+    fhctx.lineTo(x(n-1), h);
+    fhctx.closePath();
+    const grad = fhctx.createLinearGradient(0,0,0,h);
+    grad.addColorStop(0, 'rgba(0,255,157,.28)');
+    grad.addColorStop(1, 'rgba(0,255,157,0)');
+    fhctx.fillStyle = grad;
+    fhctx.fill();
+
+    // ligne
+    fhctx.beginPath();
+    fullHistData.forEach((d,i)=>{
+      const px=x(i), py=y(d.c);
+      if(i===0) fhctx.moveTo(px,py); else fhctx.lineTo(px,py);
+    });
+    fhctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--green').trim() || '#00ff9d';
+    fhctx.lineWidth = 1.2;
+    fhctx.stroke();
+
+    // point dernier prix
+    const lastI = n-1;
+    fhctx.beginPath();
+    fhctx.arc(x(lastI), y(fullHistData[lastI].c), 2, 0, Math.PI*2);
+    fhctx.fillStyle = '#ffffff';
+    fhctx.fill();
+
+    // labels min / max (prix réels, pas log)
+    const maxVal = Math.max(...closes), minVal = Math.min(...closes);
+    fullHistRange.innerHTML = `<span>${new Date(fullHistData[0].t).getFullYear()} · $${fmtCompact(minVal)}</span><span>ATH $${fmtCompact(maxVal)}</span>`;
+  }
+
+  async function loadFullHistory(){
+    try{
+      fullHistData = await fetchFullHistory();
+      drawFullHistory();
+    }catch(err){
+      fullHistRange.innerHTML = '<span>indispo.</span><span></span>';
+    }
+  }
+
+  window.addEventListener('resize', ()=>{ drawFullHistory(); });
+
   load();
+  loadFullHistory();
   // auto-refresh every 60s
   setInterval(()=>{ if(!state.loading) load(); }, 60000);
+  // rafraîchit l'historique complet toutes les 10 min (données hebdo, pas besoin de plus)
+  setInterval(loadFullHistory, 600000);
 })();
 </script>
 </body>
