@@ -1402,6 +1402,34 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(255
 .lch-ctrl-btn.active{background:rgba(61,90,115,0.5);border-color:#464a63;color:#fff;}
 /* zone de dépôt (drag) */
 .lch-icon.lch-drag-over .lch-icon-btn{box-shadow:0 0 0 3px var(--c2),0 6px 24px rgba(0,0,0,0.3);}
+
+/* ── Menu Démarrer (start menu) ── */
+#smBtn{position:fixed;bottom:36px;left:50%;transform:translateX(-50%);z-index:500;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--c1),var(--c2));border:1.5px solid rgba(255,255,255,0.45);color:#fff;font-size:1.25rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 18px rgba(0,0,0,0.28);transition:transform 0.15s,box-shadow 0.15s;}
+#smBtn:hover{transform:translateX(-50%) scale(1.08);box-shadow:0 6px 24px rgba(0,0,0,0.38);}
+#smBtn.active{transform:translateX(-50%) scale(0.94);}
+#smPanel{position:fixed;bottom:94px;left:50%;transform:translateX(-50%);z-index:501;width:290px;max-height:70vh;background:rgba(255,255,255,0.92);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border:1.5px solid rgba(255,255,255,0.9);border-radius:18px;box-shadow:0 18px 50px rgba(15,23,42,0.28);display:none;flex-direction:column;overflow:hidden;font-family:'Inter',sans-serif;}
+#smPanel.open{display:flex;}
+#smPanelHead{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 10px;border-bottom:1.5px solid rgba(30,41,59,0.1);}
+#smPanelTitle{font-size:0.72rem;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;background:linear-gradient(90deg,var(--c1),var(--c2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+#smPanelAdd{background:transparent;border:none;cursor:pointer;font-size:1rem;color:var(--muted);width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
+#smPanelAdd:hover{color:var(--c2);background:rgba(61,90,115,0.1);}
+#smList{overflow-y:auto;padding:6px;display:flex;flex-direction:column;gap:3px;}
+#smList:empty::after{content:'Aucun raccourci — cliquez sur ＋';display:block;padding:16px 10px;text-align:center;font-size:0.72rem;color:var(--muted);}
+.sm-item{display:flex;align-items:center;gap:10px;padding:8px 8px;border-radius:11px;cursor:pointer;transition:background 0.12s;position:relative;}
+.sm-item:hover{background:rgba(61,90,115,0.1);}
+.sm-item-emoji{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--c1),var(--c2));display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,0.15);}
+.sm-item-name{flex:1;font-size:0.78rem;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sm-item-actions{display:none;align-items:center;gap:2px;flex-shrink:0;}
+.sm-item:hover .sm-item-actions{display:flex;}
+.sm-item-btn{width:22px;height:22px;border-radius:7px;border:none;background:rgba(0,0,0,0.06);color:var(--muted);font-size:0.62rem;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.12s;}
+.sm-item-btn:hover{background:var(--c2);color:#fff;}
+.sm-item-btn.sm-del:hover{background:#b3564f;}
+#smPanelFoot{padding:8px 12px 10px;border-top:1.5px solid rgba(30,41,59,0.1);}
+#smSearch{width:100%;background:rgba(61,90,115,0.06);border:1.5px solid rgba(61,90,115,0.2);border-radius:9px;padding:6px 10px;font-family:'Inter',sans-serif;font-size:0.74rem;font-weight:600;color:var(--text);outline:none;transition:border-color 0.2s;}
+#smSearch:focus{border-color:var(--c2);}
+#smSearch::placeholder{color:var(--muted);}
+#smModal{position:fixed;inset:0;z-index:610;background:rgba(0,0,0,0.45);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;}
+#smModal.open{display:flex;}
 /* Modal launcher */
 #launcherModal{position:fixed;inset:0;z-index:600;background:rgba(0,0,0,0.45);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;}
 #launcherModal.open{display:flex;}
@@ -2192,6 +2220,18 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(255
 <div id="lchControls">
   <button class="lch-ctrl-btn" id="lchEditBtn" onclick="launcherToggleEdit()" title="Éditer les icônes">✏️</button>
   <button class="lch-ctrl-btn" onclick="launcherOpenAdd()" title="Ajouter un raccourci">＋</button>
+
+<button id="smBtn" onclick="smToggle()" title="Menu démarrer — utilitaires en ligne"><i class="ti ti-apps"></i></button>
+<div id="smPanel">
+  <div id="smPanelHead">
+    <span id="smPanelTitle">Utilitaires</span>
+    <button id="smPanelAdd" onclick="smOpenAdd()" title="Ajouter un raccourci">＋</button>
+  </div>
+  <div id="smList"></div>
+  <div id="smPanelFoot">
+    <input id="smSearch" placeholder="Rechercher…" oninput="smRender(this.value)">
+  </div>
+</div>
 </div>
 
 <!-- CLOCK WIDGET -->
@@ -4012,6 +4052,8 @@ function initApp(){
   // launcher
   launcherLoad();
   launcherRender();
+  // menu démarrer
+  smLoad();
   // clock color
   applyClockColor();
   renderLinks();
@@ -4630,6 +4672,146 @@ function lchHideCtxMenu(){ if(_lchCtx){ _lchCtx.remove(); _lchCtx = null; } }
 // ── modal ──
 function launcherToggleEdit(){} // plus utilisé mais gardé pour compatibilité bouton
 
+// ══════════════════ Menu Démarrer (raccourcis utilitaires en ligne) ══════════════════
+const DEFAULT_STARTMENU = [
+  {emoji:'🌐', name:'Google Traduction', url:'https://translate.google.com/'},
+  {emoji:'📐', name:'DeepL',             url:'https://www.deepl.com/translator'},
+  {emoji:'🧮', name:'Convertisseur',     url:'https://www.google.com/search?q=convertisseur'},
+  {emoji:'☁️', name:'Météo',             url:'https://www.meteofrance.com/'},
+  {emoji:'📬', name:'La Poste (suivi)',  url:'https://www.laposte.fr/outils/suivre-vos-envois'},
+];
+let smItems = [];
+let smEditIdx = null;
+
+function smLoad(){
+  try{ smItems = JSON.parse(localStorage.getItem('dashboard_startmenu')||'null') || DEFAULT_STARTMENU.map(l=>({...l})); }
+  catch(e){ smItems = DEFAULT_STARTMENU.map(l=>({...l})); }
+}
+function smSave(){ localStorage.setItem('dashboard_startmenu', JSON.stringify(smItems)); }
+
+function smRender(filter){
+  const list = document.getElementById('smList');
+  if(!list) return;
+  list.innerHTML = '';
+  const q = (filter||'').trim().toLowerCase();
+  smItems.forEach((it, i) => {
+    if(q && !it.name.toLowerCase().includes(q)) return;
+    const row = document.createElement('div');
+    row.className = 'sm-item';
+    row.draggable = true;
+    row.ondragstart = (e) => { e.dataTransfer.setData('text/plain', String(i)); row.style.opacity='0.4'; };
+    row.ondragend   = () => { row.style.opacity=''; };
+    row.ondragover  = (e) => e.preventDefault();
+    row.ondrop      = (e) => {
+      e.preventDefault();
+      const from = parseInt(e.dataTransfer.getData('text/plain'), 10);
+      if(isNaN(from) || from === i) return;
+      const moved = smItems.splice(from,1)[0];
+      smItems.splice(i,0,moved);
+      smSave(); smRender(document.getElementById('smSearch').value);
+    };
+    row.onclick = (e) => {
+      if(e.target.closest('.sm-item-actions')) return;
+      window.open(it.url, '_blank', 'noopener');
+      smClosePanel();
+    };
+
+    const emoji = document.createElement('div');
+    emoji.className = 'sm-item-emoji';
+    emoji.textContent = it.emoji || '🔗';
+
+    const name = document.createElement('div');
+    name.className = 'sm-item-name';
+    name.textContent = it.name || 'Lien';
+
+    const actions = document.createElement('div');
+    actions.className = 'sm-item-actions';
+    const editBtn = document.createElement('button');
+    editBtn.className = 'sm-item-btn';
+    editBtn.title = 'Modifier';
+    editBtn.textContent = '✏️';
+    editBtn.onclick = (e) => { e.stopPropagation(); smOpenEdit(i); };
+    const delBtn = document.createElement('button');
+    delBtn.className = 'sm-item-btn sm-del';
+    delBtn.title = 'Supprimer';
+    delBtn.textContent = '🗑';
+    delBtn.onclick = (e) => { e.stopPropagation(); smItems.splice(i,1); smSave(); smRender(document.getElementById('smSearch').value); };
+    actions.appendChild(editBtn);
+    actions.appendChild(delBtn);
+
+    row.appendChild(emoji);
+    row.appendChild(name);
+    row.appendChild(actions);
+    list.appendChild(row);
+  });
+}
+
+function smToggle(){
+  const panel = document.getElementById('smPanel');
+  const btn   = document.getElementById('smBtn');
+  const opening = !panel.classList.contains('open');
+  if(opening){
+    panel.classList.add('open');
+    btn.classList.add('active');
+    document.getElementById('smSearch').value = '';
+    smRender();
+    setTimeout(() => document.getElementById('smSearch').focus(), 50);
+  } else {
+    smClosePanel();
+  }
+}
+function smClosePanel(){
+  document.getElementById('smPanel').classList.remove('open');
+  document.getElementById('smBtn').classList.remove('active');
+}
+
+function smBuildEmojiGrid(sel){
+  const g = document.getElementById('smEmojiGrid');
+  g.innerHTML = '';
+  LAUNCHER_EMOJIS.forEach(em => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'launcher-emoji-pick' + (em === sel ? ' sel' : '');
+    b.textContent = em;
+    b.onclick = () => { g.querySelectorAll('.launcher-emoji-pick').forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); };
+    g.appendChild(b);
+  });
+}
+function smSelEmoji(){ return document.querySelector('#smEmojiGrid .launcher-emoji-pick.sel')?.textContent || '🔗'; }
+
+function smOpenAdd(){
+  smEditIdx = null;
+  document.getElementById('smModalTitle').textContent = 'Nouveau raccourci';
+  document.getElementById('smModalName').value = '';
+  document.getElementById('smModalUrl').value  = '';
+  smBuildEmojiGrid(LAUNCHER_EMOJIS[0]);
+  document.getElementById('smModal').classList.add('open');
+}
+function smOpenEdit(i){
+  smEditIdx = i;
+  const it = smItems[i];
+  document.getElementById('smModalTitle').textContent = 'Modifier le raccourci';
+  document.getElementById('smModalName').value = it.name || '';
+  document.getElementById('smModalUrl').value  = it.url  || '';
+  smBuildEmojiGrid(it.emoji || LAUNCHER_EMOJIS[0]);
+  document.getElementById('smModal').classList.add('open');
+}
+function smCloseModal(){ document.getElementById('smModal').classList.remove('open'); }
+function smSaveModal(){
+  let url = document.getElementById('smModalUrl').value.trim();
+  const name  = document.getElementById('smModalName').value.trim() || 'Lien';
+  const emoji = smSelEmoji();
+  if(url && !/^https?:\/\//i.test(url)) url = 'https://' + url;
+  if(smEditIdx === null){
+    smItems.push({emoji, name, url});
+  } else {
+    smItems[smEditIdx] = {emoji, name, url};
+  }
+  smSave();
+  smCloseModal();
+  smRender(document.getElementById('smSearch').value);
+}
+
 function launcherBuildEmojiGrid(sel){
   const g = document.getElementById('launcherEmojiGrid');
   g.innerHTML = '';
@@ -4680,6 +4862,11 @@ function launcherSaveModal(){
 document.addEventListener('click', e => {
   const modal = document.getElementById('launcherModal');
   if(modal && modal.classList.contains('open') && e.target === modal) launcherCloseModal();
+  const smModal = document.getElementById('smModal');
+  if(smModal && smModal.classList.contains('open') && e.target === smModal) smCloseModal();
+  const smPanel  = document.getElementById('smPanel');
+  const smBtn    = document.getElementById('smBtn');
+  if(smPanel && smPanel.classList.contains('open') && !smPanel.contains(e.target) && e.target !== smBtn && !smBtn.contains(e.target)) smClosePanel();
 });
 
 
@@ -6761,6 +6948,19 @@ document.addEventListener('keydown', function(e){
 
 <div class="kb-flash" id="kbFlash"></div>
 
+
+<div id="smModal">
+  <div class="launcher-modal-box">
+    <div class="launcher-modal-title" id="smModalTitle">Nouveau raccourci</div>
+    <div class="launcher-emoji-grid" id="smEmojiGrid"></div>
+    <input class="launcher-modal-input" id="smModalName" placeholder="Nom (ex: DeepL)">
+    <input class="launcher-modal-input" id="smModalUrl" placeholder="https://…">
+    <div class="launcher-modal-btns">
+      <button class="launcher-modal-cancel" onclick="smCloseModal()">Annuler</button>
+      <button class="launcher-modal-save" onclick="smSaveModal()">Enregistrer</button>
+    </div>
+  </div>
+</div>
 
 <div id="launcherModal">
   <div class="launcher-modal-box">
