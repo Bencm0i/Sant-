@@ -1407,6 +1407,7 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(255
 #smBtn{position:fixed;bottom:36px;left:50%;transform:translateX(-50%);z-index:500;width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--c1),var(--c2));border:1.5px solid rgba(255,255,255,0.45);color:#fff;font-size:1.25rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 18px rgba(0,0,0,0.28);transition:transform 0.15s,box-shadow 0.15s;}
 #smBtn:hover{transform:translateX(-50%) scale(1.08);box-shadow:0 6px 24px rgba(0,0,0,0.38);}
 #smBtn.active{transform:translateX(-50%) scale(0.94);}
+#lchAddBtn{position:fixed;bottom:41px;left:calc(50% + 55px);z-index:500;}
 #smPanel{position:fixed;bottom:94px;left:50%;transform:translateX(-50%);z-index:501;width:290px;max-height:70vh;background:rgba(255,255,255,0.92);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border:1.5px solid rgba(255,255,255,0.9);border-radius:18px;box-shadow:0 18px 50px rgba(15,23,42,0.28);display:none;flex-direction:column;overflow:hidden;font-family:'Inter',sans-serif;}
 #smPanel.open{display:flex;}
 #smPanelHead{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 10px;border-bottom:1.5px solid rgba(30,41,59,0.1);}
@@ -2218,10 +2219,9 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(255
 <!-- LAUNCHER BUREAU FLOTTANT -->
 <div id="launcherDesktop"></div>
 <div id="lchControls">
-  <button class="lch-ctrl-btn" id="lchEditBtn" onclick="launcherToggleEdit()" title="Éditer les icônes">✏️</button>
-  <button class="lch-ctrl-btn" onclick="launcherOpenAdd()" title="Ajouter un raccourci">＋</button>
 
 <button id="smBtn" onclick="smToggle()" title="Menu démarrer — utilitaires en ligne"><i class="ti ti-apps"></i></button>
+<button id="lchAddBtn" class="lch-ctrl-btn" onclick="launcherOpenAdd()" title="Ajouter un raccourci">＋</button>
 <div id="smPanel">
   <div id="smPanelHead">
     <span id="smPanelTitle">Utilitaires</span>
