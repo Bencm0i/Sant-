@@ -88,6 +88,32 @@
   .refresh-btn:hover{ color:var(--green); border-color:var(--green); }
   .refresh-btn.loading{ color:var(--amber); border-color:var(--amber); }
 
+  .tool-group{ display:flex; gap:4px; }
+  button.tool{
+    background:transparent; border:1px solid var(--border); color:var(--txt-dim);
+    font-family:inherit; font-size:11px; padding:5px 10px; border-radius:3px; cursor:pointer;
+    transition:all .15s; display:flex; align-items:center; gap:5px;
+  }
+  button.tool:hover{ border-color:var(--amber); color:var(--amber); }
+  button.tool.active{ background:var(--amber); color:#05080a; border-color:var(--amber); font-weight:600; }
+
+  .lines-row{
+    display:flex; align-items:center; gap:6px; padding:6px 20px; flex-wrap:wrap;
+    border-bottom:1px solid var(--border); background:var(--panel); font-size:10.5px;
+  }
+  .lines-row.empty{ display:none; }
+  .lines-row .lbl{ color:var(--txt-dim); letter-spacing:1px; text-transform:uppercase; font-size:9px; margin-right:2px; }
+  .line-chip{
+    display:flex; align-items:center; gap:6px; background:var(--panel-2); border:1px solid var(--border);
+    border-radius:3px; padding:3px 4px 3px 8px; color:var(--amber); font-weight:600;
+  }
+  .line-chip button{
+    background:transparent; border:none; color:var(--txt-dim); cursor:pointer; font-size:12px;
+    line-height:1; padding:2px 5px; border-radius:2px;
+  }
+  .line-chip button:hover{ color:var(--red); background:var(--red-dim); }
+  .hint{ color:var(--txt-dim); font-size:9.5px; margin-left:4px; }
+
   /* CHART */
   .chart-wrap{
     flex:1; position:relative; padding:6px 0 0 0; display:flex; flex-direction:column;
@@ -99,7 +125,7 @@
   #status.hidden{ display:none; }
 
   canvas{ display:block; width:100%; }
-  #priceCanvas{ height:58vh; min-height:340px; cursor:crosshair; }
+  #priceCanvas{ height:58vh; min-height:340px; cursor:grab; }
   #rsiCanvas{ height:14vh; min-height:90px; border-top:1px solid var(--grid); cursor:crosshair; }
 
   .tooltip{
@@ -171,7 +197,20 @@
     <label class="toggle on" id="tgVol">
       <input type="checkbox" checked> <span class="swatch" style="background:#3a4753"></span> Volume
     </label>
+    <div class="divider"></div>
+    <div class="tool-group">
+      <button class="tool" id="drawBtn" title="Cliquer sur le graphique pour placer une ligne horizontale">✏️ S/R</button>
+      <button class="tool" id="zoomInBtn" title="Zoomer">🔍+</button>
+      <button class="tool" id="zoomOutBtn" title="Dézoomer">🔍−</button>
+      <button class="tool" id="resetViewBtn" title="Réinitialiser la vue">⤢ Reset</button>
+      <button class="tool" id="clearLinesBtn" title="Effacer toutes les lignes">🗑 Lignes</button>
+    </div>
     <button class="refresh-btn" id="refreshBtn">⟳ ACTUALISER</button>
+  </div>
+
+  <div class="lines-row empty" id="linesRow">
+    <span class="lbl">Support / Résistance</span>
+    <div id="linesChips" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
   </div>
 
   <div class="chart-wrap">
@@ -200,8 +239,18 @@
     rsi: [],
     show: { ichimoku:true, ema:true, rsi:true, vol:true },
     hoverIdx: null,
-    loading: false
+    loading: false,
+    viewEnd: 0,        // index (into candles[]) of rightmost visible candle
+    viewCount: 140,     // number of candles visible
+    lines: [],          // {id, price} horizontal S/R lines
+    nextLineId: 1,
+    drawMode: false
   };
+
+  // interaction (pan / line-drag) — module scope, not persisted
+  let isPanning = false, panStartX = 0, panStartViewEnd = 0;
+  let draggingLineId = null, hoverLineId = null;
+  let currentPmin = 0, currentPmax = 1, currentChartH = 0;
 
   const TF_MAP = {
     '15m': {interval:'15m', limit:300},
@@ -374,14 +423,15 @@
 
     const n = state.candles.length;
     const ichi = state.ichimoku; // length n+26
-    const showFuture = state.show.ichimoku ? 26 : 0;
-    const totalLen = n + showFuture;
 
-    // visible window: last ~140 candles + future cloud space
-    const visibleCandles = Math.min(140, n);
-    const start = n - visibleCandles;
-    const end = totalLen; // include future cloud
-    visibleRange = {start, end};
+    // ---- zoom / pan window ----
+    const viewCount = Math.max(25, Math.min(state.viewCount, n));
+    const viewEnd = Math.max(viewCount-1, Math.min(state.viewEnd || n-1, n-1));
+    state.viewEnd = viewEnd; state.viewCount = viewCount;
+    const start = Math.max(0, viewEnd - viewCount + 1);
+    const showFuture = (state.show.ichimoku && viewEnd >= n-1) ? 26 : 0;
+    const end = viewEnd + 1 + showFuture; // extended index, exclusive
+    visibleRange = {start, end, viewEnd};
 
     const chartH = state.show.vol ? h*(1-VOL_H_RATIO) : h;
     const volTop = chartH;
@@ -389,7 +439,7 @@
 
     // price range across visible candles + cloud
     let pmin = Infinity, pmax = -Infinity;
-    for(let i=start;i<n;i++){
+    for(let i=start;i<=viewEnd;i++){
       pmin = Math.min(pmin, state.candles[i].l);
       pmax = Math.max(pmax, state.candles[i].h);
     }
@@ -403,13 +453,14 @@
       }
     }
     if(state.show.ema){
-      for(let i=start;i<n;i++){
+      for(let i=start;i<=viewEnd;i++){
         if(state.ema20[i]!=null){ pmin=Math.min(pmin,state.ema20[i]); pmax=Math.max(pmax,state.ema20[i]); }
         if(state.ema50[i]!=null){ pmin=Math.min(pmin,state.ema50[i]); pmax=Math.max(pmax,state.ema50[i]); }
       }
     }
     const pad = (pmax-pmin)*0.06;
     pmin -= pad; pmax += pad;
+    currentPmin = pmin; currentPmax = pmax; currentChartH = chartH;
 
     const nBars = end - start;
     const barSlot = (w - PAD.l - PAD.r) / nBars;
@@ -435,7 +486,7 @@
 
     // separator between current data and future cloud
     if(showFuture>0){
-      const sepX = xScale(n) - barSlot/2;
+      const sepX = xScale(viewEnd+1) - barSlot/2;
       pctx.strokeStyle = '#232d36';
       pctx.setLineDash([3,3]);
       pctx.beginPath(); pctx.moveTo(sepX, PAD.t); pctx.lineTo(sepX, chartH-PAD.b); pctx.stroke();
@@ -468,23 +519,23 @@
       drawLine(ichi, start, end, d=>d.senkouB, bullish? 'rgba(255,77,94,0.35)':'rgba(0,255,157,0.5)', 1);
 
       // tenkan / kijun
-      drawLine(ichi, start, Math.min(n,end), d=>d.tenkan, '#35c7ff', 1.3);
-      drawLine(ichi, start, Math.min(n,end), d=>d.kijun, '#ffb020', 1.3);
+      drawLine(ichi, start, (viewEnd+1), d=>d.tenkan, '#35c7ff', 1.3);
+      drawLine(ichi, start, (viewEnd+1), d=>d.kijun, '#ffb020', 1.3);
       // chikou (dashed)
       pctx.save();
       pctx.setLineDash([4,3]);
-      drawLine(ichi, start, Math.min(n,end), d=>d.chikou, '#a78bfa', 1);
+      drawLine(ichi, start, (viewEnd+1), d=>d.chikou, '#a78bfa', 1);
       pctx.restore();
     }
 
     // ---- EMA ----
     if(state.show.ema){
-      drawSeriesLine(state.ema20, start, n, '#a78bfa', 1.1, xScale, yScale);
-      drawSeriesLine(state.ema50, start, n, '#6d5bd0', 1.1, xScale, yScale);
+      drawSeriesLine(state.ema20, start, viewEnd+1, '#a78bfa', 1.1, xScale, yScale);
+      drawSeriesLine(state.ema50, start, viewEnd+1, '#6d5bd0', 1.1, xScale, yScale);
     }
 
     // ---- Candles ----
-    for(let i=start;i<n;i++){
+    for(let i=start;i<=viewEnd;i++){
       const c = state.candles[i];
       const x = xScale(i);
       const yO = yScale(c.o), yC = yScale(c.c), yH = yScale(c.h), yL = yScale(c.l);
@@ -503,8 +554,8 @@
     // ---- Volume ----
     if(state.show.vol){
       let vmax = 0;
-      for(let i=start;i<n;i++) vmax = Math.max(vmax, state.candles[i].v);
-      for(let i=start;i<n;i++){
+      for(let i=start;i<=viewEnd;i++) vmax = Math.max(vmax, state.candles[i].v);
+      for(let i=start;i<=viewEnd;i++){
         const c = state.candles[i];
         const x = xScale(i);
         const vh = (c.v/vmax) * (volH-4);
@@ -517,18 +568,39 @@
     // current price line
     const lastC = state.candles[n-1];
     const ly = yScale(lastC.c);
-    pctx.strokeStyle = '#5f7381';
-    pctx.setLineDash([2,3]);
-    pctx.beginPath(); pctx.moveTo(PAD.l, ly); pctx.lineTo(w-PAD.r, ly); pctx.stroke();
-    pctx.setLineDash([]);
-    pctx.fillStyle = lastC.c >= state.candles[n-2].c ? '#00ff9d' : '#ff4d5e';
-    pctx.fillRect(w-PAD.r, ly-8, PAD.r, 16);
-    pctx.fillStyle = '#05080a';
-    pctx.font = 'bold 10px IBM Plex Mono';
-    pctx.fillText(fmt(lastC.c,0), w-PAD.r+5, ly+3);
+    if(ly >= PAD.t-1 && ly <= chartH-PAD.b+1){
+      pctx.strokeStyle = '#5f7381';
+      pctx.setLineDash([2,3]);
+      pctx.beginPath(); pctx.moveTo(PAD.l, ly); pctx.lineTo(w-PAD.r, ly); pctx.stroke();
+      pctx.setLineDash([]);
+      pctx.fillStyle = lastC.c >= state.candles[n-2].c ? '#00ff9d' : '#ff4d5e';
+      pctx.fillRect(w-PAD.r, ly-8, PAD.r, 16);
+      pctx.fillStyle = '#05080a';
+      pctx.font = 'bold 10px IBM Plex Mono';
+      pctx.fillText(fmt(lastC.c,0), w-PAD.r+5, ly+3);
+    }
+
+    // ---- Support / Resistance lines (user-drawn) ----
+    state.lines.forEach(line=>{
+      const y = yScale(line.price);
+      if(y < PAD.t-40 || y > chartH-PAD.b+40) return;
+      const active = line.id===hoverLineId || line.id===draggingLineId;
+      pctx.strokeStyle = active ? '#ffe27a' : '#ffb020';
+      pctx.lineWidth = active ? 2.2 : 1.3;
+      pctx.setLineDash([7,4]);
+      pctx.beginPath(); pctx.moveTo(PAD.l, y); pctx.lineTo(w-PAD.r, y); pctx.stroke();
+      pctx.setLineDash([]);
+      const label = fmt(line.price,1);
+      pctx.font = 'bold 10px IBM Plex Mono';
+      const tw = pctx.measureText(label).width;
+      pctx.fillStyle = active ? '#ffe27a' : '#ffb020';
+      pctx.fillRect(PAD.l, y-9, tw+10, 16);
+      pctx.fillStyle = '#05080a';
+      pctx.fillText(label, PAD.l+5, y+3);
+    });
 
     // hover crosshair
-    if(state.hoverIdx!=null && state.hoverIdx>=start && state.hoverIdx<n){
+    if(state.hoverIdx!=null && state.hoverIdx>=start && state.hoverIdx<=viewEnd){
       const i = state.hoverIdx;
       const c = state.candles[i];
       const x = xScale(i);
@@ -567,6 +639,7 @@
     const {w,h} = dims;
     rctx.clearRect(0,0,w,h);
     const start = visibleRange.start;
+    const viewEnd = visibleRange.viewEnd;
     const n = state.candles.length;
     const pad = {l:8,r:56,t:8,b:8};
     const ys = v => pad.t + (h-pad.t-pad.b)*(1-v/100);
@@ -580,7 +653,7 @@
     rctx.strokeStyle = '#35c7ff'; rctx.lineWidth=1.3;
     rctx.beginPath();
     let started=false;
-    for(let i=start;i<n;i++){
+    for(let i=start;i<=viewEnd;i++){
       const v = state.rsi[i];
       if(v==null){ started=false; continue; }
       const x = xScale ? xScale(i) : 0;
@@ -597,14 +670,96 @@
   }
 
   // ---------- INTERACTION ----------
+
+  function priceFromY(y){
+    return currentPmax - (currentPmax-currentPmin) * (y-PAD.t) / (currentChartH-PAD.t-PAD.b);
+  }
+  function findLineNear(my, threshold){
+    threshold = threshold || 7;
+    let best = null, bestDist = Infinity;
+    state.lines.forEach(line=>{
+      const y = PAD.t + (currentChartH-PAD.t-PAD.b) * (1 - (line.price-currentPmin)/(currentPmax-currentPmin));
+      const dist = Math.abs(y-my);
+      if(dist < threshold && dist < bestDist){ best = line; bestDist = dist; }
+    });
+    return best;
+  }
+  function updateCanvasCursor(){
+    priceCanvas.style.cursor = draggingLineId!=null ? 'ns-resize'
+      : hoverLineId!=null ? 'ns-resize'
+      : state.drawMode ? 'crosshair'
+      : isPanning ? 'grabbing' : 'grab';
+  }
+
+  function renderLineList(){
+    const row = document.getElementById('linesRow');
+    const chips = document.getElementById('linesChips');
+    if(!state.lines.length){ row.classList.add('empty'); chips.innerHTML=''; return; }
+    row.classList.remove('empty');
+    const sorted = [...state.lines].sort((a,b)=>b.price-a.price);
+    chips.innerHTML = sorted.map(l => `
+      <span class="line-chip" data-id="${l.id}">${fmt(l.price,1)}<button data-del="${l.id}" title="Supprimer">×</button></span>
+    `).join('');
+    chips.querySelectorAll('button[data-del]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const id = +btn.dataset.del;
+        state.lines = state.lines.filter(l=>l.id!==id);
+        renderLineList(); draw();
+      });
+    });
+  }
+
+  priceCanvas.addEventListener('mousedown', (e)=>{
+    if(!xScale || !state.candles.length) return;
+    const rect = priceCanvas.getBoundingClientRect();
+    const my = e.clientY - rect.top;
+    const hit = findLineNear(my);
+    if(hit){
+      draggingLineId = hit.id;
+      updateCanvasCursor();
+      return;
+    }
+    if(state.drawMode){
+      const price = priceFromY(my);
+      state.lines.push({ id: state.nextLineId++, price });
+      renderLineList();
+      draw();
+      return;
+    }
+    isPanning = true;
+    panStartX = e.clientX - rect.left;
+    panStartViewEnd = state.viewEnd;
+    updateCanvasCursor();
+  });
+
   priceCanvas.addEventListener('mousemove', (e)=>{
     if(!xScale || !state.candles.length) return;
     const rect = priceCanvas.getBoundingClientRect();
     const mx = e.clientX - rect.left, my = e.clientY - rect.top;
     const n = state.candles.length;
+
+    if(draggingLineId!=null){
+      const line = state.lines.find(l=>l.id===draggingLineId);
+      if(line){ line.price = priceFromY(my); draw(); }
+      return;
+    }
+    if(isPanning){
+      const barSlot = (rect.width - PAD.l - PAD.r) / (visibleRange.end - visibleRange.start);
+      const dx = mx - panStartX;
+      let newViewEnd = panStartViewEnd - Math.round(dx/barSlot);
+      newViewEnd = Math.max(state.viewCount-1, Math.min(n-1, newViewEnd));
+      state.viewEnd = newViewEnd;
+      draw();
+      return;
+    }
+
+    const hit = findLineNear(my);
+    hoverLineId = hit ? hit.id : null;
+    updateCanvasCursor();
+
     const barSlot = (rect.width - PAD.l - PAD.r) / (visibleRange.end - visibleRange.start);
     let idx = Math.round((mx - PAD.l - barSlot/2)/barSlot) + visibleRange.start;
-    idx = Math.max(visibleRange.start, Math.min(n-1, idx));
+    idx = Math.max(visibleRange.start, Math.min(visibleRange.viewEnd, idx));
     state.hoverIdx = idx;
     draw();
     const c = state.candles[idx];
@@ -625,9 +780,63 @@
       ${state.rsi[idx]!=null ? `<div class="row"><span>RSI</span><b>${state.rsi[idx].toFixed(1)}</b></div>` : ''}
     `;
   });
-  priceCanvas.addEventListener('mouseleave', ()=>{
-    state.hoverIdx = null; tooltip.style.display='none'; draw();
+
+  window.addEventListener('mouseup', ()=>{
+    if(isPanning || draggingLineId!=null){
+      isPanning = false; draggingLineId = null;
+      updateCanvasCursor();
+      if(state.lines.length) renderLineList();
+    }
   });
+
+  priceCanvas.addEventListener('mouseleave', ()=>{
+    state.hoverIdx = null; tooltip.style.display='none';
+    if(!isPanning) hoverLineId = null;
+    draw();
+  });
+
+  priceCanvas.addEventListener('contextmenu', (e)=>{
+    const rect = priceCanvas.getBoundingClientRect();
+    const my = e.clientY - rect.top;
+    const hit = findLineNear(my);
+    if(hit){
+      e.preventDefault();
+      state.lines = state.lines.filter(l=>l.id!==hit.id);
+      renderLineList();
+      draw();
+    }
+  });
+
+  priceCanvas.addEventListener('wheel', (e)=>{
+    if(!state.candles.length) return;
+    e.preventDefault();
+    const n = state.candles.length;
+    const zoomFactor = e.deltaY > 0 ? 1.15 : 1/1.15;
+    let newCount = Math.round(state.viewCount * zoomFactor);
+    newCount = Math.max(25, Math.min(n, newCount));
+    state.viewCount = newCount;
+    state.viewEnd = Math.max(newCount-1, Math.min(state.viewEnd, n-1));
+    draw();
+  }, {passive:false});
+
+  // touch: single-finger drag pans the chart
+  let touchStartX = 0, touchStartViewEnd = 0;
+  priceCanvas.addEventListener('touchstart', (e)=>{
+    if(e.touches.length!==1 || !state.candles.length) return;
+    touchStartX = e.touches[0].clientX;
+    touchStartViewEnd = state.viewEnd;
+  }, {passive:true});
+  priceCanvas.addEventListener('touchmove', (e)=>{
+    if(e.touches.length!==1 || !state.candles.length || !visibleRange.end) return;
+    const rect = priceCanvas.getBoundingClientRect();
+    const barSlot = (rect.width - PAD.l - PAD.r) / (visibleRange.end - visibleRange.start);
+    const dx = e.touches[0].clientX - touchStartX;
+    const n = state.candles.length;
+    let newViewEnd = touchStartViewEnd - Math.round(dx/barSlot);
+    newViewEnd = Math.max(state.viewCount-1, Math.min(n-1, newViewEnd));
+    state.viewEnd = newViewEnd;
+    draw();
+  }, {passive:true});
 
   // ---------- CONTROLS ----------
   document.getElementById('tfGroup').addEventListener('click', (e)=>{
@@ -654,6 +863,33 @@
   bindToggle('tgRsi','rsi');
   bindToggle('tgVol','vol');
 
+  document.getElementById('drawBtn').addEventListener('click', ()=>{
+    state.drawMode = !state.drawMode;
+    document.getElementById('drawBtn').classList.toggle('active', state.drawMode);
+    updateCanvasCursor();
+  });
+  document.getElementById('zoomInBtn').addEventListener('click', ()=>{
+    if(!state.candles.length) return;
+    state.viewCount = Math.max(25, Math.round(state.viewCount/1.4));
+    draw();
+  });
+  document.getElementById('zoomOutBtn').addEventListener('click', ()=>{
+    if(!state.candles.length) return;
+    state.viewCount = Math.min(state.candles.length, Math.round(state.viewCount*1.4));
+    draw();
+  });
+  document.getElementById('resetViewBtn').addEventListener('click', ()=>{
+    if(!state.candles.length) return;
+    state.viewCount = Math.min(140, state.candles.length);
+    state.viewEnd = state.candles.length - 1;
+    draw();
+  });
+  document.getElementById('clearLinesBtn').addEventListener('click', ()=>{
+    state.lines = [];
+    renderLineList();
+    draw();
+  });
+
   document.getElementById('refreshBtn').addEventListener('click', load);
 
   window.addEventListener('resize', ()=>{ if(!state.loading) draw(); });
@@ -665,6 +901,7 @@
     statusEl.classList.remove('hidden');
     statusEl.textContent = 'RÉCUPÉRATION DES DONNÉES BINANCE…';
     state.loading = true;
+    const resetView = state.candles.length===0 || state._loadedTf !== state.tf;
     try{
       const [candles, ticker] = await Promise.all([fetchKlines(state.tf), fetch24h()]);
       state.candles = candles;
@@ -672,6 +909,12 @@
       state.ema20 = computeEMA(candles, 20);
       state.ema50 = computeEMA(candles, 50);
       state.rsi = computeRSI(candles, 14);
+      if(resetView){
+        state.viewCount = Math.min(140, candles.length);
+        state.viewEnd = candles.length - 1;
+      }
+      state._loadedTf = state.tf;
+      renderLineList();
 
       const last = candles[candles.length-1];
       const prevClose = +ticker.prevClosePrice;
