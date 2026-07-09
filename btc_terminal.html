@@ -23,6 +23,7 @@
     --cyan: #35c7ff;
     --amber: #ffb020;
     --violet: #a78bfa;
+    --flashy: #ff2fd6;
   }
   *{ box-sizing:border-box; margin:0; padding:0; }
   html,body{
@@ -122,6 +123,12 @@
     line-height:1; padding:2px 5px; border-radius:2px;
   }
   .line-chip button:hover{ color:var(--red); background:var(--red-dim); }
+  .cost-chip{
+    color:var(--flashy) !important; border-color:var(--flashy) !important;
+    box-shadow:0 0 6px rgba(255,47,214,0.35);
+  }
+  .cost-chip button:hover{ color:var(--flashy); background:rgba(255,47,214,0.12); }
+  .cost-chip button.lock-btn.locked{ color:var(--flashy); }
   .hint{ color:var(--txt-dim); font-size:9.5px; margin-left:4px; }
 
   /* CHART */
@@ -216,6 +223,7 @@
       <button class="tool" id="drawBtn" title="Cliquer sur le graphique pour placer une ligne horizontale">✏️ S/R</button>
       <button class="tool" id="freehandBtn" title="Dessin libre à main levée sur le graphique">✍️ Libre</button>
       <button class="tool" id="measureBtn" title="Cliquer-glisser entre deux points pour mesurer le %">📏 Mesure</button>
+      <button class="tool" id="costBtn" title="Cliquer sur le graphique pour placer le prix de revient">💰 P.Revient</button>
       <button class="tool" id="zoomInBtn" title="Zoomer">🔍+</button>
       <button class="tool" id="zoomOutBtn" title="Dézoomer">🔍−</button>
       <button class="tool" id="resetViewBtn" title="Réinitialiser la vue">⤢ Reset</button>
@@ -228,6 +236,11 @@
   <div class="lines-row empty" id="linesRow">
     <span class="lbl">Support / Résistance</span>
     <div id="linesChips" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+  </div>
+
+  <div class="lines-row empty" id="costRow">
+    <span class="lbl">Prix de revient</span>
+    <div id="costChipWrap" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
   </div>
 
   <div class="chart-wrap">
@@ -266,7 +279,9 @@
     freehandMode: false,
     freehandStrokes: [], // [[{idx,price}, ...], ...]
     measureMode: false,
-    measurement: null    // {start:{idx,price}, end:{idx,price}} règle de mesure persistée
+    measurement: null,   // {start:{idx,price}, end:{idx,price}} règle de mesure persistée
+    costMode: false,
+    costLine: null        // {price, locked} prix de revient (flashy, verrouillable)
   };
 
   // interaction (pan / line-drag) — module scope, not persisted
@@ -275,6 +290,7 @@
   let currentPmin = 0, currentPmax = 1, currentChartH = 0;
   let isFreehandDrawing = false, currentStroke = null;
   let isMeasuring = false, measureStart = null, measureEnd = null;
+  let draggingCost = false;
 
   const TF_MAP = {
     '15m': {interval:'15m', limit:300},
@@ -316,8 +332,23 @@
       if(Array.isArray(parsed)) state.freehandStrokes = parsed;
     }catch(e){}
   }
+  const LS_COST = 'btcTerminal_costLine';
+  function saveCostLine(){
+    try{ localStorage.setItem(LS_COST, JSON.stringify(state.costLine)); }catch(e){}
+  }
+  function loadCostLine(){
+    try{
+      const raw = localStorage.getItem(LS_COST);
+      if(!raw) return;
+      const parsed = JSON.parse(raw);
+      if(parsed && typeof parsed.price === 'number'){
+        state.costLine = { price: parsed.price, locked: !!parsed.locked };
+      }
+    }catch(e){}
+  }
   loadLines();
   loadFreehand();
+  loadCostLine();
 
   const priceCanvas = document.getElementById('priceCanvas');
   const rsiCanvas = document.getElementById('rsiCanvas');
@@ -658,6 +689,34 @@
       pctx.fillText(label, PAD.l+5, y+3);
     });
 
+    // ---- Prix de revient (ligne flashy, verrouillable) ----
+    if(state.costLine){
+      const price = state.costLine.price;
+      const y = yScale(price);
+      if(y >= PAD.t-40 && y <= chartH-PAD.b+40){
+        const flashy = '#ff2fd6';
+        const dragging = draggingCost;
+        pctx.save();
+        pctx.shadowColor = flashy;
+        pctx.shadowBlur = dragging ? 14 : 9;
+        pctx.strokeStyle = flashy;
+        pctx.lineWidth = dragging ? 2.6 : 2;
+        pctx.setLineDash([2,3]);
+        pctx.beginPath(); pctx.moveTo(PAD.l, y); pctx.lineTo(w-PAD.r, y); pctx.stroke();
+        pctx.setLineDash([]);
+        pctx.restore();
+
+        const lockIcon = state.costLine.locked ? '🔒 ' : '';
+        const label = lockIcon + 'P.R. ' + fmt(price,1);
+        pctx.font = 'bold 10px IBM Plex Mono';
+        const tw = pctx.measureText(label).width;
+        pctx.fillStyle = flashy;
+        pctx.fillRect(PAD.l, y-9, tw+14, 16);
+        pctx.fillStyle = '#05080a';
+        pctx.fillText(label, PAD.l+6, y+3);
+      }
+    }
+
     // ---- Dessins libres (main levée) ----
     const strokeToDraw = [...state.freehandStrokes];
     if(isFreehandDrawing && currentStroke) strokeToDraw.push(currentStroke);
@@ -796,12 +855,20 @@
     });
     return best;
   }
+  function findCostLineNear(my, threshold){
+    threshold = threshold || 7;
+    if(!state.costLine || state.costLine.locked) return false;
+    const y = PAD.t + (currentChartH-PAD.t-PAD.b) * (1 - (state.costLine.price-currentPmin)/(currentPmax-currentPmin));
+    return Math.abs(y-my) < threshold;
+  }
   function updateCanvasCursor(){
     priceCanvas.style.cursor = draggingLineId!=null ? 'ns-resize'
+      : draggingCost ? 'ns-resize'
       : hoverLineId!=null ? 'ns-resize'
       : state.measureMode ? 'crosshair'
       : state.freehandMode ? 'crosshair'
       : state.drawMode ? 'crosshair'
+      : state.costMode ? 'crosshair'
       : isPanning ? 'grabbing' : 'grab';
   }
 
@@ -832,6 +899,31 @@
     });
   }
 
+  function renderCostLine(){
+    const row = document.getElementById('costRow');
+    const wrap = document.getElementById('costChipWrap');
+    if(!state.costLine){ row.classList.add('empty'); wrap.innerHTML=''; return; }
+    row.classList.remove('empty');
+    const locked = state.costLine.locked;
+    wrap.innerHTML = `
+      <span class="line-chip cost-chip">${fmt(state.costLine.price,1)}
+        <button data-action="lock" class="lock-btn${locked?' locked':''}" title="${locked?'Déverrouiller':'Verrouiller'}">${locked?'🔒':'🔓'}</button>
+        <button data-action="del" title="Supprimer">×</button>
+      </span>`;
+    wrap.querySelector('[data-action="lock"]').addEventListener('click', ()=>{
+      state.costLine.locked = !state.costLine.locked;
+      saveCostLine();
+      renderCostLine();
+      draw();
+    });
+    wrap.querySelector('[data-action="del"]').addEventListener('click', ()=>{
+      state.costLine = null;
+      saveCostLine();
+      renderCostLine();
+      draw();
+    });
+  }
+
   priceCanvas.addEventListener('mousedown', (e)=>{
     if(!xScale || !state.candles.length) return;
     const rect = priceCanvas.getBoundingClientRect();
@@ -859,11 +951,25 @@
       updateCanvasCursor();
       return;
     }
+    if(findCostLineNear(my)){
+      draggingCost = true;
+      updateCanvasCursor();
+      return;
+    }
     if(state.drawMode){
       const price = priceFromY(my);
       state.lines.push({ id: state.nextLineId++, price });
       saveLines();
       renderLineList();
+      draw();
+      return;
+    }
+    if(state.costMode){
+      if(state.costLine && state.costLine.locked) return;
+      const price = priceFromY(my);
+      state.costLine = { price, locked: state.costLine ? state.costLine.locked : false };
+      saveCostLine();
+      renderCostLine();
       draw();
       return;
     }
@@ -888,6 +994,14 @@
     if(isFreehandDrawing){
       currentStroke.push({ idx: idxFromX(mx), price: priceFromY(my) });
       draw();
+      return;
+    }
+
+    if(draggingCost){
+      if(state.costLine && !state.costLine.locked){
+        state.costLine.price = priceFromY(my);
+        draw();
+      }
       return;
     }
 
@@ -956,6 +1070,12 @@
       draggingLineId = null;
       updateCanvasCursor();
       if(state.lines.length) renderLineList();
+    }
+    if(draggingCost){
+      draggingCost = false;
+      saveCostLine();
+      renderCostLine();
+      updateCanvasCursor();
     }
   });
 
@@ -1066,9 +1186,10 @@
   document.getElementById('drawBtn').addEventListener('click', ()=>{
     state.drawMode = !state.drawMode;
     if(state.drawMode){
-      state.freehandMode = false; state.measureMode = false;
+      state.freehandMode = false; state.measureMode = false; state.costMode = false;
       document.getElementById('freehandBtn').classList.remove('active');
       document.getElementById('measureBtn').classList.remove('active');
+      document.getElementById('costBtn').classList.remove('active');
     }
     document.getElementById('drawBtn').classList.toggle('active', state.drawMode);
     updateCanvasCursor();
@@ -1076,9 +1197,10 @@
   document.getElementById('freehandBtn').addEventListener('click', ()=>{
     state.freehandMode = !state.freehandMode;
     if(state.freehandMode){
-      state.drawMode = false; state.measureMode = false;
+      state.drawMode = false; state.measureMode = false; state.costMode = false;
       document.getElementById('drawBtn').classList.remove('active');
       document.getElementById('measureBtn').classList.remove('active');
+      document.getElementById('costBtn').classList.remove('active');
     }
     document.getElementById('freehandBtn').classList.toggle('active', state.freehandMode);
     updateCanvasCursor();
@@ -1086,11 +1208,23 @@
   document.getElementById('measureBtn').addEventListener('click', ()=>{
     state.measureMode = !state.measureMode;
     if(state.measureMode){
-      state.drawMode = false; state.freehandMode = false;
+      state.drawMode = false; state.freehandMode = false; state.costMode = false;
       document.getElementById('drawBtn').classList.remove('active');
       document.getElementById('freehandBtn').classList.remove('active');
+      document.getElementById('costBtn').classList.remove('active');
     }
     document.getElementById('measureBtn').classList.toggle('active', state.measureMode);
+    updateCanvasCursor();
+  });
+  document.getElementById('costBtn').addEventListener('click', ()=>{
+    state.costMode = !state.costMode;
+    if(state.costMode){
+      state.drawMode = false; state.freehandMode = false; state.measureMode = false;
+      document.getElementById('drawBtn').classList.remove('active');
+      document.getElementById('freehandBtn').classList.remove('active');
+      document.getElementById('measureBtn').classList.remove('active');
+    }
+    document.getElementById('costBtn').classList.toggle('active', state.costMode);
     updateCanvasCursor();
   });
   document.getElementById('clearFreehandBtn').addEventListener('click', ()=>{
@@ -1146,6 +1280,7 @@
       }
       state._loadedTf = state.tf;
       renderLineList();
+      renderCostLine();
 
       const last = candles[candles.length-1];
       const prevClose = +ticker.prevClosePrice;
