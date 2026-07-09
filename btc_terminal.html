@@ -139,6 +139,9 @@
     font-size:11px; font-weight:600; padding:4px 10px; border-radius:3px; cursor:pointer;
   }
   button.mini-btn:hover{ background:var(--flashy); color:#05080a; }
+  .cost-pnl{ font-size:12px; font-weight:700; letter-spacing:0.3px; margin-left:4px; }
+  .cost-pnl.up{ color:var(--green); }
+  .cost-pnl.down{ color:var(--red); }
   .hint{ color:var(--txt-dim); font-size:9.5px; margin-left:4px; }
 
   /* CHART */
@@ -253,6 +256,7 @@
     <input type="number" id="costInput" step="0.01" placeholder="Valeur exacte…" class="mini-input">
     <button id="costSetBtn" class="mini-btn">Définir</button>
     <div id="costChipWrap" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+    <span id="costPnl" class="cost-pnl"></span>
   </div>
 
   <div class="chart-wrap">
@@ -293,7 +297,8 @@
     measureMode: false,
     measurement: null,   // {start:{idx,price}, end:{idx,price}} règle de mesure persistée
     costMode: false,
-    costLine: null        // {price, locked} prix de revient (flashy, verrouillable)
+    costLine: null,        // {price, locked} prix de revient (flashy, verrouillable)
+    lastPrice: null         // dernier prix connu, pour calcul auto du P&L vs prix de revient
   };
 
   // interaction (pan / line-drag) — module scope, not persisted
@@ -931,6 +936,7 @@
     if(!state.costLine){
       wrap.innerHTML = '';
       input.disabled = false; setBtn.disabled = false;
+      updateCostPnl();
       return;
     }
     const locked = state.costLine.locked;
@@ -952,6 +958,20 @@
       renderCostLine();
       draw();
     });
+    updateCostPnl();
+  }
+
+  // ---- Calcul automatique de la position (dernier prix vs prix de revient) ----
+  function updateCostPnl(){
+    const el = document.getElementById('costPnl');
+    if(!state.costLine || state.lastPrice==null){ el.textContent=''; el.className='cost-pnl'; return; }
+    const cost = state.costLine.price;
+    const diff = state.lastPrice - cost;
+    const pct = cost !== 0 ? (diff/cost)*100 : 0;
+    const positive = diff >= 0;
+    const cs = currencySymbol();
+    el.className = 'cost-pnl ' + (positive?'up':'down');
+    el.textContent = (positive?'▲ +':'▼ ') + Math.abs(pct).toFixed(2) + '%  (' + (positive?'+':'−') + fmt(Math.abs(diff),1) + cs + ')';
   }
 
   priceCanvas.addEventListener('mousedown', (e)=>{
@@ -1327,12 +1347,13 @@
       }
       state._loadedTf = state.tf;
       renderLineList();
-      renderCostLine();
 
       const last = candles[candles.length-1];
       const prevClose = +ticker.prevClosePrice;
       const chgPct = +ticker.priceChangePercent;
       const cs = currencySymbol();
+      state.lastPrice = last.c;
+      renderCostLine();
       document.getElementById('pxNow').textContent = cs + fmt(last.c,1);
       const chgEl = document.getElementById('pxChg');
       chgEl.textContent = (chgPct>=0?'▲ ':'▼ ') + Math.abs(chgPct).toFixed(2) + '% (24h)';
