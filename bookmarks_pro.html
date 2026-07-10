@@ -7004,5 +7004,43 @@ document.addEventListener('keydown', function(e){
   </div>
 </div>
 
+<style>
+#ghLinkWidget{position:fixed;bottom:41px;left:calc(50% + 100px);z-index:950;font-family:inherit;}
+#ghLinkPanel{left:0;right:auto;}
+#ghLinkBtn{width:44px;height:44px;border-radius:50%;background:#222;color:#fff;border:none;cursor:pointer;font-size:18px;box-shadow:0 2px 8px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;}
+#ghLinkPanel{display:none;position:absolute;bottom:52px;right:0;width:280px;background:#1c1c1c;color:#eee;border:1px solid #444;border-radius:10px;padding:12px;box-shadow:0 4px 16px rgba(0,0,0,.5);}
+#ghLinkPanel.open{display:block;}
+#ghLinkPanel label{display:block;font-size:12px;color:#aaa;margin:8px 0 4px;}
+#ghLinkPanel select,#ghLinkPanel input{width:100%;box-sizing:border-box;padding:6px 8px;border-radius:6px;border:1px solid #555;background:#111;color:#eee;font-size:13px;}
+#ghLinkPanel button{margin-top:10px;width:100%;padding:7px;border-radius:6px;border:none;background:#3d7eff;color:#fff;cursor:pointer;font-size:13px;}
+#ghLinkOut{margin-top:10px;font-size:12px;word-break:break-all;}
+#ghLinkOut a{color:#7fb2ff;}
+</style>
+<div id="ghLinkWidget">
+  <button id="ghLinkBtn" title="Générer un lien GitHub Pages" onclick="ghLinkToggle()">🔗</button>
+  <div id="ghLinkPanel">
+    <label for="ghLinkRepo">Dossier</label>
+    <select id="ghLinkRepo">
+      <option value="Sant-">Sant-</option>
+      <option value="HOM">HOM</option>
+      <option value="smart">smart</option>
+    </select>
+    <label for="ghLinkFile">Nom du fichier (sans .html)</label>
+    <input type="text" id="ghLinkFile" placeholder="bookmarks_pro" value="bookmarks_pro">
+    <button onclick="ghLinkGenerate()">Générer le lien</button>
+    <div id="ghLinkOut"></div>
+  </div>
+</div>
+<script>
+function ghLinkToggle(){
+  document.getElementById('ghLinkPanel').classList.toggle('open');
+}
+function ghLinkGenerate(){
+  var repo = document.getElementById('ghLinkRepo').value;
+  var file = document.getElementById('ghLinkFile').value.trim().replace(/\.html$/i,'') || 'bookmarks_pro';
+  var url = 'https://bencm0i.github.io/' + encodeURIComponent(repo) + '/' + encodeURIComponent(file) + '.html';
+  document.getElementById('ghLinkOut').innerHTML = '<a href="'+url+'" target="_blank" rel="noopener">'+url+'</a>';
+}
+</script>
 </body>
 </html>
