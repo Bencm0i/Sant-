@@ -176,18 +176,28 @@
   .full-hist-box{
     position:absolute; top:52px; right:14px; width:190px; height:88px;
     background:rgba(12,17,22,.88); border:1px solid var(--border); border-radius:5px;
-    padding:5px 8px 4px; z-index:4; pointer-events:none;
+    padding:5px 8px 4px; z-index:4; pointer-events:auto;
     box-shadow:0 4px 14px rgba(0,0,0,.4); backdrop-filter:blur(2px);
+    transition:border-color .15s, box-shadow .15s;
+  }
+  .full-hist-box:hover{
+    border-color:var(--flashy); box-shadow:0 4px 18px rgba(255,47,214,0.3);
   }
   .full-hist-box .fh-label{
     font-size:8.5px; color:var(--txt-dim); letter-spacing:1px; text-transform:uppercase;
-    display:flex; justify-content:space-between; margin-bottom:2px;
+    display:flex; justify-content:space-between; margin-bottom:2px; pointer-events:none;
   }
   .full-hist-box .fh-label .fh-scale{ color:var(--amber); }
-  .full-hist-box canvas{ width:100%; height:56px; display:block; }
+  .full-hist-box canvas{ width:100%; height:56px; display:block; cursor:crosshair; }
   .full-hist-box .fh-range{
     display:flex; justify-content:space-between; font-size:8px; color:var(--txt-dim);
-    margin-top:1px; letter-spacing:0.3px;
+    margin-top:1px; letter-spacing:0.3px; pointer-events:none; transition:color .15s;
+  }
+  .full-hist-box .fh-range.fh-active{ color:var(--flashy); font-weight:600; }
+  .full-hist-box.fh-flash{ animation:fhFlash .9s ease; }
+  @keyframes fhFlash{
+    0%{ border-color:var(--flashy); box-shadow:0 0 0 3px rgba(255,47,214,0.35); }
+    100%{ border-color:var(--border); box-shadow:0 4px 14px rgba(0,0,0,.4); }
   }
   @media (max-width:640px){
     .full-hist-box{ width:132px; height:76px; top:46px; right:8px; padding:4px 6px 3px; }
@@ -1404,10 +1414,13 @@
   }
 
   // ---------- MINI ENCADRÉ — HISTORIQUE COMPLET BTC (ÉCHELLE LOG) ----------
+  const fullHistBox = document.getElementById('fullHistBox');
   const fullHistCanvas = document.getElementById('fullHistCanvas');
   const fhctx = fullHistCanvas.getContext('2d');
   const fullHistRange = document.getElementById('fullHistRange');
   let fullHistData = null; // [{t,c}, ...] toute l'historique dispo (BTCUSDT, hebdo)
+  let fhScale = null; // { lmin, lmax, h } — bornes échelle log courantes du mini graphique
+  let fullHistRangeDefaultHTML = '';
 
   async function fetchFullHistory(){
     // Bougies hebdomadaires depuis le tout début (listing Binance ~2017-08),
@@ -1433,6 +1446,7 @@
     const closes = fullHistData.map(d=>d.c).filter(v=>v>0);
     const logs = closes.map(v=>Math.log10(v));
     const lmin = Math.min(...logs), lmax = Math.max(...logs);
+    fhScale = { lmin, lmax, h };
     const pad = 3;
     const n = fullHistData.length;
     const x = i => pad + (i/(n-1)) * (w - pad*2);
@@ -1472,8 +1486,57 @@
 
     // labels min / max (prix réels, pas log)
     const maxVal = Math.max(...closes), minVal = Math.min(...closes);
-    fullHistRange.innerHTML = `<span>${new Date(fullHistData[0].t).getFullYear()} · $${fmtCompact(minVal)}</span><span>ATH $${fmtCompact(maxVal)}</span>`;
+    fullHistRangeDefaultHTML = `<span>${new Date(fullHistData[0].t).getFullYear()} · $${fmtCompact(minVal)}</span><span>ATH $${fmtCompact(maxVal)}</span>`;
+    fullHistRange.innerHTML = fullHistRangeDefaultHTML;
   }
+
+  // Convertit une position Y (px, dans le repère du mini canvas) en prix, échelle log inverse
+  function priceFromFhY(my){
+    if(!fhScale) return null;
+    const { lmin, lmax, h } = fhScale;
+    const lv = lmin + ((h - 2 - my) / (h - 6)) * (lmax - lmin || 1);
+    return Math.pow(10, lv);
+  }
+
+  // Survol : affiche le prix pointé à la place du range min/ATH
+  fullHistCanvas.addEventListener('mousemove', (e)=>{
+    if(!fhScale) return;
+    const rect = fullHistCanvas.getBoundingClientRect();
+    const my = e.clientY - rect.top;
+    const price = priceFromFhY(my);
+    if(price == null || !isFinite(price)) return;
+    const cs = currencySymbol();
+    fullHistRange.innerHTML = `<span>${cs}${fmt(price,0)} — cliquer pour placer un repère</span>`;
+    fullHistRange.classList.add('fh-active');
+  });
+  fullHistCanvas.addEventListener('mouseleave', ()=>{
+    fullHistRange.innerHTML = fullHistRangeDefaultHTML;
+    fullHistRange.classList.remove('fh-active');
+  });
+
+  // Clic : soumet une ligne horizontale au prix pointé, sur le graphique principal
+  fullHistCanvas.addEventListener('click', (e)=>{
+    if(!fhScale) return;
+    const rect = fullHistCanvas.getBoundingClientRect();
+    const my = e.clientY - rect.top;
+    const price = priceFromFhY(my);
+    if(price == null || !isFinite(price) || price <= 0) return;
+
+    state.lines.push({ id: state.nextLineId++, price, locked:false });
+    saveLines();
+    renderLineList();
+    draw();
+
+    const cs = currencySymbol();
+    fullHistRange.innerHTML = `<span>✓ Repère ajouté à ${cs}${fmt(price,0)}</span>`;
+    fullHistRange.classList.add('fh-active');
+    fullHistBox.classList.add('fh-flash');
+    setTimeout(()=>{
+      fullHistBox.classList.remove('fh-flash');
+      fullHistRange.innerHTML = fullHistRangeDefaultHTML;
+      fullHistRange.classList.remove('fh-active');
+    }, 900);
+  });
 
   async function loadFullHistory(){
     try{
