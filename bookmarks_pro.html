@@ -1414,12 +1414,24 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(255
 #smPanelTitle{font-size:0.72rem;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;background:linear-gradient(90deg,var(--c1),var(--c2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 #smPanelAdd{background:transparent;border:none;cursor:pointer;font-size:1rem;color:var(--muted);width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
 #smPanelAdd:hover{color:var(--c2);background:rgba(61,90,115,0.1);}
+#smCatTabs{display:flex;flex-wrap:wrap;gap:5px;padding:9px 10px 7px;flex-shrink:0;border-bottom:1.5px solid rgba(30,41,59,0.1);}
+.sm-cat-tab{flex-shrink:0;padding:5px 11px;border-radius:20px;font-size:0.68rem;font-weight:800;color:var(--muted);background:rgba(61,90,115,0.08);border:1.5px solid transparent;cursor:pointer;white-space:nowrap;transition:all 0.12s;user-select:none;}
+.sm-cat-tab:hover{background:rgba(61,90,115,0.16);color:var(--text);}
+.sm-cat-tab.active{background:linear-gradient(90deg,var(--c1),var(--c2));color:#fff;box-shadow:0 2px 8px rgba(61,90,115,0.35);}
+.sm-cat-add{flex-shrink:0;width:24px;height:24px;border-radius:50%;background:rgba(61,90,115,0.08);border:1.5px dashed rgba(61,90,115,0.35);color:var(--muted);font-size:0.85rem;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.12s;}
+.sm-cat-add:hover{color:var(--c2);border-color:var(--c2);background:rgba(61,90,115,0.14);}
 #smList{overflow-y:auto;padding:6px;display:flex;flex-direction:column;gap:3px;}
-#smList:empty::after{content:'Aucun raccourci — cliquez sur ＋';display:block;padding:16px 10px;text-align:center;font-size:0.72rem;color:var(--muted);}
+#smList:empty::after{content:'Aucun raccourci ici — cliquez sur ＋';display:block;padding:16px 10px;text-align:center;font-size:0.72rem;color:var(--muted);}
+.sm-cat-select{display:flex;flex-wrap:wrap;gap:6px;}
+.sm-cat-chip{padding:5px 10px;border-radius:14px;font-size:0.7rem;font-weight:700;color:var(--muted);background:rgba(61,90,115,0.08);border:1.5px solid rgba(61,90,115,0.2);cursor:pointer;transition:all 0.12s;}
+.sm-cat-chip:hover{border-color:var(--c2);}
+.sm-cat-chip.sel{background:linear-gradient(90deg,var(--c1),var(--c2));color:#fff;border-color:transparent;}
 .sm-item{display:flex;align-items:center;gap:10px;padding:8px 8px;border-radius:11px;cursor:pointer;transition:background 0.12s;position:relative;}
 .sm-item:hover{background:rgba(61,90,115,0.1);}
 .sm-item-emoji{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--c1),var(--c2));display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,0.15);}
 .sm-item-name{flex:1;font-size:0.78rem;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sm-item-cat{flex-shrink:0;font-size:0.6rem;font-weight:800;color:var(--muted);background:rgba(61,90,115,0.1);padding:2px 7px;border-radius:8px;text-transform:uppercase;letter-spacing:0.03em;}
+.sm-item:hover .sm-item-cat{display:none;}
 .sm-item-actions{display:none;align-items:center;gap:2px;flex-shrink:0;}
 .sm-item:hover .sm-item-actions{display:flex;}
 .sm-item-btn{width:22px;height:22px;border-radius:7px;border:none;background:rgba(0,0,0,0.06);color:var(--muted);font-size:0.62rem;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.12s;}
@@ -2227,6 +2239,7 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(255
     <span id="smPanelTitle">Utilitaires</span>
     <button id="smPanelAdd" onclick="smOpenAdd()" title="Ajouter un raccourci">＋</button>
   </div>
+  <div id="smCatTabs"></div>
   <div id="smList"></div>
   <div id="smPanelFoot">
     <input id="smSearch" placeholder="Rechercher…" oninput="smRender(this.value)">
@@ -4703,20 +4716,92 @@ function launcherToggleEdit(){} // plus utilisé mais gardé pour compatibilité
 
 // ══════════════════ Menu Démarrer (raccourcis utilitaires en ligne) ══════════════════
 const DEFAULT_STARTMENU = [
-  {emoji:'🌐', name:'Google Traduction', url:'https://translate.google.com/'},
-  {emoji:'📐', name:'DeepL',             url:'https://www.deepl.com/translator'},
-  {emoji:'🧮', name:'Convertisseur',     url:'https://www.google.com/search?q=convertisseur'},
-  {emoji:'☁️', name:'Météo',             url:'https://www.meteofrance.com/'},
-  {emoji:'📬', name:'La Poste (suivi)',  url:'https://www.laposte.fr/outils/suivre-vos-envois'},
+  {emoji:'🌐', name:'Google Traduction', url:'https://translate.google.com/',                         cat:'Utilitaire'},
+  {emoji:'📐', name:'DeepL',             url:'https://www.deepl.com/translator',                       cat:'Utilitaire'},
+  {emoji:'🧮', name:'Convertisseur',     url:'https://www.google.com/search?q=convertisseur',          cat:'Utilitaire'},
+  {emoji:'☁️', name:'Météo',             url:'https://www.meteofrance.com/',                            cat:'Utilitaire'},
+  {emoji:'📬', name:'La Poste (suivi)',  url:'https://www.laposte.fr/outils/suivre-vos-envois',        cat:'Utilitaire'},
+  {emoji:'📊', name:'Boursorama',        url:'https://www.boursorama.com/',                             cat:'Finance'},
+  {emoji:'🛒', name:'Amazon',            url:'https://www.amazon.fr/',                                  cat:'Achat'},
+  {emoji:'🕰️', name:'Eurécia',           url:'https://www.eurecia.com/',                                cat:'Boulot'},
 ];
+const DEFAULT_SM_CATEGORIES = ['Finance','Achat','Boulot','Utilitaire'];
 let smItems = [];
 let smEditIdx = null;
+let smCategories = [];
+let smActiveCat = 'Tout';
+let smModalCat = null;
 
 function smLoad(){
   try{ smItems = JSON.parse(localStorage.getItem('dashboard_startmenu')||'null') || DEFAULT_STARTMENU.map(l=>({...l})); }
   catch(e){ smItems = DEFAULT_STARTMENU.map(l=>({...l})); }
+  smItems.forEach(it => { if(!it.cat) it.cat = 'Autre'; });
+  smCatLoad();
 }
 function smSave(){ localStorage.setItem('dashboard_startmenu', JSON.stringify(smItems)); }
+
+function smCatLoad(){
+  try{ smCategories = JSON.parse(localStorage.getItem('dashboard_startmenu_cats')||'null') || DEFAULT_SM_CATEGORIES.slice(); }
+  catch(e){ smCategories = DEFAULT_SM_CATEGORIES.slice(); }
+  // s'assure que toute catégorie utilisée par un item existe dans la liste
+  smItems.forEach(it => { if(it.cat && !smCategories.includes(it.cat)) smCategories.push(it.cat); });
+}
+function smCatSave(){ localStorage.setItem('dashboard_startmenu_cats', JSON.stringify(smCategories)); }
+
+function smRenderTabs(){
+  const bar = document.getElementById('smCatTabs');
+  if(!bar) return;
+  bar.innerHTML = '';
+  const cats = ['Tout', ...smCategories];
+  cats.forEach(cat => {
+    const tab = document.createElement('div');
+    tab.className = 'sm-cat-tab' + (cat === smActiveCat ? ' active' : '');
+    tab.textContent = cat;
+    tab.onclick = (e) => { e.stopPropagation(); smActiveCat = cat; smRenderTabs(); smRender(document.getElementById('smSearch').value); };
+    if(cat !== 'Tout'){
+      tab.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); smCatCtxMenu(cat); };
+    }
+    bar.appendChild(tab);
+  });
+  const addBtn = document.createElement('div');
+  addBtn.className = 'sm-cat-add';
+  addBtn.textContent = '＋';
+  addBtn.title = 'Nouvelle catégorie';
+  addBtn.onclick = (e) => { e.stopPropagation(); smCatAddNew(); };
+  bar.appendChild(addBtn);
+}
+function smCatAddNew(){
+  const name = prompt('Nom de la nouvelle catégorie :');
+  if(!name) return;
+  const clean = name.trim();
+  if(!clean || smCategories.includes(clean)) return;
+  smCategories.push(clean);
+  smCatSave();
+  smActiveCat = clean;
+  smRenderTabs();
+  smRender(document.getElementById('smSearch').value);
+}
+function smCatCtxMenu(cat){
+  const choice = prompt('Renommer la catégorie "'+cat+'" (laisser vide et valider pour la supprimer) :', cat);
+  if(choice === null) return; // annulé
+  const clean = choice.trim();
+  if(!clean){
+    if(!confirm('Supprimer la catégorie "'+cat+'" ? Les raccourcis passeront en "Autre".')) return;
+    smCategories = smCategories.filter(c => c !== cat);
+    smItems.forEach(it => { if(it.cat === cat) it.cat = 'Autre'; });
+    if(!smCategories.includes('Autre')) smCategories.push('Autre');
+    if(smActiveCat === cat) smActiveCat = 'Tout';
+  } else if(clean !== cat){
+    if(smCategories.includes(clean)){ alert('Cette catégorie existe déjà.'); return; }
+    smCategories = smCategories.map(c => c === cat ? clean : c);
+    smItems.forEach(it => { if(it.cat === cat) it.cat = clean; });
+    if(smActiveCat === cat) smActiveCat = clean;
+  }
+  smCatSave();
+  smSave();
+  smRenderTabs();
+  smRender(document.getElementById('smSearch').value);
+}
 
 function smRender(filter){
   const list = document.getElementById('smList');
@@ -4725,6 +4810,7 @@ function smRender(filter){
   const q = (filter||'').trim().toLowerCase();
   smItems.forEach((it, i) => {
     if(q && !it.name.toLowerCase().includes(q)) return;
+    if(smActiveCat !== 'Tout' && (it.cat || 'Autre') !== smActiveCat) return;
     const row = document.createElement('div');
     row.className = 'sm-item';
     row.draggable = true;
@@ -4753,6 +4839,10 @@ function smRender(filter){
     name.className = 'sm-item-name';
     name.textContent = it.name || 'Lien';
 
+    const catTag = document.createElement('div');
+    catTag.className = 'sm-item-cat';
+    catTag.textContent = it.cat || 'Autre';
+
     const actions = document.createElement('div');
     actions.className = 'sm-item-actions';
     const editBtn = document.createElement('button');
@@ -4770,6 +4860,7 @@ function smRender(filter){
 
     row.appendChild(emoji);
     row.appendChild(name);
+    row.appendChild(catTag);
     row.appendChild(actions);
     list.appendChild(row);
   });
@@ -4783,6 +4874,7 @@ function smToggle(){
     panel.classList.add('open');
     btn.classList.add('active');
     document.getElementById('smSearch').value = '';
+    smRenderTabs();
     smRender();
     setTimeout(() => document.getElementById('smSearch').focus(), 50);
   } else {
@@ -4808,12 +4900,37 @@ function smBuildEmojiGrid(sel){
 }
 function smSelEmoji(){ return document.querySelector('#smEmojiGrid .launcher-emoji-pick.sel')?.textContent || '🔗'; }
 
+function smBuildCatSelect(sel){
+  smModalCat = sel || smCategories[0] || 'Autre';
+  const box = document.getElementById('smModalCatSelect');
+  box.innerHTML = '';
+  smCategories.forEach(cat => {
+    const chip = document.createElement('div');
+    chip.className = 'sm-cat-chip' + (cat === smModalCat ? ' sel' : '');
+    chip.textContent = cat;
+    chip.onclick = () => { smModalCat = cat; box.querySelectorAll('.sm-cat-chip').forEach(c=>c.classList.remove('sel')); chip.classList.add('sel'); };
+    box.appendChild(chip);
+  });
+  const addChip = document.createElement('div');
+  addChip.className = 'sm-cat-chip';
+  addChip.textContent = '＋ nouvelle';
+  addChip.onclick = () => {
+    const name = prompt('Nom de la nouvelle catégorie :');
+    if(!name) return;
+    const clean = name.trim();
+    if(!clean) return;
+    if(!smCategories.includes(clean)){ smCategories.push(clean); smCatSave(); }
+    smBuildCatSelect(clean);
+  };
+  box.appendChild(addChip);
+}
 function smOpenAdd(){
   smEditIdx = null;
   document.getElementById('smModalTitle').textContent = 'Nouveau raccourci';
   document.getElementById('smModalName').value = '';
   document.getElementById('smModalUrl').value  = '';
   smBuildEmojiGrid(LAUNCHER_EMOJIS[0]);
+  smBuildCatSelect(smActiveCat !== 'Tout' ? smActiveCat : (smCategories[0] || 'Autre'));
   document.getElementById('smModal').classList.add('open');
 }
 function smOpenEdit(i){
@@ -4823,6 +4940,7 @@ function smOpenEdit(i){
   document.getElementById('smModalName').value = it.name || '';
   document.getElementById('smModalUrl').value  = it.url  || '';
   smBuildEmojiGrid(it.emoji || LAUNCHER_EMOJIS[0]);
+  smBuildCatSelect(it.cat || smCategories[0] || 'Autre');
   document.getElementById('smModal').classList.add('open');
 }
 function smCloseModal(){ document.getElementById('smModal').classList.remove('open'); }
@@ -4830,14 +4948,16 @@ function smSaveModal(){
   let url = document.getElementById('smModalUrl').value.trim();
   const name  = document.getElementById('smModalName').value.trim() || 'Lien';
   const emoji = smSelEmoji();
+  const cat   = smModalCat || 'Autre';
   if(url && !/^https?:\/\//i.test(url)) url = 'https://' + url;
   if(smEditIdx === null){
-    smItems.push({emoji, name, url});
+    smItems.push({emoji, name, url, cat});
   } else {
-    smItems[smEditIdx] = {emoji, name, url};
+    smItems[smEditIdx] = {emoji, name, url, cat};
   }
   smSave();
   smCloseModal();
+  smRenderTabs();
   smRender(document.getElementById('smSearch').value);
 }
 
@@ -6984,6 +7104,7 @@ document.addEventListener('keydown', function(e){
     <div class="launcher-emoji-grid" id="smEmojiGrid"></div>
     <input class="launcher-modal-input" id="smModalName" placeholder="Nom (ex: DeepL)">
     <input class="launcher-modal-input" id="smModalUrl" placeholder="https://…">
+    <div class="sm-cat-select" id="smModalCatSelect"></div>
     <div class="launcher-modal-btns">
       <button class="launcher-modal-cancel" onclick="smCloseModal()">Annuler</button>
       <button class="launcher-modal-save" onclick="smSaveModal()">Enregistrer</button>
