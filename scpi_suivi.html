@@ -218,11 +218,13 @@ select{cursor:pointer;}
 </div>
 
 <script>
-const LS_PORT = 'scpi_portefeuille_v1';
-const LS_REV  = 'scpi_revenus_v1';
+const LS_PORT  = 'scpi_portefeuille_v1';
+const LS_REV   = 'scpi_revenus_v1';
+const LS_TAUX  = 'scpi_taux_impot_v1';
 
 let portefeuille = load(LS_PORT, []);
 let revenus = load(LS_REV, []);
+let tauxImpot = load(LS_TAUX, 30);
 
 function load(key, def){
   try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; }
@@ -437,7 +439,25 @@ function renderKPI(){
   const meilleurMois = moisVals.length ? moisVals.reduce((a,b)=>b[1]>a[1]?b:a) : null;
   const revenuTrimestrielMoyen = moisVals.length ? (moisVals.reduce((s,[,v])=>s+v,0)/moisVals.length*3) : 0;
 
+  // ---- Compensation perte de sortie (départs) par les dividendes ----
+  // Perte cumulée = somme des moins-values latentes (uniquement les lignes actuellement en perte,
+  // càd le montant qui serait perdu si on sortait/revendait ces parts aujourd'hui).
+  const moinsValueCumulee = portefeuille.reduce((s,r)=>{
+    const va = (r.nbParts||0)*(r.prixRevente||0);
+    const pv = va - (r.montantInvesti||0);
+    return s + (pv<0 ? -pv : 0);
+  },0);
+  const revenusTotalBrut = revenus.reduce((s,r)=>s+(r.brut||0),0);
+  const revenus12mBrut = revenus.filter(r=>r.date && new Date(r.date) >= oneYearAgo)
+                                 .reduce((s,r)=>s+(r.brut||0),0);
+  const netApresImpotCumule = revenusTotalBrut * (1 - (tauxImpot||0)/100);
+  const revenuAnnuelNetEstime = revenus12mBrut * (1 - (tauxImpot||0)/100);
+  const resteACompenser = moinsValueCumulee - netApresImpotCumule;
+  const anneesRestantes = (resteACompenser>0 && revenuAnnuelNetEstime>0) ? (resteACompenser/revenuAnnuelNetEstime) : null;
+
   const grid = document.getElementById('kpiGrid');
+  const tauxFocused = document.activeElement && document.activeElement.id === 'inputTauxImpot';
+  const tauxSelStart = tauxFocused ? document.activeElement.selectionStart : null;
   grid.innerHTML = `
     <div class="kpi-card">
       <div class="kpi-label">Total investi</div>
@@ -489,7 +509,35 @@ function renderKPI(){
       <div class="kpi-value">${meilleurMois ? fmt(meilleurMois[1])+' €' : '—'}</div>
       <div class="kpi-sub">${meilleurMois ? meilleurMois[0] : 'Aucune donnée'}</div>
     </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Taux d'imposition sur revenus (%)</div>
+      <input type="number" id="inputTauxImpot" step="0.1" min="0" max="100" value="${tauxImpot}"
+             style="font-size:20px;font-weight:700;padding:2px 4px;border:1px solid var(--border);">
+      <div class="kpi-sub">TMI + prélèvements sociaux — éditable, sert au calcul ci-dessous</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Compensation perte de sortie par dividendes</div>
+      <div class="kpi-value ${resteACompenser<=0 ? 'pos':'neg'}">${resteACompenser<=0 ? 'Compensée ✅' : fmt(resteACompenser)+' € restants'}</div>
+      <div class="kpi-sub">
+        Perte cumulée (lignes en moins-value): ${fmt(moinsValueCumulee)} €<br>
+        Dividendes nets d'impôt cumulés: ${fmt(netApresImpotCumule)} € (brut ${fmt(revenusTotalBrut)} € − ${fmtPct(tauxImpot)})
+        ${resteACompenser<=0 ? `<br>Surplus: +${fmt(-resteACompenser)} €` : (anneesRestantes ? `<br>≈ ${anneesRestantes.toFixed(1)} an(s) au rythme actuel (12 derniers mois)` : '')}
+      </div>
+    </div>
   `;
+
+  const tauxInput = document.getElementById('inputTauxImpot');
+  if(tauxInput){
+    tauxInput.addEventListener('input', ()=>{
+      tauxImpot = parseFloat(tauxInput.value.replace(',','.')) || 0;
+      localStorage.setItem(LS_TAUX, JSON.stringify(tauxImpot));
+      renderKPI();
+    });
+    if(tauxFocused){
+      tauxInput.focus();
+      try{ if(tauxSelStart!=null) tauxInput.setSelectionRange(tauxSelStart, tauxSelStart); }catch(e){}
+    }
+  }
 
   renderRanking(totalInvesti);
   renderPeriode();
