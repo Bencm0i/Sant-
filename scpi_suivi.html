@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Suivi SCPI</title>
+<style>
+:root{
+  --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --border:#2a2f3a;
+  --text:#e6e8ec; --muted:#8b93a3; --accent:#4f8cff; --green:#3ecf8e;
+  --red:#ef5b5b; --amber:#e8b339;
+}
+*{box-sizing:border-box;}
+body{
+  background:var(--bg); color:var(--text); font-family:'Segoe UI',Arial,sans-serif;
+  margin:0; padding:24px; font-size:14px;
+}
+h1{font-size:20px; margin:0 0 4px;}
+.subtitle{color:var(--muted); margin-bottom:20px; font-size:12px;}
+h2{font-size:15px; margin:28px 0 10px; color:var(--accent); border-bottom:1px solid var(--border); padding-bottom:6px;}
+.panel{background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:16px; margin-bottom:16px;}
+
+table{width:100%; border-collapse:collapse; font-size:12.5px;}
+th{
+  text-align:left; color:var(--muted); font-weight:600; padding:6px 8px;
+  border-bottom:1px solid var(--border); white-space:nowrap; position:sticky; top:0; background:var(--panel);
+}
+td{padding:4px 6px; border-bottom:1px solid #22262f; vertical-align:middle;}
+tr:hover td{background:var(--panel2);}
+td[contenteditable="true"], input, select{
+  background:transparent; color:var(--text); border:1px solid transparent; border-radius:4px;
+  padding:3px 5px; width:100%; font-size:12.5px; font-family:inherit;
+}
+td[contenteditable="true"]:hover, td[contenteditable="true"]:focus{border-color:var(--accent); background:#11141b; outline:none;}
+select{cursor:pointer;}
+.num{text-align:right;}
+.pos{color:var(--green);}
+.neg{color:var(--red);}
+.readonly{color:var(--muted); font-style:italic;}
+
+.btn{
+  background:var(--accent); color:#fff; border:none; border-radius:6px; padding:6px 12px;
+  cursor:pointer; font-size:12.5px; font-weight:600;
+}
+.btn:hover{opacity:.85;}
+.btn.secondary{background:var(--panel2); border:1px solid var(--border); color:var(--text);}
+.btn.danger{background:transparent; color:var(--red); font-weight:400; padding:2px 6px;}
+.btn.danger:hover{background:rgba(239,91,91,.15);}
+.row-actions{text-align:center;}
+
+.toolbar{display:flex; gap:8px; margin-bottom:10px;}
+
+.kpi-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px;}
+.kpi-card{background:var(--panel2); border:1px solid var(--border); border-radius:8px; padding:12px 14px;}
+.kpi-label{color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.03em; margin-bottom:4px;}
+.kpi-value{font-size:20px; font-weight:700;}
+.kpi-sub{font-size:11px; color:var(--muted); margin-top:2px;}
+
+.rank-list{list-style:none; margin:0; padding:0;}
+.rank-list li{display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid #22262f; font-size:12.5px;}
+.rank-list li:last-child{border-bottom:none;}
+.rank-name{color:var(--text);}
+.rank-val{font-weight:700;}
+
+.two-col{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+@media (max-width:800px){.two-col{grid-template-columns:1fr;}}
+
+.note{color:var(--muted); font-size:11px; margin-top:8px;}
+.badge{display:inline-block; font-size:10px; padding:1px 6px; border-radius:10px; background:var(--panel2); color:var(--muted); border:1px solid var(--border);}
+</style>
+</head>
+<body>
+
+<h1>📊 Suivi Portefeuille SCPI</h1>
+<div class="subtitle">Données stockées localement dans le navigateur (localStorage) — rien n'est envoyé sur un serveur.</div>
+
+<!-- ================= PORTEFEUILLE ================= -->
+<div class="panel">
+  <h2 style="margin-top:0;border:none;">Portefeuille</h2>
+  <div class="toolbar">
+    <button class="btn" onclick="addLigne()">+ Ajouter une SCPI</button>
+    <button class="btn secondary" onclick="exportJSON()">Exporter JSON</button>
+    <label class="btn secondary" style="cursor:pointer;">
+      Importer JSON<input type="file" accept=".json" style="display:none" onchange="importJSON(event)">
+    </label>
+  </div>
+  <div style="overflow-x:auto;">
+  <table id="tblPortefeuille">
+    <thead>
+      <tr>
+        <th>Nom SCPI</th>
+        <th>Gestionnaire</th>
+        <th>Type</th>
+        <th>Date acq.</th>
+        <th class="num">Nb parts</th>
+        <th class="num">Prix achat unit. (€)</th>
+        <th class="num">Montant investi (€)</th>
+        <th class="num">Prix retrait actuel unit. (€)</th>
+        <th class="num">Valeur actuelle (€)</th>
+        <th class="num">Frais gestion (%)</th>
+        <th class="num">TDVM annoncé (%)</th>
+        <th class="num">+/- value latente</th>
+        <th>Lien</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="bodyPortefeuille"></tbody>
+  </table>
+  </div>
+  <div class="note">Le "Montant investi" et la "Valeur actuelle" se recalculent automatiquement si vous éditez nb parts × prix, mais restent modifiables manuellement (ex: frais d'entrée inclus, apport en plusieurs fois).</div>
+</div>
+
+<!-- ================= REVENUS ================= -->
+<div class="panel">
+  <h2 style="margin-top:0;border:none;">Revenus perçus</h2>
+  <div class="toolbar">
+    <button class="btn" onclick="addRevenu()">+ Ajouter un versement</button>
+  </div>
+  <div style="overflow-x:auto;">
+  <table id="tblRevenus">
+    <thead>
+      <tr>
+        <th>SCPI</th>
+        <th>Date versement</th>
+        <th>Périodicité</th>
+        <th class="num">Montant brut (€)</th>
+        <th class="num">Montant net fiscal (€)</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="bodyRevenus"></tbody>
+  </table>
+  </div>
+  <div class="note">Montant net fiscal = optionnel (après prélèvement / CSG-CRDS si votre SCPI le communique). Laissez vide sinon, le KPI utilisera le brut.</div>
+</div>
+
+<!-- ================= KPI ================= -->
+<h2>Indicateurs clés</h2>
+<div class="kpi-grid" id="kpiGrid"></div>
+
+<div class="two-col" style="margin-top:16px;">
+  <div class="panel">
+    <h2 style="margin-top:0;border:none;">🏆 Top SCPI (rendement réel)</h2>
+    <ul class="rank-list" id="topList"></ul>
+  </div>
+  <div class="panel">
+    <h2 style="margin-top:0;border:none;">🔻 Flop SCPI (rendement réel)</h2>
+    <ul class="rank-list" id="flopList"></ul>
+  </div>
+</div>
+
+<div class="panel">
+  <h2 style="margin-top:0;border:none;">Revenus par période</h2>
+  <div style="overflow-x:auto;">
+  <table id="tblPeriode">
+    <thead><tr><th>Mois</th><th class="num">Total encaissé (€)</th></tr></thead>
+    <tbody id="bodyPeriode"></tbody>
+  </table>
+  </div>
+</div>
+
+<script>
+const LS_PORT = 'scpi_portefeuille_v1';
+const LS_REV  = 'scpi_revenus_v1';
+
+let portefeuille = load(LS_PORT, []);
+let revenus = load(LS_REV, []);
+
+function load(key, def){
+  try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; }
+  catch(e){ return def; }
+}
+function save(){
+  localStorage.setItem(LS_PORT, JSON.stringify(portefeuille));
+  localStorage.setItem(LS_REV, JSON.stringify(revenus));
+}
+function uid(){ return 'id'+Math.random().toString(36).slice(2,10); }
+function fmt(n){ return (n||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtPct(n){ return (isFinite(n)?n:0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' %'; }
+
+// ---------- seed exemple si vide ----------
+if(portefeuille.length === 0){
+  portefeuille.push({
+    id:uid(), nom:'Exemple SCPI', gestionnaire:'Ex. Corum / Primovie / Iroko...',
+    type:'Diversifiée', dateAcq:'2023-01-15', nbParts:10, prixAchat:1000,
+    montantInvesti:10000, prixRevente:980, fraisGestion:12, tdvm:6, lien:''
+  });
+}
+
+// ================= RENDU PORTEFEUILLE =================
+function renderPortefeuille(){
+  const tbody = document.getElementById('bodyPortefeuille');
+  tbody.innerHTML = '';
+  portefeuille.forEach(row=>{
+    const valeurActuelle = (row.nbParts||0) * (row.prixRevente||0);
+    const pv = valeurActuelle - (row.montantInvesti||0);
+    const pvPct = row.montantInvesti ? (pv/row.montantInvesti*100) : 0;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td contenteditable="true" data-f="nom">${row.nom||''}</td>
+      <td contenteditable="true" data-f="gestionnaire">${row.gestionnaire||''}</td>
+      <td contenteditable="true" data-f="type">${row.type||''}</td>
+      <td><input type="date" value="${row.dateAcq||''}" data-f="dateAcq"></td>
+      <td class="num"><input type="number" step="0.0001" value="${row.nbParts||0}" data-f="nbParts"></td>
+      <td class="num"><input type="number" step="0.01" value="${row.prixAchat||0}" data-f="prixAchat"></td>
+      <td class="num"><input type="number" step="0.01" value="${row.montantInvesti||0}" data-f="montantInvesti"></td>
+      <td class="num"><input type="number" step="0.01" value="${row.prixRevente||0}" data-f="prixRevente"></td>
+      <td class="num readonly">${fmt(valeurActuelle)}</td>
+      <td class="num"><input type="number" step="0.01" value="${row.fraisGestion||0}" data-f="fraisGestion"></td>
+      <td class="num"><input type="number" step="0.01" value="${row.tdvm||0}" data-f="tdvm"></td>
+      <td class="num pv-cell ${pv>=0?'pos':'neg'}">${fmt(pv)} (${fmtPct(pvPct)})</td>
+      <td class="lien-cell">
+        <div style="display:flex;gap:4px;align-items:center;">
+          <input type="text" placeholder="https://..." value="${row.lien||''}" data-f="lien" style="flex:1;min-width:90px;">
+          <a href="${row.lien||'#'}" target="_blank" rel="noopener" class="link-icon"
+             title="Ouvrir la fiche SCPI" style="text-decoration:none;font-size:14px;${row.lien?'':'opacity:.25;pointer-events:none;'}">🔗</a>
+        </div>
+      </td>
+      <td class="row-actions"><button class="btn danger" onclick="delLigne('${row.id}')">✕</button></td>
+    `;
+    tbody.appendChild(tr);
+
+    tr.querySelectorAll('[data-f]').forEach(el=>{
+      const field = el.dataset.f;
+      const evt = el.tagName==='INPUT' ? 'input' : 'blur';
+      el.addEventListener(evt, ()=>{
+        let val = el.tagName==='INPUT' ? el.value : el.textContent.trim();
+        if(['nbParts','prixAchat','montantInvesti','prixRevente','fraisGestion','tdvm'].includes(field)){
+          val = parseFloat(val.replace(',','.')) || 0;
+        }
+        row[field] = val;
+        // auto-calc montant investi si nbParts/prixAchat changent, sauf edition directe du champ
+        if((field==='nbParts' || field==='prixAchat')){
+          row.montantInvesti = (row.nbParts||0) * (row.prixAchat||0);
+          const mInput = tr.querySelector('input[data-f="montantInvesti"]');
+          if(mInput) mInput.value = row.montantInvesti;
+        }
+        // mise a jour ciblee de la ligne (sans reconstruire toute la table -> ne casse pas le focus)
+        updateRowDisplay(tr, row);
+        save();
+        renderKPI();
+      });
+    });
+  });
+}
+
+// Met a jour uniquement les cellules calculees / derivees d'une ligne, sans redessiner toute la table
+function updateRowDisplay(tr, row){
+  const valeurActuelle = (row.nbParts||0) * (row.prixRevente||0);
+  const pv = valeurActuelle - (row.montantInvesti||0);
+  const pvPct = row.montantInvesti ? (pv/row.montantInvesti*100) : 0;
+
+  const valCell = tr.children[8]; // colonne "Valeur actuelle (€)"
+  if(valCell) valCell.textContent = fmt(valeurActuelle);
+
+  const pvCell = tr.querySelector('.pv-cell');
+  if(pvCell){
+    pvCell.textContent = `${fmt(pv)} (${fmtPct(pvPct)})`;
+    pvCell.classList.toggle('pos', pv>=0);
+    pvCell.classList.toggle('neg', pv<0);
+  }
+
+  const linkIcon = tr.querySelector('.link-icon');
+  if(linkIcon){
+    linkIcon.href = row.lien || '#';
+    if(row.lien){
+      linkIcon.style.opacity = '1';
+      linkIcon.style.pointerEvents = 'auto';
+    } else {
+      linkIcon.style.opacity = '.25';
+      linkIcon.style.pointerEvents = 'none';
+    }
+  }
+}
+
+function addLigne(){
+  portefeuille.push({id:uid(), nom:'Nouvelle SCPI', gestionnaire:'', type:'', dateAcq:'', nbParts:0, prixAchat:0, montantInvesti:0, prixRevente:0, fraisGestion:0, tdvm:0, lien:''});
+  save(); renderPortefeuille(); renderRevenusSCPIOptions(); renderKPI();
+}
+function delLigne(id){
+  portefeuille = portefeuille.filter(r=>r.id!==id);
+  revenus = revenus.filter(r=>r.scpiId!==id);
+  save(); renderPortefeuille(); renderRevenus(); renderKPI();
+}
+
+// ================= REVENUS =================
+function renderRevenus(){
+  const tbody = document.getElementById('bodyRevenus');
+  tbody.innerHTML = '';
+  revenus.forEach(rev=>{
+    const tr = document.createElement('tr');
+    const options = portefeuille.map(p=>`<option value="${p.id}" ${p.id===rev.scpiId?'selected':''}>${p.nom}</option>`).join('');
+    tr.innerHTML = `
+      <td><select data-f="scpiId">${options}</select></td>
+      <td><input type="date" value="${rev.date||''}" data-f="date"></td>
+      <td><select data-f="periodicite">
+            <option value="Mensuelle" ${rev.periodicite==='Mensuelle'?'selected':''}>Mensuelle</option>
+            <option value="Trimestrielle" ${rev.periodicite==='Trimestrielle'?'selected':''}>Trimestrielle</option>
+            <option value="Annuelle" ${rev.periodicite==='Annuelle'?'selected':''}>Annuelle</option>
+          </select></td>
+      <td class="num"><input type="number" step="0.01" value="${rev.brut||0}" data-f="brut"></td>
+      <td class="num"><input type="number" step="0.01" value="${rev.net||''}" data-f="net"></td>
+      <td class="row-actions"><button class="btn danger" onclick="delRevenu('${rev.id}')">✕</button></td>
+    `;
+    tbody.appendChild(tr);
+    tr.querySelectorAll('[data-f]').forEach(el=>{
+      const field = el.dataset.f;
+      el.addEventListener('input', ()=>{
+        let val = el.value;
+        if(field==='brut' || field==='net') val = parseFloat(val.replace(',','.')) || 0;
+        rev[field] = val;
+        save();
+        renderKPI();
+      });
+    });
+  });
+}
+function renderRevenusSCPIOptions(){ renderRevenus(); }
+
+function addRevenu(){
+  if(portefeuille.length===0){ alert('Ajoutez d\'abord une SCPI au portefeuille.'); return; }
+  revenus.push({id:uid(), scpiId:portefeuille[0].id, date:'', periodicite:'Trimestrielle', brut:0, net:null});
+  save(); renderRevenus(); renderKPI();
+}
+function delRevenu(id){
+  revenus = revenus.filter(r=>r.id!==id);
+  save(); renderRevenus(); renderKPI();
+}
+
+// ================= KPI =================
+function renderKPI(){
+  const totalInvesti = portefeuille.reduce((s,r)=>s+(r.montantInvesti||0),0);
+  const valeurActuelle = portefeuille.reduce((s,r)=>s+((r.nbParts||0)*(r.prixRevente||0)),0);
+  const pvLatente = valeurActuelle - totalInvesti;
+
+  const now = new Date();
+  const oneYearAgo = new Date(now); oneYearAgo.setFullYear(now.getFullYear()-1);
+
+  const revenus12m = revenus.filter(r=>r.date && new Date(r.date) >= oneYearAgo)
+                             .reduce((s,r)=> s + (r.net!=null && r.net!=='' ? parseFloat(r.net) : (r.brut||0)), 0);
+  const revenusTotal = revenus.reduce((s,r)=> s + (r.net!=null && r.net!=='' ? parseFloat(r.net) : (r.brut||0)), 0);
+
+  const rendementMoyen = totalInvesti ? (revenus12m/totalInvesti*100) : 0;
+
+  // dernier mois / prochain
+  const thisMonth = now.toISOString().slice(0,7);
+  const revenusMoisCourant = revenus.filter(r=>r.date && r.date.slice(0,7)===thisMonth)
+                                     .reduce((s,r)=> s + (r.net!=null && r.net!=='' ? parseFloat(r.net) : (r.brut||0)), 0);
+
+  const grid = document.getElementById('kpiGrid');
+  grid.innerHTML = `
+    <div class="kpi-card">
+      <div class="kpi-label">Total investi</div>
+      <div class="kpi-value">${fmt(totalInvesti)} €</div>
+      <div class="kpi-sub">${portefeuille.length} ligne(s) SCPI</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Valeur actuelle estimée</div>
+      <div class="kpi-value">${fmt(valeurActuelle)} €</div>
+      <div class="kpi-sub ${pvLatente>=0?'pos':'neg'}">${pvLatente>=0?'+':''}${fmt(pvLatente)} € latent</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Revenus perçus (12 derniers mois)</div>
+      <div class="kpi-value">${fmt(revenus12m)} €</div>
+      <div class="kpi-sub">Total cumulé: ${fmt(revenusTotal)} €</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Rendement réel pondéré</div>
+      <div class="kpi-value">${fmtPct(rendementMoyen)}</div>
+      <div class="kpi-sub">Revenus 12m / capital investi</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Revenu mois en cours</div>
+      <div class="kpi-value">${fmt(revenusMoisCourant)} €</div>
+      <div class="kpi-sub">Basé sur date de versement</div>
+    </div>
+  `;
+
+  renderRanking(totalInvesti);
+  renderPeriode();
+}
+
+function calcRendementParSCPI(){
+  const now = new Date();
+  const oneYearAgo = new Date(now); oneYearAgo.setFullYear(now.getFullYear()-1);
+  return portefeuille.map(p=>{
+    const revP = revenus.filter(r=>r.scpiId===p.id);
+    const rev12m = revP.filter(r=>r.date && new Date(r.date)>=oneYearAgo)
+                        .reduce((s,r)=> s + (r.net!=null && r.net!=='' ? parseFloat(r.net) : (r.brut||0)), 0);
+    // si moins de 12 mois de données disponibles, annualiser sur l'historique dispo
+    let rendement;
+    if(rev12m > 0){
+      rendement = p.montantInvesti ? (rev12m / p.montantInvesti * 100) : 0;
+    } else {
+      const allRev = revP.reduce((s,r)=> s + (r.net!=null && r.net!=='' ? parseFloat(r.net) : (r.brut||0)), 0);
+      rendement = p.montantInvesti ? (allRev / p.montantInvesti * 100) : 0;
+    }
+    return {nom:p.nom, rendement, hasData:revP.length>0};
+  }).filter(x=>x.hasData);
+}
+
+function renderRanking(){
+  const arr = calcRendementParSCPI().sort((a,b)=>b.rendement-a.rendement);
+  const top = arr.slice(0,3);
+  const flop = arr.slice(-3).reverse();
+
+  document.getElementById('topList').innerHTML = top.length ? top.map(x=>`
+    <li><span class="rank-name">${x.nom}</span><span class="rank-val pos">${fmtPct(x.rendement)}</span></li>
+  `).join('') : '<li class="note">Aucune donnée de revenus renseignée.</li>';
+
+  document.getElementById('flopList').innerHTML = flop.length ? flop.map(x=>`
+    <li><span class="rank-name">${x.nom}</span><span class="rank-val ${x.rendement<0?'neg':''}">${fmtPct(x.rendement)}</span></li>
+  `).join('') : '<li class="note">Aucune donnée de revenus renseignée.</li>';
+}
+
+function renderPeriode(){
+  const map = {};
+  revenus.forEach(r=>{
+    if(!r.date) return;
+    const key = r.date.slice(0,7);
+    const val = (r.net!=null && r.net!=='' ? parseFloat(r.net) : (r.brut||0));
+    map[key] = (map[key]||0) + val;
+  });
+  const keys = Object.keys(map).sort().reverse();
+  const tbody = document.getElementById('bodyPeriode');
+  tbody.innerHTML = keys.length ? keys.map(k=>`
+    <tr><td>${k}</td><td class="num">${fmt(map[k])}</td></tr>
+  `).join('') : '<tr><td colspan="2" class="note">Aucun versement enregistré.</td></tr>';
+}
+
+// ================= IMPORT / EXPORT =================
+function exportJSON(){
+  const data = {portefeuille, revenus};
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'scpi_export_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+}
+function importJSON(evt){
+  const file = evt.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e=>{
+    try{
+      const data = JSON.parse(e.target.result);
+      if(data.portefeuille) portefeuille = data.portefeuille;
+      if(data.revenus) revenus = data.revenus;
+      save();
+      renderPortefeuille(); renderRevenus(); renderKPI();
+    }catch(err){ alert('Fichier JSON invalide.'); }
+  };
+  reader.readAsText(file);
+}
+
+// ================= INIT =================
+renderPortefeuille();
+renderRevenus();
+renderKPI();
+</script>
+</body>
+</html>
