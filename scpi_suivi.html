@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Suivi SCPI</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230f1115'/%3E%3Crect x='10' y='36' width='9' height='18' rx='1.5' fill='%234f8cff'/%3E%3Crect x='23' y='26' width='9' height='28' rx='1.5' fill='%233ecf8e'/%3E%3Crect x='36' y='16' width='9' height='38' rx='1.5' fill='%23e8b339'/%3E%3Cpath d='M10 32 L23 20 L36 24 L50 10' stroke='%23ef5b5b' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <style>
 :root{
   --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --border:#2a2f3a;
@@ -66,6 +67,31 @@ select{cursor:pointer;}
 
 .note{color:var(--muted); font-size:11px; margin-top:8px;}
 .badge{display:inline-block; font-size:10px; padding:1px 6px; border-radius:10px; background:var(--panel2); color:var(--muted); border:1px solid var(--border);}
+
+.tabs{display:flex; gap:4px; border-bottom:1px solid var(--border); margin-bottom:18px;}
+.tab-btn{
+  background:none; border:none; color:var(--muted); font-size:13px; font-weight:600;
+  padding:10px 16px; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px;
+}
+.tab-btn:hover{color:var(--text);}
+.tab-btn.active{color:var(--accent); border-bottom-color:var(--accent);}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+
+.chart-panel{background:var(--panel2); border:1px solid var(--border); border-radius:8px; padding:14px;}
+.chart-title{font-size:13px; font-weight:600; margin-bottom:10px; color:var(--text);}
+.bar-row{display:flex; align-items:center; gap:8px; margin-bottom:6px; font-size:11.5px;}
+.bar-label{width:120px; flex-shrink:0; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.bar-track{flex:1; background:#11141b; border-radius:4px; height:16px; position:relative; overflow:hidden;}
+.bar-fill{height:100%; border-radius:4px;}
+.bar-value{width:70px; flex-shrink:0; text-align:right; font-weight:600;}
+.legend{display:flex; flex-direction:column; gap:6px; font-size:11.5px;}
+.legend-item{display:flex; align-items:center; gap:6px;}
+.legend-dot{width:9px; height:9px; border-radius:50%; flex-shrink:0;}
+.legend-name{flex:1; color:var(--text);}
+.legend-val{color:var(--muted);}
+.donut-wrap{display:flex; gap:20px; align-items:center; flex-wrap:wrap;}
+.charts-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:16px; margin-top:16px;}
 </style>
 </head>
 <body>
@@ -73,7 +99,14 @@ select{cursor:pointer;}
 <h1>📊 Suivi Portefeuille SCPI</h1>
 <div class="subtitle">Données stockées localement dans le navigateur (localStorage) — rien n'est envoyé sur un serveur.</div>
 
-<!-- ================= PORTEFEUILLE ================= -->
+<div class="tabs">
+  <button class="tab-btn active" data-tab="portefeuille" onclick="switchTab('portefeuille')">Portefeuille</button>
+  <button class="tab-btn" data-tab="revenus" onclick="switchTab('revenus')">Revenus</button>
+  <button class="tab-btn" data-tab="kpi" onclick="switchTab('kpi')">KPI &amp; Graphiques</button>
+</div>
+
+<!-- ================= ONGLET PORTEFEUILLE ================= -->
+<div id="tab-portefeuille" class="tab-content active">
 <div class="panel">
   <h2 style="margin-top:0;border:none;">Portefeuille</h2>
   <div class="toolbar">
@@ -108,8 +141,10 @@ select{cursor:pointer;}
   </div>
   <div class="note">Le "Montant investi" et la "Valeur actuelle" se recalculent automatiquement si vous éditez nb parts × prix, mais restent modifiables manuellement (ex: frais d'entrée inclus, apport en plusieurs fois).</div>
 </div>
+</div>
 
-<!-- ================= REVENUS ================= -->
+<!-- ================= ONGLET REVENUS ================= -->
+<div id="tab-revenus" class="tab-content">
 <div class="panel">
   <h2 style="margin-top:0;border:none;">Revenus perçus</h2>
   <div class="toolbar">
@@ -132,9 +167,12 @@ select{cursor:pointer;}
   </div>
   <div class="note">Montant net fiscal = optionnel (après prélèvement / CSG-CRDS si votre SCPI le communique). Laissez vide sinon, le KPI utilisera le brut.</div>
 </div>
+</div>
 
-<!-- ================= KPI ================= -->
-<h2>Indicateurs clés</h2>
+<!-- ================= ONGLET KPI & GRAPHIQUES ================= -->
+<div id="tab-kpi" class="tab-content">
+
+<h2 style="margin-top:0;">Indicateurs clés</h2>
 <div class="kpi-grid" id="kpiGrid"></div>
 
 <div class="two-col" style="margin-top:16px;">
@@ -148,7 +186,26 @@ select{cursor:pointer;}
   </div>
 </div>
 
-<div class="panel">
+<div class="charts-grid">
+  <div class="chart-panel">
+    <div class="chart-title">Rendement réel par SCPI (%)</div>
+    <div id="chartRendement"></div>
+  </div>
+  <div class="chart-panel">
+    <div class="chart-title">Revenus perçus par mois (€)</div>
+    <div id="chartRevenusMois"></div>
+  </div>
+  <div class="chart-panel">
+    <div class="chart-title">Répartition du capital par gestionnaire</div>
+    <div id="chartGestionnaire" class="donut-wrap"></div>
+  </div>
+  <div class="chart-panel">
+    <div class="chart-title">Répartition du capital par type de SCPI</div>
+    <div id="chartType" class="donut-wrap"></div>
+  </div>
+</div>
+
+<div class="panel" style="margin-top:16px;">
   <h2 style="margin-top:0;border:none;">Revenus par période</h2>
   <div style="overflow-x:auto;">
   <table id="tblPeriode">
@@ -156,6 +213,8 @@ select{cursor:pointer;}
     <tbody id="bodyPeriode"></tbody>
   </table>
   </div>
+</div>
+
 </div>
 
 <script>
@@ -176,6 +235,15 @@ function save(){
 function uid(){ return 'id'+Math.random().toString(36).slice(2,10); }
 function fmt(n){ return (n||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function fmtPct(n){ return (isFinite(n)?n:0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' %'; }
+
+// ================= ONGLETS =================
+function switchTab(tab){
+  document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el=>el.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.querySelector(`.tab-btn[data-tab="${tab}"]`).classList.add('active');
+  if(tab==='kpi'){ renderKPI(); }
+}
 
 // ---------- seed exemple si vide ----------
 if(portefeuille.length === 0){
@@ -327,6 +395,8 @@ function delRevenu(id){
 }
 
 // ================= KPI =================
+const PALETTE = ['#4f8cff','#3ecf8e','#e8b339','#ef5b5b','#a86ee0','#33c2c2','#ff8a5c','#8b93a3','#6ee0c8','#d17bff'];
+
 function renderKPI(){
   const totalInvesti = portefeuille.reduce((s,r)=>s+(r.montantInvesti||0),0);
   const valeurActuelle = portefeuille.reduce((s,r)=>s+((r.nbParts||0)*(r.prixRevente||0)),0);
@@ -341,10 +411,31 @@ function renderKPI(){
 
   const rendementMoyen = totalInvesti ? (revenus12m/totalInvesti*100) : 0;
 
-  // dernier mois / prochain
   const thisMonth = now.toISOString().slice(0,7);
   const revenusMoisCourant = revenus.filter(r=>r.date && r.date.slice(0,7)===thisMonth)
                                      .reduce((s,r)=> s + (r.net!=null && r.net!=='' ? parseFloat(r.net) : (r.brut||0)), 0);
+
+  // KPI additionnels
+  const tdvmMoyenAnnonce = portefeuille.length
+    ? portefeuille.reduce((s,r)=>s+(r.tdvm||0),0)/portefeuille.length : 0;
+  const ecartRendement = rendementMoyen - tdvmMoyenAnnonce;
+
+  const nbPlusValue = portefeuille.filter(r=>((r.nbParts||0)*(r.prixRevente||0)) >= (r.montantInvesti||0)).length;
+  const nbMoinsValue = portefeuille.length - nbPlusValue;
+
+  const gestionnaires = new Set(portefeuille.map(r=>r.gestionnaire).filter(Boolean));
+  const types = new Set(portefeuille.map(r=>r.type).filter(Boolean));
+
+  const revenusParMois = {};
+  revenus.forEach(r=>{
+    if(!r.date) return;
+    const key = r.date.slice(0,7);
+    const val = (r.net!=null && r.net!=='' ? parseFloat(r.net) : (r.brut||0));
+    revenusParMois[key] = (revenusParMois[key]||0) + val;
+  });
+  const moisVals = Object.entries(revenusParMois);
+  const meilleurMois = moisVals.length ? moisVals.reduce((a,b)=>b[1]>a[1]?b:a) : null;
+  const revenuTrimestrielMoyen = moisVals.length ? (moisVals.reduce((s,[,v])=>s+v,0)/moisVals.length*3) : 0;
 
   const grid = document.getElementById('kpiGrid');
   grid.innerHTML = `
@@ -373,10 +464,119 @@ function renderKPI(){
       <div class="kpi-value">${fmt(revenusMoisCourant)} €</div>
       <div class="kpi-sub">Basé sur date de versement</div>
     </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Revenu trimestriel moyen</div>
+      <div class="kpi-value">${fmt(revenuTrimestrielMoyen)} €</div>
+      <div class="kpi-sub">Moyenne mensuelle × 3</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">TDVM annoncé moyen</div>
+      <div class="kpi-value">${fmtPct(tdvmMoyenAnnonce)}</div>
+      <div class="kpi-sub ${ecartRendement>=0?'pos':'neg'}">Écart vs réel: ${ecartRendement>=0?'+':''}${fmtPct(ecartRendement)}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">SCPI en +/- value</div>
+      <div class="kpi-value"><span class="pos">${nbPlusValue}</span> / <span class="neg">${nbMoinsValue}</span></div>
+      <div class="kpi-sub">en plus-value / en moins-value latente</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Diversification</div>
+      <div class="kpi-value">${gestionnaires.size} / ${types.size}</div>
+      <div class="kpi-sub">gestionnaires / types distincts</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Meilleur mois</div>
+      <div class="kpi-value">${meilleurMois ? fmt(meilleurMois[1])+' €' : '—'}</div>
+      <div class="kpi-sub">${meilleurMois ? meilleurMois[0] : 'Aucune donnée'}</div>
+    </div>
   `;
 
   renderRanking(totalInvesti);
   renderPeriode();
+  renderCharts(revenusParMois);
+}
+
+// ================= GRAPHIQUES =================
+function barChartHTML(data, opts){
+  const max = Math.max(1, ...data.map(d=>Math.abs(d.value)));
+  return data.map(d=>{
+    const pct = Math.min(100, Math.abs(d.value)/max*100);
+    const color = d.color || (d.value<0 ? 'var(--red)' : 'var(--accent)');
+    return `
+      <div class="bar-row">
+        <div class="bar-label" title="${d.label}">${d.label}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%; background:${color};"></div></div>
+        <div class="bar-value">${opts && opts.unit==='eur' ? fmt(d.value)+' €' : fmtPct(d.value)}</div>
+      </div>`;
+  }).join('') || '<div class="note">Aucune donnée disponible.</div>';
+}
+
+function donutSVG(data, size){
+  const total = data.reduce((s,d)=>s+d.value,0) || 1;
+  const r = size/2 - 10, cx = size/2, cy = size/2, circ = 2*Math.PI*r;
+  let offset = 0;
+  const segments = data.map((d,i)=>{
+    const frac = d.value/total;
+    const dash = frac*circ;
+    const seg = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${PALETTE[i%PALETTE.length]}"
+      stroke-width="18" stroke-dasharray="${dash} ${circ-dash}" stroke-dashoffset="${-offset}"
+      transform="rotate(-90 ${cx} ${cy})"/>`;
+    offset += dash;
+    return seg;
+  }).join('');
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${segments}
+    <circle cx="${cx}" cy="${cy}" r="${r-12}" fill="var(--panel2)"/></svg>`;
+}
+
+function legendHTML(data, total){
+  return `<div class="legend">${data.map((d,i)=>`
+    <div class="legend-item">
+      <span class="legend-dot" style="background:${PALETTE[i%PALETTE.length]};"></span>
+      <span class="legend-name">${d.label}</span>
+      <span class="legend-val">${fmt(d.value)} € (${fmtPct(total?d.value/total*100:0)})</span>
+    </div>`).join('')}</div>`;
+}
+
+function renderCharts(revenusParMois){
+  // 1) Rendement reel par SCPI
+  const rendementData = calcRendementParSCPI()
+    .sort((a,b)=>b.rendement-a.rendement)
+    .map(x=>({label:x.nom, value:Math.round(x.rendement*100)/100}));
+  document.getElementById('chartRendement').innerHTML = barChartHTML(rendementData, {unit:'pct'});
+
+  // 2) Revenus par mois (12 derniers mois glissants, ordre chronologique)
+  const now = new Date();
+  const mois12 = [];
+  for(let i=11;i>=0;i--){
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    mois12.push(d.toISOString().slice(0,7));
+  }
+  const revMoisData = mois12.map(m=>({label:m, value:Math.round((revenusParMois[m]||0)*100)/100}));
+  document.getElementById('chartRevenusMois').innerHTML = barChartHTML(revMoisData, {unit:'eur'});
+
+  // 3) Repartition par gestionnaire
+  const parGestionnaire = {};
+  portefeuille.forEach(r=>{
+    const key = r.gestionnaire || 'Non renseigné';
+    parGestionnaire[key] = (parGestionnaire[key]||0) + (r.montantInvesti||0);
+  });
+  const gestData = Object.entries(parGestionnaire).map(([label,value])=>({label,value})).sort((a,b)=>b.value-a.value);
+  const totalGest = gestData.reduce((s,d)=>s+d.value,0);
+  document.getElementById('chartGestionnaire').innerHTML = gestData.length
+    ? donutSVG(gestData, 150) + legendHTML(gestData, totalGest)
+    : '<div class="note">Aucune donnée disponible.</div>';
+
+  // 4) Repartition par type
+  const parType = {};
+  portefeuille.forEach(r=>{
+    const key = r.type || 'Non renseigné';
+    parType[key] = (parType[key]||0) + (r.montantInvesti||0);
+  });
+  const typeData = Object.entries(parType).map(([label,value])=>({label,value})).sort((a,b)=>b.value-a.value);
+  const totalType = typeData.reduce((s,d)=>s+d.value,0);
+  document.getElementById('chartType').innerHTML = typeData.length
+    ? donutSVG(typeData, 150) + legendHTML(typeData, totalType)
+    : '<div class="note">Aucune donnée disponible.</div>';
 }
 
 function calcRendementParSCPI(){
