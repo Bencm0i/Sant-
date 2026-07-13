@@ -92,6 +92,10 @@ select{cursor:pointer;}
 .legend-val{color:var(--muted);}
 .donut-wrap{display:flex; gap:20px; align-items:center; flex-wrap:wrap;}
 .charts-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:16px; margin-top:16px;}
+
+th.sortable{cursor:pointer; user-select:none;}
+th.sortable:hover{color:var(--text);}
+.sort-arrow{display:inline-block; width:10px; font-size:10px; color:var(--accent);}
 </style>
 </head>
 <body>
@@ -154,11 +158,11 @@ select{cursor:pointer;}
   <table id="tblRevenus">
     <thead>
       <tr>
-        <th>SCPI</th>
-        <th>Date versement</th>
-        <th>Périodicité</th>
-        <th class="num">Montant brut (€)</th>
-        <th class="num">Montant net fiscal (€)</th>
+        <th class="sortable" onclick="sortRevenus('scpi')">SCPI <span class="sort-arrow" id="arrow-scpi"></span></th>
+        <th class="sortable" onclick="sortRevenus('date')">Date versement <span class="sort-arrow" id="arrow-date"></span></th>
+        <th class="sortable" onclick="sortRevenus('periodicite')">Périodicité <span class="sort-arrow" id="arrow-periodicite"></span></th>
+        <th class="num sortable" onclick="sortRevenus('brut')">Montant brut (€) <span class="sort-arrow" id="arrow-brut"></span></th>
+        <th class="num sortable" onclick="sortRevenus('net')">Montant net fiscal (€) <span class="sort-arrow" id="arrow-net"></span></th>
         <th></th>
       </tr>
     </thead>
@@ -374,10 +378,56 @@ function delLigne(id){
 }
 
 // ================= REVENUS =================
+let revSort = {field:'date', dir:-1}; // tri par defaut: date la plus recente en premier
+
+function sortRevenus(field){
+  if(revSort.field === field){ revSort.dir *= -1; }
+  else { revSort.field = field; revSort.dir = 1; }
+  renderRevenus();
+}
+
+function getRevenusTries(){
+  const arr = [...revenus];
+  if(!revSort.field) return arr;
+  const nomScpi = id => (portefeuille.find(p=>p.id===id)||{}).nom || '';
+  arr.sort((a,b)=>{
+    let va, vb;
+    switch(revSort.field){
+      case 'scpi':
+        va = nomScpi(a.scpiId); vb = nomScpi(b.scpiId);
+        return va.localeCompare(vb, 'fr') * revSort.dir;
+      case 'periodicite':
+        va = a.periodicite||''; vb = b.periodicite||'';
+        return va.localeCompare(vb, 'fr') * revSort.dir;
+      case 'brut':
+        va = a.brut||0; vb = b.brut||0;
+        return (va-vb) * revSort.dir;
+      case 'net':
+        va = (a.net!=null && a.net!=='') ? parseFloat(a.net) : 0;
+        vb = (b.net!=null && b.net!=='') ? parseFloat(b.net) : 0;
+        return (va-vb) * revSort.dir;
+      case 'date':
+      default:
+        va = a.date||''; vb = b.date||'';
+        return va.localeCompare(vb) * revSort.dir;
+    }
+  });
+  return arr;
+}
+
+function updateSortArrows(){
+  ['scpi','date','periodicite','brut','net'].forEach(f=>{
+    const el = document.getElementById('arrow-'+f);
+    if(!el) return;
+    el.textContent = (revSort.field===f) ? (revSort.dir===1 ? '▲' : '▼') : '';
+  });
+}
+
 function renderRevenus(){
   const tbody = document.getElementById('bodyRevenus');
   tbody.innerHTML = '';
-  revenus.forEach(rev=>{
+  updateSortArrows();
+  getRevenusTries().forEach(rev=>{
     const tr = document.createElement('tr');
     const options = portefeuille.map(p=>`<option value="${p.id}" ${p.id===rev.scpiId?'selected':''}>${p.nom}</option>`).join('');
     tr.innerHTML = `
