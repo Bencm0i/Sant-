@@ -206,6 +206,27 @@ select{cursor:pointer;}
 </div>
 
 <div class="panel" style="margin-top:16px;">
+  <h2 style="margin-top:0;border:none;">⏳ Durée de détention &amp; rentabilité estimée par SCPI</h2>
+  <div style="overflow-x:auto;">
+  <table id="tblDuree">
+    <thead>
+      <tr>
+        <th>SCPI</th>
+        <th class="num">Durée détention</th>
+        <th class="num">+/- value latente</th>
+        <th class="num">Revenus cumulés</th>
+        <th class="num">Rendement total (capital+revenus)</th>
+        <th class="num">Revenu annuel estimé</th>
+        <th>Statut / échéance estimée</th>
+      </tr>
+    </thead>
+    <tbody id="bodyDuree"></tbody>
+  </table>
+  </div>
+  <div class="note">Extrapolation linéaire basée sur le revenu annuel estimé (12 derniers mois si disponible, sinon historique annualisé, sinon TDVM annoncé) et une valeur de part supposée constante. Purement indicatif — ne tient pas compte des variations futures du prix de part ou du TDVM.</div>
+</div>
+
+<div class="panel" style="margin-top:16px;">
   <h2 style="margin-top:0;border:none;">Revenus par période</h2>
   <div style="overflow-x:auto;">
   <table id="tblPeriode">
@@ -455,6 +476,18 @@ function renderKPI(){
   const resteACompenser = moinsValueCumulee - netApresImpotCumule;
   const anneesRestantes = (resteACompenser>0 && revenuAnnuelNetEstime>0) ? (resteACompenser/revenuAnnuelNetEstime) : null;
 
+  // ---- Durée de détention & rentabilité globale (capital + revenus) ----
+  let sommeDureePonderee = 0, sommeMontantPondere = 0;
+  portefeuille.forEach(r=>{
+    if(!r.dateAcq) return;
+    const dureeAns = (now - new Date(r.dateAcq)) / (365.25*24*3600*1000);
+    if(dureeAns<0) return;
+    sommeDureePonderee += dureeAns * (r.montantInvesti||0);
+    sommeMontantPondere += (r.montantInvesti||0);
+  });
+  const dureeMoyennePonderee = sommeMontantPondere>0 ? sommeDureePonderee/sommeMontantPondere : null;
+  const rendementTotalGlobal = pvLatente + revenusTotal;
+
   const grid = document.getElementById('kpiGrid');
   const tauxFocused = document.activeElement && document.activeElement.id === 'inputTauxImpot';
   const tauxSelStart = tauxFocused ? document.activeElement.selectionStart : null;
@@ -516,6 +549,22 @@ function renderKPI(){
       <div class="kpi-sub">TMI + prélèvements sociaux — éditable, sert au calcul ci-dessous</div>
     </div>
     <div class="kpi-card">
+      <div class="kpi-label">Durée de détention moyenne</div>
+      <div class="kpi-value">${dureeMoyennePonderee!=null ? dureeMoyennePonderee.toFixed(1)+' an(s)' : '—'}</div>
+      <div class="kpi-sub">Pondérée par montant investi, depuis date d'acquisition</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Rentabilité globale (capital+revenus)</div>
+      <div class="kpi-value ${rendementTotalGlobal>=0 ? 'pos':'neg'}">${rendementTotalGlobal>=0 ? 'Rentable ✅' : fmt(rendementTotalGlobal)+' €'}</div>
+      <div class="kpi-sub">
+        ${rendementTotalGlobal>=0
+          ? `Gain cumulé (plus/moins-value + revenus): +${fmt(rendementTotalGlobal)} €`
+          : (revenus12m>0
+              ? `≈ ${(-rendementTotalGlobal/revenus12m).toFixed(1)} an(s) au rythme actuel pour atteindre le seuil de rentabilité (soit vers ${new Date(now.getTime() + (-rendementTotalGlobal/revenus12m)*365.25*86400000).toLocaleDateString('fr-FR',{month:'short',year:'numeric'})})`
+              : 'Revenu annuel insuffisant pour extrapoler')}
+      </div>
+    </div>
+    <div class="kpi-card">
       <div class="kpi-label">Compensation perte de sortie par dividendes</div>
       <div class="kpi-value ${resteACompenser<=0 ? 'pos':'neg'}">${resteACompenser<=0 ? 'Compensée ✅' : fmt(resteACompenser)+' € restants'}</div>
       <div class="kpi-sub">
@@ -540,6 +589,7 @@ function renderKPI(){
   }
 
   renderRanking(totalInvesti);
+  renderDureeRentabilite();
   renderPeriode();
   renderCharts(revenusParMois);
 }
@@ -658,6 +708,74 @@ function renderRanking(){
   document.getElementById('flopList').innerHTML = flop.length ? flop.map(x=>`
     <li><span class="rank-name">${x.nom}</span><span class="rank-val ${x.rendement<0?'neg':''}">${fmtPct(x.rendement)}</span></li>
   `).join('') : '<li class="note">Aucune donnée de revenus renseignée.</li>';
+}
+
+function calcDureeRentabilite(){
+  const now = new Date();
+  const oneYearAgo = new Date(now); oneYearAgo.setFullYear(now.getFullYear()-1);
+
+  return portefeuille.map(p=>{
+    const revP = revenus.filter(r=>r.scpiId===p.id && r.date);
+    const revTotal = revP.reduce((s,r)=> s + (r.net!=null && r.net!=='' ? parseFloat(r.net) : (r.brut||0)), 0);
+    const valeurActuelle = (p.nbParts||0)*(p.prixRevente||0);
+    const pv = valeurActuelle - (p.montantInvesti||0);
+    const rendementTotal = pv + revTotal;
+
+    let dureeAns = null;
+    if(p.dateAcq){
+      const acq = new Date(p.dateAcq);
+      dureeAns = (now - acq) / (365.25*24*3600*1000);
+      if(dureeAns<0) dureeAns = null;
+    }
+
+    // revenu annuel estime : 12 derniers mois si dispo, sinon annualise sur historique, sinon TDVM annonce
+    const rev12m = revP.filter(r=>new Date(r.date)>=oneYearAgo)
+                        .reduce((s,r)=> s + (r.net!=null && r.net!=='' ? parseFloat(r.net) : (r.brut||0)), 0);
+    let revenuAnnuelEstime, base;
+    if(rev12m>0){
+      revenuAnnuelEstime = rev12m; base = '12 derniers mois';
+    } else if(revTotal>0 && dureeAns>0.05){
+      revenuAnnuelEstime = revTotal/dureeAns; base = 'historique annualisé';
+    } else {
+      revenuAnnuelEstime = (p.montantInvesti||0) * ((p.tdvm||0)/100); base = 'TDVM annoncé';
+    }
+
+    let statut='indetermine', etaYears=null, etaDate=null;
+    if(rendementTotal>=0){
+      statut='rentable';
+    } else if(revenuAnnuelEstime>0){
+      statut='projection';
+      etaYears = -rendementTotal / revenuAnnuelEstime;
+      etaDate = new Date(now.getTime() + etaYears*365.25*24*3600*1000);
+    }
+    return {nom:p.nom, dureeAns, pv, revTotal, rendementTotal, revenuAnnuelEstime, base, statut, etaYears, etaDate};
+  });
+}
+
+function renderDureeRentabilite(){
+  const tbody = document.getElementById('bodyDuree');
+  if(!tbody) return;
+  const data = calcDureeRentabilite();
+  tbody.innerHTML = data.length ? data.map(x=>{
+    const dureeStr = x.dureeAns!=null ? x.dureeAns.toFixed(1)+' an(s)' : '—';
+    let statutStr;
+    if(x.statut==='rentable'){
+      statutStr = `<span class="pos">Déjà rentable ✅</span>`;
+    } else if(x.statut==='projection'){
+      statutStr = `~${x.etaYears.toFixed(1)} an(s) restants — vers ${x.etaDate.toLocaleDateString('fr-FR',{month:'short',year:'numeric'})} <span class="badge">${x.base}</span>`;
+    } else {
+      statutStr = `<span class="note">Donnée insuffisante pour extrapoler</span>`;
+    }
+    return `<tr>
+      <td>${x.nom}</td>
+      <td class="num">${dureeStr}</td>
+      <td class="num ${x.pv>=0?'pos':'neg'}">${fmt(x.pv)} €</td>
+      <td class="num">${fmt(x.revTotal)} €</td>
+      <td class="num ${x.rendementTotal>=0?'pos':'neg'}">${fmt(x.rendementTotal)} €</td>
+      <td class="num">${fmt(x.revenuAnnuelEstime)} €</td>
+      <td>${statutStr}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="7" class="note">Aucune SCPI enregistrée.</td></tr>';
 }
 
 function renderPeriode(){
