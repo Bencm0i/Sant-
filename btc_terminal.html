@@ -129,6 +129,12 @@
   }
   .cost-chip button:hover{ color:var(--flashy); background:rgba(255,47,214,0.12); }
   .cost-chip button.lock-btn.locked{ color:var(--flashy); }
+  .channel-chip{
+    color:var(--cyan) !important; border-color:var(--cyan) !important;
+  }
+  .channel-chip.hidden-ch{ color:var(--txt-dim) !important; border-color:var(--border) !important; opacity:.6; }
+  .channel-chip button:hover{ color:var(--cyan); background:rgba(53,199,255,0.12); }
+  .channel-chip button.eye-btn.off{ color:var(--txt-dim); }
   .mini-input{
     background:var(--panel-2); border:1px solid var(--border); color:var(--txt);
     font-family:inherit; font-size:11px; padding:4px 8px; border-radius:3px; width:120px;
@@ -269,13 +275,17 @@
     <div class="tool-group">
       <button class="tool" id="drawBtn" title="Cliquer sur le graphique pour placer une ligne horizontale">✏️ S/R</button>
       <button class="tool" id="freehandBtn" title="Dessin libre à main levée sur le graphique">✍️ Libre</button>
+      <button class="tool" id="trendBtn" title="Cliquer-glisser entre deux points pour tracer une droite de tendance (prolongée à l'infini)">📈 Tendance</button>
       <button class="tool" id="measureBtn" title="Cliquer-glisser entre deux points pour mesurer le %">📏 Mesure</button>
       <button class="tool" id="costBtn" title="Cliquer sur le graphique pour placer le prix de revient">💰 P.Revient</button>
+      <button class="tool" id="channelBtn" title="Détecter automatiquement les canaux de prix sur la vue actuelle">📐 Canaux</button>
       <button class="tool" id="zoomInBtn" title="Zoomer">🔍+</button>
       <button class="tool" id="zoomOutBtn" title="Dézoomer">🔍−</button>
       <button class="tool" id="resetViewBtn" title="Réinitialiser la vue">⤢ Reset</button>
       <button class="tool" id="clearLinesBtn" title="Effacer toutes les lignes">🗑 Lignes</button>
       <button class="tool" id="clearFreehandBtn" title="Effacer les dessins libres">🗑 Dessins</button>
+      <button class="tool" id="clearTrendBtn" title="Effacer toutes les droites de tendance">🗑 Tendances</button>
+      <button class="tool" id="clearChannelsBtn" title="Effacer tous les canaux détectés">🗑 Canaux</button>
     </div>
     <button class="refresh-btn" id="refreshBtn">⟳ ACTUALISER</button>
   </div>
@@ -283,6 +293,11 @@
   <div class="lines-row empty" id="linesRow">
     <span class="lbl">Support / Résistance</span>
     <div id="linesChips" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+  </div>
+
+  <div class="lines-row empty" id="channelsRow">
+    <span class="lbl">Canaux détectés</span>
+    <div id="channelsChips" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
   </div>
 
   <div class="lines-row" id="costRow">
@@ -337,7 +352,12 @@
     measurement: null,   // {start:{idx,price}, end:{idx,price}} règle de mesure persistée
     costMode: false,
     costLine: null,        // {price, locked} prix de revient (flashy, verrouillable)
-    lastPrice: null         // dernier prix connu, pour calcul auto du P&L vs prix de revient
+    lastPrice: null,        // dernier prix connu, pour calcul auto du P&L vs prix de revient
+    trendMode: false,
+    trendlines: [],         // {id, idxA, priceA, idxB, priceB} droites passant par 2 points, prolongées
+    nextTrendId: 1,
+    channels: [],           // {id, slope, upperIntercept, lowerIntercept, label, hidden}
+    nextChannelId: 1
   };
 
   // interaction (pan / line-drag) — module scope, not persisted
@@ -347,6 +367,8 @@
   let isFreehandDrawing = false, currentStroke = null;
   let isMeasuring = false, measureStart = null, measureEnd = null;
   let draggingCost = false;
+  let isTrendDrawing = false, trendStart = null, trendEnd = null;
+  let hoverTrendId = null;
 
   const TF_MAP = {
     '15m': {interval:'15m', limit:300},
@@ -388,6 +410,36 @@
       if(Array.isArray(parsed)) state.freehandStrokes = parsed;
     }catch(e){}
   }
+  const LS_TRENDLINES = 'btcTerminal_trendlines';
+  function saveTrendlines(){
+    try{ localStorage.setItem(LS_TRENDLINES, JSON.stringify(state.trendlines)); }catch(e){}
+  }
+  function loadTrendlines(){
+    try{
+      const raw = localStorage.getItem(LS_TRENDLINES);
+      if(!raw) return;
+      const parsed = JSON.parse(raw);
+      if(Array.isArray(parsed)){
+        state.trendlines = parsed;
+        state.nextTrendId = parsed.reduce((m,t)=>Math.max(m,t.id||0), 0) + 1;
+      }
+    }catch(e){}
+  }
+  const LS_CHANNELS = 'btcTerminal_channels';
+  function saveChannels(){
+    try{ localStorage.setItem(LS_CHANNELS, JSON.stringify(state.channels)); }catch(e){}
+  }
+  function loadChannels(){
+    try{
+      const raw = localStorage.getItem(LS_CHANNELS);
+      if(!raw) return;
+      const parsed = JSON.parse(raw);
+      if(Array.isArray(parsed)){
+        state.channels = parsed;
+        state.nextChannelId = parsed.reduce((m,c)=>Math.max(m,c.id||0), 0) + 1;
+      }
+    }catch(e){}
+  }
   const LS_COST = 'btcTerminal_costLine';
   function saveCostLine(){
     try{ localStorage.setItem(LS_COST, JSON.stringify(state.costLine)); }catch(e){}
@@ -405,6 +457,9 @@
   loadLines();
   loadFreehand();
   loadCostLine();
+  loadTrendlines();
+  loadChannels();
+  renderChannelList();
   renderLineList();
   renderCostLine();
 
@@ -616,6 +671,7 @@
 
     xScale = i => PAD.l + (i-start)*barSlot + barSlot/2;
     yScale = p => PAD.t + (chartH-PAD.t-PAD.b) * (1 - (p-pmin)/(pmax-pmin));
+    const idxAtX = x => start + (x - PAD.l - barSlot/2) / barSlot;
 
     // grid
     pctx.strokeStyle = '#141b21';
@@ -640,6 +696,27 @@
       pctx.beginPath(); pctx.moveTo(sepX, PAD.t); pctx.lineTo(sepX, chartH-PAD.b); pctx.stroke();
       pctx.setLineDash([]);
     }
+
+    // ---- Canaux détectés automatiquement (parallèles, arrière-plan) ----
+    state.channels.forEach(ch=>{
+      if(ch.hidden) return;
+      const leftIdx = idxAtX(PAD.l), rightIdx = idxAtX(w-PAD.r);
+      const ulY = yScale(ch.slope*leftIdx + ch.upperIntercept), urY = yScale(ch.slope*rightIdx + ch.upperIntercept);
+      const llY = yScale(ch.slope*leftIdx + ch.lowerIntercept), lrY = yScale(ch.slope*rightIdx + ch.lowerIntercept);
+      pctx.beginPath();
+      pctx.moveTo(PAD.l, ulY); pctx.lineTo(w-PAD.r, urY);
+      pctx.lineTo(w-PAD.r, lrY); pctx.lineTo(PAD.l, llY);
+      pctx.closePath();
+      pctx.fillStyle = 'rgba(53,199,255,0.07)';
+      pctx.fill();
+      pctx.strokeStyle = '#35c7ff'; pctx.lineWidth = 1.2; pctx.setLineDash([6,4]);
+      pctx.beginPath(); pctx.moveTo(PAD.l, ulY); pctx.lineTo(w-PAD.r, urY); pctx.stroke();
+      pctx.beginPath(); pctx.moveTo(PAD.l, llY); pctx.lineTo(w-PAD.r, lrY); pctx.stroke();
+      pctx.setLineDash([]);
+      pctx.font = 'bold 9.5px IBM Plex Mono';
+      pctx.fillStyle = '#35c7ff';
+      pctx.fillText(ch.label || 'Canal', PAD.l+4, Math.min(ulY, urY)-4);
+    });
 
     // ---- Ichimoku cloud fill ----
     if(state.show.ichimoku){
@@ -793,6 +870,28 @@
       pctx.stroke();
     });
 
+    // ---- Droites de tendance (passant par 2 points, prolongées à l'infini) ----
+    const trendToDraw = [...state.trendlines];
+    if(isTrendDrawing && trendStart && trendEnd) trendToDraw.push({ id:-1, idxA:trendStart.idx, priceA:trendStart.price, idxB:trendEnd.idx, priceB:trendEnd.price });
+    trendToDraw.forEach(t=>{
+      if(t.idxA === t.idxB) return;
+      const slope = (t.priceB - t.priceA) / (t.idxB - t.idxA);
+      const intercept = t.priceA - slope*t.idxA;
+      const leftIdx = idxAtX(PAD.l), rightIdx = idxAtX(w-PAD.r);
+      const lx = PAD.l, ly2 = yScale(slope*leftIdx + intercept);
+      const rx = w-PAD.r, ry = yScale(slope*rightIdx + intercept);
+      const active = t.id === hoverTrendId;
+      pctx.strokeStyle = active ? '#ffe27a' : '#ffa63d';
+      pctx.lineWidth = active ? 2.2 : 1.5;
+      pctx.beginPath(); pctx.moveTo(lx,ly2); pctx.lineTo(rx,ry); pctx.stroke();
+      // marqueurs des 2 points d'origine
+      [[t.idxA,t.priceA],[t.idxB,t.priceB]].forEach(([idx,price])=>{
+        const px = xScale(idx), py = yScale(price);
+        pctx.fillStyle = active ? '#ffe27a' : '#ffa63d';
+        pctx.beginPath(); pctx.arc(px,py,3,0,Math.PI*2); pctx.fill();
+      });
+    });
+
     // ---- Règle de mesure (% entre deux points) ----
     const measureToDraw = isMeasuring && measureStart && measureEnd
       ? { start: measureStart, end: measureEnd }
@@ -914,6 +1013,157 @@
     });
     return best;
   }
+  function findTrendlineNear(mx, my, threshold){
+    threshold = threshold || 7;
+    let best = null, bestDist = Infinity;
+    state.trendlines.forEach(t=>{
+      if(t.idxA === t.idxB) return;
+      const slope = (t.priceB - t.priceA) / (t.idxB - t.idxA);
+      const intercept = t.priceA - slope*t.idxA;
+      const priceOnLine = slope*idxFromX(mx) + intercept;
+      const yOnLine = PAD.t + (currentChartH-PAD.t-PAD.b) * (1 - (priceOnLine-currentPmin)/(currentPmax-currentPmin));
+      const dist = Math.abs(yOnLine - my);
+      if(dist < threshold && dist < bestDist){ best = t; bestDist = dist; }
+    });
+    return best;
+  }
+
+  // ---------- DÉTECTION AUTOMATIQUE DE CANAUX ----------
+  function linRegress(points){
+    const n = points.length;
+    let sx=0, sy=0, sxy=0, sxx=0;
+    points.forEach(p=>{ sx+=p.idx; sy+=p.price; sxy+=p.idx*p.price; sxx+=p.idx*p.idx; });
+    const denom = (n*sxx - sx*sx) || 1e-9;
+    const slope = (n*sxy - sx*sy) / denom;
+    const intercept = (sy - slope*sx) / n;
+    return { slope, intercept };
+  }
+
+  function findPivots(candles, start, end, w){
+    const highs = [], lows = [];
+    for(let i=start+w; i<=end-w; i++){
+      let isHigh = true, isLow = true;
+      for(let j=i-w; j<=i+w; j++){
+        if(j===i) continue;
+        if(candles[j].h > candles[i].h) isHigh = false;
+        if(candles[j].l < candles[i].l) isLow = false;
+      }
+      if(isHigh) highs.push({ idx:i, price:candles[i].h });
+      if(isLow) lows.push({ idx:i, price:candles[i].l });
+    }
+    return { highs, lows };
+  }
+
+  function bestLineFit(pivots, tolerance){
+    if(pivots.length < 3) return null;
+    let best = { inliers: [], slope:0, intercept:0 };
+    for(let i=0;i<pivots.length-1;i++){
+      for(let j=i+1;j<pivots.length;j++){
+        const p1=pivots[i], p2=pivots[j];
+        if(p2.idx===p1.idx) continue;
+        const slope = (p2.price-p1.price)/(p2.idx-p1.idx);
+        const intercept = p1.price - slope*p1.idx;
+        const inliers = pivots.filter(p => Math.abs((slope*p.idx+intercept) - p.price) <= tolerance);
+        if(inliers.length > best.inliers.length) best = { inliers, slope, intercept };
+      }
+    }
+    if(best.inliers.length < 3) return null;
+    const refined = linRegress(best.inliers);
+    return { slope: refined.slope, intercept: refined.intercept, points: best.inliers };
+  }
+
+  function detectChannelInRange(candles, start, end){
+    const span = end - start;
+    if(span < 20) return null;
+    const w = Math.max(2, Math.min(8, Math.round(span/50)));
+    const { highs, lows } = findPivots(candles, start, end, w);
+    let maxH=-Infinity, minL=Infinity;
+    for(let i=start;i<=end;i++){ maxH=Math.max(maxH,candles[i].h); minL=Math.min(minL,candles[i].l); }
+    const tolerance = (maxH-minL) * 0.02;
+    const upperFit = bestLineFit(highs, tolerance);
+    const lowerFit = bestLineFit(lows, tolerance);
+    if(!upperFit || !lowerFit) return null;
+    const totalPts = upperFit.points.length + lowerFit.points.length;
+    const slope = (upperFit.slope*upperFit.points.length + lowerFit.slope*lowerFit.points.length) / totalPts;
+    const upperIntercept = upperFit.points.reduce((s,p)=>s+(p.price-slope*p.idx),0) / upperFit.points.length;
+    const lowerIntercept = lowerFit.points.reduce((s,p)=>s+(p.price-slope*p.idx),0) / lowerFit.points.length;
+    if(upperIntercept <= lowerIntercept) return null;
+    return { slope, upperIntercept, lowerIntercept, score: totalPts, idxStart:start, idxEnd:end };
+  }
+
+  function channelsSimilar(a,b){
+    const midIdx = (a.idxStart+a.idxEnd)/2;
+    const priceA = (a.slope*midIdx+a.upperIntercept + a.slope*midIdx+a.lowerIntercept)/2;
+    const priceB = (b.slope*midIdx+b.upperIntercept + b.slope*midIdx+b.lowerIntercept)/2;
+    const slopeDiff = Math.abs(a.slope-b.slope);
+    const priceDiff = Math.abs(priceA-priceB)/(priceA||1);
+    return priceDiff < 0.03 && slopeDiff < Math.abs(a.slope||1)*0.5 + 0.001;
+  }
+
+  function runChannelDetection(){
+    if(!state.candles.length || !visibleRange.end) return;
+    const start = visibleRange.start, end = Math.min(visibleRange.viewEnd, state.candles.length-1);
+    const candidates = [];
+    const full = detectChannelInRange(state.candles, start, end);
+    if(full) candidates.push({ ...full, label:'Canal (vue complète)' });
+    const midStart = start + Math.floor((end-start)*0.45);
+    if(end - midStart >= 20){
+      const recent = detectChannelInRange(state.candles, midStart, end);
+      if(recent) candidates.push({ ...recent, label:'Canal (récent)' });
+    }
+    const kept = [];
+    candidates.sort((a,b)=>b.score-a.score);
+    candidates.forEach(c=>{ if(!kept.some(k=>channelsSimilar(k,c))) kept.push(c); });
+
+    if(!kept.length){
+      statusEl.classList.remove('hidden');
+      statusEl.textContent = 'AUCUN CANAL DÉTECTÉ SUR CETTE VUE';
+      draw();
+      setTimeout(()=>{ statusEl.classList.add('hidden'); }, 1800);
+      return;
+    }
+    kept.forEach(c=>{
+      state.channels.push({
+        id: state.nextChannelId++, slope: c.slope, upperIntercept: c.upperIntercept,
+        lowerIntercept: c.lowerIntercept, label: c.label, hidden:false
+      });
+    });
+    saveChannels();
+    renderChannelList();
+    draw();
+    statusEl.classList.remove('hidden');
+    statusEl.textContent = kept.length + ' CANAL(AUX) DÉTECTÉ(S)';
+    setTimeout(()=>{ statusEl.classList.add('hidden'); }, 1500);
+  }
+
+  function renderChannelList(){
+    const row = document.getElementById('channelsRow');
+    const chips = document.getElementById('channelsChips');
+    if(!state.channels.length){ row.classList.add('empty'); chips.innerHTML=''; return; }
+    row.classList.remove('empty');
+    chips.innerHTML = state.channels.map(c => `
+      <span class="line-chip channel-chip${c.hidden?' hidden-ch':''}" data-id="${c.id}">${c.label||'Canal'}
+        <button data-eye="${c.id}" class="eye-btn${c.hidden?' off':''}" title="${c.hidden?'Afficher':'Masquer'}">${c.hidden?'🙈':'👁'}</button>
+        <button data-delch="${c.id}" title="Supprimer">×</button>
+      </span>
+    `).join('');
+    chips.querySelectorAll('button[data-eye]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const id = +btn.dataset.eye;
+        const ch = state.channels.find(c=>c.id===id);
+        if(ch){ ch.hidden = !ch.hidden; saveChannels(); renderChannelList(); draw(); }
+      });
+    });
+    chips.querySelectorAll('button[data-delch]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const id = +btn.dataset.delch;
+        state.channels = state.channels.filter(c=>c.id!==id);
+        saveChannels();
+        renderChannelList(); draw();
+      });
+    });
+  }
+
   function findCostLineNear(my, threshold){
     threshold = threshold || 7;
     if(!state.costLine || state.costLine.locked) return false;
@@ -926,6 +1176,7 @@
       : hoverLineId!=null ? 'ns-resize'
       : state.measureMode ? 'crosshair'
       : state.freehandMode ? 'crosshair'
+      : state.trendMode ? 'crosshair'
       : state.drawMode ? 'crosshair'
       : state.costMode ? 'crosshair'
       : isPanning ? 'grabbing' : 'grab';
@@ -1034,6 +1285,14 @@
       return;
     }
 
+    if(state.trendMode){
+      isTrendDrawing = true;
+      trendStart = { idx: idxFromX(mx), price: priceFromY(my) };
+      trendEnd = trendStart;
+      draw();
+      return;
+    }
+
     const hit = findLineNear(my);
     if(hit){
       draggingLineId = hit.id;
@@ -1086,6 +1345,12 @@
       return;
     }
 
+    if(isTrendDrawing){
+      trendEnd = { idx: idxFromX(mx), price: priceFromY(my) };
+      draw();
+      return;
+    }
+
     if(draggingCost){
       if(state.costLine && !state.costLine.locked){
         state.costLine.price = priceFromY(my);
@@ -1111,6 +1376,8 @@
 
     const hit = findLineNear(my);
     hoverLineId = hit ? hit.id : null;
+    const hitTrend = findTrendlineNear(mx, my);
+    hoverTrendId = hitTrend ? hitTrend.id : null;
     updateCanvasCursor();
 
     const barSlot = (rect.width - PAD.l - PAD.r) / (visibleRange.end - visibleRange.start);
@@ -1153,6 +1420,15 @@
       currentStroke = null;
       draw();
     }
+    if(isTrendDrawing){
+      isTrendDrawing = false;
+      if(trendStart && trendEnd && trendStart.idx !== trendEnd.idx){
+        state.trendlines.push({ id: state.nextTrendId++, idxA: trendStart.idx, priceA: trendStart.price, idxB: trendEnd.idx, priceB: trendEnd.price });
+        saveTrendlines();
+      }
+      trendStart = null; trendEnd = null;
+      draw();
+    }
     if(isPanning || draggingLineId!=null){
       isPanning = false;
       if(draggingLineId!=null) saveLines();
@@ -1184,11 +1460,20 @@
       if(measureStart && measureEnd) state.measurement = { start: measureStart, end: measureEnd };
       measureStart = null; measureEnd = null;
     }
+    if(isTrendDrawing){
+      isTrendDrawing = false;
+      if(trendStart && trendEnd && trendStart.idx !== trendEnd.idx){
+        state.trendlines.push({ id: state.nextTrendId++, idxA: trendStart.idx, priceA: trendStart.price, idxB: trendEnd.idx, priceB: trendEnd.price });
+        saveTrendlines();
+      }
+      trendStart = null; trendEnd = null;
+    }
     draw();
   });
 
   priceCanvas.addEventListener('contextmenu', (e)=>{
     const rect = priceCanvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;
     const hit = findLineNear(my);
     if(hit){
@@ -1196,6 +1481,15 @@
       state.lines = state.lines.filter(l=>l.id!==hit.id);
       saveLines();
       renderLineList();
+      draw();
+      return;
+    }
+    const hitTrend = findTrendlineNear(mx, my);
+    if(hitTrend){
+      e.preventDefault();
+      state.trendlines = state.trendlines.filter(t=>t.id!==hitTrend.id);
+      saveTrendlines();
+      hoverTrendId = null;
       draw();
       return;
     }
@@ -1272,50 +1566,20 @@
   bindToggle('tgRsi','rsi');
   bindToggle('tgVol','vol');
 
-  document.getElementById('drawBtn').addEventListener('click', ()=>{
-    state.drawMode = !state.drawMode;
-    if(state.drawMode){
-      state.freehandMode = false; state.measureMode = false; state.costMode = false;
-      document.getElementById('freehandBtn').classList.remove('active');
-      document.getElementById('measureBtn').classList.remove('active');
-      document.getElementById('costBtn').classList.remove('active');
-    }
-    document.getElementById('drawBtn').classList.toggle('active', state.drawMode);
+  const MODE_BTNS = { drawMode:'drawBtn', freehandMode:'freehandBtn', measureMode:'measureBtn', costMode:'costBtn', trendMode:'trendBtn' };
+  function setExclusiveMode(activeKey){
+    Object.keys(MODE_BTNS).forEach(key=>{
+      state[key] = (key === activeKey) ? !state[key] : false;
+      document.getElementById(MODE_BTNS[key]).classList.toggle('active', state[key]);
+    });
     updateCanvasCursor();
-  });
-  document.getElementById('freehandBtn').addEventListener('click', ()=>{
-    state.freehandMode = !state.freehandMode;
-    if(state.freehandMode){
-      state.drawMode = false; state.measureMode = false; state.costMode = false;
-      document.getElementById('drawBtn').classList.remove('active');
-      document.getElementById('measureBtn').classList.remove('active');
-      document.getElementById('costBtn').classList.remove('active');
-    }
-    document.getElementById('freehandBtn').classList.toggle('active', state.freehandMode);
-    updateCanvasCursor();
-  });
-  document.getElementById('measureBtn').addEventListener('click', ()=>{
-    state.measureMode = !state.measureMode;
-    if(state.measureMode){
-      state.drawMode = false; state.freehandMode = false; state.costMode = false;
-      document.getElementById('drawBtn').classList.remove('active');
-      document.getElementById('freehandBtn').classList.remove('active');
-      document.getElementById('costBtn').classList.remove('active');
-    }
-    document.getElementById('measureBtn').classList.toggle('active', state.measureMode);
-    updateCanvasCursor();
-  });
-  document.getElementById('costBtn').addEventListener('click', ()=>{
-    state.costMode = !state.costMode;
-    if(state.costMode){
-      state.drawMode = false; state.freehandMode = false; state.measureMode = false;
-      document.getElementById('drawBtn').classList.remove('active');
-      document.getElementById('freehandBtn').classList.remove('active');
-      document.getElementById('measureBtn').classList.remove('active');
-    }
-    document.getElementById('costBtn').classList.toggle('active', state.costMode);
-    updateCanvasCursor();
-  });
+  }
+  document.getElementById('drawBtn').addEventListener('click', ()=> setExclusiveMode('drawMode'));
+  document.getElementById('freehandBtn').addEventListener('click', ()=> setExclusiveMode('freehandMode'));
+  document.getElementById('measureBtn').addEventListener('click', ()=> setExclusiveMode('measureMode'));
+  document.getElementById('costBtn').addEventListener('click', ()=> setExclusiveMode('costMode'));
+  document.getElementById('trendBtn').addEventListener('click', ()=> setExclusiveMode('trendMode'));
+  document.getElementById('channelBtn').addEventListener('click', runChannelDetection);
 
   function setCostFromInput(){
     if(state.costLine && state.costLine.locked) return;
@@ -1358,6 +1622,17 @@
     state.lines = [];
     saveLines();
     renderLineList();
+    draw();
+  });
+  document.getElementById('clearTrendBtn').addEventListener('click', ()=>{
+    state.trendlines = [];
+    saveTrendlines();
+    draw();
+  });
+  document.getElementById('clearChannelsBtn').addEventListener('click', ()=>{
+    state.channels = [];
+    saveChannels();
+    renderChannelList();
     draw();
   });
 
