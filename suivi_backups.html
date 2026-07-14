@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>SUIVI BACKUPS // TACTICAL OPS</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%230b0e0f'/%3E%3Crect x='4' y='4' width='56' height='56' rx='7' fill='none' stroke='%232e5c47' stroke-width='2'/%3E%3Ccircle cx='32' cy='32' r='11' fill='none' stroke='%235ecf9b' stroke-width='4'/%3E%3Ccircle cx='32' cy='32' r='3.5' fill='%235ecf9b'/%3E%3Cpath d='M32 8 V18 M32 46 V56 M8 32 H18 M46 32 H56' stroke='%235ecf9b' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#0b0e0f;
+    --bg2:#12171a;
+    --bg3:#0e1417;
+    --line:#22292c;
+    --accent:#5ecf9b;
+    --accent-dim:#2e5c47;
+    --red:#e05a5a;
+    --red-dim:#4a2424;
+    --orange:#e0a95a;
+    --orange-dim:#4a3a1e;
+    --green:#5ecf9b;
+    --text:#d7e0e0;
+    --text-dim:#7c8b8b;
+    --mono: 'Consolas','SFMono-Regular','Courier New',monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(circle at 20% 0%, #101a17 0%, var(--bg) 60%);
+    color:var(--text);
+    font-family:var(--mono);
+    padding:24px;
+  }
+  h1{
+    font-size:16px;
+    letter-spacing:3px;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin:0 0 4px 0;
+    border-bottom:1px solid var(--line);
+    padding-bottom:10px;
+  }
+  .subhead{
+    font-size:11px;
+    color:var(--text-dim);
+    letter-spacing:1px;
+    margin-bottom:18px;
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+
+  /* ---------- KPI ---------- */
+  .kpi-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+    gap:10px;
+    margin-bottom:18px;
+  }
+  .kpi-card{
+    background:var(--bg2);
+    border:1px solid var(--line);
+    border-left:3px solid var(--accent-dim);
+    border-radius:3px;
+    padding:10px 12px;
+  }
+  .kpi-card.alert-crit{border-left-color:var(--red);}
+  .kpi-card.alert-warn{border-left-color:var(--orange);}
+  .kpi-label{
+    font-size:9px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--text-dim);
+    margin-bottom:6px;
+  }
+  .kpi-value{
+    font-size:22px;
+    font-weight:700;
+    color:var(--text);
+  }
+  .kpi-value.v-red{color:var(--red);}
+  .kpi-value.v-orange{color:var(--orange);}
+  .kpi-value.v-green{color:var(--green);}
+  .kpi-sub{
+    font-size:9px;
+    color:var(--text-dim);
+    margin-top:4px;
+  }
+
+  /* ---------- Bandeau d'alerte ---------- */
+  #alert-banner{
+    margin-bottom:16px;
+  }
+  .alert-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:var(--bg2);
+    border:1px solid var(--red);
+    border-left:4px solid var(--red);
+    border-radius:3px;
+    padding:8px 12px;
+    margin-bottom:6px;
+    font-size:11px;
+  }
+  .alert-row.warn{
+    border-color:var(--orange);
+    border-left-color:var(--orange);
+  }
+  .alert-row .tag{
+    font-size:9px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    padding:2px 6px;
+    border-radius:8px;
+    border:1px solid var(--red);
+    color:var(--red);
+    flex-shrink:0;
+  }
+  .alert-row.warn .tag{border-color:var(--orange);color:var(--orange);}
+  .alert-row .msg{flex:1; color:var(--text);}
+  .alert-row .days{color:var(--text-dim); flex-shrink:0;}
+  .alert-none{
+    font-size:11px;
+    color:var(--text-dim);
+    padding:8px 0;
+  }
+  @keyframes blink-red{
+    0%,100%{box-shadow:inset 0 0 0 1px var(--red);}
+    50%{box-shadow:inset 0 0 0 1px transparent;}
+  }
+  .siren{
+    display:inline-block;
+    width:8px;height:8px;
+    border-radius:50%;
+    background:var(--red);
+    animation:blink-dot 1s infinite;
+    margin-right:6px;
+  }
+  @keyframes blink-dot{
+    0%,100%{opacity:1;}
+    50%{opacity:.15;}
+  }
+
+  .toolbar{
+    display:flex;
+    gap:10px;
+    margin-bottom:14px;
+    flex-wrap:wrap;
+  }
+  button{
+    background:var(--bg2);
+    border:1px solid var(--accent-dim);
+    color:var(--accent);
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    padding:8px 14px;
+    cursor:pointer;
+    border-radius:2px;
+    transition:.15s;
+  }
+  button:hover{background:var(--accent-dim);color:#eafff2;}
+
+  .table-wrap{
+    overflow-x:auto;
+    border:1px solid var(--line);
+    border-radius:4px;
+    background:var(--bg2);
+  }
+  table{
+    border-collapse:collapse;
+    width:100%;
+    min-width:1750px;
+    font-size:12px;
+  }
+  thead th{
+    position:sticky;
+    top:0;
+    background:#0e1417;
+    color:var(--accent);
+    text-transform:uppercase;
+    letter-spacing:1px;
+    font-size:10px;
+    font-weight:600;
+    padding:10px 8px;
+    border-bottom:2px solid var(--accent-dim);
+    border-right:1px solid var(--line);
+    white-space:nowrap;
+    text-align:left;
+  }
+  tbody td{
+    padding:8px;
+    border-bottom:1px solid var(--line);
+    border-right:1px solid var(--line);
+    vertical-align:top;
+    min-width:90px;
+  }
+  tbody tr:hover{background:#141b1e;}
+  tbody tr.row-critique{background:rgba(224,90,90,.06); border-left:3px solid var(--red);}
+  tbody tr.row-critique td:first-child{animation:blink-red 1.4s infinite;}
+  tbody tr.row-attention{background:rgba(224,169,90,.05); border-left:3px solid var(--orange);}
+
+  td[contenteditable="true"]{
+    outline:none;
+    cursor:text;
+  }
+  td[contenteditable="true"]:focus{
+    background:#182421;
+    box-shadow:inset 0 0 0 1px var(--accent-dim);
+  }
+  .col-vie{min-width:60px;}
+  .col-path{min-width:200px; word-break:break-all;}
+  .col-comment{min-width:140px;}
+  .badge{
+    display:inline-block;
+    padding:2px 8px;
+    border-radius:10px;
+    font-size:10px;
+    letter-spacing:.5px;
+    text-transform:uppercase;
+    border:1px solid transparent;
+  }
+  .prio-eleve{color:var(--red);border-color:var(--red);background:rgba(224,90,90,.08);}
+  .prio-modere{color:var(--orange);border-color:var(--orange);background:rgba(224,169,90,.08);}
+  .prio-faible{color:var(--green);border-color:var(--green);background:rgba(94,207,155,.08);}
+  .vie-pro{color:#7ec9e0;}
+  .vie-perso{color:#c9a0e0;}
+  .crypt-oui{color:var(--green);}
+  .crypt-non{color:var(--text-dim);}
+  .reste-neg{color:var(--red); font-weight:600;}
+  .reste-soon{color:var(--orange); font-weight:600;}
+  .reste-pos{color:var(--text-dim);}
+
+  .alerte-badge{
+    display:inline-flex;
+    align-items:center;
+    font-size:9px;
+    letter-spacing:.5px;
+    text-transform:uppercase;
+    padding:3px 7px;
+    border-radius:8px;
+    white-space:nowrap;
+  }
+  .alerte-ok{color:var(--green);border:1px solid var(--accent-dim);}
+  .alerte-soon{color:var(--orange);border:1px solid var(--orange);background:rgba(224,169,90,.08);}
+  .alerte-late{color:var(--red);border:1px solid var(--red);background:rgba(224,90,90,.08);}
+  .alerte-crit{color:#ffb3b3;border:1px solid var(--red);background:rgba(224,90,90,.18);}
+  .alerte-na{color:var(--text-dim);border:1px solid var(--line);}
+
+  .actions{
+    display:flex;
+    gap:8px;
+    justify-content:center;
+    white-space:nowrap;
+  }
+  .act-done, .act-del{
+    cursor:pointer;
+    user-select:none;
+    font-size:13px;
+  }
+  .act-done{color:var(--text-dim);}
+  .act-done:hover{color:var(--green);}
+  .act-del{color:var(--text-dim);}
+  .act-del:hover{color:var(--red);}
+
+  footer{
+    margin-top:14px;
+    font-size:10px;
+    color:var(--text-dim);
+    letter-spacing:1px;
+  }
+</style>
+</head>
+<body>
+
+<h1>&#9632; Suivi Backups — Journal Consolidé</h1>
+<div class="subhead">
+  <span>Réf : JSON boulot / bulletin de salaire / BDD</span>
+  <span id="today-stamp">Actualisé le 14/07/2026</span>
+</div>
+
+<div class="kpi-grid" id="kpi-grid"></div>
+
+<div id="alert-banner"></div>
+
+<div class="toolbar">
+  <button onclick="addRow()">+ Nouvelle ligne</button>
+  <button onclick="exportCSV()">Exporter CSV</button>
+  <button onclick="exportJSON()">Exporter JSON</button>
+  <button onclick="refreshAll()">Recalculer / Actualiser</button>
+</div>
+
+<div class="table-wrap">
+<table id="backup-table">
+  <thead>
+    <tr>
+      <th>Vie</th>
+      <th>Priorité</th>
+      <th>From</th>
+      <th>To</th>
+      <th>Méthode</th>
+      <th>Chemin script</th>
+      <th>Dernier BCK</th>
+      <th>Programmé</th>
+      <th>Pério. (j)</th>
+      <th>Reste (j)</th>
+      <th>Alerte</th>
+      <th>Commentaires</th>
+      <th>Crypté</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody id="table-body">
+  </tbody>
+</table>
+</div>
+
+<footer>Clic sur une cellule texte pour l'éditer &middot; clic sur Vie / Priorité / Crypté pour changer la valeur &middot; "Reste" et "Alerte" se recalculent automatiquement à partir de "Programmé" &middot; ✓ marque une sauvegarde comme effectuée aujourd'hui et reprogramme selon la périodicité</footer>
+
+<script>
+const TODAY = new Date(2026,6,14); // 14/07/2026
+
+const data = [
+["pro","eleve","C:\\Users\\RFN\\OneDrive - AVENTECH GROUPE\\Documents\\000 -IMPORTANTS\\09-Json-sauvegardes-PRO","https://mega.nz 09-Json-sauvegardes-PRO","manuel","","03/07/2026","10/07/2026","7","","","JSON boulot","non"],
+["perso","modere","https://github.com/","https://mega.nz BKC MEGAutilitaire","manuel","","07/07/2026","22/07/2026","15","","","utilitaires important","non"],
+["perso","eleve","/home/guidesktop/Documents/000_IMPORTANTs","/media/guidesktop/2To/000.backup/bck 000_importants history","script+compt de demarrage","/usr/local/bin/backup_run_gui.sh  /usr/local/bin/backup_check_gui.sh check cat ~/.config/backup/counter","","","","","","tous les papiers important","oui"],
+["perso","eleve","/home/guidesktop/Documents/000_IMPORTANTs","/media/guidesktop/2To/000.backup","manuel","lancer avec crtrl+alt+q","","","","","","tous les papiers important","oui"],
+["perso","eleve","/home/guidesktop/Documents/000_IMPORTANTs","cle usb externe samsung","script+compt de demarrage","","08/07/2026","23/07/2026","15","","","tous les papiers important","oui"],
+["perso","eleve","/usr/home asssitant","/media/guidesktop/2To/000.backup/BCK Home assist history","script+compt de demarrage","/usr/local/bin/backup_run_gui.sh  /usr/local/bin/backup_check_gui.sh","","","","","","domotique","non"],
+["perso","faible","BoursoBank","/media/veracrypt1/100_Admin/108_Banque/114_boursobank","manuel","","01/05/2026","30/07/2026","90","","","releve banquaire","oui"],
+["perso","faible","Fortuneo","/media/veracrypt1/100_Admin/108_Banque/115_fortuneo","manuel","","05/05/2026","03/08/2026","90","","","releve banquaire","oui"],
+["perso","faible","releve banquaire REVOLUT","/media/veracrypt1/100_Admin/108_Banque/revolut","manuel","","06/02/2025","07/05/2025","90","","","releve banquaire","oui"],
+["perso","faible","releve SCPI 1","","manuel","","15/03/2026","13/06/2026","90","","","releve scpi","oui"],
+["perso","faible","releve SCPI 2","","manuel","","16/03/2026","14/06/2026","90","","","releve scpi","oui"],
+["perso","faible","releve SCPI 3","","manuel","","17/03/2026","15/06/2026","90","","","releve scpi","oui"],
+["perso","faible","releve SCPI 4","","manuel","","18/03/2026","16/06/2026","90","","","releve scpi","oui"],
+["perso","modere","google takeout guillaumekind@gmail.com","/media/guidesktop/2To/000.backup/BCK-guillaumekind@gmail.com","manuel","","01/05/2026","30/07/2026","90","","","releve mail","oui"],
+["perso","modere","google takeout guillaumerfn@gmail.com","/media/guidesktop/2To/000.backup/BCK-guillaumerfn@gmail.com","manuel","","01/05/2026","30/07/2026","90","","","releve mail","oui"],
+["pro","eleve","My BSE","/media/veracrypt1/500_Pro/504_Fiches_de_paie","manuel","","07/07/2026","07/08/2026","31","","","bulletin de salaire","oui"],
+["perso","eleve","/telechargements","","manuel","","02/03/2026","17/03/2026","15","","","JSON SMARTPHONE","non"],
+["perso","eleve","gdrive@guillaumestorage Meaux_de_tetes_15_06_24.pdf","/media/veracrypt1/100_Admin/102_Santé","manuel","","07/07/2026","06/08/2026","30","","","BDD","oui"]
+];
+
+const prioClass = {eleve:"prio-eleve", modere:"prio-modere", faible:"prio-faible"};
+const prioLabel = {eleve:"Élevé", modere:"Modéré", faible:"Faible"};
+const prioOrder = {eleve:3, modere:2, faible:1};
+
+function prioBadge(val){
+  const key = (val||"").toLowerCase().replace("é","e");
+  const cls = prioClass[key] || "";
+  const label = prioLabel[key] || val;
+  return `<span class="badge ${cls}" data-prio="${key}">${label}</span>`;
+}
+
+function vieSpan(val){
+  const cls = val === "pro" ? "vie-pro" : "vie-perso";
+  return `<span class="${cls}">${val}</span>`;
+}
+
+function cryptSpan(val){
+  const isOui = (val||"").toLowerCase() === "oui";
+  const cls = isOui ? "crypt-oui" : "crypt-non";
+  const dot = isOui ? "&#9679;" : "&#9675;";
+  return `<span class="${cls}">${dot} ${val}</span>`;
+}
+
+function parseDate(str){
+  const parts = (str||"").trim().split("/");
+  if(parts.length !== 3) return null;
+  const d = new Date(parts[2], parts[1]-1, parts[0]);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function formatDate(d){
+  const dd = String(d.getDate()).padStart(2,"0");
+  const mm = String(d.getMonth()+1).padStart(2,"0");
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
+
+function buildRow(row){
+  const tr = document.createElement("tr");
+  const cells = [
+    {val: row[0], render: vieSpan, cls:"col-vie", key:"vie"},
+    {val: row[1], render: prioBadge, cls:"", key:"priorite"},
+    {val: row[2], render: v=>v, cls:"col-path", key:"from"},
+    {val: row[3], render: v=>v, cls:"col-path", key:"to"},
+    {val: row[4], render: v=>v, cls:"", key:"methode"},
+    {val: row[5], render: v=>v, cls:"col-path", key:"chemin"},
+    {val: row[6], render: v=>v, cls:"", key:"dernier"},
+    {val: row[7], render: v=>v, cls:"", key:"programme"},
+    {val: row[8], render: v=>v, cls:"", key:"perio"},
+    {val: "", render: v=>v, cls:"", key:"reste"},
+    {val: "", render: v=>v, cls:"", key:"alerte"},
+    {val: row[10], render: v=>v, cls:"col-comment", key:"comment"},
+    {val: row[11], render: cryptSpan, cls:"", key:"crypt"}
+  ];
+
+  cells.forEach(c=>{
+    const td = document.createElement("td");
+    if(c.cls) td.className = c.cls;
+    td.dataset.key = c.key;
+    if(c.key === "priorite" || c.key === "crypt" || c.key === "vie"){
+      td.innerHTML = c.render(c.val);
+      td.contentEditable = "false";
+      td.style.cursor = "pointer";
+      td.title = "Cliquer pour changer";
+      td.addEventListener("click", ()=>{ cycleValue(td, c.key); refreshAll(); });
+    } else if(c.key === "reste" || c.key === "alerte"){
+      td.contentEditable = "false";
+    } else {
+      td.contentEditable = "true";
+      td.textContent = c.val;
+      if(c.key === "perio" || c.key === "programme" || c.key === "dernier"){
+        td.addEventListener("blur", refreshAll);
+      }
+    }
+    tr.appendChild(td);
+  });
+
+  const actTd = document.createElement("td");
+  actTd.className = "actions";
+  actTd.innerHTML = `<span class="act-done" title="Marquer comme effectué aujourd'hui">&#10003;</span><span class="act-del" title="Supprimer la ligne">&#10005;</span>`;
+  actTd.querySelector(".act-done").addEventListener("click", ()=>{ markDone(tr); });
+  actTd.querySelector(".act-del").addEventListener("click", ()=>{ tr.remove(); refreshAll(); });
+  tr.appendChild(actTd);
+
+  return tr;
+}
+
+function cycleValue(td, key){
+  if(key === "priorite"){
+    const order = ["eleve","modere","faible"];
+    const current = td.querySelector("[data-prio]").dataset.prio;
+    const next = order[(order.indexOf(current)+1) % order.length];
+    td.innerHTML = prioBadge(next);
+  } else if(key === "crypt"){
+    const current = td.textContent.trim().toLowerCase().includes("oui") ? "oui" : "non";
+    const next = current === "oui" ? "non" : "oui";
+    td.innerHTML = cryptSpan(next);
+  } else if(key === "vie"){
+    const current = td.textContent.trim().toLowerCase();
+    const next = current === "pro" ? "perso" : "pro";
+    td.innerHTML = vieSpan(next);
+  }
+}
+
+function markDone(tr){
+  const cells = tr.querySelectorAll("td");
+  const map = {};
+  cells.forEach(td=>{ if(td.dataset.key) map[td.dataset.key]=td; });
+  map.dernier.textContent = formatDate(TODAY);
+  const perio = parseInt(map.perio.textContent.trim(),10);
+  if(!isNaN(perio)){
+    const next = new Date(TODAY);
+    next.setDate(next.getDate()+perio);
+    map.programme.textContent = formatDate(next);
+  }
+  refreshAll();
+}
+
+function addRow(){
+  const tbody = document.getElementById("table-body");
+  const blank = ["perso","faible","","","manuel","","","","","","","",""];
+  tbody.appendChild(buildRow(blank));
+  refreshAll();
+}
+
+// --- coeur du systeme d'alerte ---
+// seuils : en retard (reste<0), bientot (0-7j eleve / 0-3j modere / 0-2j faible)
+function alerteFor(prio, reste){
+  if(reste === null) return {cls:"alerte-na", label:"—", rowCls:""};
+  if(reste < 0){
+    if(prio === "eleve") return {cls:"alerte-crit", label:"CRITIQUE", rowCls:"row-critique"};
+    if(prio === "modere") return {cls:"alerte-late", label:"En retard", rowCls:"row-attention"};
+    return {cls:"alerte-late", label:"En retard", rowCls:"row-attention"};
+  }
+  const seuil = prio === "eleve" ? 7 : (prio === "modere" ? 3 : 2);
+  if(reste <= seuil){
+    return {cls:"alerte-soon", label:"À venir", rowCls:""};
+  }
+  return {cls:"alerte-ok", label:"OK", rowCls:""};
+}
+
+function refreshAll(){
+  const rows = document.querySelectorAll("#table-body tr");
+  const alerts = [];
+  let total=0, enRetard=0, critiques=0, aVenir=0, chiffres=0;
+
+  rows.forEach(tr=>{
+    total++;
+    const cells = tr.querySelectorAll("td");
+    const map = {};
+    cells.forEach(td=>{ if(td.dataset.key) map[td.dataset.key]=td; });
+
+    const prioTd = map.priorite.querySelector("[data-prio]");
+    const prio = prioTd ? prioTd.dataset.prio : "faible";
+
+    const programme = map.programme.textContent.trim();
+    const target = parseDate(programme);
+    let reste = null;
+    if(target){
+      reste = Math.round((target - TODAY)/(1000*60*60*24));
+    }
+
+    // reste
+    if(reste === null){
+      map.reste.textContent = "—";
+      map.reste.className = "";
+    } else {
+      map.reste.textContent = reste;
+      map.reste.className = reste < 0 ? "reste-neg" : (reste <= 7 ? "reste-soon" : "reste-pos");
+    }
+
+    // alerte
+    const a = alerteFor(prio, reste);
+    map.alerte.innerHTML = `<span class="alerte-badge ${a.cls}">${a.label}</span>`;
+
+    tr.classList.remove("row-critique","row-attention");
+    if(a.rowCls) tr.classList.add(a.rowCls);
+
+    // KPI + banniere
+    const crypt = map.crypt.textContent.trim().toLowerCase();
+    if(crypt.includes("oui")) chiffres++;
+
+    if(reste !== null && reste < 0){
+      enRetard++;
+      if(prio === "eleve") critiques++;
+      const label = (map.comment.textContent.trim() || map.from.textContent.trim() || "Sans nom");
+      alerts.push({prio, reste, label, critique: prio==="eleve"});
+    } else if(reste !== null){
+      const seuil = prio === "eleve" ? 7 : (prio === "modere" ? 3 : 2);
+      if(reste <= seuil) aVenir++;
+    }
+  });
+
+  // tri alertes : critiques d'abord, puis par retard décroissant
+  alerts.sort((a,b)=>{
+    const pa = prioOrder[a.prio]||0, pb = prioOrder[b.prio]||0;
+    if(pa !== pb) return pb-pa;
+    return a.reste - b.reste;
+  });
+
+  renderKPIs(total, enRetard, critiques, aVenir, chiffres);
+  renderBanner(alerts);
+}
+
+function renderKPIs(total, enRetard, critiques, aVenir, chiffres){
+  const grid = document.getElementById("kpi-grid");
+  const pct = total ? Math.round((chiffres/total)*100) : 0;
+  grid.innerHTML = `
+    <div class="kpi-card">
+      <div class="kpi-label">Lignes suivies</div>
+      <div class="kpi-value">${total}</div>
+    </div>
+    <div class="kpi-card ${enRetard>0 ? 'alert-crit' : ''}">
+      <div class="kpi-label">En retard</div>
+      <div class="kpi-value ${enRetard>0 ? 'v-red' : 'v-green'}">${enRetard}</div>
+      <div class="kpi-sub">toutes priorités</div>
+    </div>
+    <div class="kpi-card ${critiques>0 ? 'alert-crit' : ''}">
+      <div class="kpi-label">Critiques (élevé + en retard)</div>
+      <div class="kpi-value ${critiques>0 ? 'v-red' : 'v-green'}">${critiques}</div>
+    </div>
+    <div class="kpi-card ${aVenir>0 ? 'alert-warn' : ''}">
+      <div class="kpi-label">À échéance proche</div>
+      <div class="kpi-value ${aVenir>0 ? 'v-orange' : 'v-green'}">${aVenir}</div>
+      <div class="kpi-sub">seuil selon priorité</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Chiffrées</div>
+      <div class="kpi-value">${pct}%</div>
+      <div class="kpi-sub">${chiffres}/${total} destinations</div>
+    </div>
+  `;
+}
+
+function renderBanner(alerts){
+  const banner = document.getElementById("alert-banner");
+  if(alerts.length === 0){
+    banner.innerHTML = `<div class="alert-none">&#9679; Aucune alerte active — tout est dans les temps.</div>`;
+    return;
+  }
+  banner.innerHTML = alerts.map(a=>{
+    const isCrit = a.critique;
+    const cls = isCrit ? "" : "warn";
+    const tag = isCrit ? "Critique" : (prioLabel[a.prio]||a.prio);
+    const siren = isCrit ? `<span class="siren"></span>` : "";
+    return `<div class="alert-row ${cls}">${siren}<span class="tag">${tag}</span><span class="msg">${a.label}</span><span class="days">${a.reste} j</span></div>`;
+  }).join("");
+}
+
+function getRowsAsData(){
+  const rows = document.querySelectorAll("#table-body tr");
+  const out = [];
+  rows.forEach(tr=>{
+    const cells = tr.querySelectorAll("td");
+    const map = {};
+    cells.forEach(td=>{ if(td.dataset.key) map[td.dataset.key]=td.textContent.trim(); });
+    out.push({
+      vie: map.vie,
+      priorite: map.priorite,
+      from: map.from,
+      to: map.to,
+      methode: map.methode,
+      chemin_script: map.chemin,
+      dernier_bck: map.dernier,
+      programme: map.programme,
+      perio: map.perio,
+      reste: map.reste,
+      alerte: map.alerte,
+      commentaires: map.comment,
+      crypte: map.crypt
+    });
+  });
+  return out;
+}
+
+function downloadFile(filename, content, mime){
+  const blob = new Blob([content], {type: mime});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function exportCSV(){
+  const rows = getRowsAsData();
+  const headerLine = ["vie","priorite","from","to","methode","chemin_script","dernier_bck","programme","perio","reste","alerte","commentaires","crypte"].join(";");
+  const lines = rows.map(r => Object.values(r).map(v => `"${String(v).replace(/"/g,'""')}"`).join(";"));
+  downloadFile("suivi_backups.csv", [headerLine, ...lines].join("\n"), "text/csv;charset=utf-8;");
+}
+
+function exportJSON(){
+  const rows = getRowsAsData();
+  downloadFile("suivi_backups.json", JSON.stringify(rows, null, 2), "application/json");
+}
+
+const tbody = document.getElementById("table-body");
+data.forEach(row => tbody.appendChild(buildRow(row)));
+refreshAll();
+</script>
+
+</body>
+</html>
