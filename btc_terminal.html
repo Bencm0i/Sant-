@@ -24,6 +24,9 @@
     --amber: #ffb020;
     --violet: #a78bfa;
     --flashy: #ff2fd6;
+    --p-hs: #ff5fa8;
+    --p-dt: #e879f9;
+    --p-cup: #2dd4bf;
   }
   *{ box-sizing:border-box; margin:0; padding:0; }
   html,body{
@@ -135,6 +138,16 @@
   .channel-chip.hidden-ch{ color:var(--txt-dim) !important; border-color:var(--border) !important; opacity:.6; }
   .channel-chip button:hover{ color:var(--cyan); background:rgba(53,199,255,0.12); }
   .channel-chip button.eye-btn.off{ color:var(--txt-dim); }
+  .pattern-chip-hs{ color:var(--p-hs) !important; border-color:var(--p-hs) !important; }
+  .pattern-chip-hs button:hover{ color:var(--p-hs); background:rgba(255,95,168,0.12); }
+  .pattern-chip-dt{ color:var(--p-dt) !important; border-color:var(--p-dt) !important; }
+  .pattern-chip-dt button:hover{ color:var(--p-dt); background:rgba(232,121,249,0.12); }
+  .pattern-chip-cup{ color:var(--p-cup) !important; border-color:var(--p-cup) !important; }
+  .pattern-chip-cup button:hover{ color:var(--p-cup); background:rgba(45,212,191,0.12); }
+  .pattern-chip-hs.hidden-ch, .pattern-chip-dt.hidden-ch, .pattern-chip-cup.hidden-ch{
+    color:var(--txt-dim) !important; border-color:var(--border) !important; opacity:.6;
+  }
+  .eye-btn.off{ color:var(--txt-dim); }
   .mini-input{
     background:var(--panel-2); border:1px solid var(--border); color:var(--txt);
     font-family:inherit; font-size:11px; padding:4px 8px; border-radius:3px; width:120px;
@@ -279,6 +292,7 @@
       <button class="tool" id="measureBtn" title="Cliquer-glisser entre deux points pour mesurer le %">📏 Mesure</button>
       <button class="tool" id="costBtn" title="Cliquer sur le graphique pour placer le prix de revient">💰 P.Revient</button>
       <button class="tool" id="channelBtn" title="Détecter automatiquement les canaux de prix sur la vue actuelle">📐 Canaux</button>
+      <button class="tool" id="patternBtn" title="Détecter automatiquement les figures chartistes (tête-épaules, double sommet/creux, tasse-anse) sur la vue actuelle">🎯 Figures</button>
       <button class="tool" id="zoomInBtn" title="Zoomer">🔍+</button>
       <button class="tool" id="zoomOutBtn" title="Dézoomer">🔍−</button>
       <button class="tool" id="resetViewBtn" title="Réinitialiser la vue">⤢ Reset</button>
@@ -286,6 +300,7 @@
       <button class="tool" id="clearFreehandBtn" title="Effacer les dessins libres">🗑 Dessins</button>
       <button class="tool" id="clearTrendBtn" title="Effacer toutes les droites de tendance">🗑 Tendances</button>
       <button class="tool" id="clearChannelsBtn" title="Effacer tous les canaux détectés">🗑 Canaux</button>
+      <button class="tool" id="clearPatternsBtn" title="Effacer toutes les figures détectées">🗑 Figures</button>
     </div>
     <button class="refresh-btn" id="refreshBtn">⟳ ACTUALISER</button>
   </div>
@@ -298,6 +313,11 @@
   <div class="lines-row empty" id="channelsRow">
     <span class="lbl">Canaux détectés</span>
     <div id="channelsChips" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+  </div>
+
+  <div class="lines-row empty" id="patternsRow">
+    <span class="lbl">Figures détectées</span>
+    <div id="patternsChips" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
   </div>
 
   <div class="lines-row" id="costRow">
@@ -357,7 +377,9 @@
     trendlines: [],         // {id, idxA, priceA, idxB, priceB} droites passant par 2 points, prolongées
     nextTrendId: 1,
     channels: [],           // {id, slope, upperIntercept, lowerIntercept, label, hidden}
-    nextChannelId: 1
+    nextChannelId: 1,
+    patterns: [],           // {id, type, label, points, neck, target, hidden}
+    nextPatternId: 1
   };
 
   // interaction (pan / line-drag) — module scope, not persisted
@@ -454,12 +476,30 @@
       }
     }catch(e){}
   }
+  const LS_PATTERNS = 'btcTerminal_patterns';
+  function savePatterns(){
+    try{ localStorage.setItem(LS_PATTERNS, JSON.stringify(state.patterns)); }catch(e){}
+  }
+  function loadPatterns(){
+    try{
+      const raw = localStorage.getItem(LS_PATTERNS);
+      if(!raw) return;
+      const parsed = JSON.parse(raw);
+      if(Array.isArray(parsed)){
+        state.patterns = parsed;
+        state.nextPatternId = parsed.reduce((m,p)=>Math.max(m,p.id||0), 0) + 1;
+      }
+    }catch(e){}
+  }
+
   loadLines();
   loadFreehand();
   loadCostLine();
   loadTrendlines();
   loadChannels();
+  loadPatterns();
   renderChannelList();
+  renderPatternList();
   renderLineList();
   renderCostLine();
 
@@ -892,6 +932,95 @@
       });
     });
 
+    // ---- Figures chartistes détectées (tête-épaules, double top/bottom, tasse-anse) ----
+    state.patterns.forEach(p=>{
+      if(p.hidden) return;
+      const color = (p.type==='hs'||p.type==='ihs') ? '#ff5fa8' : (p.type==='dtop'||p.type==='dbot') ? '#e879f9' : '#2dd4bf';
+      pctx.save();
+      pctx.strokeStyle = color;
+      pctx.fillStyle = color;
+      pctx.lineWidth = 1.6;
+
+      if(p.type==='hs' || p.type==='ihs'){
+        const [L,H,R] = p.points;
+        const [t1,t2] = p.neck;
+        pctx.beginPath();
+        [L,t1,H,t2,R].forEach((pt,i)=>{
+          const x=xScale(pt.idx), y=yScale(pt.price);
+          if(i===0) pctx.moveTo(x,y); else pctx.lineTo(x,y);
+        });
+        pctx.stroke();
+        [L,H,R].forEach(pt=>{
+          pctx.beginPath(); pctx.arc(xScale(pt.idx), yScale(pt.price), 3, 0, Math.PI*2); pctx.fill();
+        });
+        const slope = (t2.price-t1.price) / (t2.idx-t1.idx);
+        const intercept = t1.price - slope*t1.idx;
+        const leftIdx = idxAtX(PAD.l), rightIdx = idxAtX(w-PAD.r);
+        pctx.setLineDash([5,4]);
+        pctx.beginPath();
+        pctx.moveTo(PAD.l, yScale(slope*leftIdx+intercept));
+        pctx.lineTo(w-PAD.r, yScale(slope*rightIdx+intercept));
+        pctx.stroke();
+        pctx.setLineDash([]);
+        if(p.target!=null){
+          const ty = yScale(p.target);
+          pctx.setLineDash([2,3]);
+          pctx.beginPath(); pctx.moveTo(xScale(R.idx), ty); pctx.lineTo(w-PAD.r, ty); pctx.stroke();
+          pctx.setLineDash([]);
+        }
+        pctx.font = 'bold 10px IBM Plex Mono';
+        pctx.fillText(p.label, xScale(H.idx)-20, yScale(H.price) + (p.type==='hs' ? -10 : 20));
+      } else if(p.type==='dtop' || p.type==='dbot'){
+        const [A,mid,B] = p.points;
+        pctx.beginPath();
+        [A,mid,B].forEach((pt,i)=>{
+          const x=xScale(pt.idx), y=yScale(pt.price);
+          if(i===0) pctx.moveTo(x,y); else pctx.lineTo(x,y);
+        });
+        pctx.stroke();
+        [A,B].forEach(pt=>{
+          pctx.beginPath(); pctx.arc(xScale(pt.idx), yScale(pt.price), 3, 0, Math.PI*2); pctx.fill();
+        });
+        const ny = yScale(mid.price);
+        pctx.setLineDash([5,4]);
+        pctx.beginPath(); pctx.moveTo(PAD.l, ny); pctx.lineTo(w-PAD.r, ny); pctx.stroke();
+        pctx.setLineDash([]);
+        if(p.target!=null){
+          const ty = yScale(p.target);
+          pctx.setLineDash([2,3]);
+          pctx.beginPath(); pctx.moveTo(xScale(B.idx), ty); pctx.lineTo(w-PAD.r, ty); pctx.stroke();
+          pctx.setLineDash([]);
+        }
+        pctx.font = 'bold 10px IBM Plex Mono';
+        pctx.fillText(p.label, xScale(A.idx), yScale(A.price) + (p.type==='dtop' ? -10 : 20));
+      } else if(p.type==='cup'){
+        const [L,bottom,R,handle] = p.points;
+        const lx=xScale(L.idx), ly3=yScale(L.price), rx=xScale(R.idx), ry=yScale(R.price);
+        const bx=xScale(bottom.idx), by=yScale(bottom.price);
+        const cx = 2*bx - 0.5*(lx+rx), cy = 2*by - 0.5*(ly3+ry);
+        pctx.beginPath();
+        pctx.moveTo(lx, ly3);
+        pctx.quadraticCurveTo(cx, cy, rx, ry);
+        pctx.stroke();
+        pctx.beginPath();
+        pctx.moveTo(rx, ry);
+        pctx.lineTo(xScale(handle.idx), yScale(handle.price));
+        pctx.stroke();
+        [L,bottom,R,handle].forEach(pt=>{
+          pctx.beginPath(); pctx.arc(xScale(pt.idx), yScale(pt.price), 3, 0, Math.PI*2); pctx.fill();
+        });
+        if(p.target!=null){
+          const ty = yScale(p.target);
+          pctx.setLineDash([2,3]);
+          pctx.beginPath(); pctx.moveTo(xScale(handle.idx), ty); pctx.lineTo(w-PAD.r, ty); pctx.stroke();
+          pctx.setLineDash([]);
+        }
+        pctx.font = 'bold 10px IBM Plex Mono';
+        pctx.fillText(p.label, bx-24, by+20);
+      }
+      pctx.restore();
+    });
+
     // ---- Règle de mesure (% entre deux points) ----
     const measureToDraw = isMeasuring && measureStart && measureEnd
       ? { start: measureStart, end: measureEnd }
@@ -1160,6 +1289,203 @@
         state.channels = state.channels.filter(c=>c.id!==id);
         saveChannels();
         renderChannelList(); draw();
+      });
+    });
+  }
+
+  // ---------- DÉTECTION DE FIGURES CHARTISTES ----------
+  // Renvoie le point extrême (plus haut "high" ou plus bas "low") entre deux index inclus
+  function extremeInRange(candles, idxA, idxB, mode){
+    if(idxA > idxB){ const t=idxA; idxA=idxB; idxB=t; }
+    let best = null;
+    for(let i=idxA;i<=idxB;i++){
+      const c = candles[i];
+      const val = mode==='low' ? c.l : c.h;
+      if(best===null || (mode==='low' ? val<best.price : val>best.price)) best = { idx:i, price:val };
+    }
+    return best;
+  }
+
+  // Tête-Épaules (top, sur les sommets) et Tête-Épaules inversée (bottom, sur les creux)
+  function detectHeadShoulders(candles, pivots, inverse){
+    const results = [];
+    for(let i=0;i<pivots.length-2;i++){
+      const L = pivots[i], H = pivots[i+1], R = pivots[i+2];
+      if(H.idx-L.idx < 3 || R.idx-H.idx < 3) continue;
+      const headExtreme = inverse ? (H.price<L.price && H.price<R.price) : (H.price>L.price && H.price>R.price);
+      if(!headExtreme) continue;
+      const shoulderDiff = Math.abs(L.price-R.price) / ((L.price+R.price)/2);
+      if(shoulderDiff > 0.08) continue; // épaules à peu près symétriques (±8%)
+      const leftSpan = H.idx-L.idx, rightSpan = R.idx-H.idx;
+      const spanRatio = Math.min(leftSpan,rightSpan) / Math.max(leftSpan,rightSpan);
+      if(spanRatio < 0.4) continue; // symétrie temporelle minimale
+      const t1 = extremeInRange(candles, L.idx, H.idx, inverse ? 'high' : 'low');
+      const t2 = extremeInRange(candles, H.idx, R.idx, inverse ? 'high' : 'low');
+      if(!t1 || !t2 || t1.idx===t2.idx) continue;
+      const slope = (t2.price-t1.price) / (t2.idx-t1.idx);
+      const intercept = t1.price - slope*t1.idx;
+      const necklineAtH = slope*H.idx + intercept;
+      const necklineAtR = slope*R.idx + intercept;
+      const height = inverse ? (necklineAtH - H.price) : (H.price - necklineAtH);
+      if(height <= 0) continue;
+      const target = inverse ? (necklineAtR + height) : (necklineAtR - height);
+      const score = 1/(shoulderDiff+0.01) + (leftSpan+rightSpan);
+      results.push({
+        type: inverse ? 'ihs' : 'hs',
+        label: inverse ? 'Épaule-Tête-Épaule ↑' : 'Tête-Épaules ↓',
+        points: [L,H,R], neck: [t1,t2], target, score,
+        idxStart: L.idx, idxEnd: R.idx
+      });
+    }
+    return results;
+  }
+
+  // Double Sommet (isTop=true, sur les sommets) / Double Creux (isTop=false, sur les creux)
+  function detectDoubleTopBottom(candles, pivots, isTop){
+    const results = [];
+    for(let i=0;i<pivots.length-1;i++){
+      const A = pivots[i], B = pivots[i+1];
+      if(B.idx-A.idx < 6) continue;
+      const diff = Math.abs(A.price-B.price) / ((A.price+B.price)/2);
+      if(diff > 0.025) continue; // les deux sommets/creux à peu près au même niveau (±2.5%)
+      const mid = extremeInRange(candles, A.idx, B.idx, isTop ? 'low' : 'high');
+      if(!mid) continue;
+      const avgAB = (A.price+B.price)/2;
+      const depth = isTop ? (avgAB-mid.price)/avgAB : (mid.price-avgAB)/avgAB;
+      if(depth < 0.03) continue; // creux/rebond intermédiaire suffisamment marqué
+      const height = Math.abs(avgAB - mid.price);
+      const target = isTop ? (mid.price - height) : (mid.price + height);
+      const score = 1/(diff+0.005) + depth*10;
+      results.push({
+        type: isTop ? 'dtop' : 'dbot',
+        label: isTop ? 'Double Sommet ↓' : 'Double Creux ↑',
+        points: [A, mid, B], target, score,
+        idxStart: A.idx, idxEnd: B.idx
+      });
+    }
+    return results;
+  }
+
+  // Tasse avec Anse (Cup and Handle)
+  function detectCupHandle(candles, start, end){
+    const results = [];
+    const span = end - start;
+    if(span < 40) return results;
+    const w = Math.max(3, Math.min(8, Math.round(span/40)));
+    const { highs } = findPivots(candles, start, end, w);
+    for(let i=0;i<highs.length-1;i++){
+      for(let j=i+1;j<highs.length;j++){
+        const L = highs[i], R = highs[j];
+        const cupLen = R.idx - L.idx;
+        if(cupLen < 20 || cupLen > 240) continue;
+        const rimDiff = Math.abs(L.price-R.price) / ((L.price+R.price)/2);
+        if(rimDiff > 0.07) continue; // bords de tasse à peu près au même niveau
+        const bottom = extremeInRange(candles, L.idx, R.idx, 'low');
+        if(!bottom) continue;
+        const relPos = (bottom.idx-L.idx) / cupLen;
+        if(relPos < 0.2 || relPos > 0.8) continue; // fond à peu près central (forme arrondie en U)
+        const rimAvg = (L.price+R.price)/2;
+        const depth = (rimAvg-bottom.price) / rimAvg;
+        if(depth < 0.1 || depth > 0.6) continue;
+        const handleMaxLen = Math.max(6, Math.round(cupLen*0.35));
+        const handleFrom = R.idx, handleTo = Math.min(end, R.idx+handleMaxLen);
+        if(handleTo - handleFrom < 4) continue;
+        const handleLow = extremeInRange(candles, handleFrom, handleTo, 'low');
+        if(!handleLow) continue;
+        const handleDepth = (R.price-handleLow.price) / R.price;
+        if(handleDepth <= 0.005 || handleDepth > depth*0.6) continue; // anse plus courte et moins profonde que la tasse
+        const height = rimAvg - bottom.price;
+        const target = R.price + height;
+        const score = cupLen - rimDiff*1000;
+        results.push({
+          type: 'cup', label: 'Tasse-Anse ↑',
+          points: [L, bottom, R, handleLow], target, score,
+          idxStart: L.idx, idxEnd: handleLow.idx
+        });
+      }
+    }
+    results.sort((a,b)=>b.score-a.score);
+    const kept = [];
+    results.forEach(r=>{ if(!kept.some(k=>!(r.idxEnd<k.idxStart || r.idxStart>k.idxEnd))) kept.push(r); });
+    return kept;
+  }
+
+  function patternsOverlap(a,b){
+    return !(a.idxEnd < b.idxStart || a.idxStart > b.idxEnd);
+  }
+
+  function runPatternDetection(){
+    if(!state.candles.length || !visibleRange.end) return;
+    const candles = state.candles;
+    const start = visibleRange.start, end = Math.min(visibleRange.viewEnd, candles.length-1);
+    if(end - start < 25){
+      statusEl.classList.remove('hidden');
+      statusEl.textContent = 'PAS ASSEZ DE DONNÉES VISIBLES';
+      draw();
+      setTimeout(()=>{ statusEl.classList.add('hidden'); }, 1500);
+      return;
+    }
+    const w = Math.max(2, Math.min(6, Math.round((end-start)/60)));
+    const { highs, lows } = findPivots(candles, start, end, w);
+
+    let candidates = [];
+    candidates.push(...detectHeadShoulders(candles, highs, false));
+    candidates.push(...detectHeadShoulders(candles, lows, true));
+    candidates.push(...detectDoubleTopBottom(candles, highs, true));
+    candidates.push(...detectDoubleTopBottom(candles, lows, false));
+    candidates.push(...detectCupHandle(candles, start, end));
+
+    candidates.sort((a,b)=>b.score-a.score);
+    const kept = [];
+    candidates.forEach(c=>{ if(!kept.some(k=>patternsOverlap(k,c))) kept.push(c); });
+
+    if(!kept.length){
+      statusEl.classList.remove('hidden');
+      statusEl.textContent = 'AUCUNE FIGURE DÉTECTÉE SUR CETTE VUE';
+      draw();
+      setTimeout(()=>{ statusEl.classList.add('hidden'); }, 1800);
+      return;
+    }
+
+    kept.forEach(c=>{
+      state.patterns.push({
+        id: state.nextPatternId++, type: c.type, label: c.label,
+        points: c.points, neck: c.neck || null, target: c.target, hidden: false
+      });
+    });
+    savePatterns();
+    renderPatternList();
+    draw();
+    statusEl.classList.remove('hidden');
+    statusEl.textContent = kept.length + ' FIGURE(S) DÉTECTÉE(S)';
+    setTimeout(()=>{ statusEl.classList.add('hidden'); }, 1500);
+  }
+
+  function renderPatternList(){
+    const row = document.getElementById('patternsRow');
+    const chips = document.getElementById('patternsChips');
+    if(!state.patterns.length){ row.classList.add('empty'); chips.innerHTML=''; return; }
+    row.classList.remove('empty');
+    const chipClass = t => (t==='hs'||t==='ihs') ? 'pattern-chip-hs' : (t==='dtop'||t==='dbot') ? 'pattern-chip-dt' : 'pattern-chip-cup';
+    chips.innerHTML = state.patterns.map(p => `
+      <span class="line-chip ${chipClass(p.type)}${p.hidden?' hidden-ch':''}" data-id="${p.id}">${p.label}
+        <button data-peye="${p.id}" class="eye-btn${p.hidden?' off':''}" title="${p.hidden?'Afficher':'Masquer'}">${p.hidden?'🙈':'👁'}</button>
+        <button data-delp="${p.id}" title="Supprimer">×</button>
+      </span>
+    `).join('');
+    chips.querySelectorAll('button[data-peye]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const id = +btn.dataset.peye;
+        const p = state.patterns.find(x=>x.id===id);
+        if(p){ p.hidden = !p.hidden; savePatterns(); renderPatternList(); draw(); }
+      });
+    });
+    chips.querySelectorAll('button[data-delp]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const id = +btn.dataset.delp;
+        state.patterns = state.patterns.filter(x=>x.id!==id);
+        savePatterns();
+        renderPatternList(); draw();
       });
     });
   }
@@ -1580,6 +1906,13 @@
   document.getElementById('costBtn').addEventListener('click', ()=> setExclusiveMode('costMode'));
   document.getElementById('trendBtn').addEventListener('click', ()=> setExclusiveMode('trendMode'));
   document.getElementById('channelBtn').addEventListener('click', runChannelDetection);
+  document.getElementById('patternBtn').addEventListener('click', runPatternDetection);
+  document.getElementById('clearPatternsBtn').addEventListener('click', ()=>{
+    state.patterns = [];
+    savePatterns();
+    renderPatternList();
+    draw();
+  });
 
   function setCostFromInput(){
     if(state.costLine && state.costLine.locked) return;
