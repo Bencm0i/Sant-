@@ -271,6 +271,88 @@
     color:var(--text-dim);
     letter-spacing:1px;
   }
+
+  /* ---------- Barre de filtres ---------- */
+  .filterbar{
+    display:flex;
+    gap:14px;
+    align-items:center;
+    flex-wrap:wrap;
+    margin-bottom:14px;
+    padding:10px 12px;
+    background:var(--bg2);
+    border:1px solid var(--line);
+    border-radius:3px;
+  }
+  .filterbar label{
+    font-size:9px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    color:var(--text-dim);
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .filterbar input[type="text"], .filterbar select{
+    background:var(--bg3);
+    border:1px solid var(--accent-dim);
+    color:var(--text);
+    font-family:var(--mono);
+    font-size:11px;
+    padding:6px 8px;
+    border-radius:2px;
+  }
+  .filterbar input[type="text"]{min-width:200px;}
+  .filterbar input[type="checkbox"]{
+    accent-color: var(--accent);
+    width:13px; height:13px;
+  }
+  .filter-count{
+    font-size:10px;
+    color:var(--text-dim);
+    margin-left:auto;
+  }
+  tr.row-hidden{display:none !important;}
+
+  /* ---------- Journal ---------- */
+  #history-panel{
+    margin-top:16px;
+    background:var(--bg2);
+    border:1px solid var(--line);
+    border-radius:4px;
+    overflow:hidden;
+  }
+  #history-panel summary{
+    cursor:pointer;
+    padding:10px 14px;
+    font-size:11px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    color:var(--accent);
+    list-style:none;
+  }
+  #history-panel summary::-webkit-details-marker{display:none;}
+  #history-panel summary::before{content:"▸ "; }
+  #history-panel[open] summary::before{content:"▾ "; }
+  #history-list{
+    padding:0 14px 14px 14px;
+    font-size:11px;
+  }
+  .history-entry{
+    display:flex;
+    gap:10px;
+    padding:5px 0;
+    border-bottom:1px solid var(--line);
+    color:var(--text-dim);
+  }
+  .history-entry:last-child{border-bottom:none;}
+  .history-entry .h-time{color:var(--accent); flex-shrink:0; white-space:nowrap;}
+  .history-entry .h-msg{color:var(--text);}
+  .history-empty{
+    color:var(--text-dim);
+    font-size:11px;
+    padding:6px 0;
+  }
 </style>
 </head>
 <body>
@@ -289,7 +371,25 @@
   <button onclick="addRow()">+ Nouvelle ligne</button>
   <button onclick="exportCSV()">Exporter CSV</button>
   <button onclick="exportJSON()">Exporter JSON</button>
+  <button onclick="document.getElementById('import-input').click()">Importer JSON</button>
+  <input type="file" id="import-input" accept="application/json" style="display:none">
   <button onclick="refreshAll()">Recalculer / Actualiser</button>
+</div>
+
+<div class="filterbar">
+  <label>Recherche
+    <input type="text" id="search-input" placeholder="chemin, commentaire, méthode...">
+  </label>
+  <label>Vie
+    <select id="filter-vie">
+      <option value="tous">Tous</option>
+      <option value="pro">Pro</option>
+      <option value="perso">Perso</option>
+    </select>
+  </label>
+  <label><input type="checkbox" id="filter-alert"> Alertes uniquement</label>
+  <label><input type="checkbox" id="sort-urgent"> Tri auto par urgence</label>
+  <span class="filter-count" id="filter-count"></span>
 </div>
 
 <div class="table-wrap">
@@ -318,6 +418,11 @@
 </div>
 
 <footer>Clic sur une cellule texte pour l'éditer &middot; clic sur Vie / Priorité / Crypté pour changer la valeur &middot; "Reste" et "Alerte" se recalculent automatiquement à partir de "Programmé" &middot; ✓ marque une sauvegarde comme effectuée aujourd'hui et reprogramme selon la périodicité</footer>
+
+<details id="history-panel">
+  <summary>Journal des actions (effectué)</summary>
+  <div id="history-list"></div>
+</details>
 
 <script>
 const TODAY = new Date(2026,6,14); // 14/07/2026
@@ -424,7 +529,13 @@ function buildRow(row){
   actTd.className = "actions";
   actTd.innerHTML = `<span class="act-done" title="Marquer comme effectué aujourd'hui">&#10003;</span><span class="act-del" title="Supprimer la ligne">&#10005;</span>`;
   actTd.querySelector(".act-done").addEventListener("click", ()=>{ markDone(tr); });
-  actTd.querySelector(".act-del").addEventListener("click", ()=>{ tr.remove(); refreshAll(); });
+  actTd.querySelector(".act-del").addEventListener("click", ()=>{
+    const label = rowLabel(tr);
+    if(confirm(`Supprimer la ligne "${label}" ? Cette action est irréversible.`)){
+      tr.remove();
+      refreshAll();
+    }
+  });
   tr.appendChild(actTd);
 
   return tr;
@@ -447,16 +558,48 @@ function cycleValue(td, key){
   }
 }
 
+function rowLabel(tr){
+  const cells = tr.querySelectorAll("td");
+  const map = {};
+  cells.forEach(td=>{ if(td.dataset.key) map[td.dataset.key]=td; });
+  return map.comment.textContent.trim() || map.from.textContent.trim() || "Sans nom";
+}
+
+const actionLog = [];
+
+function logAction(msg){
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2,"0");
+  const mi = String(now.getMinutes()).padStart(2,"0");
+  actionLog.unshift({ time: `${formatDate(TODAY)} ${hh}:${mi}`, msg });
+  renderHistory();
+}
+
+function renderHistory(){
+  const list = document.getElementById("history-list");
+  if(actionLog.length === 0){
+    list.innerHTML = `<div class="history-empty">Aucune action enregistrée pour l'instant.</div>`;
+    return;
+  }
+  list.innerHTML = actionLog.map(e=>
+    `<div class="history-entry"><span class="h-time">${e.time}</span><span class="h-msg">${e.msg}</span></div>`
+  ).join("");
+}
+
 function markDone(tr){
   const cells = tr.querySelectorAll("td");
   const map = {};
   cells.forEach(td=>{ if(td.dataset.key) map[td.dataset.key]=td; });
+  const label = rowLabel(tr);
   map.dernier.textContent = formatDate(TODAY);
   const perio = parseInt(map.perio.textContent.trim(),10);
   if(!isNaN(perio)){
     const next = new Date(TODAY);
     next.setDate(next.getDate()+perio);
     map.programme.textContent = formatDate(next);
+    logAction(`"${label}" marqué comme effectué — reprogrammé au ${formatDate(next)}`);
+  } else {
+    logAction(`"${label}" marqué comme effectué`);
   }
   refreshAll();
 }
@@ -484,10 +627,29 @@ function alerteFor(prio, reste){
   return {cls:"alerte-ok", label:"OK", rowCls:""};
 }
 
+// rang d'urgence pour le tri : plus petit = plus urgent
+function urgencyRank(prio, reste){
+  if(reste === null) return 900 + (3-(prioOrder[prio]||0));
+  if(reste < 0){
+    // en retard : les élevés d'abord, puis modéré, puis faible ; au sein d'un groupe, le plus en retard d'abord
+    return (3-(prioOrder[prio]||0))*1000 + (100 - Math.min(reste,0)) - reste;
+  }
+  const seuil = prio === "eleve" ? 7 : (prio === "modere" ? 3 : 2);
+  if(reste <= seuil) return 500 + reste;
+  return 800 + reste*0.01;
+}
+
 function refreshAll(){
-  const rows = document.querySelectorAll("#table-body tr");
+  const rows = Array.from(document.querySelectorAll("#table-body tr"));
   const alerts = [];
   let total=0, enRetard=0, critiques=0, aVenir=0, chiffres=0;
+
+  const searchTerm = (document.getElementById("search-input")?.value || "").toLowerCase().trim();
+  const filterVie = document.getElementById("filter-vie")?.value || "tous";
+  const alertOnly = document.getElementById("filter-alert")?.checked || false;
+  const sortUrgent = document.getElementById("sort-urgent")?.checked || false;
+
+  let visibleCount = 0;
 
   rows.forEach(tr=>{
     total++;
@@ -497,6 +659,7 @@ function refreshAll(){
 
     const prioTd = map.priorite.querySelector("[data-prio]");
     const prio = prioTd ? prioTd.dataset.prio : "faible";
+    const vie = map.vie.textContent.trim().toLowerCase();
 
     const programme = map.programme.textContent.trim();
     const target = parseDate(programme);
@@ -521,6 +684,10 @@ function refreshAll(){
     tr.classList.remove("row-critique","row-attention");
     if(a.rowCls) tr.classList.add(a.rowCls);
 
+    tr.dataset.urgency = urgencyRank(prio, reste);
+    const isAlerting = (reste !== null && reste < 0) || (a.cls === "alerte-soon");
+    tr.dataset.alerting = isAlerting ? "1" : "0";
+
     // KPI + banniere
     const crypt = map.crypt.textContent.trim().toLowerCase();
     if(crypt.includes("oui")) chiffres++;
@@ -528,13 +695,34 @@ function refreshAll(){
     if(reste !== null && reste < 0){
       enRetard++;
       if(prio === "eleve") critiques++;
-      const label = (map.comment.textContent.trim() || map.from.textContent.trim() || "Sans nom");
+      const label = rowLabel(tr);
       alerts.push({prio, reste, label, critique: prio==="eleve"});
     } else if(reste !== null){
       const seuil = prio === "eleve" ? 7 : (prio === "modere" ? 3 : 2);
       if(reste <= seuil) aVenir++;
     }
+
+    // filtrage
+    let visible = true;
+    if(filterVie !== "tous" && vie !== filterVie) visible = false;
+    if(alertOnly && !isAlerting) visible = false;
+    if(searchTerm){
+      const haystack = Array.from(cells).map(td=>td.textContent.toLowerCase()).join(" ");
+      if(!haystack.includes(searchTerm)) visible = false;
+    }
+    tr.classList.toggle("row-hidden", !visible);
+    if(visible) visibleCount++;
   });
+
+  // tri auto par urgence (réordonne le DOM)
+  if(sortUrgent){
+    rows.sort((a,b)=> parseFloat(a.dataset.urgency) - parseFloat(b.dataset.urgency));
+    const tbody = document.getElementById("table-body");
+    rows.forEach(tr => tbody.appendChild(tr));
+  }
+
+  const countEl = document.getElementById("filter-count");
+  if(countEl) countEl.textContent = `${visibleCount} / ${total} ligne(s) affichée(s)`;
 
   // tri alertes : critiques d'abord, puis par retard décroissant
   alerts.sort((a,b)=>{
@@ -642,8 +830,60 @@ function exportJSON(){
   downloadFile("suivi_backups.json", JSON.stringify(rows, null, 2), "application/json");
 }
 
+function importJSON(file){
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    let parsed;
+    try{
+      parsed = JSON.parse(e.target.result);
+    } catch(err){
+      alert("Fichier JSON invalide : " + err.message);
+      return;
+    }
+    if(!Array.isArray(parsed)){
+      alert("Le JSON doit être un tableau de lignes.");
+      return;
+    }
+    if(!confirm(`Importer ${parsed.length} ligne(s) ? Cela remplacera le tableau actuel.`)) return;
+
+    const tbody = document.getElementById("table-body");
+    tbody.innerHTML = "";
+    parsed.forEach(r=>{
+      const row = [
+        r.vie || "perso",
+        r.priorite || "faible",
+        r.from || "",
+        r.to || "",
+        r.methode || "",
+        r.chemin_script || "",
+        r.dernier_bck || "",
+        r.programme || "",
+        r.perio || "",
+        "", "",
+        r.commentaires || "",
+        r.crypte || "non"
+      ];
+      tbody.appendChild(buildRow(row));
+    });
+    logAction(`Import JSON : ${parsed.length} ligne(s) chargée(s)`);
+    refreshAll();
+  };
+  reader.readAsText(file);
+}
+
 const tbody = document.getElementById("table-body");
 data.forEach(row => tbody.appendChild(buildRow(row)));
+
+document.getElementById("search-input").addEventListener("input", refreshAll);
+document.getElementById("filter-vie").addEventListener("change", refreshAll);
+document.getElementById("filter-alert").addEventListener("change", refreshAll);
+document.getElementById("sort-urgent").addEventListener("change", refreshAll);
+document.getElementById("import-input").addEventListener("change", (e)=>{
+  if(e.target.files && e.target.files[0]) importJSON(e.target.files[0]);
+  e.target.value = "";
+});
+
+renderHistory();
 refreshAll();
 </script>
 
