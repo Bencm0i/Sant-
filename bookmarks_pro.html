@@ -247,12 +247,28 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(255
 }
 .editor-content-area::-webkit-scrollbar{width:4px;}
 .editor-content-area::-webkit-scrollbar-thumb{background:rgba(61,90,115,0.3);border-radius:2px;}
+.editor-content-area.split{display:flex;align-items:stretch;gap:0;}
+.editor-pane{min-width:0;}
+.editor-content-area.split .editor-pane{flex:1;}
+.editor-pane-right{
+  display:flex;flex-direction:column;
+  border-left:1.5px solid rgba(61,90,115,0.18);
+  margin-left:14px;padding-left:14px;
+}
+.editor-pane-head{margin-bottom:6px;flex-shrink:0;}
+#editorRightSelect{
+  width:100%;font-family:'Inter',sans-serif;font-size:0.7rem;font-weight:700;
+  color:var(--text);background:rgba(61,90,115,0.08);
+  border:1px solid rgba(61,90,115,0.18);border-radius:6px;
+  padding:4px 6px;outline:none;cursor:pointer;
+}
 .editor-editable {
   outline:none;font-family:'Inter',sans-serif;font-size:0.88rem;
   color:var(--text);line-height:1.75;min-height:80px;
   caret-color:var(--c2);word-break:break-word;
 }
 .editor-editable:empty::before{content:attr(data-placeholder);color:var(--muted);pointer-events:none;}
+#editorSplitBtn.active{opacity:1;color:var(--c2);}
 .editor-bottom-bar {
   display:flex;align-items:center;justify-content:space-between;
   padding:4px 10px 5px;border-top:1px solid rgba(61,90,115,0.12);
@@ -2063,6 +2079,7 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(255
   <div class="editor-tabs-bar" id="editorTabsBar">
     <!-- tabs injectées dynamiquement -->
     <button class="editor-tab-add" onclick="editorAddTab()" title="Nouveau bloc-notes">＋</button>
+    <button class="editor-tab-add" id="editorSplitBtn" onclick="editorToggleSplit()" title="Afficher 2 notes côte à côte">⊞</button>
   </div>
   <div class="editor-toolbar" id="editorToolbar">
     <button class="editor-btn" onclick="editorCmd('bold')" title="Gras"><b>B</b></button>
@@ -2092,10 +2109,20 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(255
     <button class="editor-btn" onclick="editorCopy()" title="Copier tout">📋</button>
     <button class="editor-btn" onclick="editorClear()" title="Vider" style="color:#b3564f;border-color:rgba(179,86,79,0.3)">🗑</button>
   </div>
-  <div class="editor-content-area">
-    <div class="editor-editable" id="editorArea" contenteditable="true"
-      data-placeholder="Commence à écrire… (formatage riche supporté)"
-      oninput="editorOnInput()" onkeydown="editorKeydown(event)"></div>
+  <div class="editor-content-area" id="editorContentArea">
+    <div class="editor-pane" id="editorPaneLeft">
+      <div class="editor-editable" id="editorArea" contenteditable="true"
+        data-placeholder="Commence à écrire… (formatage riche supporté)"
+        oninput="editorOnInput()" onkeydown="editorKeydown(event)"></div>
+    </div>
+    <div class="editor-pane editor-pane-right" id="editorPaneRight" style="display:none">
+      <div class="editor-pane-head">
+        <select id="editorRightSelect" onchange="editorRightSwitch(this.value)"></select>
+      </div>
+      <div class="editor-editable" id="editorAreaRight" contenteditable="true"
+        data-placeholder="Choisis une note à afficher…"
+        oninput="editorRightOnInput()" onkeydown="editorKeydown(event)"></div>
+    </div>
   </div>
   <div class="editor-bottom-bar">
     <span class="editor-count" id="editorCount">0 caractères</span>
@@ -6455,6 +6482,8 @@ let editorTabs = [];      // [{id, name, html}]
 let editorActiveId = null;
 let editorVisible = false;
 let editorSaveTimer = null;
+let editorSplitActive = false;
+let editorRightId = null;
 
 function editorLoad(){
   try{ editorTabs = JSON.parse(localStorage.getItem('dashboard_editor_tabs')||'null') || []; }catch(e){ editorTabs=[]; }
@@ -6466,6 +6495,9 @@ function editorLoad(){
     ];
   }
   editorActiveId = editorTabs[0].id;
+  editorSplitActive = localStorage.getItem('dashboard_editor_split') === '1';
+  const storedRightId = parseInt(localStorage.getItem('dashboard_editor_right_id'), 10);
+  editorRightId = editorTabs.find(t => t.id === storedRightId) ? storedRightId : null;
   editorRenderTabs();
   editorLoadActive();
   const panel = document.getElementById('editorPanel');
@@ -6481,6 +6513,9 @@ function editorLoad(){
     btn.title = 'Fermer l\'éditeur';
     // Position dynamically
     editorPositionToggleBtn();
+  }
+  if(editorSplitActive){
+    editorApplySplitState();
   }
 }
 
@@ -6518,6 +6553,11 @@ function editorSaveTabs(){
   const area = document.getElementById('editorArea');
   const tab = editorTabs.find(t => t.id === editorActiveId);
   if(tab && area) tab.html = area.innerHTML;
+  if(editorSplitActive){
+    const areaR = document.getElementById('editorAreaRight');
+    const tabR = editorTabs.find(t => t.id === editorRightId);
+    if(tabR && areaR) tabR.html = areaR.innerHTML;
+  }
   localStorage.setItem('dashboard_editor_tabs', JSON.stringify(editorTabs));
 }
 
@@ -6539,6 +6579,14 @@ function editorRenderTabs(){
   addBtn.title = 'Nouveau bloc-notes';
   addBtn.onclick = editorAddTab;
   bar.appendChild(addBtn);
+  const splitBtn = document.createElement('button');
+  splitBtn.className = 'editor-tab-add' + (editorSplitActive ? ' active' : '');
+  splitBtn.id = 'editorSplitBtn';
+  splitBtn.textContent = '⊞';
+  splitBtn.title = 'Afficher 2 notes côte à côte';
+  splitBtn.onclick = editorToggleSplit;
+  bar.appendChild(splitBtn);
+  editorPopulateRightSelect();
 }
 
 function editorLoadActive(){
@@ -6583,6 +6631,12 @@ function editorCloseTab(id){
     editorActiveId = editorTabs[Math.max(0, idx-1)].id;
     editorLoadActive();
   }
+  if(editorRightId === id){
+    const other = editorTabs.find(t => t.id !== editorActiveId) || editorTabs[0];
+    editorRightId = other.id;
+    localStorage.setItem('dashboard_editor_right_id', String(editorRightId));
+    editorLoadRight();
+  }
   editorRenderTabs();
   editorSaveTabs();
 }
@@ -6600,11 +6654,17 @@ function editorRenameTab(id){
   }
 }
 
+function editorGetFocusedArea(){
+  const right = document.getElementById('editorAreaRight');
+  if(editorSplitActive && document.activeElement === right) return right;
+  return document.getElementById('editorArea');
+}
+
 function editorCmd(cmd, val){
-  const area = document.getElementById('editorArea');
+  const area = editorGetFocusedArea();
   area.focus();
   document.execCommand(cmd, false, val || null);
-  editorOnInput();
+  if(area.id === 'editorAreaRight') editorRightOnInput(); else editorOnInput();
 }
 
 function editorOnInput(){
@@ -6618,7 +6678,7 @@ function editorOnInput(){
 }
 
 function editorUpdateCount(){
-  const area = document.getElementById('editorArea');
+  const area = editorGetFocusedArea();
   const el = document.getElementById('editorCount');
   if(!area || !el) return;
   const text = area.innerText || '';
@@ -6628,7 +6688,7 @@ function editorUpdateCount(){
 }
 
 function editorCopy(){
-  const area = document.getElementById('editorArea');
+  const area = editorGetFocusedArea();
   if(!area) return;
   const text = area.innerText || '';
   navigator.clipboard.writeText(text).then(()=>{
@@ -6639,9 +6699,9 @@ function editorCopy(){
 
 function editorClear(){
   if(!confirm('Vider cet onglet ?')) return;
-  const area = document.getElementById('editorArea');
+  const area = editorGetFocusedArea();
   if(area) area.innerHTML = '';
-  editorOnInput();
+  if(area && area.id === 'editorAreaRight') editorRightOnInput(); else editorOnInput();
 }
 
 function editorKeydown(e){
@@ -6650,6 +6710,80 @@ function editorKeydown(e){
     e.preventDefault();
     document.execCommand('insertHTML', false, '&nbsp;&nbsp;&nbsp;&nbsp;');
   }
+}
+
+// ── VUE 2 COLONNES (voir 2 notes côte à côte) ──
+
+function editorToggleSplit(){
+  editorSplitActive = !editorSplitActive;
+  localStorage.setItem('dashboard_editor_split', editorSplitActive ? '1' : '0');
+  editorApplySplitState();
+}
+
+function editorApplySplitState(){
+  const contentArea = document.getElementById('editorContentArea');
+  const paneRight = document.getElementById('editorPaneRight');
+  const btn = document.getElementById('editorSplitBtn');
+  if(!contentArea || !paneRight) return;
+  if(editorSplitActive){
+    contentArea.classList.add('split');
+    paneRight.style.display = 'flex';
+    if(btn) btn.classList.add('active');
+    if(editorRightId === null || !editorTabs.find(t => t.id === editorRightId)){
+      const other = editorTabs.find(t => t.id !== editorActiveId);
+      editorRightId = other ? other.id : editorActiveId;
+      localStorage.setItem('dashboard_editor_right_id', String(editorRightId));
+    }
+    editorPopulateRightSelect();
+    editorLoadRight();
+  } else {
+    contentArea.classList.remove('split');
+    paneRight.style.display = 'none';
+    if(btn) btn.classList.remove('active');
+  }
+  setTimeout(editorPositionToggleBtn, 320);
+}
+
+function editorPopulateRightSelect(){
+  const sel = document.getElementById('editorRightSelect');
+  if(!sel) return;
+  sel.innerHTML = '';
+  editorTabs.forEach(tab => {
+    const opt = document.createElement('option');
+    opt.value = tab.id;
+    opt.textContent = tab.name;
+    if(tab.id === editorRightId) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+function editorLoadRight(){
+  const tab = editorTabs.find(t => t.id === editorRightId);
+  const area = document.getElementById('editorAreaRight');
+  if(!area) return;
+  area.innerHTML = tab ? (tab.html || '') : '';
+  editorUpdateCount();
+}
+
+function editorRightSwitch(id){
+  // Sauvegarder le contenu du panneau droit avant de changer de note
+  const area = document.getElementById('editorAreaRight');
+  const cur = editorTabs.find(t => t.id === editorRightId);
+  if(cur && area) cur.html = area.innerHTML;
+  editorRightId = Number(id);
+  localStorage.setItem('dashboard_editor_right_id', String(editorRightId));
+  editorLoadRight();
+  editorSaveTabs();
+}
+
+function editorRightOnInput(){
+  editorUpdateCount();
+  clearTimeout(editorSaveTimer);
+  editorSaveTimer = setTimeout(() => {
+    editorSaveTabs();
+    const el = document.getElementById('editorSaved');
+    if(el){ el.classList.add('show'); setTimeout(()=>el.classList.remove('show'), 1500); }
+  }, 700);
 }
 
 // Initialiser après le reste
