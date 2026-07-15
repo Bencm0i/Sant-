@@ -341,7 +341,7 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(255
 .draw-btn.active{background:rgba(61,90,115,0.3);border-color:var(--c2);color:var(--c2);}
 .draw-hint{font-size:0.62rem;font-weight:700;color:var(--muted);margin-left:auto;padding-right:4px;}
 #drawToggleBtn {
-  position:fixed;top:30px;right:16px;z-index:9993;
+  position:fixed;top:30px;left:16px;z-index:9993;
   background:rgba(255,255,255,0.75);backdrop-filter:blur(10px);
   border:1.5px solid rgba(61,90,115,0.25);border-top:none;
   border-radius:0 0 14px 14px;box-shadow:0 4px 14px rgba(30,41,59,0.12);
@@ -351,7 +351,8 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(255
 }
 #drawToggleBtn:hover{opacity:1;}
 #drawToggleBtn.active{opacity:1;background:rgba(61,90,115,0.18);border-color:var(--c2);}
-body:has(#editorPanel:not(.editor-hidden)) #drawToggleBtn{ top:calc(50vh + 38px); }
+body:has(#drawPanel:not(.draw-hidden)) #drawToggleBtn{ top:84px; }
+body:has(#editorPanel:not(.editor-hidden)) #drawToggleBtn{ top:calc(50vh + 78px); }
 body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
 
 /* ── TICKER BAR ── */
