@@ -2832,6 +2832,42 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(255
         };
 
         calcRender();
+
+        // Saisie clavier de la calculatrice (uniquement quand le panneau est ouvert)
+        document.addEventListener('keydown', function(e){
+          const sidebar = document.getElementById('haSidebar');
+          if(!sidebar || !sidebar.classList.contains('open')) return;
+
+          const activeTag = (document.activeElement && document.activeElement.tagName || '').toLowerCase();
+          const activeId = document.activeElement && document.activeElement.id;
+          if((activeTag === 'input' || activeTag === 'textarea' || (document.activeElement && document.activeElement.isContentEditable)) && activeId !== 'calcDisplay'){
+            return; // ne pas intercepter la saisie clavier d'un autre champ (ex: recherche)
+          }
+
+          const key = e.key;
+          if(/^[0-9]$/.test(key)){
+            calcInput(key);
+            e.preventDefault();
+          } else if(key === '+' || key === '-' || key === '*' || key === '/'){
+            calcInput(key);
+            e.preventDefault();
+          } else if(key === '%'){
+            calcInput('%');
+            e.preventDefault();
+          } else if(key === '.' || key === ','){
+            calcInput('.');
+            e.preventDefault();
+          } else if(key === 'Enter' || key === '='){
+            calcEquals();
+            e.preventDefault();
+          } else if(key === 'Backspace'){
+            calcBackspace();
+            e.preventDefault();
+          } else if(key === 'Escape' || key === 'Delete'){
+            calcClear();
+            e.preventDefault();
+          }
+        });
       })();
     </script>
 
