@@ -230,6 +230,16 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(255
 .editor-btn:hover{background:rgba(61,90,115,0.22);border-color:var(--c2);color:var(--c2);}
 .editor-btn.active{background:rgba(61,90,115,0.3);border-color:var(--c2);color:var(--c2);}
 .editor-sep{width:1px;height:18px;background:rgba(61,90,115,0.2);margin:0 2px;flex-shrink:0;}
+.editor-tags-bar {
+  display:flex;align-items:center;gap:4px;padding:5px 10px;
+  border-bottom:1px solid rgba(61,90,115,0.12);flex-shrink:0;flex-wrap:wrap;
+}
+.editor-tag-btn {
+  padding:3px 9px; border-radius:20px; border:1.5px solid rgba(61,90,115,0.2);
+  background:transparent; font-family:'Inter',sans-serif; font-size:0.62rem; font-weight:800;
+  color:var(--muted); cursor:pointer; transition:all 0.15s; letter-spacing:0.03em;
+}
+.editor-tag-btn:hover { background:rgba(69,107,99,0.15); border-color:rgba(69,107,99,0.4); color:#456b63; }
 .editor-font-size {
   height:24px;padding:0 5px;border-radius:6px;
   background:rgba(61,90,115,0.08);border:1px solid rgba(61,90,115,0.18);
@@ -1092,6 +1102,15 @@ body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
   outline:none; line-height:1.7;
 }
 #quickNotesArea::placeholder { color:var(--muted); }
+.quick-notes-tags {
+  display:flex; gap:4px; flex-wrap:wrap; padding:8px 16px 0;
+}
+.quick-note-tag {
+  padding:3px 9px; border-radius:20px; border:1.5px solid rgba(61,90,115,0.2);
+  background:transparent; font-family:'Inter',sans-serif; font-size:0.6rem; font-weight:800;
+  color:var(--muted); cursor:pointer; transition:all 0.15s; letter-spacing:0.03em;
+}
+.quick-note-tag:hover { background:rgba(69,107,99,0.15); border-color:rgba(69,107,99,0.4); color:#456b63; }
 #quickNotesSaved {
   font-size:0.58rem; font-weight:700; color:var(--c4);
   opacity:0; transition:opacity 0.3s; padding:0 16px 10px;
@@ -2112,6 +2131,14 @@ body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
     <button class="editor-btn" onclick="editorCmd('removeFormat')" title="Effacer formatage">✕F</button>
     <button class="editor-btn" onclick="editorCopy()" title="Copier tout">📋</button>
     <button class="editor-btn" onclick="editorClear()" title="Vider" style="color:#b3564f;border-color:rgba(179,86,79,0.3)">🗑</button>
+  </div>
+  <div class="editor-tags-bar" id="editorTagsBar">
+    <button class="editor-tag-btn" onclick="editorInsertTag('#traduis-eng-fr')">#traduis-eng-fr</button>
+    <button class="editor-tag-btn" onclick="editorInsertTag('#traduis-fr-eng')">#traduis-fr-eng</button>
+    <button class="editor-tag-btn" onclick="editorInsertTag('#corrige')">#corrige</button>
+    <button class="editor-tag-btn" onclick="editorInsertTag('#reformule')">#reformule</button>
+    <button class="editor-tag-btn" onclick="editorInsertTag('#resume')">#resume</button>
+    <button class="editor-tag-btn" onclick="editorInsertTag('#analyse-pro')">#analyse-pro</button>
   </div>
   <div class="editor-content-area" id="editorContentArea">
     <div class="editor-pane" id="editorPaneLeft">
@@ -6663,6 +6690,17 @@ function editorGetFocusedArea(){
   const right = document.getElementById('editorAreaRight');
   if(editorSplitActive && document.activeElement === right) return right;
   return document.getElementById('editorArea');
+}
+
+function editorInsertTag(tag){
+  const area = editorGetFocusedArea();
+  if(!area) return;
+  const cleanTag = tag + ' ';
+  const current = area.innerText || '';
+  if(current.startsWith(cleanTag)) { area.focus(); return; }
+  area.insertAdjacentHTML('afterbegin', cleanTag);
+  area.focus();
+  if(area.id === 'editorAreaRight') editorRightOnInput(); else editorOnInput();
 }
 
 function editorCmd(cmd, val){
