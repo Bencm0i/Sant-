@@ -2131,6 +2131,9 @@ body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
     <button class="editor-btn" onclick="editorCmd('removeFormat')" title="Effacer formatage">✕F</button>
     <button class="editor-btn" onclick="editorCopy()" title="Copier tout">📋</button>
     <button class="editor-btn" onclick="editorClear()" title="Vider" style="color:#b3564f;border-color:rgba(179,86,79,0.3)">🗑</button>
+    <div class="editor-sep"></div>
+    <button class="editor-btn" onclick="window.open('https://claude.ai/','_blank')" title="Ouvrir Claude">🤖</button>
+    <button class="editor-btn" onclick="window.open('https://chatgpt.com/','_blank')" title="Ouvrir ChatGPT">🧠</button>
   </div>
   <div class="editor-tags-bar" id="editorTagsBar">
     <button class="editor-tag-btn" onclick="editorInsertTag('#traduis-eng-fr')">#traduis-eng-fr</button>
