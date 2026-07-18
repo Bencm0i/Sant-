@@ -490,6 +490,41 @@
   }
   .gauge-input-row input:focus{outline:none;border-bottom-color:var(--gold);}
 
+  .reste-a-placer{
+    display:flex;
+    align-items:baseline;
+    gap:14px;
+    flex-wrap:wrap;
+    margin-top:20px;
+    padding:16px 18px;
+    background:var(--paper-dim);
+    border-left:3px solid var(--gold);
+    border-radius:var(--radius);
+  }
+  .reste-a-placer.positive{border-left-color:var(--green);}
+  .reste-a-placer.negative{border-left-color:var(--rust);}
+  .reste-a-placer .label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+  .reste-a-placer .value{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:24px;
+    font-weight:600;
+    color:var(--ink);
+  }
+  .reste-a-placer.positive .value{color:var(--green);}
+  .reste-a-placer.negative .value{color:var(--rust);}
+  .reste-a-placer .hint{
+    font-family:'Inter', sans-serif;
+    font-size:12.5px;
+    color:var(--muted);
+    flex-basis:100%;
+  }
+
   footer{
     text-align:center;
     margin-top:36px;
@@ -602,10 +637,16 @@
     </div>
     <div class="gauge-marks"><span>0 €</span><span id="gaugeTargetLabel">0 €</span></div>
 
-    <div class="gauge-input-row">
-      <label for="savedAmount">Épargne actuelle</label>
-      <input type="number" id="savedAmount" value="0" min="0" step="10">
-      <span class="suffix" style="font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--muted);">€ déjà mis de côté</span>
+    <div class="gauge-input-row cash-row">
+      <label for="cashActuel">Cash actuel disponible</label>
+      <input type="number" id="cashActuel" value="0" min="0" step="10">
+      <span class="suffix" style="font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--muted);">€ disponibles tout de suite (compte courant + épargne)</span>
+    </div>
+
+    <div class="reste-a-placer" id="restePlacerBox">
+      <span class="label">Reste à placer / manquant</span>
+      <span class="value" id="restePlacerValue">0 €</span>
+      <span class="hint" id="restePlacerHint"></span>
     </div>
   </section>
 
@@ -678,9 +719,9 @@ document.querySelectorAll('.add-row').forEach(btn => {
 });
 
 const incomeInput = document.getElementById('income');
-const savedInput = document.getElementById('savedAmount');
+const cashActuelInput = document.getElementById('cashActuel');
 incomeInput.oninput = compute;
-savedInput.oninput = compute;
+cashActuelInput.oninput = compute;
 
 function renderAll(){
   renderTable(monthly, monthlyBody, 'monthly');
@@ -702,16 +743,25 @@ function compute(){
   const exceptionalTotal = exceptional.reduce((s,i)=>s+i.amount,0);
   const precautionTarget = monthlyTotal * 6;
   const income = parseFloat(incomeInput.value) || 0;
-  const saved = parseFloat(savedInput.value) || 0;
+  const cashActuel = parseFloat(cashActuelInput.value) || 0;
   const balance = income - monthlyTotal;
   const cashToKeep = precautionTarget + exceptionalTotal;
+  const resteAPlacer = cashActuel - cashToKeep;
 
   document.getElementById('monthlyTotal').textContent = fmt(monthlyTotal);
   document.getElementById('exceptionalTotal').textContent = fmt(exceptionalTotal);
   document.getElementById('precautionTarget').textContent = fmt(precautionTarget);
   document.getElementById('gaugeTargetLabel').textContent = fmt(precautionTarget);
 
-  const pct = precautionTarget > 0 ? Math.min(100, (saved/precautionTarget)*100) : 0;
+  const restePlacerBox = document.getElementById('restePlacerBox');
+  restePlacerBox.classList.remove('positive','negative');
+  restePlacerBox.classList.add(resteAPlacer >= 0 ? 'positive' : 'negative');
+  document.getElementById('restePlacerValue').textContent = (resteAPlacer >= 0 ? '+' : '') + fmtRound(resteAPlacer);
+  document.getElementById('restePlacerHint').textContent = resteAPlacer >= 0
+    ? 'Cette somme dépasse ton cash à garder : elle peut être placée ou investie.'
+    : 'Il te manque cette somme pour atteindre ton cash de sécurité complet.';
+
+  const pct = precautionTarget > 0 ? Math.min(100, (cashActuel/precautionTarget)*100) : 0;
   document.getElementById('gaugeFill').style.width = pct + '%';
   document.getElementById('gaugePct').textContent = Math.round(pct) + '%';
 
@@ -721,7 +771,8 @@ function compute(){
     kpiCard('Épargne de précaution', fmt(precautionTarget), '6 × budget mensuel'),
     kpiCard('🔒 Cash total à garder', fmtRound(cashToKeep), 'Précaution (6× mensuel) + budget exceptionnel', 'featured'),
     kpiCard('Solde mensuel', (balance>=0?'+':'') + fmt(balance), income>0 ? 'Revenu − budget mensuel' : 'Renseignez votre revenu', balance>=0?'ok':'alert'),
-    kpiCard('Précaution atteinte', Math.round(pct)+'%', fmt(Math.max(0,precautionTarget-saved)) + ' restants', pct>=100?'ok':(pct<30?'alert':'')),
+    kpiCard('Précaution atteinte', Math.round(pct)+'%', fmt(Math.max(0,precautionTarget-cashActuel)) + ' restants', pct>=100?'ok':(pct<30?'alert':'')),
+    kpiCard(resteAPlacer>=0?'💸 Reste à placer':'⚠️ Cash manquant', (resteAPlacer>=0?'+':'') + fmtRound(resteAPlacer), resteAPlacer>=0 ? 'Disponible après cash de sécurité' : 'Pour atteindre ton cash de sécurité', resteAPlacer>=0?'ok':'alert'),
   ];
   document.getElementById('kpiGrid').innerHTML = kpis.join('');
   renderSankeys();
@@ -897,7 +948,7 @@ function loadLocal(){
     monthly = data.monthly.map(i => ({name: i.name || '', amount: parseFloat(i.amount) || 0}));
     exceptional = data.exceptional.map(i => ({name: i.name || '', amount: parseFloat(i.amount) || 0}));
     incomeInput.value = data.income || 0;
-    savedInput.value = data.savedAmount || 0;
+    cashActuelInput.value = data.cashActuel || data.savedAmount || 0;
     return true;
   }catch(e){ return false; }
 }
@@ -924,7 +975,7 @@ function currentState(){
     version: 1,
     savedAt: new Date().toISOString(),
     income: parseFloat(incomeInput.value) || 0,
-    savedAmount: parseFloat(savedInput.value) || 0,
+    cashActuel: parseFloat(cashActuelInput.value) || 0,
     monthly,
     exceptional,
   };
@@ -961,7 +1012,7 @@ importFile.onchange = (e) => {
       monthly = data.monthly.map(i => ({name: i.name || '', amount: parseFloat(i.amount) || 0}));
       exceptional = data.exceptional.map(i => ({name: i.name || '', amount: parseFloat(i.amount) || 0}));
       incomeInput.value = data.income || 0;
-      savedInput.value = data.savedAmount || 0;
+      cashActuelInput.value = data.cashActuel || data.savedAmount || 0;
       renderAll();
       showStatus('Sauvegarde chargée ✓ (' + (data.savedAt ? new Date(data.savedAt).toLocaleDateString('fr-FR') : '') + ')');
     }catch(err){
