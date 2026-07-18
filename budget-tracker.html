@@ -169,6 +169,35 @@
   }
   .kpi.alert{border-top-color:var(--rust);}
   .kpi.ok{border-top-color:var(--green);}
+  .kpi.featured{
+    grid-column:span 2;
+    background:linear-gradient(135deg, var(--gold-soft), var(--gold));
+    border-top:none;
+    box-shadow:0 10px 28px rgba(200,155,60,0.35);
+    position:relative;
+  }
+  .kpi.featured::after{
+    content:'';
+    position:absolute;
+    inset:0;
+    border-radius:var(--radius);
+    border:1px solid rgba(27,36,48,0.15);
+    pointer-events:none;
+  }
+  .kpi.featured .kpi-label{
+    color:rgba(27,36,48,0.65);
+    font-size:11px;
+  }
+  .kpi.featured .kpi-value{
+    color:var(--ink);
+    font-size:34px;
+  }
+  .kpi.featured .kpi-sub{
+    color:rgba(27,36,48,0.62);
+  }
+  @media (max-width:520px){
+    .kpi.featured{grid-column:span 1;}
+  }
   .kpi-label{
     font-family:'IBM Plex Mono', monospace;
     font-size:10.5px;
@@ -603,6 +632,9 @@ const exceptionalBody = document.getElementById('exceptionalBody');
 function fmt(n){
   return (Math.round(n*100)/100).toLocaleString('fr-FR',{maximumFractionDigits:0}) + ' €';
 }
+function fmtRound(n){
+  return (Math.round(n/100)*100).toLocaleString('fr-FR') + ' €';
+}
 
 function renderTable(list, tbody, kind){
   tbody.innerHTML = '';
@@ -687,7 +719,7 @@ function compute(){
     kpiCard('Budget mensuel', fmt(monthlyTotal), monthly.length + ' catégorie(s)'),
     kpiCard('Budget exceptionnel', fmt(exceptionalTotal), exceptional.length + ' catégorie(s)'),
     kpiCard('Épargne de précaution', fmt(precautionTarget), '6 × budget mensuel'),
-    kpiCard('Cash total à garder', fmt(cashToKeep), 'Précaution + exceptionnel'),
+    kpiCard('🔒 Cash total à garder', fmtRound(cashToKeep), 'Précaution (6× mensuel) + budget exceptionnel', 'featured'),
     kpiCard('Solde mensuel', (balance>=0?'+':'') + fmt(balance), income>0 ? 'Revenu − budget mensuel' : 'Renseignez votre revenu', balance>=0?'ok':'alert'),
     kpiCard('Précaution atteinte', Math.round(pct)+'%', fmt(Math.max(0,precautionTarget-saved)) + ' restants', pct>=100?'ok':(pct<30?'alert':'')),
   ];
