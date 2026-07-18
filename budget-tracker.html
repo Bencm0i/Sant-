@@ -255,6 +255,42 @@
     margin:8px 0 0;
   }
 
+  .quotite-row{
+    margin:2px 0 12px;
+  }
+  .quotite-label{
+    display:block;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-bottom:6px;
+  }
+  .quotite-buttons{
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
+  }
+  .quotite-btn{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    font-weight:600;
+    color:var(--ink);
+    background:var(--paper-dim);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:6px 11px;
+    cursor:pointer;
+    transition:background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .quotite-btn:hover{border-color:var(--gold);}
+  .quotite-btn.active{
+    background:var(--gold);
+    border-color:var(--gold);
+    color:var(--ink);
+  }
+
   .passive-table{width:100%;border-collapse:collapse;margin-bottom:4px;}
   .passive-table thead th{
     text-align:left;
@@ -774,9 +810,26 @@
           </select>
         </div>
         <div class="field-row">
-          <label for="salaryBrut">Salaire brut mensuel</label>
+          <label for="salaryBrut">Salaire brut mensuel (temps plein)</label>
           <input type="number" id="salaryBrut" value="0" min="0" step="10">
         </div>
+
+        <div class="quotite-row">
+          <span class="quotite-label">Simuler un temps partiel</span>
+          <div class="quotite-buttons" id="quotiteButtons">
+            <button type="button" class="quotite-btn active" data-pct="100">100%</button>
+            <button type="button" class="quotite-btn" data-pct="90">90%</button>
+            <button type="button" class="quotite-btn" data-pct="80">80%</button>
+            <button type="button" class="quotite-btn" data-pct="70">70%</button>
+            <button type="button" class="quotite-btn" data-pct="60">60%</button>
+            <button type="button" class="quotite-btn" data-pct="50">50%</button>
+          </div>
+        </div>
+        <div class="calc-result" id="brutEffectifRow" style="display:none;">
+          <span class="crlabel">Brut effectif (<span id="quotiteLabelPct">100</span>%)</span>
+          <span class="crvalue" id="salaryBrutEffectif">0 €</span>
+        </div>
+
         <div class="calc-result">
           <span class="crlabel">Net avant impôt (estimé)</span>
           <span class="crvalue" id="salaryNetAvantImpot">0 €</span>
@@ -1075,6 +1128,20 @@ const salaryTauxImpotEl = document.getElementById('salaryTauxImpot');
   el.addEventListener('change', compute);
 });
 
+let quotitePct = 100;
+function setQuotitePct(pct){
+  quotitePct = pct;
+  document.querySelectorAll('.quotite-btn').forEach(b => {
+    b.classList.toggle('active', parseFloat(b.dataset.pct) === pct);
+  });
+}
+document.querySelectorAll('.quotite-btn').forEach(btn => {
+  btn.onclick = () => {
+    setQuotitePct(parseFloat(btn.dataset.pct) || 100);
+    compute();
+  };
+});
+
 document.getElementById('useAsIncomeBtn').onclick = () => {
   const total = lastRevenueGrandTotal || 0;
   incomeInput.value = Math.round(total);
@@ -1085,11 +1152,17 @@ document.getElementById('useAsIncomeBtn').onclick = () => {
 let lastRevenueGrandTotal = 0;
 
 function computeRevenue(){
-  const brut = parseFloat(salaryBrutEl.value) || 0;
+  const brutPlein = parseFloat(salaryBrutEl.value) || 0;
+  const brutEffectif = brutPlein * (quotitePct/100);
   const ratio = SALARY_RATIOS[salaryStatusEl.value] || 0.78;
   const tauxImpot = parseFloat(salaryTauxImpotEl.value) || 0;
-  const netAvantImpot = brut * ratio;
+  const netAvantImpot = brutEffectif * ratio;
   const netApresImpot = netAvantImpot * (1 - tauxImpot/100);
+
+  const brutEffectifRow = document.getElementById('brutEffectifRow');
+  brutEffectifRow.style.display = quotitePct < 100 ? 'flex' : 'none';
+  document.getElementById('quotiteLabelPct').textContent = quotitePct;
+  document.getElementById('salaryBrutEffectif').textContent = fmt(brutEffectif);
 
   document.getElementById('salaryNetAvantImpot').textContent = fmt(netAvantImpot);
   document.getElementById('salaryNetApresImpot').textContent = fmt(netApresImpot);
@@ -1325,6 +1398,7 @@ function loadLocal(){
       salaryStatusEl.value = data.salary.status || 'non_cadre';
       salaryBrutEl.value = data.salary.brut || 0;
       salaryTauxImpotEl.value = data.salary.tauxImpot || 0;
+      setQuotitePct(data.salary.quotitePct || 100);
     }
     return true;
   }catch(e){ return false; }
@@ -1360,6 +1434,7 @@ function currentState(){
       status: salaryStatusEl.value,
       brut: parseFloat(salaryBrutEl.value) || 0,
       tauxImpot: parseFloat(salaryTauxImpotEl.value) || 0,
+      quotitePct,
     },
   };
 }
@@ -1405,6 +1480,7 @@ importFile.onchange = (e) => {
         salaryStatusEl.value = data.salary.status || 'non_cadre';
         salaryBrutEl.value = data.salary.brut || 0;
         salaryTauxImpotEl.value = data.salary.tauxImpot || 0;
+        setQuotitePct(data.salary.quotitePct || 100);
       }
       renderAll();
       showStatus('Sauvegarde chargée ✓ (' + (data.savedAt ? new Date(data.savedAt).toLocaleDateString('fr-FR') : '') + ')');
