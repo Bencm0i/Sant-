@@ -749,6 +749,115 @@
     flex-basis:100%;
   }
 
+  /* Projection de croissance du solde mensuel */
+  .growth-card{
+    background:var(--paper);
+    border-radius:var(--radius);
+    padding:24px 24px 22px;
+    margin-top:20px;
+  }
+  .growth-head h2{
+    font-family:'Fraunces', serif;
+    font-weight:500;
+    font-size:20px;
+    margin:0 0 4px;
+    color:var(--ink);
+  }
+  .growth-head p{
+    margin:0 0 16px;
+    font-size:13px;
+    color:var(--muted);
+    max-width:560px;
+    line-height:1.5;
+  }
+  .growth-controls{
+    display:flex;
+    align-items:center;
+    gap:20px;
+    flex-wrap:wrap;
+    padding:14px 16px;
+    background:var(--paper-dim);
+    border-radius:var(--radius);
+    margin-bottom:18px;
+  }
+  .growth-field{display:flex;flex-direction:column;gap:5px;}
+  .growth-field label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+  .growth-field input, .growth-field select{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:14px;
+    font-weight:600;
+    color:var(--ink);
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:6px 8px;
+    width:110px;
+  }
+  .growth-field input:focus, .growth-field select:focus{outline:none;border-color:var(--gold);}
+  .growth-kpis{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:10px;
+    margin-bottom:18px;
+  }
+  .growth-kpi{
+    background:var(--paper-dim);
+    border-radius:var(--radius);
+    padding:12px 14px;
+    border-left:3px solid var(--gold);
+  }
+  .growth-kpi.ok{border-left-color:var(--green);}
+  .growth-kpi .glabel{
+    display:block;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:9.5px;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-bottom:6px;
+  }
+  .growth-kpi .gvalue{
+    font-family:'Fraunces', serif;
+    font-weight:500;
+    font-size:20px;
+    color:var(--ink);
+  }
+  table.growth-table{width:100%;border-collapse:collapse;}
+  .growth-table thead th{
+    text-align:right;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--muted);
+    padding:8px 10px;
+    border-bottom:1px solid var(--line);
+  }
+  .growth-table thead th:first-child{text-align:left;}
+  .growth-table tbody td{
+    text-align:right;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    padding:8px 10px;
+    border-bottom:1px solid var(--line);
+    color:var(--ink);
+  }
+  .growth-table tbody td:first-child{text-align:left;font-family:'Inter', sans-serif;color:var(--muted);}
+  .growth-table tbody tr:last-child td{border-bottom:none;font-weight:600;}
+  .growth-table .gain-col{color:var(--green);}
+  .growth-note{
+    margin-top:12px;
+    font-size:11.5px;
+    line-height:1.5;
+    color:var(--muted);
+  }
+
   footer{
     text-align:center;
     margin-top:36px;
@@ -761,6 +870,47 @@
     .amt-input{width:70px;}
     thead th, tbody td{padding:9px 12px;}
     .card-head, .card-total{padding-left:14px;padding-right:14px;}
+  }
+
+  /* ---- Rendu "comptable" compact pour smartphone ---- */
+  @media (max-width:600px){
+    body{padding:16px 10px 60px;}
+    header{align-items:flex-start;gap:10px;padding-bottom:14px;margin-bottom:18px;}
+    .header-right{align-items:flex-start;width:100%;}
+    .save-actions{width:100%;}
+    .save-btn{flex:1;text-align:center;padding:9px 8px;}
+    .date-stamp{text-align:left;}
+    h1{font-size:22px;}
+    .brand-eyebrow{font-size:10px;}
+
+    .income-strip{padding:12px 14px;}
+    .revenue-block{padding:14px 14px;}
+
+    .kpi-grid{grid-template-columns:1fr 1fr;gap:8px;}
+    .kpi{padding:14px 12px 12px;}
+    .kpi-value{font-size:20px;}
+    .kpi-label{font-size:9.5px;margin-bottom:6px;}
+    .kpi-sub{font-size:10px;}
+    .kpi.featured{grid-column:span 2;}
+    .kpi.featured .kpi-value{font-size:26px;}
+
+    table{font-variant-numeric:tabular-nums;}
+    thead th{padding:8px 12px 6px;font-size:9px;}
+    tbody td{padding:8px 12px;font-size:13px;}
+    .cat-input{font-size:13px;}
+    .amt-input{width:64px;font-size:13px;}
+    .card-total .value{font-size:16px;}
+
+    .precaution{padding:16px 14px 16px;}
+    .precaution-head{flex-direction:column;align-items:flex-start;}
+    .precaution-figure{text-align:left;}
+    .reste-a-placer{padding:12px 14px;}
+    .reste-a-placer .value{font-size:20px;}
+
+    .growth-card{padding:16px 14px;}
+    .growth-controls{flex-direction:column;align-items:stretch !important;}
+    .growth-table th, .growth-table td{padding:7px 8px;font-size:12px;}
+    .growth-table th:first-child, .growth-table td:first-child{padding-left:0;}
   }
 </style>
 </head>
@@ -955,6 +1105,42 @@
     </div>
   </section>
 
+  <section class="growth-card">
+    <div class="growth-head">
+      <h2>Projection de croissance — Solde mensuel</h2>
+      <p>Exemple d'évolution si votre <strong>Solde mensuel</strong> (revenu − budget mensuel) est épargné/investi chaque mois à un taux de croissance annuel donné, comparé à une simple mise de côté sans intérêts.</p>
+    </div>
+
+    <div class="growth-controls">
+      <div class="growth-field">
+        <label for="growthRate">Taux annuel estimé</label>
+        <input type="number" id="growthRate" value="3" min="0" max="20" step="0.1">
+      </div>
+      <div class="growth-field">
+        <label for="growthHorizon">Horizon</label>
+        <select id="growthHorizon">
+          <option value="1">1 an</option>
+          <option value="3">3 ans</option>
+          <option value="5" selected>5 ans</option>
+          <option value="10">10 ans</option>
+          <option value="20">20 ans</option>
+        </select>
+      </div>
+      <div class="growth-field">
+        <label>Solde mensuel utilisé</label>
+        <div class="gvalue" id="growthMonthlyBase" style="font-family:'IBM Plex Mono', monospace;font-size:16px;font-weight:600;padding-top:4px;">0 €</div>
+      </div>
+    </div>
+
+    <div class="growth-kpis" id="growthKpis"></div>
+
+    <table class="growth-table">
+      <thead><tr><th>Année</th><th>Cumul sans croissance</th><th>Cumul avec croissance</th><th>Gain lié au taux</th></tr></thead>
+      <tbody id="growthBody"></tbody>
+    </table>
+    <p class="growth-note">Calcul en intérêts composés mensuels sur une rente de versements constants : capitalisation = Solde mensuel × [((1+taux mensuel)^n − 1) / taux mensuel]. Exemple indicatif, hors fiscalité et frais.</p>
+  </section>
+
   <footer>Les données restent dans la page tant que vous ne les exportez pas — pensez à télécharger votre sauvegarde JSON régulièrement.</footer>
 </div>
 
@@ -1103,6 +1289,10 @@ const incomeInput = document.getElementById('income');
 const cashActuelInput = document.getElementById('cashActuel');
 incomeInput.oninput = compute;
 cashActuelInput.oninput = compute;
+const growthRateInput = document.getElementById('growthRate');
+const growthHorizonInput = document.getElementById('growthHorizon');
+growthRateInput.oninput = compute;
+growthHorizonInput.onchange = compute;
 
 function renderAll(){
   renderTable(monthly, monthlyBody, 'monthly');
@@ -1215,8 +1405,61 @@ function compute(){
     kpiCard(resteAPlacer>=0?'💸 Reste à placer':'⚠️ Cash manquant', (resteAPlacer>=0?'+':'') + fmtRound(resteAPlacer), resteAPlacer>=0 ? 'Disponible après cash de sécurité' : 'Pour atteindre ton cash de sécurité', resteAPlacer>=0?'ok':'alert'),
   ];
   document.getElementById('kpiGrid').innerHTML = kpis.join('');
+  computeGrowth(balance);
   renderSankeys();
   saveLocal();
+}
+
+/* ---- Projection de croissance du Solde mensuel (rente à versements constants) ---- */
+function computeGrowth(monthlyBalance){
+  const contribution = Math.max(0, monthlyBalance);
+  const annualRatePct = parseFloat(growthRateInput.value) || 0;
+  const horizonYears = parseInt(growthHorizonInput.value, 10) || 5;
+  const monthlyRate = Math.pow(1 + annualRatePct/100, 1/12) - 1;
+
+  document.getElementById('growthMonthlyBase').textContent = fmt(contribution);
+
+  const fvAt = (nMonths) => {
+    if(contribution <= 0) return 0;
+    if(monthlyRate <= 0) return contribution * nMonths;
+    return contribution * ((Math.pow(1+monthlyRate, nMonths) - 1) / monthlyRate);
+  };
+
+  let rows = '';
+  for(let y = 1; y <= horizonYears; y++){
+    const nMonths = y * 12;
+    const sansCroissance = contribution * nMonths;
+    const avecCroissance = fvAt(nMonths);
+    const gain = avecCroissance - sansCroissance;
+    rows += `<tr>
+      <td>Année ${y}</td>
+      <td>${fmtRound(sansCroissance)}</td>
+      <td>${fmtRound(avecCroissance)}</td>
+      <td class="gain-col">+${fmtRound(gain)}</td>
+    </tr>`;
+  }
+  document.getElementById('growthBody').innerHTML = rows;
+
+  const finalMonths = horizonYears * 12;
+  const finalSans = contribution * finalMonths;
+  const finalAvec = fvAt(finalMonths);
+  const finalGain = finalAvec - finalSans;
+
+  const growthKpis = [
+    `<div class="growth-kpi ${contribution>0?'ok':''}">
+      <span class="glabel">Total versé (${horizonYears} an${horizonYears>1?'s':''})</span>
+      <span class="gvalue">${fmtRound(finalSans)}</span>
+    </div>`,
+    `<div class="growth-kpi ok">
+      <span class="glabel">Capital projeté à ${annualRatePct}%/an</span>
+      <span class="gvalue">${fmtRound(finalAvec)}</span>
+    </div>`,
+    `<div class="growth-kpi ${finalGain>=0?'ok':''}">
+      <span class="glabel">Gain lié au taux de croissance</span>
+      <span class="gvalue">+${fmtRound(finalGain)}</span>
+    </div>`,
+  ];
+  document.getElementById('growthKpis').innerHTML = growthKpis.join('');
 }
 
 /* ---- Diagrammes de flux (type Sankey) ---- */
@@ -1400,6 +1643,10 @@ function loadLocal(){
       salaryTauxImpotEl.value = data.salary.tauxImpot || 0;
       setQuotitePct(data.salary.quotitePct || 100);
     }
+    if(data.growth){
+      growthRateInput.value = data.growth.rate ?? 3;
+      growthHorizonInput.value = data.growth.horizon || 5;
+    }
     return true;
   }catch(e){ return false; }
 }
@@ -1435,6 +1682,10 @@ function currentState(){
       brut: parseFloat(salaryBrutEl.value) || 0,
       tauxImpot: parseFloat(salaryTauxImpotEl.value) || 0,
       quotitePct,
+    },
+    growth: {
+      rate: parseFloat(growthRateInput.value) || 0,
+      horizon: parseInt(growthHorizonInput.value, 10) || 5,
     },
   };
 }
@@ -1481,6 +1732,10 @@ importFile.onchange = (e) => {
         salaryBrutEl.value = data.salary.brut || 0;
         salaryTauxImpotEl.value = data.salary.tauxImpot || 0;
         setQuotitePct(data.salary.quotitePct || 100);
+      }
+      if(data.growth){
+        growthRateInput.value = data.growth.rate ?? 3;
+        growthHorizonInput.value = data.growth.horizon || 5;
       }
       renderAll();
       showStatus('Sauvegarde chargée ✓ (' + (data.savedAt ? new Date(data.savedAt).toLocaleDateString('fr-FR') : '') + ')');
