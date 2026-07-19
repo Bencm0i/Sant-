@@ -143,6 +143,144 @@
   @keyframes fadeInQuote {
     to { opacity: 1; transform: translateY(0); }
   }
+
+  /* --- Panneau expressions --- */
+  #exprToggle {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    font-size: 0.8rem;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.4);
+    background: rgba(0,0,0,0.35);
+    color: #fff;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    z-index: 20;
+  }
+  #exprToggle:hover { background: rgba(0,0,0,0.5); }
+
+  #exprPanel {
+    position: fixed;
+    top: 58px;
+    right: 16px;
+    width: min(420px, 90vw);
+    max-height: 74vh;
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    background: rgba(20,20,30,0.85);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 12px;
+    padding: 14px;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    z-index: 20;
+  }
+  #exprPanel.open { display: flex; }
+  #exprPanel h3 {
+    margin: 0;
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+  #exprList {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow-y: auto;
+    max-height: 40vh;
+    padding-right: 4px;
+  }
+  #exprList::-webkit-scrollbar { width: 6px; }
+  #exprList::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.25); border-radius: 3px; }
+  .expr-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .expr-row textarea {
+    flex: 1;
+    resize: vertical;
+    min-height: 34px;
+    max-height: 120px;
+    font-family: inherit;
+    font-size: 0.82rem;
+    color: #fff;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 6px;
+    padding: 6px 8px;
+  }
+  .expr-row textarea:focus {
+    outline: none;
+    border-color: rgba(255,255,255,0.6);
+  }
+  .expr-row .expr-del {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    line-height: 24px;
+    text-align: center;
+    font-size: 12px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 6px;
+    color: #fff;
+    cursor: pointer;
+  }
+  .expr-row .expr-del:hover { background: rgba(220,60,60,0.6); }
+  #exprAddRow {
+    display: flex;
+    gap: 6px;
+  }
+  #exprAddRow textarea {
+    flex: 1;
+    min-height: 34px;
+    max-height: 100px;
+    resize: vertical;
+    font-family: inherit;
+    font-size: 0.82rem;
+    color: #fff;
+    background: rgba(255,255,255,0.06);
+    border: 1px dashed rgba(255,255,255,0.35);
+    border-radius: 6px;
+    padding: 6px 8px;
+  }
+  #exprAddRow button {
+    flex-shrink: 0;
+    font-size: 0.78rem;
+    padding: 0 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.35);
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    cursor: pointer;
+  }
+  #exprAddRow button:hover { background: rgba(255,255,255,0.22); }
+  .expr-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    border-top: 1px solid rgba(255,255,255,0.15);
+    padding-top: 10px;
+  }
+  .expr-actions button, .expr-actions label {
+    font-size: 0.75rem;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.35);
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    cursor: pointer;
+  }
+  .expr-actions button:hover, .expr-actions label:hover { background: rgba(255,255,255,0.2); }
+  #exprStatus {
+    font-size: 0.72rem;
+    color: #ccc;
+    min-height: 1.1em;
+  }
 </style>
 </head>
 <body>
@@ -150,6 +288,23 @@
     <button id="launch">📑 Ouvrir Bookmarks Pro</button>
     <div id="status"></div>
     <div id="quote"></div>
+  </div>
+
+  <button id="exprToggle">💬 Expressions</button>
+  <div id="exprPanel">
+    <h3>Expressions affichées aléatoirement</h3>
+    <div id="exprList"></div>
+    <div id="exprAddRow">
+      <textarea id="exprNew" placeholder="Nouvelle expression…" rows="2"></textarea>
+      <button id="exprAddBtn">+ Ajouter</button>
+    </div>
+    <div class="expr-actions">
+      <button id="exprExport">⬇ Exporter JSON</button>
+      <label for="exprImportFile">⬆ Importer JSON</label>
+      <input type="file" id="exprImportFile" accept="application/json" style="display:none">
+      <button id="exprReset">↺ Réinitialiser</button>
+    </div>
+    <div id="exprStatus"></div>
   </div>
 
   <div class="gallery" id="gallery"></div>
@@ -166,8 +321,8 @@
   const URL_CIBLE = "https://bencm0i.github.io/Sant-/bookmarks_pro.html";
   const WINDOW_NAME = "bookmarksProTab"; // nom fixe : window.open réutilise l'onglet existant
 
-  // --- Citation aléatoire (une seule tirée à chaque ouverture) ---
-  const QUOTES = [
+  // --- Expressions (citations) : éditables, persistées en localStorage (JSON) ---
+  const DEFAULT_EXPRESSIONS = [
     "On me dit trop curieuse, mais je préfère dire passionnée par les gens.",
     "J'ai l'impression qu'on se connaît depuis toujours, alors que ça fait à peine cinq minutes.",
     "Attention, je suis du genre à me souvenir de tout ce que vous dites — surtout les bêtises.",
@@ -189,8 +344,37 @@
     "Je souris facilement, mais je ne me livre pas si vite.",
     "On dit que je suis intense — je préfère dire que je vais droit au but."
   ];
+
+  const EXPR_KEY = 'lanceur_expressions';
+
+  function loadExpressions() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(EXPR_KEY));
+      if (Array.isArray(raw) && raw.length) return raw;
+    } catch {}
+    // Première utilisation : on seed avec les expressions par défaut
+    localStorage.setItem(EXPR_KEY, JSON.stringify(DEFAULT_EXPRESSIONS));
+    return DEFAULT_EXPRESSIONS.slice();
+  }
+
+  function saveExpressions(arr) {
+    try {
+      localStorage.setItem(EXPR_KEY, JSON.stringify(arr));
+      return true;
+    } catch (err) {
+      console.error(err);
+      return false;
+    }
+  }
+
+  let expressions = loadExpressions();
+
   const quoteEl = document.getElementById('quote');
-  quoteEl.textContent = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+  // Une seule tirée aléatoirement à chaque ouverture, on garde celle-ci affichée
+  const CURRENT_QUOTE = expressions.length
+    ? expressions[Math.floor(Math.random() * expressions.length)]
+    : '';
+  quoteEl.textContent = CURRENT_QUOTE;
 
   const statusEl = document.getElementById('status');
   const overlayRange = document.getElementById('overlayRange');
@@ -327,6 +511,127 @@
       }
     }
     bgFile.value = '';
+  });
+
+  // --- Panneau expressions : rendu + interactions ---
+  const exprToggle = document.getElementById('exprToggle');
+  const exprPanel = document.getElementById('exprPanel');
+  const exprList = document.getElementById('exprList');
+  const exprNew = document.getElementById('exprNew');
+  const exprAddBtn = document.getElementById('exprAddBtn');
+  const exprExport = document.getElementById('exprExport');
+  const exprImportFile = document.getElementById('exprImportFile');
+  const exprReset = document.getElementById('exprReset');
+  const exprStatus = document.getElementById('exprStatus');
+
+  exprToggle.addEventListener('click', () => {
+    exprPanel.classList.toggle('open');
+  });
+
+  function flashExprStatus(msg) {
+    exprStatus.textContent = msg;
+    setTimeout(() => { if (exprStatus.textContent === msg) exprStatus.textContent = ''; }, 2500);
+  }
+
+  function persist() {
+    if (!saveExpressions(expressions)) {
+      flashExprStatus("⚠ Quota de stockage dépassé — impossible d'enregistrer.");
+    }
+  }
+
+  function renderExprList() {
+    exprList.innerHTML = '';
+    expressions.forEach((text, idx) => {
+      const row = document.createElement('div');
+      row.className = 'expr-row';
+
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.rows = 2;
+      ta.addEventListener('change', () => {
+        expressions[idx] = ta.value.trim();
+        persist();
+        flashExprStatus('✅ Modifié.');
+      });
+
+      const del = document.createElement('div');
+      del.className = 'expr-del';
+      del.textContent = '✕';
+      del.title = 'Supprimer';
+      del.addEventListener('click', () => {
+        expressions.splice(idx, 1);
+        persist();
+        renderExprList();
+        flashExprStatus('🗑 Supprimé.');
+      });
+
+      row.appendChild(ta);
+      row.appendChild(del);
+      exprList.appendChild(row);
+    });
+  }
+  renderExprList();
+
+  exprAddBtn.addEventListener('click', () => {
+    const val = exprNew.value.trim();
+    if (!val) return;
+    expressions.push(val);
+    persist();
+    exprNew.value = '';
+    renderExprList();
+    flashExprStatus('✅ Ajouté.');
+  });
+
+  exprNew.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      exprAddBtn.click();
+    }
+  });
+
+  exprExport.addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(expressions, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'expressions.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    flashExprStatus('⬇ Export effectué.');
+  });
+
+  exprImportFile.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        if (!Array.isArray(data)) throw new Error('Format invalide (attendu : tableau JSON de chaînes)');
+        const clean = data.map(v => String(v).trim()).filter(Boolean);
+        if (!clean.length) throw new Error('Aucune expression trouvée dans le fichier');
+        // Fusionne avec l'existant en évitant les doublons
+        const merged = expressions.slice();
+        clean.forEach(v => { if (!merged.includes(v)) merged.push(v); });
+        expressions = merged;
+        persist();
+        renderExprList();
+        flashExprStatus(`✅ ${clean.length} expression(s) importée(s).`);
+      } catch (err) {
+        flashExprStatus('⚠ Fichier JSON invalide.');
+        console.error(err);
+      }
+    };
+    reader.readAsText(file);
+    exprImportFile.value = '';
+  });
+
+  exprReset.addEventListener('click', () => {
+    if (!confirm('Réinitialiser la liste avec les expressions par défaut ? Vos ajouts/modifications seront perdus.')) return;
+    expressions = DEFAULT_EXPRESSIONS.slice();
+    persist();
+    renderExprList();
+    flashExprStatus('↺ Réinitialisé.');
   });
 
   // --- Ouverture / focus de l'onglet ---
