@@ -241,8 +241,12 @@
   document.getElementById('launch').addEventListener('click', () => {
     const win = window.open(URL_CIBLE, WINDOW_NAME);
     if (win) {
+      const dejaOuvert = win.__lanceurDejaOuvert === true;
+      win.__lanceurDejaOuvert = true;
       win.focus();
-      statusEl.textContent = "Onglet ouvert / mis au premier plan.";
+      statusEl.textContent = dejaOuvert
+        ? "✅ Onglet déjà ouvert — mis au premier plan."
+        : "🆕 Nouvel onglet ouvert.";
     } else {
       statusEl.textContent = "⚠ Bloqué par le bloqueur de pop-ups — autorisez les pop-ups pour ce fichier.";
     }
