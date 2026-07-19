@@ -74,6 +74,51 @@
     cursor: pointer;
   }
   .settings button:hover { background: rgba(255,255,255,0.2); }
+
+  .gallery {
+    position: fixed;
+    bottom: 64px;
+    right: 16px;
+    display: flex;
+    gap: 8px;
+    max-width: 70vw;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .thumb {
+    position: relative;
+    width: 52px;
+    height: 52px;
+    border-radius: 8px;
+    background-size: cover;
+    background-position: center;
+    border: 2px solid rgba(255,255,255,0.4);
+    cursor: pointer;
+    overflow: hidden;
+    transition: border-color .15s, transform .1s;
+  }
+  .thumb:hover { transform: scale(1.06); }
+  .thumb.active { border-color: #fff; box-shadow: 0 0 0 2px rgba(255,255,255,0.6); }
+  .thumb .del {
+    position: absolute;
+    top: 1px; right: 1px;
+    width: 16px; height: 16px;
+    line-height: 16px;
+    text-align: center;
+    font-size: 11px;
+    background: rgba(0,0,0,0.6);
+    color: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .thumb.add {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 1.4rem;
+    background: rgba(255,255,255,0.1);
+  }
 </style>
 </head>
 <body>
@@ -82,14 +127,14 @@
     <div id="status"></div>
   </div>
 
+  <div class="gallery" id="gallery"></div>
+
   <div class="settings">
     <label>Overlay
       <input type="range" id="overlayRange" min="0" max="90" value="35">
     </label>
-    <label>Fond
-      <input type="file" id="bgFile" accept="image/*">
-    </label>
-    <button id="clearBg">Réinitialiser</button>
+    <input type="file" id="bgFile" accept="image/*" style="display:none">
+    <button id="addBg">+ Ajouter un fond</button>
   </div>
 
 <script>
@@ -99,46 +144,95 @@
   const statusEl = document.getElementById('status');
   const overlayRange = document.getElementById('overlayRange');
   const bgFile = document.getElementById('bgFile');
-  const clearBg = document.getElementById('clearBg');
+  const addBg = document.getElementById('addBg');
+  const galleryEl = document.getElementById('gallery');
 
-  // --- Fond d'écran personnalisable (persisté en localStorage) ---
+  // --- Fond d'écran ---
   function applyBg(dataUrl) {
-    if (dataUrl) {
-      document.body.style.backgroundImage = `url(${dataUrl})`;
-    } else {
-      document.body.style.backgroundImage = 'none';
-    }
+    document.body.style.backgroundImage = dataUrl ? `url(${dataUrl})` : 'none';
   }
 
   function applyOverlay(val) {
     document.documentElement.style.setProperty('--overlay', `rgba(0,0,0,${val/100})`);
   }
 
-  const savedBg = localStorage.getItem('lanceur_bg');
   const savedOverlay = localStorage.getItem('lanceur_overlay');
-  if (savedBg) applyBg(savedBg);
   if (savedOverlay) { overlayRange.value = savedOverlay; applyOverlay(savedOverlay); }
   else applyOverlay(35);
-
-  bgFile.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      localStorage.setItem('lanceur_bg', reader.result);
-      applyBg(reader.result);
-    };
-    reader.readAsDataURL(file);
-  });
 
   overlayRange.addEventListener('input', (e) => {
     localStorage.setItem('lanceur_overlay', e.target.value);
     applyOverlay(e.target.value);
   });
 
-  clearBg.addEventListener('click', () => {
-    localStorage.removeItem('lanceur_bg');
-    applyBg(null);
+  // --- Bibliothèque de wallpapers (plusieurs fonds enregistrés, switch rapide) ---
+  // Structure stockée : { list: [{id, dataUrl}], activeId }
+  function loadLib() {
+    try {
+      return JSON.parse(localStorage.getItem('lanceur_wallpapers')) || { list: [], activeId: null };
+    } catch { return { list: [], activeId: null }; }
+  }
+  function saveLib(lib) {
+    localStorage.setItem('lanceur_wallpapers', JSON.stringify(lib));
+  }
+
+  let lib = loadLib();
+
+  function renderGallery() {
+    galleryEl.innerHTML = '';
+    lib.list.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'thumb' + (item.id === lib.activeId ? ' active' : '');
+      div.style.backgroundImage = `url(${item.dataUrl})`;
+      div.title = 'Cliquer pour appliquer ce fond';
+      div.addEventListener('click', () => {
+        lib.activeId = item.id;
+        saveLib(lib);
+        applyBg(item.dataUrl);
+        renderGallery();
+      });
+      const del = document.createElement('div');
+      del.className = 'del';
+      del.textContent = '✕';
+      del.title = 'Supprimer ce fond';
+      del.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        lib.list = lib.list.filter(w => w.id !== item.id);
+        if (lib.activeId === item.id) {
+          lib.activeId = lib.list.length ? lib.list[0].id : null;
+          applyBg(lib.activeId ? lib.list.find(w => w.id === lib.activeId).dataUrl : null);
+        }
+        saveLib(lib);
+        renderGallery();
+      });
+      div.appendChild(del);
+      galleryEl.appendChild(div);
+    });
+  }
+
+  // Applique le fond actif au chargement
+  if (lib.activeId) {
+    const active = lib.list.find(w => w.id === lib.activeId);
+    if (active) applyBg(active.dataUrl);
+  }
+  renderGallery();
+
+  addBg.addEventListener('click', () => bgFile.click());
+
+  bgFile.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const id = Date.now().toString(36);
+      lib.list.push({ id, dataUrl: reader.result });
+      lib.activeId = id;
+      saveLib(lib);
+      applyBg(reader.result);
+      renderGallery();
+    };
+    reader.readAsDataURL(file);
+    bgFile.value = '';
   });
 
   // --- Ouverture / focus de l'onglet ---
