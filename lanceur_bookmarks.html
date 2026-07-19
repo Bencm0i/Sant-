@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Lanceur — Bookmarks Pro</title>
+<style>
+  :root {
+    --overlay: rgba(0,0,0,0.35);
+  }
+  html, body {
+    margin: 0; height: 100%;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: #1a1a2e;
+    transition: background-color .3s;
+  }
+  .wrap {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    background: linear-gradient(var(--overlay), var(--overlay));
+  }
+  #launch {
+    padding: 22px 48px;
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #fff;
+    background: rgba(255,255,255,0.12);
+    border: 2px solid rgba(255,255,255,0.5);
+    border-radius: 14px;
+    backdrop-filter: blur(6px);
+    cursor: pointer;
+    transition: background .2s, transform .1s;
+  }
+  #launch:hover { background: rgba(255,255,255,0.22); }
+  #launch:active { transform: scale(0.97); }
+  #status {
+    color: #eee;
+    font-size: 0.9rem;
+    min-height: 1.2em;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+  }
+  .settings {
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    background: rgba(0,0,0,0.35);
+    padding: 10px 14px;
+    border-radius: 10px;
+    backdrop-filter: blur(4px);
+  }
+  .settings label {
+    color: #fff;
+    font-size: 0.8rem;
+  }
+  .settings input[type="color"] {
+    width: 32px; height: 32px; border: none; background: none; cursor: pointer;
+  }
+  .settings button {
+    font-size: 0.75rem;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.4);
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    cursor: pointer;
+  }
+  .settings button:hover { background: rgba(255,255,255,0.2); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <button id="launch">📑 Ouvrir Bookmarks Pro</button>
+    <div id="status"></div>
+  </div>
+
+  <div class="settings">
+    <label>Overlay
+      <input type="range" id="overlayRange" min="0" max="90" value="35">
+    </label>
+    <label>Fond
+      <input type="file" id="bgFile" accept="image/*">
+    </label>
+    <button id="clearBg">Réinitialiser</button>
+  </div>
+
+<script>
+  const URL_CIBLE = "https://bencm0i.github.io/Sant-/bookmarks_pro.html";
+  const WINDOW_NAME = "bookmarksProTab"; // nom fixe : window.open réutilise l'onglet existant
+
+  const statusEl = document.getElementById('status');
+  const overlayRange = document.getElementById('overlayRange');
+  const bgFile = document.getElementById('bgFile');
+  const clearBg = document.getElementById('clearBg');
+
+  // --- Fond d'écran personnalisable (persisté en localStorage) ---
+  function applyBg(dataUrl) {
+    if (dataUrl) {
+      document.body.style.backgroundImage = `url(${dataUrl})`;
+    } else {
+      document.body.style.backgroundImage = 'none';
+    }
+  }
+
+  function applyOverlay(val) {
+    document.documentElement.style.setProperty('--overlay', `rgba(0,0,0,${val/100})`);
+  }
+
+  const savedBg = localStorage.getItem('lanceur_bg');
+  const savedOverlay = localStorage.getItem('lanceur_overlay');
+  if (savedBg) applyBg(savedBg);
+  if (savedOverlay) { overlayRange.value = savedOverlay; applyOverlay(savedOverlay); }
+  else applyOverlay(35);
+
+  bgFile.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      localStorage.setItem('lanceur_bg', reader.result);
+      applyBg(reader.result);
+    };
+    reader.readAsDataURL(file);
+  });
+
+  overlayRange.addEventListener('input', (e) => {
+    localStorage.setItem('lanceur_overlay', e.target.value);
+    applyOverlay(e.target.value);
+  });
+
+  clearBg.addEventListener('click', () => {
+    localStorage.removeItem('lanceur_bg');
+    applyBg(null);
+  });
+
+  // --- Ouverture / focus de l'onglet ---
+  // window.open avec un nom fixe : si un onglet portant ce nom est déjà ouvert,
+  // Firefox le réutilise (le fait passer au premier plan) au lieu d'en créer un nouveau.
+  document.getElementById('launch').addEventListener('click', () => {
+    const win = window.open(URL_CIBLE, WINDOW_NAME);
+    if (win) {
+      win.focus();
+      statusEl.textContent = "Onglet ouvert / mis au premier plan.";
+    } else {
+      statusEl.textContent = "⚠ Bloqué par le bloqueur de pop-ups — autorisez les pop-ups pour ce fichier.";
+    }
+  });
+</script>
+</body>
+</html>
