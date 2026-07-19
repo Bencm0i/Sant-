@@ -119,12 +119,37 @@
     font-size: 1.4rem;
     background: rgba(255,255,255,0.1);
   }
+
+  #quote {
+    max-width: 560px;
+    text-align: center;
+    padding: 16px 26px;
+    color: #fff;
+    font-size: 1.15rem;
+    font-style: italic;
+    line-height: 1.5;
+    background: rgba(255,255,255,0.08);
+    border-left: 3px solid rgba(255,255,255,0.6);
+    border-radius: 8px;
+    backdrop-filter: blur(4px);
+    text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+    opacity: 0;
+    transform: translateY(6px);
+    animation: fadeInQuote .6s ease forwards;
+    animation-delay: .15s;
+  }
+  #quote::before { content: "“ "; }
+  #quote::after { content: " ”"; }
+  @keyframes fadeInQuote {
+    to { opacity: 1; transform: translateY(0); }
+  }
 </style>
 </head>
 <body>
   <div class="wrap">
     <button id="launch">📑 Ouvrir Bookmarks Pro</button>
     <div id="status"></div>
+    <div id="quote"></div>
   </div>
 
   <div class="gallery" id="gallery"></div>
@@ -140,6 +165,22 @@
 <script>
   const URL_CIBLE = "https://bencm0i.github.io/Sant-/bookmarks_pro.html";
   const WINDOW_NAME = "bookmarksProTab"; // nom fixe : window.open réutilise l'onglet existant
+
+  // --- Citation aléatoire (une seule tirée à chaque ouverture) ---
+  const QUOTES = [
+    "On me dit trop curieuse, mais je préfère dire passionnée par les gens.",
+    "J'ai l'impression qu'on se connaît depuis toujours, alors que ça fait à peine cinq minutes.",
+    "Attention, je suis du genre à me souvenir de tout ce que vous dites — surtout les bêtises.",
+    "Rien ne me plaît autant qu'une bonne conversation et un café qui refroidit parce qu'on a trop parlé.",
+    "Je ne cherche pas à plaire à tout le monde, juste à être moi-même — et si ça plaît, tant mieux.",
+    "Un sourire sincère ouvre plus de portes qu'on ne le croit.",
+    "La vraie élégance, c'est de mettre les gens à l'aise sans y penser.",
+    "J'aime les silences confortables presque autant que les grandes discussions.",
+    "On a qu'une vie, autant la vivre avec un peu de style et beaucoup de sincérité.",
+    "Je préfère écouter deux fois plus que je ne parle."
+  ];
+  const quoteEl = document.getElementById('quote');
+  quoteEl.textContent = QUOTES[Math.floor(Math.random() * QUOTES.length)];
 
   const statusEl = document.getElementById('status');
   const overlayRange = document.getElementById('overlayRange');
