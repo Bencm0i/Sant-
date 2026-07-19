@@ -781,6 +781,13 @@
     margin-bottom:18px;
   }
   .growth-field{display:flex;flex-direction:column;gap:5px;}
+  .growth-field .input-suffix{position:relative;display:flex;align-items:center;}
+  .growth-field .input-suffix span{
+    position:absolute;right:9px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;color:var(--muted);pointer-events:none;
+  }
+  .growth-field .input-suffix input{padding-right:26px;}
   .growth-field label{
     font-family:'IBM Plex Mono', monospace;
     font-size:10.5px;
@@ -829,6 +836,27 @@
     color:var(--ink);
   }
   table.growth-table{width:100%;border-collapse:collapse;}
+  .growth-table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .th-short{display:none;}
+  .growth-field-preset select{width:220px;}
+  .growth-preset-note{
+    font-size:11.5px;
+    line-height:1.5;
+    color:var(--muted);
+    margin:-6px 0 16px;
+  }
+  .growth-chart-wrap{margin-bottom:18px;}
+  .growth-chart-wrap svg{width:100%;height:auto;display:block;}
+  .growth-empty-note{
+    font-size:12.5px;
+    line-height:1.5;
+    color:var(--rust);
+    background:var(--rust-bg);
+    border-left:3px solid var(--rust);
+    padding:10px 12px;
+    border-radius:var(--radius);
+    margin:0 0 16px;
+  }
   .growth-table thead th{
     text-align:right;
     font-family:'IBM Plex Mono', monospace;
@@ -858,6 +886,11 @@
     color:var(--muted);
   }
 
+  /* Barre de solde mensuel sticky (mobile) */
+  .mobile-balance-bar{
+    display:none;
+  }
+
   footer{
     text-align:center;
     margin-top:36px;
@@ -874,7 +907,35 @@
 
   /* ---- Rendu "comptable" compact pour smartphone ---- */
   @media (max-width:600px){
-    body{padding:16px 10px 60px;}
+    body{padding:16px 10px 88px;}
+
+    .mobile-balance-bar{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      position:fixed;
+      left:0;right:0;bottom:0;
+      z-index:50;
+      background:var(--ink);
+      border-top:1px solid rgba(228,199,122,0.3);
+      padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+      box-shadow:0 -4px 14px rgba(0,0,0,0.25);
+    }
+    .mobile-balance-bar .mbb-label{
+      font-family:'IBM Plex Mono', monospace;
+      font-size:11px;
+      letter-spacing:0.06em;
+      text-transform:uppercase;
+      color:var(--gold-soft);
+    }
+    .mobile-balance-bar .mbb-value{
+      font-family:'IBM Plex Mono', monospace;
+      font-size:17px;
+      font-weight:600;
+      color:var(--paper);
+    }
+    .mobile-balance-bar.alert .mbb-value{color:#E28C77;}
+    .mobile-balance-bar.ok .mbb-value{color:#8FCBA6;}
     header{align-items:flex-start;gap:10px;padding-bottom:14px;margin-bottom:18px;}
     .header-right{align-items:flex-start;width:100%;}
     .save-actions{width:100%;}
@@ -909,8 +970,11 @@
 
     .growth-card{padding:16px 14px;}
     .growth-controls{flex-direction:column;align-items:stretch !important;}
-    .growth-table th, .growth-table td{padding:7px 8px;font-size:12px;}
-    .growth-table th:first-child, .growth-table td:first-child{padding-left:0;}
+    .growth-field-preset select{width:100%;}
+    .growth-table th, .growth-table td{padding:7px 8px;font-size:12px;white-space:nowrap;}
+    .growth-table th:first-child, .growth-table td:first-child{padding-left:0;white-space:normal;}
+    .th-full{display:none;}
+    .th-short{display:inline;}
   }
 </style>
 </head>
@@ -1112,9 +1176,16 @@
     </div>
 
     <div class="growth-controls">
+      <div class="growth-field growth-field-preset">
+        <label for="growthPreset">Type de placement</label>
+        <select id="growthPreset"></select>
+      </div>
       <div class="growth-field">
         <label for="growthRate">Taux annuel estimé</label>
-        <input type="number" id="growthRate" value="3" min="0" max="20" step="0.1">
+        <div class="input-suffix">
+          <input type="number" id="growthRate" value="1.5" min="0" max="20" step="0.1">
+          <span>%</span>
+        </div>
       </div>
       <div class="growth-field">
         <label for="growthHorizon">Horizon</label>
@@ -1131,17 +1202,36 @@
         <div class="gvalue" id="growthMonthlyBase" style="font-family:'IBM Plex Mono', monospace;font-size:16px;font-weight:600;padding-top:4px;">0 €</div>
       </div>
     </div>
+    <p class="growth-preset-note" id="growthPresetNote"></p>
+
+    <p class="growth-empty-note" id="growthEmptyNote" style="display:none;">⚠️ Ton Solde mensuel est nul ou négatif (le budget mensuel dépasse le revenu) : il n'y a rien à faire fructifier ce mois-ci. Ajuste ton revenu ou ton budget mensuel ci-dessus pour voir une projection.</p>
+
+    <div class="growth-chart-wrap" id="growthChartWrap">
+      <svg id="growthChart" viewBox="0 0 640 220" preserveAspectRatio="none"></svg>
+    </div>
 
     <div class="growth-kpis" id="growthKpis"></div>
 
-    <table class="growth-table">
-      <thead><tr><th>Année</th><th>Cumul sans croissance</th><th>Cumul avec croissance</th><th>Gain lié au taux</th></tr></thead>
-      <tbody id="growthBody"></tbody>
-    </table>
+    <div class="growth-table-scroll">
+      <table class="growth-table">
+        <thead><tr>
+          <th>Année</th>
+          <th><span class="th-full">Cumul sans croissance</span><span class="th-short">Sans croissance</span></th>
+          <th><span class="th-full">Cumul avec croissance</span><span class="th-short">Avec croissance</span></th>
+          <th><span class="th-full">Gain lié au taux</span><span class="th-short">Gain</span></th>
+        </tr></thead>
+        <tbody id="growthBody"></tbody>
+      </table>
+    </div>
     <p class="growth-note">Calcul en intérêts composés mensuels sur une rente de versements constants : capitalisation = Solde mensuel × [((1+taux mensuel)^n − 1) / taux mensuel]. Exemple indicatif, hors fiscalité et frais.</p>
   </section>
 
   <footer>Les données restent dans la page tant que vous ne les exportez pas — pensez à télécharger votre sauvegarde JSON régulièrement.</footer>
+</div>
+
+<div class="mobile-balance-bar" id="mobileBalanceBar">
+  <span class="mbb-label">Solde mensuel</span>
+  <span class="mbb-value" id="mobileBalanceValue">0 €</span>
 </div>
 
 <script>
@@ -1291,8 +1381,42 @@ incomeInput.oninput = compute;
 cashActuelInput.oninput = compute;
 const growthRateInput = document.getElementById('growthRate');
 const growthHorizonInput = document.getElementById('growthHorizon');
-growthRateInput.oninput = compute;
+const growthPresetInput = document.getElementById('growthPreset');
+growthRateInput.oninput = () => { growthPresetInput.value = 'custom'; updatePresetNote(); compute(); };
 growthHorizonInput.onchange = compute;
+
+/* Taux indicatifs (juillet 2026) — à titre d'exemple, vérifiez les taux en vigueur avant de décider */
+const GROWTH_PRESETS = [
+  {id:'custom', label:'Personnalisé', rate:null, note:'Saisissez librement le taux que vous voulez tester.'},
+  {id:'compte', label:'Compte courant / cash', rate:0, note:'Aucune rémunération : sert de référence "sans croissance".'},
+  {id:'livretA', label:'Livret A / LDDS — 1,5 %', rate:1.5, note:'Taux net en vigueur jusqu\'au 31/07/2026 (passera à 1,7 % au 01/08/2026). Sans risque, plafonné, disponible à tout moment.'},
+  {id:'lep', label:'LEP — 2,5 %', rate:2.5, note:'Taux net, réservé aux revenus modestes (sous conditions de ressources). Sans risque, plafonné à 10 000 €.'},
+  {id:'pel', label:'PEL (nouveaux plans) — 2 %', rate:2, note:'Taux brut fixe sur toute la durée pour un plan ouvert en 2026, soumis à prélèvements sociaux et impôt.'},
+  {id:'fondseuro', label:'Fonds euro assurance-vie — 2,5 %', rate:2.5, note:'Estimation indicative (rendement moyen récent, net de frais de gestion, hors prélèvements sociaux). Variable selon le contrat.'},
+  {id:'pea', label:'PEA / actions long terme — 6 %', rate:6, note:'Hypothèse illustrative de rendement moyen annualisé sur le long terme. Non garanti : les marchés actions peuvent aussi baisser, y compris plusieurs années de suite.'},
+];
+
+function populateGrowthPresets(){
+  growthPresetInput.innerHTML = GROWTH_PRESETS.map(p => `<option value="${p.id}">${p.label}</option>`).join('');
+  growthPresetInput.value = 'livretA';
+}
+
+function updatePresetNote(){
+  const preset = GROWTH_PRESETS.find(p => p.id === growthPresetInput.value) || GROWTH_PRESETS[0];
+  document.getElementById('growthPresetNote').textContent = preset.note;
+}
+
+growthPresetInput.onchange = () => {
+  const preset = GROWTH_PRESETS.find(p => p.id === growthPresetInput.value);
+  if(preset && preset.rate !== null){
+    growthRateInput.value = preset.rate;
+  }
+  updatePresetNote();
+  compute();
+};
+populateGrowthPresets();
+updatePresetNote();
+
 
 function renderAll(){
   renderTable(monthly, monthlyBody, 'monthly');
@@ -1405,6 +1529,12 @@ function compute(){
     kpiCard(resteAPlacer>=0?'💸 Reste à placer':'⚠️ Cash manquant', (resteAPlacer>=0?'+':'') + fmtRound(resteAPlacer), resteAPlacer>=0 ? 'Disponible après cash de sécurité' : 'Pour atteindre ton cash de sécurité', resteAPlacer>=0?'ok':'alert'),
   ];
   document.getElementById('kpiGrid').innerHTML = kpis.join('');
+
+  const mbb = document.getElementById('mobileBalanceBar');
+  document.getElementById('mobileBalanceValue').textContent = (balance>=0?'+':'') + fmt(balance);
+  mbb.classList.remove('ok','alert');
+  mbb.classList.add(balance>=0 ? 'ok' : 'alert');
+
   computeGrowth(balance);
   renderSankeys();
   saveLocal();
@@ -1419,13 +1549,32 @@ function computeGrowth(monthlyBalance){
 
   document.getElementById('growthMonthlyBase').textContent = fmt(contribution);
 
+  const emptyNote = document.getElementById('growthEmptyNote');
+  const kpisBox = document.getElementById('growthKpis');
+  const tableScroll = document.querySelector('.growth-table-scroll');
+  const chartWrap = document.getElementById('growthChartWrap');
+
+  if(contribution <= 0){
+    emptyNote.style.display = 'block';
+    kpisBox.style.display = 'none';
+    tableScroll.style.display = 'none';
+    chartWrap.style.display = 'none';
+    return;
+  }
+  emptyNote.style.display = 'none';
+  kpisBox.style.display = '';
+  tableScroll.style.display = '';
+  chartWrap.style.display = '';
+
   const fvAt = (nMonths) => {
-    if(contribution <= 0) return 0;
     if(monthlyRate <= 0) return contribution * nMonths;
     return contribution * ((Math.pow(1+monthlyRate, nMonths) - 1) / monthlyRate);
   };
 
   let rows = '';
+  const chartYears = [0];
+  const chartSans = [0];
+  const chartAvec = [0];
   for(let y = 1; y <= horizonYears; y++){
     const nMonths = y * 12;
     const sansCroissance = contribution * nMonths;
@@ -1437,8 +1586,12 @@ function computeGrowth(monthlyBalance){
       <td>${fmtRound(avecCroissance)}</td>
       <td class="gain-col">+${fmtRound(gain)}</td>
     </tr>`;
+    chartYears.push(y);
+    chartSans.push(sansCroissance);
+    chartAvec.push(avecCroissance);
   }
   document.getElementById('growthBody').innerHTML = rows;
+  renderGrowthChart(chartYears, chartSans, chartAvec);
 
   const finalMonths = horizonYears * 12;
   const finalSans = contribution * finalMonths;
@@ -1460,6 +1613,58 @@ function computeGrowth(monthlyBalance){
     </div>`,
   ];
   document.getElementById('growthKpis').innerHTML = growthKpis.join('');
+}
+
+function renderGrowthChart(years, sansArr, avecArr){
+  const svg = document.getElementById('growthChart');
+  const W = 640, H = 220;
+  const padL = 46, padR = 12, padT = 14, padB = 24;
+  const innerW = W - padL - padR;
+  const innerH = H - padT - padB;
+  const maxVal = Math.max(1, ...avecArr, ...sansArr);
+  const n = years.length;
+
+  const x = i => padL + (innerW * i) / (n - 1);
+  const y = v => padT + innerH - (innerH * v) / maxVal;
+
+  const pathFor = arr => arr.map((v,i) => (i===0?'M':'L') + x(i).toFixed(1) + ',' + y(v).toFixed(1)).join(' ');
+  const sansPath = pathFor(sansArr);
+  const avecPath = pathFor(avecArr);
+  const areaPath = avecPath + ' L' + x(n-1).toFixed(1) + ',' + y(sansArr[n-1]).toFixed(1) +
+    ' ' + sansArr.slice().reverse().map((v,ri) => 'L' + x(n-1-ri).toFixed(1) + ',' + y(v).toFixed(1)).join(' ') + ' Z';
+
+  const gridLines = [0, 0.25, 0.5, 0.75, 1].map(f => {
+    const gy = padT + innerH * (1-f);
+    const val = maxVal * f;
+    return `<line x1="${padL}" y1="${gy.toFixed(1)}" x2="${W-padR}" y2="${gy.toFixed(1)}" stroke="rgba(27,36,48,0.08)" stroke-width="1"/>
+      <text x="${padL-6}" y="${(gy+3).toFixed(1)}" text-anchor="end" font-family="'IBM Plex Mono', monospace" font-size="9" fill="#7B7568">${fmtCompact(val)}</text>`;
+  }).join('');
+
+  const xLabels = years.map((yr,i) => {
+    if(n > 8 && i % Math.ceil(n/6) !== 0 && i !== n-1) return '';
+    return `<text x="${x(i).toFixed(1)}" y="${H-6}" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="9" fill="#7B7568">${yr==0?'Départ':'An '+yr}</text>`;
+  }).join('');
+
+  svg.innerHTML = `
+    ${gridLines}
+    <path d="${areaPath}" fill="#4C7A5E" fill-opacity="0.14" stroke="none"/>
+    <path d="${sansPath}" fill="none" stroke="#C89B3C" stroke-width="2" stroke-dasharray="4 3"/>
+    <path d="${avecPath}" fill="none" stroke="#4C7A5E" stroke-width="2.5"/>
+    <circle cx="${x(n-1).toFixed(1)}" cy="${y(avecArr[n-1]).toFixed(1)}" r="3.5" fill="#4C7A5E"/>
+    <circle cx="${x(n-1).toFixed(1)}" cy="${y(sansArr[n-1]).toFixed(1)}" r="3" fill="#C89B3C"/>
+    ${xLabels}
+    <g font-family="'IBM Plex Mono', monospace" font-size="10">
+      <rect x="${padL}" y="2" width="9" height="9" fill="#4C7A5E"/>
+      <text x="${padL+13}" y="10" fill="#2C3646">Avec croissance</text>
+      <rect x="${padL+120}" y="2" width="9" height="9" fill="#C89B3C"/>
+      <text x="${padL+133}" y="10" fill="#2C3646">Sans croissance</text>
+    </g>
+  `;
+}
+
+function fmtCompact(n){
+  if(n >= 1000) return Math.round(n/1000) + 'k€';
+  return Math.round(n) + '€';
 }
 
 /* ---- Diagrammes de flux (type Sankey) ---- */
@@ -1644,8 +1849,10 @@ function loadLocal(){
       setQuotitePct(data.salary.quotitePct || 100);
     }
     if(data.growth){
-      growthRateInput.value = data.growth.rate ?? 3;
+      growthRateInput.value = data.growth.rate ?? 1.5;
       growthHorizonInput.value = data.growth.horizon || 5;
+      growthPresetInput.value = data.growth.preset || 'custom';
+      updatePresetNote();
     }
     return true;
   }catch(e){ return false; }
@@ -1686,6 +1893,7 @@ function currentState(){
     growth: {
       rate: parseFloat(growthRateInput.value) || 0,
       horizon: parseInt(growthHorizonInput.value, 10) || 5,
+      preset: growthPresetInput.value,
     },
   };
 }
@@ -1734,8 +1942,10 @@ importFile.onchange = (e) => {
         setQuotitePct(data.salary.quotitePct || 100);
       }
       if(data.growth){
-        growthRateInput.value = data.growth.rate ?? 3;
+        growthRateInput.value = data.growth.rate ?? 1.5;
         growthHorizonInput.value = data.growth.horizon || 5;
+        growthPresetInput.value = data.growth.preset || 'custom';
+        updatePresetNote();
       }
       renderAll();
       showStatus('Sauvegarde chargée ✓ (' + (data.savedAt ? new Date(data.savedAt).toLocaleDateString('fr-FR') : '') + ')');
