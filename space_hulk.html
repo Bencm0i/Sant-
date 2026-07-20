@@ -99,6 +99,9 @@ h1{
 .los{background:#0c2414;}
 .pickup-heavy{color:#c9a3ff; background:#14102a; text-shadow:0 0 6px #c9a3ff; font-weight:bold;}
 .pickup-flamer{color:#ff8a3d; background:#2a1406; text-shadow:0 0 6px #ff8a3d; font-weight:bold;}
+.sas{color:#ffcf3a; background:#241a02; text-shadow:0 0 6px #ffcf3a; font-weight:bold;}
+.vacuum{color:#4d6bff; background:#00000c; text-shadow:0 0 7px #4d6bff; font-weight:bold; animation:vacflicker 1.6s infinite;}
+@keyframes vacflicker{ 0%,100%{opacity:1;} 50%{opacity:0.55;} }
 
 #log{
   height:110px; overflow-y:auto;
@@ -149,6 +152,7 @@ h1{
     <span>SURVEILLANCE <b id="ow">OFF</b></span>
     <span>BOLTER LOURD <b id="ammoHB">0</b></span>
     <span>PYROLANCE <b id="ammoFL">0</b></span>
+    <span>DÉCOMPRESSION <b id="vacStatus">STABLE</b></span>
   </div>
 
   <div id="mapwrap"><div id="grid"></div></div>
@@ -162,6 +166,7 @@ h1{
     <span><b>G + flèche</b> pyrolance (2 PA, courte portée, perce)</span>
     <span><b>espace</b> fin de tour / surveillance</span>
     <span><b>R</b> nouveau secteur</span>
+    <span><b>Ø</b> faille de coque — le vide (≈) s'en échappe et progresse</span>
   </div>
 
   <div id="overlay">
@@ -177,6 +182,7 @@ h1{
   const GW = 2*W+1, GH = 2*H+1; // display grid
   let grid, marine, hp, ap, apMax, turn, kills, aliens, overwatch, gameOver, spawnPoints;
   let pickups, ammoHB, ammoFL;
+  let sas, vacuumSet, vacuumFrontier, vacuumActive, vacuumStartTurn;
   const CELL_WALL='#', CELL_FLOOR='.';
 
   function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
@@ -283,6 +289,20 @@ h1{
     if(weaponCandidates.length>1) pickups.push({x:weaponCandidates[1].x, y:weaponCandidates[1].y, type:'flamer'});
     ammoHB = 0; ammoFL = 0;
 
+    // hull breach (sas): pick a floor cell not already used for start/exit/spawns/pickups
+    const reservedKeys = new Set([
+      marine.x+','+marine.y,
+      grid.exit.x+','+grid.exit.y,
+      ...spawnPoints.map(p=>p.x+','+p.y),
+      ...pickups.map(p=>p.x+','+p.y)
+    ]);
+    const sasCandidates = candidates.filter(c=>!reservedKeys.has(c.x+','+c.y));
+    sas = sasCandidates.length ? sasCandidates[Math.floor(Math.random()*sasCandidates.length)] : {x:best.x,y:best.y};
+    vacuumSet = new Set();
+    vacuumFrontier = [sas];
+    vacuumActive = false;
+    vacuumStartTurn = 3 + Math.floor(Math.random()*2);
+
     aliens = [];
     // seed with two genestealers
     for(let i=0;i<2 && spawnPoints.length;i++){
@@ -296,10 +316,12 @@ h1{
     document.getElementById('overlay').classList.remove('show');
     log('>> AUSPEX EN LIGNE. Signal capté à la limite du senseur.', 'info');
     log('>> Objectif : rejoindre le point d\'extraction (◆).', 'info');
+    log('>> Détecteur de coque : une faille structurelle est cartographiée (Ø). Restez vigilant.', 'info');
     render();
   }
 
   function pickupAt(x,y){ return pickups.find(p=>p.x===x&&p.y===y); }
+  function isVacuum(x,y){ return vacuumSet.has(x+','+y); }
 
   function cellClass(x,y){
     if(x===marine.x && y===marine.y) return 'marine';
@@ -307,6 +329,8 @@ h1{
     if(x===grid.exit.x && y===grid.exit.y) return 'exit';
     const pu = pickupAt(x,y);
     if(pu) return pu.type==='heavy' ? 'pickup-heavy' : 'pickup-flamer';
+    if(isVacuum(x,y)) return 'vacuum';
+    if(x===sas.x && y===sas.y) return 'sas';
     if(grid[y][x]===CELL_WALL) return 'wall';
     return 'floor';
   }
@@ -316,6 +340,8 @@ h1{
     if(x===grid.exit.x && y===grid.exit.y) return '◆';
     const pu = pickupAt(x,y);
     if(pu) return pu.type==='heavy' ? 'H' : 'L';
+    if(isVacuum(x,y)) return '≈';
+    if(x===sas.x && y===sas.y) return 'Ø';
     if(grid[y][x]===CELL_WALL) return '▓';
     return '·';
   }
@@ -340,6 +366,9 @@ h1{
     document.getElementById('ow').textContent = overwatch? 'ON':'OFF';
     document.getElementById('ammoHB').textContent = ammoHB;
     document.getElementById('ammoFL').textContent = ammoFL;
+    const vs = document.getElementById('vacStatus');
+    if(!vacuumActive){ vs.textContent='STABLE'; vs.className=''; }
+    else { vs.textContent='EN EXPANSION ('+vacuumSet.size+')'; vs.className='stat-crit'; }
   }
 
   function tileFree(x,y){
@@ -354,6 +383,7 @@ h1{
     const nx=marine.x+dx, ny=marine.y+dy;
     if(!tileFree(nx,ny)){ return; }
     marine.x=nx; marine.y=ny; ap--;
+    if(isVacuum(nx,ny)){ loseGameVacuum(); return; }
     const pu = pickupAt(nx,ny);
     if(pu){
       pickups = pickups.filter(p=>p!==pu);
@@ -435,6 +465,7 @@ h1{
     if(gameOver) return;
     turn++;
     ap=apMax;
+    if(tickVacuum()) return;
     // chance to spawn a fresh genestealer out of sight
     if(spawnPoints.length && Math.random()<0.35 && aliens.length<6){
       const outOfSight = spawnPoints.filter(p=>!hasLOS(marine.x,marine.y,p.x,p.y));
@@ -504,6 +535,52 @@ h1{
       'Contact rompu au tour '+turn+'. '+kills+' xenos abattus avant la fin. La flotte perd un Frère de plus dans le hulk.';
     document.getElementById('overlay').classList.add('show');
     log('>> SIGNAL PERDU. Fin de transmission.', 'alert');
+  }
+
+  function loseGameVacuum(){
+    gameOver=true;
+    render();
+    document.getElementById('overlayTitle').textContent='DÉCOMPRESSION';
+    document.getElementById('overlayText').textContent =
+      'Le vide a rattrapé le Frère au tour '+turn+'. '+kills+' xenos abattus avant la fin. La coque n\'a pas tenu.';
+    document.getElementById('overlay').classList.add('show');
+    log('>> BRÈCHE ATTEINTE. Dépressurisation totale. Fin de transmission.', 'alert');
+  }
+
+  function tickVacuum(){
+    if(!vacuumActive && turn>=vacuumStartTurn){
+      vacuumActive = true;
+      log('>> ALERTE COQUE : la brèche cède. Dépressurisation en cours.', 'alert');
+    }
+    if(vacuumActive){
+      for(const f of vacuumFrontier) vacuumSet.add(f.x+','+f.y);
+      const next = [];
+      const dirs4 = [[0,-1],[0,1],[-1,0],[1,0]];
+      for(const f of vacuumFrontier){
+        for(const [dx,dy] of dirs4){
+          const nx=f.x+dx, ny=f.y+dy;
+          if(nx>=0&&ny>=0&&nx<GW&&ny<GH&&grid[ny][nx]===CELL_FLOOR){
+            const key=nx+','+ny;
+            if(!vacuumSet.has(key) && !next.some(p=>p.x===nx&&p.y===ny)){
+              next.push({x:nx,y:ny});
+            }
+          }
+        }
+      }
+      vacuumFrontier = next;
+      if(next.length===0) vacuumActive=false;
+    }
+    for(const a of aliens.slice()){
+      if(isVacuum(a.x,a.y)){
+        aliens = aliens.filter(al=>al!==a);
+        log('>> Un xenos est aspiré par la brèche.', null);
+      }
+    }
+    if(isVacuum(marine.x,marine.y)){
+      loseGameVacuum();
+      return true;
+    }
+    return false;
   }
 
   document.addEventListener('keydown', (e)=>{
