@@ -1177,6 +1177,63 @@ body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
 .meteo-retry-btn:hover { opacity:0.82; }
 .meteo-error { font-size:0.65rem; color:#b3564f; font-weight:700; text-align:center; }
 
+/* ── CITATION WIDGET (style météo) ── */
+#citationWidget {
+  position:fixed; bottom:36px; right:20px; z-index:20;
+  display:flex; align-items:center; gap:7px; max-width:260px;
+  background:rgba(255,255,255,0.18); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  border:1px solid rgba(255,255,255,0.35); border-radius:30px;
+  padding:6px 14px 6px 10px;
+  box-shadow:0 2px 14px rgba(30,41,59,0.1);
+  cursor:grab; transition:background 0.2s, box-shadow 0.2s;
+  font-family:'Inter',sans-serif;
+  user-select:none;
+}
+#citationWidget.dragging { cursor:grabbing; box-shadow:0 8px 28px rgba(30,41,59,0.22); }
+#citationWidget:hover { background:rgba(255,255,255,0.35); box-shadow:0 4px 20px rgba(30,41,59,0.18); }
+#citationIcon { font-size:1.1rem; line-height:1; flex-shrink:0; }
+#citationShort {
+  font-size:0.68rem; font-weight:800; color:var(--text);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px;
+}
+#citationWidgetLabel { font-size:0.58rem; font-weight:700; color:var(--muted); letter-spacing:0.08em; text-transform:uppercase; }
+#citationTooltip {
+  position:fixed; bottom:70px; right:16px; z-index:21;
+  background:rgba(255,255,255,0.95); backdrop-filter:blur(20px);
+  border:1.5px solid rgba(255,255,255,0.9); border-radius:16px;
+  padding:14px 18px; width:260px;
+  box-shadow:0 8px 32px rgba(30,41,59,0.18);
+  font-family:'Inter',sans-serif; display:none; flex-direction:column; gap:8px;
+}
+#citationTooltip.open { display:flex; }
+#citationFullText { font-style:italic; font-size:0.75rem; font-weight:700; color:var(--text); line-height:1.45; }
+#citationAuthor { font-size:0.65rem; font-weight:700; color:var(--muted); text-align:right; }
+#citationSettings {
+  display:none; flex-direction:column; gap:6px; margin-top:2px;
+  border-top:1px solid rgba(61,90,115,0.15); padding-top:8px;
+}
+#citationSettings.open { display:flex; }
+#citationInput {
+  width:100%; box-sizing:border-box; resize:vertical; min-height:44px;
+  border-radius:10px; border:1px solid rgba(61,90,115,0.2); padding:6px 8px;
+  font-family:'Inter',sans-serif; font-size:0.68rem; color:var(--text); background:rgba(255,255,255,0.7);
+}
+#citationAuthorInput {
+  width:100%; box-sizing:border-box; border-radius:10px; border:1px solid rgba(61,90,115,0.2);
+  padding:5px 8px; font-family:'Inter',sans-serif; font-size:0.68rem; color:var(--text); background:rgba(255,255,255,0.7);
+}
+#citationListWrap { max-height:120px; overflow-y:auto; display:flex; flex-direction:column; gap:4px; }
+.citation-item {
+  display:flex; align-items:center; gap:6px;
+  background:rgba(61,90,115,0.06); border-radius:8px; padding:4px 8px;
+}
+.citation-item-text { flex:1; font-size:0.62rem; font-weight:600; color:var(--text); line-height:1.3; }
+.citation-item-del {
+  flex-shrink:0; border:none; background:none; cursor:pointer; color:#b3564f;
+  font-size:0.75rem; line-height:1; padding:2px;
+}
+.citation-empty { font-size:0.62rem; color:var(--muted); font-style:italic; text-align:center; padding:4px 0; }
+
 /* ── WIDGET POINTEUSE FLOTTANT (style météo) ── */
 #pointeuseWidget {
   position:fixed; bottom:36px; left:20px; z-index:20;
@@ -2357,6 +2414,27 @@ body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
   <div class="meteo-row" style="margin-top:2px;border-top:1px solid rgba(61,90,115,0.15);padding-top:6px;"><span class="meteo-label">📍</span><span class="meteo-val" id="meteoDesc">--</span></div>
   <div id="meteoErrorMsg" class="meteo-error" style="display:none">⚠️ Météo indisponible</div>
   <button class="meteo-retry-btn" onclick="fetchMeteo(true)">🔄 Actualiser</button>
+</div>
+
+<!-- CITATION WIDGET (style météo) -->
+<div id="citationWidget" title="Citation du moment (clic = détails, glisser = déplacer)">
+  <span id="citationIcon">💬</span>
+  <div>
+    <div id="citationShort">Chargement…</div>
+    <div id="citationWidgetLabel">CITATION</div>
+  </div>
+</div>
+<div id="citationTooltip">
+  <div id="citationFullText">--</div>
+  <div id="citationAuthor">--</div>
+  <button class="meteo-retry-btn" onclick="citationNext()">🔀 Nouvelle citation</button>
+  <button class="meteo-retry-btn" style="background:linear-gradient(90deg,#456b63,var(--c3));" onclick="toggleCitationSettings()">⚙️ Mes citations</button>
+  <div id="citationSettings">
+    <textarea id="citationInput" placeholder="Texte de la citation…"></textarea>
+    <input id="citationAuthorInput" type="text" placeholder="Auteur (optionnel)">
+    <button class="meteo-retry-btn" onclick="citationAdd()">➕ Ajouter à mes citations</button>
+    <div id="citationListWrap"></div>
+  </div>
 </div>
 
 <div class="blob blob1"></div>
@@ -4216,6 +4294,8 @@ function initApp(){
   // météo
   fetchMeteo();
   setInterval(fetchMeteo, 15 * 60 * 1000); // refresh every 15min
+  // citation
+  citationNext();
   // notes rapides
   loadQuickNotes();
   // ticker & todo
@@ -5480,6 +5560,155 @@ document.addEventListener('click', (e) => {
     dragging = false;
     el.classList.remove('dragging');
     if(!didDrag){ toggleMeteoTooltip(); }
+    else {
+      const r = el.getBoundingClientRect();
+      localStorage.setItem(SK, JSON.stringify({left: r.left, top: r.top}));
+    }
+  });
+})();
+
+// ══════════════════════════════════════════
+// ── CITATION WIDGET ──
+// ══════════════════════════════════════════
+const CITATION_DEFAULTS = [
+  { text: "La vie, c'est ce qui arrive pendant qu'on est occupé à faire d'autres projets.", author: "John Lennon" },
+  { text: "Le succès, c'est passer d'échec en échec sans perdre son enthousiasme.", author: "Winston Churchill" },
+  { text: "Fais de ta vie un rêve, et d'un rêve, une réalité.", author: "Antoine de Saint-Exupéry" },
+  { text: "Ce n'est pas parce que les choses sont difficiles que nous n'osons pas, c'est parce que nous n'osons pas qu'elles sont difficiles.", author: "Sénèque" },
+  { text: "La simplicité est la sophistication suprême.", author: "Léonard de Vinci" },
+  { text: "Il n'y a pas de vent favorable pour celui qui ne sait où il va.", author: "Sénèque" },
+  { text: "Le meilleur moyen de prédire l'avenir, c'est de le créer.", author: "Peter Drucker" },
+  { text: "Ne compte pas les jours, fais que les jours comptent.", author: "Muhammad Ali" }
+];
+const CITATION_CUSTOM_KEY = 'citationCustomList';
+let citationCurrent = null;
+
+function citationLoadCustom(){
+  try { return JSON.parse(localStorage.getItem(CITATION_CUSTOM_KEY) || '[]'); }
+  catch(e){ return []; }
+}
+function citationSaveCustom(list){
+  localStorage.setItem(CITATION_CUSTOM_KEY, JSON.stringify(list));
+}
+function citationPool(){
+  return CITATION_DEFAULTS.concat(citationLoadCustom());
+}
+function citationNext(){
+  const pool = citationPool();
+  if(!pool.length) return;
+  let pick;
+  if(pool.length === 1) pick = pool[0];
+  else {
+    do { pick = pool[Math.floor(Math.random() * pool.length)]; }
+    while(citationCurrent && pick.text === citationCurrent.text && pool.length > 1);
+  }
+  citationCurrent = pick;
+  const shortTxt = pick.text.length > 34 ? pick.text.slice(0, 34) + '…' : pick.text;
+  document.getElementById('citationShort').textContent = shortTxt;
+  document.getElementById('citationFullText').textContent = '« ' + pick.text + ' »';
+  document.getElementById('citationAuthor').textContent = pick.author ? '— ' + pick.author : '';
+  document.getElementById('citationWidget').title = pick.text + (pick.author ? ' — ' + pick.author : '');
+}
+function citationAdd(){
+  const input = document.getElementById('citationInput');
+  const authorInput = document.getElementById('citationAuthorInput');
+  const text = input.value.trim();
+  if(!text) return;
+  const author = authorInput.value.trim();
+  const list = citationLoadCustom();
+  list.push({ text, author });
+  citationSaveCustom(list);
+  input.value = '';
+  authorInput.value = '';
+  citationRenderList();
+}
+function citationRemove(idx){
+  const list = citationLoadCustom();
+  list.splice(idx, 1);
+  citationSaveCustom(list);
+  citationRenderList();
+}
+function citationRenderList(){
+  const wrap = document.getElementById('citationListWrap');
+  const list = citationLoadCustom();
+  if(!list.length){
+    wrap.innerHTML = '<div class="citation-empty">Aucune citation perso pour l\'instant</div>';
+    return;
+  }
+  wrap.innerHTML = list.map((c, i) => `
+    <div class="citation-item">
+      <span class="citation-item-text">${c.text.replace(/</g,'&lt;')}${c.author ? ' — ' + c.author.replace(/</g,'&lt;') : ''}</span>
+      <button class="citation-item-del" onclick="citationRemove(${i})" title="Supprimer">✕</button>
+    </div>`).join('');
+}
+let citationTooltipOpen = false;
+function toggleCitationTooltip(){
+  citationTooltipOpen = !citationTooltipOpen;
+  const tt = document.getElementById('citationTooltip');
+  tt.classList.toggle('open', citationTooltipOpen);
+  if(citationTooltipOpen) positionCitationTooltip();
+}
+function toggleCitationSettings(){
+  const s = document.getElementById('citationSettings');
+  const opening = !s.classList.contains('open');
+  s.classList.toggle('open', opening);
+  if(opening) citationRenderList();
+  positionCitationTooltip();
+}
+function positionCitationTooltip(){
+  const w = document.getElementById('citationWidget');
+  const tt = document.getElementById('citationTooltip');
+  const r = w.getBoundingClientRect();
+  tt.style.bottom = (window.innerHeight - r.top + 6) + 'px';
+  tt.style.right = (window.innerWidth - r.right) + 'px';
+  tt.style.left = 'auto';
+}
+document.addEventListener('click', (e) => {
+  if(citationTooltipOpen && !e.target.closest('#citationWidget') && !e.target.closest('#citationTooltip')){
+    citationTooltipOpen = false;
+    document.getElementById('citationTooltip').classList.remove('open');
+    document.getElementById('citationSettings').classList.remove('open');
+  }
+});
+
+// ── Drag citationWidget ──
+(function(){
+  const el = document.getElementById('citationWidget');
+  if(!el) return;
+  let dragging = false, startX, startY, origLeft, origTop, didDrag = false;
+  const SK = 'citationWidgetPos';
+  function applyPos(left, top){
+    el.style.left = left + 'px';
+    el.style.top = top + 'px';
+    el.style.right = 'auto';
+    el.style.bottom = 'auto';
+  }
+  const saved = JSON.parse(localStorage.getItem(SK) || 'null');
+  if(saved) applyPos(saved.left, saved.top);
+
+  el.addEventListener('mousedown', e => {
+    if(e.button !== 0) return;
+    dragging = true; didDrag = false;
+    startX = e.clientX; startY = e.clientY;
+    const r = el.getBoundingClientRect();
+    origLeft = r.left; origTop = r.top;
+    el.classList.add('dragging');
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', e => {
+    if(!dragging) return;
+    const dx = e.clientX - startX, dy = e.clientY - startY;
+    if(Math.abs(dx) > 3 || Math.abs(dy) > 3) didDrag = true;
+    const left = Math.max(0, Math.min(origLeft + dx, window.innerWidth - el.offsetWidth));
+    const top = Math.max(30, Math.min(origTop + dy, window.innerHeight - el.offsetHeight - 4));
+    applyPos(left, top);
+    if(citationTooltipOpen) positionCitationTooltip();
+  });
+  document.addEventListener('mouseup', () => {
+    if(!dragging) return;
+    dragging = false;
+    el.classList.remove('dragging');
+    if(!didDrag){ toggleCitationTooltip(); }
     else {
       const r = el.getBoundingClientRect();
       localStorage.setItem(SK, JSON.stringify({left: r.left, top: r.top}));
