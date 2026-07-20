@@ -21,7 +21,7 @@ body{font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden;position:
 
 /* BG */
 #bg-layer{position:fixed;inset:0;z-index:0;background:linear-gradient(135deg,var(--bg-from),var(--bg-to));background-size:cover;background-position:center;}
-#bg-layer::after{content:'';position:absolute;inset:0;pointer-events:none;}
+#bg-layer::after{content:'';position:absolute;inset:0;pointer-events:none;background:var(--bg-overlay-color,#000000);opacity:var(--bg-overlay-opacity,0);transition:background 0.2s,opacity 0.2s;}
 .blob{display:none;}
 .blob1{width:400px;height:400px;background:var(--c1);top:-100px;left:-100px;}
 .blob2{width:350px;height:350px;background:var(--c2);bottom:-80px;right:-80px;animation-delay:-4s;}
@@ -990,6 +990,16 @@ body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
 .settings-textarea:focus { border-color:var(--c2); }
 .settings-hint { font-size:0.63rem; color:var(--muted); font-weight:600; line-height:1.5; }
 .settings-row { display:flex; gap:8px; }
+.overlay-tint-row { display:flex; gap:8px; }
+.overlay-tint-btn {
+  flex:1; padding:8px 10px; border-radius:10px; border:1.5px solid var(--border);
+  background:var(--surface); font-family:'Inter',sans-serif; font-size:0.7rem; font-weight:800;
+  color:var(--muted); cursor:pointer; transition:all 0.15s;
+}
+.overlay-tint-btn.active { border-color:var(--c2); color:var(--text); box-shadow:0 0 0 2px rgba(69,107,99,0.15); }
+.overlay-range-row { display:flex; align-items:center; gap:10px; margin-top:8px; }
+.overlay-range-row input[type="range"] { flex:1; }
+#overlayOpacityVal { font-size:0.7rem; font-weight:800; color:var(--text); min-width:32px; text-align:right; }
 .settings-btn {
   flex:1; padding:10px; border-radius:12px; border:none;
   font-family:'Inter',sans-serif; font-size:0.8rem; font-weight:800;
@@ -4296,6 +4306,8 @@ function initApp(){
   setInterval(fetchMeteo, 15 * 60 * 1000); // refresh every 15min
   // citation
   citationNext();
+  // overlay fond d'écran
+  initBgOverlay();
   // notes rapides
   loadQuickNotes();
   // ticker & todo
@@ -4559,11 +4571,45 @@ function openSettings(){
   else { document.getElementById('settingsBgPreview').style.display='none'; }
   // fill gallery urls from urlGallery store
   document.getElementById('permalinkFeedback').textContent = '';
+  refreshOverlayControls();
   document.getElementById('settingsModal').classList.add('open');
 }
 
 function closeSettings(){
   document.getElementById('settingsModal').classList.remove('open');
+}
+
+// ── OVERLAY FOND D'ÉCRAN ──
+function applyBgOverlay(tint, opacityPct){
+  document.documentElement.style.setProperty('--bg-overlay-color', tint === 'light' ? '#ffffff' : '#000000');
+  document.documentElement.style.setProperty('--bg-overlay-opacity', (opacityPct / 100));
+}
+function setOverlayTint(tint){
+  localStorage.setItem('dashboard_bg_overlay_tint', tint);
+  document.getElementById('overlayTintDark').classList.toggle('active', tint === 'dark');
+  document.getElementById('overlayTintLight').classList.toggle('active', tint === 'light');
+  const opacityPct = parseInt(document.getElementById('overlayOpacityRange').value, 10) || 0;
+  applyBgOverlay(tint, opacityPct);
+}
+function setOverlayOpacity(val){
+  const pct = parseInt(val, 10) || 0;
+  document.getElementById('overlayOpacityVal').textContent = pct + '%';
+  localStorage.setItem('dashboard_bg_overlay_opacity', pct);
+  const tint = localStorage.getItem('dashboard_bg_overlay_tint') || 'dark';
+  applyBgOverlay(tint, pct);
+}
+function refreshOverlayControls(){
+  const tint = localStorage.getItem('dashboard_bg_overlay_tint') || 'dark';
+  const pct = parseInt(localStorage.getItem('dashboard_bg_overlay_opacity'), 10) || 0;
+  document.getElementById('overlayTintDark').classList.toggle('active', tint === 'dark');
+  document.getElementById('overlayTintLight').classList.toggle('active', tint === 'light');
+  document.getElementById('overlayOpacityRange').value = pct;
+  document.getElementById('overlayOpacityVal').textContent = pct + '%';
+}
+function initBgOverlay(){
+  const tint = localStorage.getItem('dashboard_bg_overlay_tint') || 'dark';
+  const pct = parseInt(localStorage.getItem('dashboard_bg_overlay_opacity'), 10) || 0;
+  applyBgOverlay(tint, pct);
 }
 
 function previewBg(url){
@@ -7519,6 +7565,22 @@ document.addEventListener('keydown', function(e){
         oninput="previewBg(this.value)">
       <img class="settings-preview" id="settingsBgPreview" alt="Aperçu fond">
       <div class="settings-hint">Colle l'URL directe d'une image en ligne. Elle sera sauvegardée et incluse dans le lien de partage.</div>
+    </div>
+
+    <div class="settings-sep"></div>
+
+    <div class="settings-section">
+      <div class="settings-label">🌓 Overlay du fond d'écran</div>
+      <div class="overlay-tint-row">
+        <button type="button" class="overlay-tint-btn" id="overlayTintDark" onclick="setOverlayTint('dark')">⚫ Sombre</button>
+        <button type="button" class="overlay-tint-btn" id="overlayTintLight" onclick="setOverlayTint('light')">⚪ Clair</button>
+      </div>
+      <div class="overlay-range-row">
+        <span style="font-size:0.9rem;">🔅</span>
+        <input type="range" id="overlayOpacityRange" min="0" max="80" value="0" oninput="setOverlayOpacity(this.value)">
+        <span id="overlayOpacityVal">0%</span>
+      </div>
+      <div class="settings-hint">Assombrit ou éclaircit le fond d'écran pour améliorer la lisibilité des widgets.</div>
     </div>
 
     <div class="settings-sep"></div>
