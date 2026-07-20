@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>AUSPEX MK.IV — HULK NAVIGATOR</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap');
+
+:root{
+  --bg:#040a06;
+  --panel:#081a10;
+  --phosphor:#33ff77;
+  --phosphor-dim:#0e5c2c;
+  --wall:#0a2818;
+  --wall-edge:#123a20;
+  --amber:#ffb020;
+  --xenos:#ff3344;
+  --xenos-dim:#7a1520;
+  --marine:#33e0ff;
+  --floor-dot:#1c5c38;
+}
+
+*{box-sizing:border-box;}
+html,body{
+  margin:0; padding:0; height:100%;
+  background:var(--bg);
+  color:var(--phosphor);
+  font-family:'Share Tech Mono', monospace;
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden;
+}
+
+#screen{
+  position:relative;
+  width:min(96vw, 760px);
+  padding:14px 16px 16px;
+  background:radial-gradient(ellipse at 50% 0%, #0a1f11 0%, #030805 80%);
+  border:1px solid var(--wall-edge);
+  border-radius:6px;
+  box-shadow:0 0 0 1px #000, 0 0 40px rgba(51,255,119,0.08) inset, 0 0 60px rgba(0,0,0,0.8);
+}
+
+#scanlines{
+  pointer-events:none;
+  position:absolute; inset:0;
+  background:repeating-linear-gradient(
+    to bottom, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 1px,
+    rgba(0,0,0,0.18) 2px, rgba(0,0,0,0.18) 3px
+  );
+  mix-blend-mode:multiply;
+  animation:flicker 6s infinite;
+  border-radius:6px;
+}
+@keyframes flicker{
+  0%,100%{opacity:0.9;}
+  92%{opacity:0.9;}
+  93%{opacity:0.55;}
+  94%{opacity:0.9;}
+}
+
+header{
+  display:flex; justify-content:space-between; align-items:baseline;
+  border-bottom:1px dashed var(--wall-edge);
+  padding-bottom:6px; margin-bottom:8px;
+}
+h1{
+  font-family:'VT323', monospace;
+  font-size:26px; letter-spacing:2px; margin:0;
+  color:var(--phosphor); text-shadow:0 0 8px rgba(51,255,119,0.5);
+}
+#eyebrow{font-size:11px; color:var(--phosphor-dim); letter-spacing:2px;}
+
+#hud{
+  display:flex; gap:18px; font-size:13px; margin-bottom:8px; flex-wrap:wrap;
+}
+#hud span b{color:var(--amber); font-weight:normal;}
+.stat-crit{color:var(--xenos) !important;}
+
+#mapwrap{
+  display:flex; justify-content:center; margin:6px 0 8px;
+}
+#grid{
+  display:grid;
+  gap:1px;
+  background:#000;
+  border:1px solid var(--wall-edge);
+}
+.cell{
+  width:26px; height:26px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:16px; line-height:1;
+  background:var(--bg);
+}
+.wall{background:var(--wall); color:var(--wall-edge);}
+.floor{color:var(--floor-dot); background:#050f08;}
+.exit{color:var(--amber); background:#1a1206; text-shadow:0 0 6px var(--amber); font-weight:bold;}
+.marine{color:var(--marine); background:#04161c; text-shadow:0 0 8px var(--marine); font-weight:bold;}
+.xenos{color:var(--xenos); background:#1c0508; text-shadow:0 0 8px var(--xenos); font-weight:bold;}
+.los{background:#0c2414;}
+.pickup-heavy{color:#c9a3ff; background:#14102a; text-shadow:0 0 6px #c9a3ff; font-weight:bold;}
+.pickup-flamer{color:#ff8a3d; background:#2a1406; text-shadow:0 0 6px #ff8a3d; font-weight:bold;}
+
+#log{
+  height:110px; overflow-y:auto;
+  border-top:1px dashed var(--wall-edge);
+  padding-top:6px; font-size:12.5px; line-height:1.5;
+  color:var(--phosphor-dim);
+}
+#log .line{white-space:pre-wrap;}
+#log .alert{color:var(--xenos);}
+#log .good{color:var(--phosphor);}
+#log .info{color:var(--amber);}
+
+#keys{
+  margin-top:8px; padding-top:6px; border-top:1px dashed var(--wall-edge);
+  font-size:11px; color:var(--phosphor-dim); display:flex; gap:14px; flex-wrap:wrap;
+}
+#keys b{color:var(--phosphor);}
+
+#overlay{
+  position:absolute; inset:0; background:rgba(2,6,3,0.92);
+  display:none; align-items:center; justify-content:center; flex-direction:column;
+  text-align:center; border-radius:6px; z-index:10;
+}
+#overlay.show{display:flex;}
+#overlay h2{font-family:'VT323',monospace; font-size:34px; letter-spacing:3px; margin:0 0 8px;}
+#overlay p{font-size:13px; color:var(--phosphor-dim); max-width:420px; margin:4px 0 16px;}
+#overlay button{
+  background:transparent; border:1px solid var(--phosphor-dim); color:var(--phosphor);
+  font-family:'Share Tech Mono',monospace; padding:8px 16px; cursor:pointer; letter-spacing:1px;
+}
+#overlay button:hover{background:var(--phosphor-dim); color:#000;}
+</style>
+</head>
+<body>
+
+<div id="screen">
+  <div id="scanlines"></div>
+  <header>
+    <h1>AUSPEX MK.IV</h1>
+    <div id="eyebrow">SERVITOR SCAN // HULK SECTOR <span id="sectorId">7-G</span></div>
+  </header>
+
+  <div id="hud">
+    <span>PV <b id="hp"></b></span>
+    <span>PA <b id="ap"></b></span>
+    <span>TOUR <b id="turn">1</b></span>
+    <span>XENOS ABATTUS <b id="kills">0</b></span>
+    <span>SURVEILLANCE <b id="ow">OFF</b></span>
+    <span>BOLTER LOURD <b id="ammoHB">0</b></span>
+    <span>PYROLANCE <b id="ammoFL">0</b></span>
+  </div>
+
+  <div id="mapwrap"><div id="grid"></div></div>
+
+  <div id="log"></div>
+
+  <div id="keys">
+    <span><b>flèches/ZQSD</b> déplacer (1 PA)</span>
+    <span><b>F + flèche</b> bolter (2 PA, 1 cible)</span>
+    <span><b>H + flèche</b> bolter lourd (3 PA, perce la ligne)</span>
+    <span><b>G + flèche</b> pyrolance (2 PA, courte portée, perce)</span>
+    <span><b>espace</b> fin de tour / surveillance</span>
+    <span><b>R</b> nouveau secteur</span>
+  </div>
+
+  <div id="overlay">
+    <h2 id="overlayTitle">SECTEUR PERDU</h2>
+    <p id="overlayText"></p>
+    <button id="overlayBtn">RÉGÉNÉRER LE SECTEUR</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const W = 7, H = 5;           // maze cells
+  const GW = 2*W+1, GH = 2*H+1; // display grid
+  let grid, marine, hp, ap, apMax, turn, kills, aliens, overwatch, gameOver, spawnPoints;
+  let pickups, ammoHB, ammoFL;
+  const CELL_WALL='#', CELL_FLOOR='.';
+
+  function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+  function generateMaze(){
+    const g = Array.from({length:GH},()=>Array(GW).fill(CELL_WALL));
+    const visited = Array.from({length:H},()=>Array(W).fill(false));
+    function carve(cx,cy){
+      visited[cy][cx]=true;
+      g[2*cy+1][2*cx+1]=CELL_FLOOR;
+      const dirs = shuffle([[0,-1],[0,1],[-1,0],[1,0]]);
+      for(const [dx,dy] of dirs){
+        const nx=cx+dx, ny=cy+dy;
+        if(nx>=0&&nx<W&&ny>=0&&ny<H&&!visited[ny][nx]){
+          g[2*cy+1+dy][2*cx+1+dx]=CELL_FLOOR;
+          carve(nx,ny);
+        }
+      }
+    }
+    carve(0,0);
+    // add loops so it doesn't feel like a perfect tree maze
+    for(let y=1;y<GH-1;y++){
+      for(let x=1;x<GW-1;x++){
+        if(g[y][x]===CELL_WALL && Math.random()<0.09){
+          // only knock down if it connects two floor cells (straight)
+          if((g[y-1]?.[x]===CELL_FLOOR && g[y+1]?.[x]===CELL_FLOOR) ||
+             (g[y]?.[x-1]===CELL_FLOOR && g[y]?.[x+1]===CELL_FLOOR)){
+            g[y][x]=CELL_FLOOR;
+          }
+        }
+      }
+    }
+    return g;
+  }
+
+  function bfs(startX,startY){
+    const dist = Array.from({length:GH},()=>Array(GW).fill(-1));
+    dist[startY][startX]=0;
+    const q=[[startX,startY]];
+    while(q.length){
+      const [x,y]=q.shift();
+      for(const [dx,dy] of [[0,-1],[0,1],[-1,0],[1,0]]){
+        const nx=x+dx, ny=y+dy;
+        if(nx>=0&&nx<GW&&ny>=0&&ny<GH&&grid[ny][nx]===CELL_FLOOR&&dist[ny][nx]===-1){
+          dist[ny][nx]=dist[y][x]+1;
+          q.push([nx,ny]);
+        }
+      }
+    }
+    return dist;
+  }
+
+  function hasLOS(x1,y1,x2,y2){
+    // Bresenham; blocked by walls
+    let x=x1,y=y1;
+    const dx=Math.abs(x2-x1), dy=Math.abs(y2-y1);
+    const sx=x1<x2?1:-1, sy=y1<y2?1:-1;
+    let err=dx-dy;
+    while(true){
+      if(!(x===x1&&y===y1) && grid[y][x]===CELL_WALL) return false;
+      if(x===x2&&y===y2) break;
+      const e2=2*err;
+      if(e2>-dy){ err-=dy; x+=sx; }
+      if(e2<dx){ err+=dx; y+=sy; }
+    }
+    return true;
+  }
+
+  function log(msg, cls){
+    const el = document.getElementById('log');
+    const line = document.createElement('div');
+    line.className = 'line' + (cls?(' '+cls):'');
+    line.textContent = msg;
+    el.appendChild(line);
+    el.scrollTop = el.scrollHeight;
+    while(el.children.length>60) el.removeChild(el.firstChild);
+  }
+
+  function init(){
+    grid = generateMaze();
+    marine = {x:1,y:1};
+    const dist = bfs(marine.x, marine.y);
+    // exit = farthest reachable floor cell
+    let best={x:1,y:1,d:0};
+    for(let y=0;y<GH;y++) for(let x=0;x<GW;x++){
+      if(dist[y][x]>best.d) best={x,y,d:dist[y][x]};
+    }
+    grid.exit = {x:best.x,y:best.y};
+
+    // spawn points: floor cells with dist > 60% of max, not the exit
+    const candidates=[];
+    for(let y=0;y<GH;y++) for(let x=0;x<GW;x++){
+      if(grid[y][x]===CELL_FLOOR && dist[y][x]>best.d*0.4 && !(x===best.x&&y===best.y) && !(x===1&&y===1)){
+        candidates.push({x,y});
+      }
+    }
+    shuffle(candidates);
+    spawnPoints = candidates.slice(0, Math.min(4, candidates.length));
+
+    // weapon pickups: pick cells not used as alien spawn points
+    const weaponCandidates = candidates.filter(c => !spawnPoints.some(s=>s.x===c.x&&s.y===c.y));
+    pickups = [];
+    if(weaponCandidates.length>0) pickups.push({x:weaponCandidates[0].x, y:weaponCandidates[0].y, type:'heavy'});
+    if(weaponCandidates.length>1) pickups.push({x:weaponCandidates[1].x, y:weaponCandidates[1].y, type:'flamer'});
+    ammoHB = 0; ammoFL = 0;
+
+    aliens = [];
+    // seed with two genestealers
+    for(let i=0;i<2 && spawnPoints.length;i++){
+      const p = spawnPoints[Math.floor(Math.random()*spawnPoints.length)];
+      aliens.push({x:p.x,y:p.y});
+    }
+
+    hp=3; apMax=4; ap=apMax; turn=1; kills=0; overwatch=false; gameOver=false;
+    document.getElementById('sectorId').textContent = (1+Math.floor(Math.random()*9))+'-'+String.fromCharCode(65+Math.floor(Math.random()*26));
+    document.getElementById('log').innerHTML='';
+    document.getElementById('overlay').classList.remove('show');
+    log('>> AUSPEX EN LIGNE. Signal capté à la limite du senseur.', 'info');
+    log('>> Objectif : rejoindre le point d\'extraction (◆).', 'info');
+    render();
+  }
+
+  function pickupAt(x,y){ return pickups.find(p=>p.x===x&&p.y===y); }
+
+  function cellClass(x,y){
+    if(x===marine.x && y===marine.y) return 'marine';
+    if(aliens.some(a=>a.x===x&&a.y===y)) return 'xenos';
+    if(x===grid.exit.x && y===grid.exit.y) return 'exit';
+    const pu = pickupAt(x,y);
+    if(pu) return pu.type==='heavy' ? 'pickup-heavy' : 'pickup-flamer';
+    if(grid[y][x]===CELL_WALL) return 'wall';
+    return 'floor';
+  }
+  function cellChar(x,y){
+    if(x===marine.x && y===marine.y) return '@';
+    if(aliens.some(a=>a.x===x&&a.y===y)) return 'x';
+    if(x===grid.exit.x && y===grid.exit.y) return '◆';
+    const pu = pickupAt(x,y);
+    if(pu) return pu.type==='heavy' ? 'H' : 'L';
+    if(grid[y][x]===CELL_WALL) return '▓';
+    return '·';
+  }
+
+  function render(){
+    const gridEl = document.getElementById('grid');
+    gridEl.style.gridTemplateColumns = `repeat(${GW}, 26px)`;
+    gridEl.innerHTML='';
+    for(let y=0;y<GH;y++){
+      for(let x=0;x<GW;x++){
+        const d = document.createElement('div');
+        d.className = 'cell ' + cellClass(x,y);
+        d.textContent = cellChar(x,y);
+        gridEl.appendChild(d);
+      }
+    }
+    document.getElementById('hp').textContent = '❤'.repeat(Math.max(hp,0)) + '·'.repeat(Math.max(0,3-hp));
+    document.getElementById('hp').className = hp<=1 ? 'stat-crit':'';
+    document.getElementById('ap').textContent = ap+'/'+apMax;
+    document.getElementById('turn').textContent = turn;
+    document.getElementById('kills').textContent = kills;
+    document.getElementById('ow').textContent = overwatch? 'ON':'OFF';
+    document.getElementById('ammoHB').textContent = ammoHB;
+    document.getElementById('ammoFL').textContent = ammoFL;
+  }
+
+  function tileFree(x,y){
+    if(x<0||y<0||x>=GW||y>=GH) return false;
+    if(grid[y][x]===CELL_WALL) return false;
+    if(aliens.some(a=>a.x===x&&a.y===y)) return false;
+    return true;
+  }
+
+  function tryMove(dx,dy){
+    if(gameOver||ap<=0) return;
+    const nx=marine.x+dx, ny=marine.y+dy;
+    if(!tileFree(nx,ny)){ return; }
+    marine.x=nx; marine.y=ny; ap--;
+    const pu = pickupAt(nx,ny);
+    if(pu){
+      pickups = pickups.filter(p=>p!==pu);
+      if(pu.type==='heavy'){
+        ammoHB += 3;
+        log('>> BOLTER LOURD récupéré. Munitions : +3.', 'good');
+      } else {
+        ammoFL += 2;
+        log('>> PYROLANCE récupérée. Réservoirs : +2.', 'good');
+      }
+    }
+    if(nx===grid.exit.x && ny===grid.exit.y){
+      winGame(); return;
+    }
+    render();
+  }
+
+  function tryShoot(dx,dy){
+    if(gameOver||ap<2){ if(ap<2) log('>> Munitions/PA insuffisants pour tirer.', 'info'); return; }
+    let x=marine.x, y=marine.y, range=0;
+    while(range<8){
+      x+=dx; y+=dy; range++;
+      if(x<0||y<0||x>=GW||y>=GH||grid[y][x]===CELL_WALL) break;
+      const idx = aliens.findIndex(a=>a.x===x&&a.y===y);
+      if(idx!==-1){
+        aliens.splice(idx,1);
+        kills++;
+        ap-=2;
+        log('>> Cible éliminée à '+range+' cases. Bolt à travers le crâne.', 'good');
+        render();
+        return;
+      }
+    }
+    ap-=2;
+    log('>> Tir dans le vide. Aucun contact dans l\'axe.', null);
+    render();
+  }
+
+  function fireHeavy(dx,dy){
+    if(gameOver) return;
+    if(ammoHB<=0){ log('>> Bolter lourd non équipé ou à sec.', 'info'); return; }
+    if(ap<3){ log('>> PA insuffisants pour le bolter lourd (3 requis).', 'info'); return; }
+    ap-=3; ammoHB--;
+    let x=marine.x, y=marine.y, range=0, hit=0;
+    while(range<6){
+      x+=dx; y+=dy; range++;
+      if(x<0||y<0||x>=GW||y>=GH||grid[y][x]===CELL_WALL) break;
+      const idx = aliens.findIndex(a=>a.x===x&&a.y===y);
+      if(idx!==-1){ aliens.splice(idx,1); kills++; hit++; }
+    }
+    log(hit>0
+      ? '>> BOLTER LOURD : rafale traversante, '+hit+' xenos déchiquetés.'
+      : '>> BOLTER LOURD : rafale à vide, aucun contact touché.', hit>0?'good':null);
+    render();
+  }
+
+  function fireFlamer(dx,dy){
+    if(gameOver) return;
+    if(ammoFL<=0){ log('>> Pyrolance non équipée ou réservoir vide.', 'info'); return; }
+    if(ap<2){ log('>> PA insuffisants pour la pyrolance (2 requis).', 'info'); return; }
+    ap-=2; ammoFL--;
+    let x=marine.x, y=marine.y, range=0, hit=0;
+    while(range<3){
+      x+=dx; y+=dy; range++;
+      if(x<0||y<0||x>=GW||y>=GH||grid[y][x]===CELL_WALL) break;
+      const idx = aliens.findIndex(a=>a.x===x&&a.y===y);
+      if(idx!==-1){ aliens.splice(idx,1); kills++; hit++; }
+    }
+    log(hit>0
+      ? '>> PYROLANCE : le couloir s\'embrase, '+hit+' xenos carbonisés.'
+      : '>> PYROLANCE : jet de flammes, couloir vide.', hit>0?'good':null);
+    render();
+  }
+
+  function endTurn(){
+    if(gameOver) return;
+    overwatch = ap>0; // leftover AP converts to overwatch
+    alienPhase();
+    if(gameOver) return;
+    turn++;
+    ap=apMax;
+    // chance to spawn a fresh genestealer out of sight
+    if(spawnPoints.length && Math.random()<0.35 && aliens.length<6){
+      const outOfSight = spawnPoints.filter(p=>!hasLOS(marine.x,marine.y,p.x,p.y));
+      const pool = outOfSight.length? outOfSight : spawnPoints;
+      const p = pool[Math.floor(Math.random()*pool.length)];
+      if(!aliens.some(a=>a.x===p.x&&a.y===p.y)){
+        aliens.push({x:p.x,y:p.y});
+        log('>> BLIP. Nouveau contact détecté hors champ.', 'alert');
+      }
+    }
+    render();
+  }
+
+  function alienPhase(){
+    for(const a of aliens.slice()){
+      if(gameOver) break;
+      const sees = hasLOS(a.x,a.y,marine.x,marine.y);
+      if(sees && overwatch && Math.random()<0.6){
+        const idx = aliens.indexOf(a);
+        if(idx!==-1) aliens.splice(idx,1);
+        kills++;
+        log('>> SURVEILLANCE : tir réflexe, contact abattu en approche.', 'good');
+        continue;
+      }
+      if(!sees) continue; // stays hidden/still if not aware
+      // move one step toward marine (greedy, prefer axis with larger gap)
+      const dxs = marine.x-a.x, dys = marine.y-a.y;
+      let moves = [];
+      if(Math.abs(dxs)>Math.abs(dys)){
+        moves.push([Math.sign(dxs),0],[0,Math.sign(dys)]);
+      } else {
+        moves.push([0,Math.sign(dys)],[Math.sign(dxs),0]);
+      }
+      let moved=false;
+      for(const [mdx,mdy] of moves){
+        if(mdx===0&&mdy===0) continue;
+        const nx=a.x+mdx, ny=a.y+mdy;
+        if(nx===marine.x && ny===marine.y){ moved=true; break; } // stays, will attack below
+        if(nx>=0&&ny>=0&&nx<GW&&ny<GH&&grid[ny][nx]===CELL_FLOOR&&!aliens.some(o=>o!==a&&o.x===nx&&o.y===ny)){
+          a.x=nx; a.y=ny; moved=true; break;
+        }
+      }
+      const adjacent = Math.abs(a.x-marine.x)+Math.abs(a.y-marine.y)===1;
+      if(adjacent){
+        hp--;
+        log('>> CONTACT AU CORPS À CORPS. Griffes sur le blindage. PV -1.', 'alert');
+        if(hp<=0){ loseGame(); return; }
+      }
+    }
+    overwatch=false;
+  }
+
+  function winGame(){
+    gameOver=true;
+    render();
+    document.getElementById('overlayTitle').textContent='EXTRACTION RÉUSSIE';
+    document.getElementById('overlayText').textContent =
+      'Le Space Marine atteint le point d\'extraction après '+turn+' tour(s), '+kills+' xenos abattus. Le secteur '+document.getElementById('sectorId').textContent+' est déclaré sécurisé — provisoirement.';
+    document.getElementById('overlay').classList.add('show');
+    log('>> EXTRACTION CONFIRMÉE. Bien joué, Frère.', 'good');
+  }
+  function loseGame(){
+    gameOver=true;
+    render();
+    document.getElementById('overlayTitle').textContent='SIGNAL PERDU';
+    document.getElementById('overlayText').textContent =
+      'Contact rompu au tour '+turn+'. '+kills+' xenos abattus avant la fin. La flotte perd un Frère de plus dans le hulk.';
+    document.getElementById('overlay').classList.add('show');
+    log('>> SIGNAL PERDU. Fin de transmission.', 'alert');
+  }
+
+  document.addEventListener('keydown', (e)=>{
+    if(gameOver) return;
+    const k = e.key.toLowerCase();
+    const dirMap = {
+      arrowup:[0,-1], arrowdown:[0,1], arrowleft:[-1,0], arrowright:[1,0],
+      z:[0,-1], s:[0,1], q:[-1,0], d:[1,0]
+    };
+    if(fireModeType){
+      if(dirMap[k]){
+        e.preventDefault();
+        const [fdx,fdy] = dirMap[k];
+        if(fireModeType==='bolter') tryShoot(fdx,fdy);
+        else if(fireModeType==='heavy') fireHeavy(fdx,fdy);
+        else if(fireModeType==='flamer') fireFlamer(fdx,fdy);
+        fireModeType=null;
+      } else if(k==='f'||k==='h'||k==='g'){
+        fireModeType=null;
+      }
+      return;
+    }
+    if(k==='f'){ fireModeType='bolter'; log('>> Bolter engagé. Choisissez une direction.', 'info'); return; }
+    if(k==='h'){
+      if(ammoHB<=0){ log('>> Bolter lourd non équipé ou à sec.', 'info'); return; }
+      fireModeType='heavy'; log('>> Bolter lourd engagé. Choisissez une direction.', 'info'); return;
+    }
+    if(k==='g'){
+      if(ammoFL<=0){ log('>> Pyrolance non équipée ou réservoir vide.', 'info'); return; }
+      fireModeType='flamer'; log('>> Pyrolance engagée. Choisissez une direction.', 'info'); return;
+    }
+    if(k===' '){ e.preventDefault(); endTurn(); return; }
+    if(k==='r'){ init(); return; }
+    if(dirMap[k]){ e.preventDefault(); tryMove(...dirMap[k]); }
+  });
+
+  let fireModeType=null;
+
+  document.getElementById('overlayBtn').addEventListener('click', init);
+
+  init();
+})();
+</script>
+</body>
+</html>
