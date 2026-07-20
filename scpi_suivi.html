@@ -115,10 +115,11 @@ th.sortable:hover{color:var(--text);}
   <h2 style="margin-top:0;border:none;">Portefeuille</h2>
   <div class="toolbar">
     <button class="btn" onclick="addLigne()">+ Ajouter une SCPI</button>
-    <button class="btn secondary" onclick="exportJSON()">Exporter JSON</button>
+    <button class="btn secondary" onclick="exportJSON()">💾 Exporter JSON</button>
     <label class="btn secondary" style="cursor:pointer;">
-      Importer JSON<input type="file" accept=".json" style="display:none" onchange="importJSON(event)">
+      📂 Importer JSON<input type="file" accept=".json" style="display:none" onchange="importJSON(event)">
     </label>
+    <button class="btn secondary" onclick="pushBackup(true)">📌 Créer une sauvegarde maintenant</button>
   </div>
   <div style="overflow-x:auto;">
   <table id="tblPortefeuille">
@@ -145,6 +146,24 @@ th.sortable:hover{color:var(--text);}
   </div>
   <div class="note">Le "Montant investi" et la "Valeur actuelle" se recalculent automatiquement si vous éditez nb parts × prix, mais restent modifiables manuellement (ex: frais d'entrée inclus, apport en plusieurs fois).</div>
 </div>
+
+<div class="panel">
+  <h2 style="margin-top:0;border:none;">💾 Sauvegardes automatiques (JSON local)</h2>
+  <div class="note" style="margin-top:0;">Une sauvegarde de vos données (portefeuille + revenus) est enregistrée automatiquement une fois par jour dans le navigateur (10 dernières conservées). Vous pouvez aussi forcer une sauvegarde immédiate ou exporter/importer un fichier JSON pour une copie externe.</div>
+  <div style="overflow-x:auto;margin-top:8px;">
+  <table id="tblBackups">
+    <thead>
+      <tr>
+        <th>Date de sauvegarde</th>
+        <th class="num">SCPI</th>
+        <th class="num">Versements</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="bodyBackups"></tbody>
+  </table>
+  </div>
+</div>
 </div>
 
 <!-- ================= ONGLET REVENUS ================= -->
@@ -170,6 +189,24 @@ th.sortable:hover{color:var(--text);}
   </table>
   </div>
   <div class="note">Montant net fiscal = optionnel (après prélèvement / CSG-CRDS si votre SCPI le communique). Laissez vide sinon, le KPI utilisera le brut.</div>
+</div>
+
+<div class="panel">
+  <h2 style="margin-top:0;border:none;">🔮 Prédiction du prochain versement</h2>
+  <div class="note" style="margin-top:0;">Estimation basée sur l'intervalle moyen entre les 3 derniers versements enregistrés pour chaque SCPI (date du dernier versement + intervalle moyen constaté).</div>
+  <div style="overflow-x:auto;margin-top:8px;">
+  <table id="tblPrediction">
+    <thead>
+      <tr>
+        <th>SCPI</th>
+        <th>Dernier versement</th>
+        <th class="num">Intervalle moyen</th>
+        <th>Prochain versement estimé</th>
+      </tr>
+    </thead>
+    <tbody id="bodyPrediction"></tbody>
+  </table>
+  </div>
 </div>
 </div>
 
@@ -246,6 +283,8 @@ th.sortable:hover{color:var(--text);}
 const LS_PORT  = 'scpi_portefeuille_v1';
 const LS_REV   = 'scpi_revenus_v1';
 const LS_TAUX  = 'scpi_taux_impot_v1';
+const LS_BACKUPS = 'scpi_backups_v1';
+const MAX_BACKUPS = 10;
 
 let portefeuille = load(LS_PORT, []);
 let revenus = load(LS_REV, []);
@@ -258,6 +297,7 @@ function load(key, def){
 function save(){
   localStorage.setItem(LS_PORT, JSON.stringify(portefeuille));
   localStorage.setItem(LS_REV, JSON.stringify(revenus));
+  pushBackup(false);
 }
 function uid(){ return 'id'+Math.random().toString(36).slice(2,10); }
 function fmt(n){ return (n||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
@@ -454,6 +494,7 @@ function renderRevenus(){
       });
     });
   });
+  renderPrediction();
 }
 function renderRevenusSCPIOptions(){ renderRevenus(); }
 
@@ -843,6 +884,109 @@ function renderPeriode(){
   `).join('') : '<tr><td colspan="2" class="note">Aucun versement enregistré.</td></tr>';
 }
 
+// ================= SAUVEGARDES AUTOMATIQUES (historique local) =================
+function loadBackups(){ return load(LS_BACKUPS, []); }
+
+function pushBackup(force){
+  const backups = loadBackups();
+  const today = new Date().toISOString().slice(0,10);
+  const dejaAujourdhui = backups.length && backups[backups.length-1].ts.slice(0,10) === today;
+  if(dejaAujourdhui && !force) return; // 1 sauvegarde auto / jour max, sauf forçage manuel
+  if(portefeuille.length===0 && revenus.length===0) return; // rien a sauvegarder
+  backups.push({
+    ts: new Date().toISOString(),
+    portefeuille: JSON.parse(JSON.stringify(portefeuille)),
+    revenus: JSON.parse(JSON.stringify(revenus))
+  });
+  while(backups.length > MAX_BACKUPS) backups.shift();
+  localStorage.setItem(LS_BACKUPS, JSON.stringify(backups));
+  renderBackups();
+}
+
+function renderBackups(){
+  const tbody = document.getElementById('bodyBackups');
+  if(!tbody) return;
+  const backups = loadBackups();
+  tbody.innerHTML = backups.length ? [...backups].reverse().map((b)=>{
+    const idx = backups.indexOf(b); // index reel dans le tableau non inverse
+    const dateStr = new Date(b.ts).toLocaleString('fr-FR',{dateStyle:'medium', timeStyle:'short'});
+    return `<tr>
+      <td>${dateStr}</td>
+      <td class="num">${b.portefeuille.length}</td>
+      <td class="num">${b.revenus.length}</td>
+      <td class="row-actions">
+        <button class="btn secondary" style="padding:3px 8px;" onclick="restoreBackup(${idx})">↩ Restaurer</button>
+        <button class="btn danger" onclick="deleteBackup(${idx})">✕</button>
+      </td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="4" class="note">Aucune sauvegarde locale pour le moment.</td></tr>';
+}
+
+function restoreBackup(idx){
+  const backups = loadBackups();
+  const b = backups[idx];
+  if(!b) return;
+  const dateStr = new Date(b.ts).toLocaleString('fr-FR',{dateStyle:'medium', timeStyle:'short'});
+  if(!confirm(`Restaurer la sauvegarde du ${dateStr} ?\nCela remplacera les données actuelles (portefeuille + revenus).`)) return;
+  portefeuille = JSON.parse(JSON.stringify(b.portefeuille));
+  revenus = JSON.parse(JSON.stringify(b.revenus));
+  localStorage.setItem(LS_PORT, JSON.stringify(portefeuille));
+  localStorage.setItem(LS_REV, JSON.stringify(revenus));
+  renderPortefeuille(); renderRevenus(); renderKPI();
+}
+
+function deleteBackup(idx){
+  const backups = loadBackups();
+  if(!backups[idx]) return;
+  if(!confirm('Supprimer définitivement cette sauvegarde locale ?')) return;
+  backups.splice(idx,1);
+  localStorage.setItem(LS_BACKUPS, JSON.stringify(backups));
+  renderBackups();
+}
+
+// ================= PREDICTION PROCHAIN VERSEMENT =================
+function calcPredictionVersements(){
+  return portefeuille.map(p=>{
+    const dates = revenus.filter(r=>r.scpiId===p.id && r.date)
+                         .map(r=>r.date)
+                         .sort(); // ordre chronologique croissant
+    const last3 = dates.slice(-3);
+    if(last3.length < 2){
+      return {nom:p.nom, dernierVersement: last3[0]||null, intervalleMoyen:null, prediction:null, nbData:last3.length};
+    }
+    let totalJours = 0, nbIntervalles = 0;
+    for(let i=1;i<last3.length;i++){
+      const d1 = new Date(last3[i-1]), d2 = new Date(last3[i]);
+      totalJours += (d2-d1)/(24*3600*1000);
+      nbIntervalles++;
+    }
+    const intervalleMoyen = totalJours/nbIntervalles;
+    const dernierVersement = last3[last3.length-1];
+    const prediction = new Date(new Date(dernierVersement).getTime() + intervalleMoyen*24*3600*1000);
+    return {nom:p.nom, dernierVersement, intervalleMoyen, prediction, nbData:last3.length};
+  });
+}
+
+function renderPrediction(){
+  const tbody = document.getElementById('bodyPrediction');
+  if(!tbody) return;
+  const data = calcPredictionVersements();
+  tbody.innerHTML = data.length ? data.map(x=>{
+    const dernierStr = x.dernierVersement ? new Date(x.dernierVersement).toLocaleDateString('fr-FR') : '—';
+    let intervalleStr = '—', predStr = '<span class="note">Données insuffisantes (min. 2 versements requis)</span>';
+    if(x.intervalleMoyen!=null){
+      intervalleStr = `${Math.round(x.intervalleMoyen)} j`;
+      predStr = `${x.prediction.toLocaleDateString('fr-FR')} <span class="badge">basé sur ${x.nbData} versement(s)</span>`;
+    }
+    return `<tr>
+      <td>${x.nom}</td>
+      <td>${dernierStr}</td>
+      <td class="num">${intervalleStr}</td>
+      <td>${predStr}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="4" class="note">Aucune SCPI enregistrée.</td></tr>';
+}
+
 // ================= IMPORT / EXPORT =================
 function exportJSON(){
   const data = {portefeuille, revenus};
@@ -872,6 +1016,7 @@ function importJSON(evt){
 renderPortefeuille();
 renderRevenus();
 renderKPI();
+renderBackups();
 </script>
 </body>
 </html>
