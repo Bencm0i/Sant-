@@ -7721,5 +7721,43 @@ function ghLinkGenerate(){
   document.getElementById('ghLinkOut').innerHTML = '<a href="'+url+'" target="_blank" rel="noopener">'+url+'</a>';
 }
 </script>
+
+<!-- ═══════════ WIDGET BASCULE Claude / ChatGPT ═══════════ -->
+<style>
+#flipToggleWidget{position:fixed;bottom:41px;left:calc(50% + 150px);z-index:950;font-family:inherit;perspective:420px;}
+#flipToggleBtn{width:52px;height:66px;border-radius:14px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.35);border:1.5px solid rgba(255,255,255,.15);background:#111;display:flex;flex-direction:column;transform-style:preserve-3d;transition:transform .35s cubic-bezier(.34,1.56,.64,1);cursor:pointer;}
+#flipToggleBtn.tilt-top{transform:rotateX(16deg) scale(1.05);}
+#flipToggleBtn.tilt-bottom{transform:rotateX(-16deg) scale(1.05);}
+.flipHalf{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:9.5px;font-weight:600;color:#fff;letter-spacing:.2px;transition:transform .35s cubic-bezier(.34,1.56,.64,1),filter .25s;user-select:none;}
+.flipHalf .flipIcon{font-size:16px;line-height:1;}
+#flipTop{background:linear-gradient(160deg,#7a5cff,#cc7a3d);border-bottom:1px solid rgba(255,255,255,.18);}
+#flipBottom{background:linear-gradient(160deg,#12b391,#0d5c48);}
+#flipToggleBtn.tilt-top #flipTop{transform:translateY(-3px);filter:brightness(1.15);}
+#flipToggleBtn.tilt-top #flipBottom{filter:brightness(.85);}
+#flipToggleBtn.tilt-bottom #flipBottom{transform:translateY(3px);filter:brightness(1.15);}
+#flipToggleBtn.tilt-bottom #flipTop{filter:brightness(.85);}
+</style>
+<div id="flipToggleWidget">
+  <div id="flipToggleBtn">
+    <div id="flipTop" class="flipHalf" title="Ouvrir Claude"
+         onmouseenter="flipTilt('top')" onmouseleave="flipTilt(null)"
+         onclick="window.open('https://claude.ai/','_blank')">
+      <span class="flipIcon">🤖</span><span>Claude</span>
+    </div>
+    <div id="flipBottom" class="flipHalf" title="Ouvrir ChatGPT"
+         onmouseenter="flipTilt('bottom')" onmouseleave="flipTilt(null)"
+         onclick="window.open('https://chatgpt.com/','_blank')">
+      <span class="flipIcon">🧠</span><span>GPT</span>
+    </div>
+  </div>
+</div>
+<script>
+function flipTilt(side){
+  var btn = document.getElementById('flipToggleBtn');
+  btn.classList.remove('tilt-top','tilt-bottom');
+  if(side === 'top') btn.classList.add('tilt-top');
+  else if(side === 'bottom') btn.classList.add('tilt-bottom');
+}
+</script>
 </body>
 </html>
