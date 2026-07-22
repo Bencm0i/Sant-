@@ -1192,25 +1192,42 @@ body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
   position:fixed; bottom:36px; right:20px; z-index:20;
   display:flex; align-items:center; gap:0; max-width:240px;
   background:#fffdf6;
-  border:2.5px solid #20242c; border-radius:24px 24px 24px 6px;
+  border:2.5px solid #20242c; border-radius:20px;
   padding:9px 16px;
   box-shadow:0 3px 0 #20242c, 0 7px 16px rgba(20,20,20,0.25);
   cursor:grab; transition:transform 0.15s ease, box-shadow 0.15s ease;
   font-family:'Comic Neue','Inter',sans-serif;
   user-select:none;
 }
-#citationWidget::before {
-  content:""; position:absolute; bottom:-16px; left:20px;
-  width:0; height:0;
-  border-right:16px solid transparent;
-  border-top:16px solid #20242c;
-}
+#citationWidget::before,
 #citationWidget::after {
-  content:""; position:absolute; bottom:-11px; left:24px;
-  width:0; height:0;
-  border-right:11px solid transparent;
-  border-top:11px solid #fffdf6;
+  content:""; position:absolute; width:0; height:0;
+  border-top:0 solid transparent; border-right:0 solid transparent;
+  border-bottom:0 solid transparent; border-left:0 solid transparent;
 }
+/* bec bas-gauche */
+#citationWidget.tail-bl { border-radius:24px 24px 24px 6px; }
+#citationWidget.tail-bl::before { bottom:-16px; left:20px; border-right:16px solid transparent; border-top:16px solid #20242c; }
+#citationWidget.tail-bl::after  { bottom:-11px; left:24px; border-right:11px solid transparent; border-top:11px solid #fffdf6; }
+/* bec bas-droite */
+#citationWidget.tail-br { border-radius:24px 24px 6px 24px; }
+#citationWidget.tail-br::before { bottom:-16px; right:20px; border-left:16px solid transparent; border-top:16px solid #20242c; }
+#citationWidget.tail-br::after  { bottom:-11px; right:24px; border-left:11px solid transparent; border-top:11px solid #fffdf6; }
+/* bec haut-gauche */
+#citationWidget.tail-tl { border-radius:6px 24px 24px 24px; }
+#citationWidget.tail-tl::before { top:-16px; left:20px; border-right:16px solid transparent; border-bottom:16px solid #20242c; }
+#citationWidget.tail-tl::after  { top:-11px; left:24px; border-right:11px solid transparent; border-bottom:11px solid #fffdf6; }
+/* bec haut-droite */
+#citationWidget.tail-tr { border-radius:24px 6px 24px 24px; }
+#citationWidget.tail-tr::before { top:-16px; right:20px; border-left:16px solid transparent; border-bottom:16px solid #20242c; }
+#citationWidget.tail-tr::after  { top:-11px; right:24px; border-left:11px solid transparent; border-bottom:11px solid #fffdf6; }
+#citationTailBtn {
+  position:absolute; top:-10px; left:-10px; width:22px; height:22px; border-radius:50%;
+  background:#20242c; color:#fffdf6; border:2px solid #fffdf6; font-size:0.7rem;
+  display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.25);
+  opacity:0; pointer-events:none; transition:opacity 0.15s; z-index:1;
+}
+#citationWidget:hover #citationTailBtn { opacity:1; pointer-events:auto; }
 #citationWidget.dragging { cursor:grabbing; transform:scale(1.03); box-shadow:0 4px 0 #20242c, 0 10px 22px rgba(20,20,20,0.3); }
 #citationWidget:hover { transform:translateY(-2px); }
 #citationIcon { display:none; }
@@ -2440,7 +2457,8 @@ body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
 </div>
 
 <!-- CITATION WIDGET (style météo) -->
-<div id="citationWidget" title="Citation du moment (clic = détails, glisser = déplacer)">
+<div id="citationWidget" class="tail-bl" title="Citation du moment (clic = détails, glisser = déplacer)">
+  <button id="citationTailBtn" onclick="citationTailCycle(event)" title="Orienter le bec de la bulle">↻</button>
   <span id="citationIcon">💬</span>
   <div>
     <div id="citationShort">Chargement…</div>
@@ -5700,6 +5718,25 @@ function citationRenderList(){
       <button class="citation-item-del" onclick="citationRemove(${i})" title="Supprimer">✕</button>
     </div>`).join('');
 }
+const CITATION_TAIL_KEY = 'citationTailPos';
+const CITATION_TAIL_ORDER = ['tail-bl','tail-br','tail-tr','tail-tl'];
+function citationApplyTail(pos){
+  const w = document.getElementById('citationWidget');
+  CITATION_TAIL_ORDER.forEach(c => w.classList.remove(c));
+  w.classList.add(pos);
+}
+function citationTailCycle(e){
+  if(e) e.stopPropagation();
+  const w = document.getElementById('citationWidget');
+  const current = CITATION_TAIL_ORDER.find(c => w.classList.contains(c)) || 'tail-bl';
+  const next = CITATION_TAIL_ORDER[(CITATION_TAIL_ORDER.indexOf(current) + 1) % CITATION_TAIL_ORDER.length];
+  citationApplyTail(next);
+  localStorage.setItem(CITATION_TAIL_KEY, next);
+}
+(function(){
+  const saved = localStorage.getItem(CITATION_TAIL_KEY);
+  if(saved && CITATION_TAIL_ORDER.includes(saved)) citationApplyTail(saved);
+})();
 let citationTooltipOpen = false;
 function toggleCitationTooltip(){
   citationTooltipOpen = !citationTooltipOpen;
@@ -5747,6 +5784,7 @@ document.addEventListener('click', (e) => {
 
   el.addEventListener('mousedown', e => {
     if(e.button !== 0) return;
+    if(e.target.closest('#citationTailBtn')) return;
     dragging = true; didDrag = false;
     startX = e.clientX; startY = e.clientY;
     const r = el.getBoundingClientRect();
