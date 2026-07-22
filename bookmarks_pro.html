@@ -7722,42 +7722,124 @@ function ghLinkGenerate(){
 }
 </script>
 
-<!-- ═══════════ WIDGET BASCULE Claude / ChatGPT ═══════════ -->
+<!-- ═══════════ WIDGET BASCULE Claude / ChatGPT / GitHub (déplaçable) ═══════════ -->
 <style>
-#flipToggleWidget{position:fixed;bottom:41px;left:calc(50% + 150px);z-index:950;font-family:inherit;perspective:420px;}
-#flipToggleBtn{width:52px;height:66px;border-radius:14px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.35);border:1.5px solid rgba(255,255,255,.15);background:#111;display:flex;flex-direction:column;transform-style:preserve-3d;transition:transform .35s cubic-bezier(.34,1.56,.64,1);cursor:pointer;}
-#flipToggleBtn.tilt-top{transform:rotateX(16deg) scale(1.05);}
-#flipToggleBtn.tilt-bottom{transform:rotateX(-16deg) scale(1.05);}
+#flipToggleWidget{position:fixed;bottom:41px;left:calc(50% + 150px);z-index:950;font-family:inherit;perspective:420px;touch-action:none;}
+#flipToggleBtn{width:52px;height:96px;border-radius:14px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.35);border:1.5px solid rgba(255,255,255,.15);background:#111;display:flex;flex-direction:column;transform-style:preserve-3d;transition:transform .35s cubic-bezier(.34,1.56,.64,1),box-shadow .2s;cursor:grab;}
+#flipToggleBtn.dragging{cursor:grabbing;box-shadow:0 8px 26px rgba(0,0,0,.45);transition:box-shadow .2s;}
+#flipToggleBtn.tilt-top{transform:rotateX(14deg) scale(1.05);}
+#flipToggleBtn.tilt-mid{transform:scale(1.05);}
+#flipToggleBtn.tilt-bottom{transform:rotateX(-14deg) scale(1.05);}
 .flipHalf{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:9.5px;font-weight:600;color:#fff;letter-spacing:.2px;transition:transform .35s cubic-bezier(.34,1.56,.64,1),filter .25s;user-select:none;}
-.flipHalf .flipIcon{font-size:16px;line-height:1;}
+.flipHalf .flipIcon{font-size:15px;line-height:1;}
 #flipTop{background:linear-gradient(160deg,#7a5cff,#cc7a3d);border-bottom:1px solid rgba(255,255,255,.18);}
-#flipBottom{background:linear-gradient(160deg,#12b391,#0d5c48);}
+#flipMid{background:linear-gradient(160deg,#12b391,#0d5c48);border-bottom:1px solid rgba(255,255,255,.18);}
+#flipBottom{background:linear-gradient(160deg,#3a3a3a,#111);}
 #flipToggleBtn.tilt-top #flipTop{transform:translateY(-3px);filter:brightness(1.15);}
-#flipToggleBtn.tilt-top #flipBottom{filter:brightness(.85);}
+#flipToggleBtn.tilt-top #flipMid,#flipToggleBtn.tilt-top #flipBottom{filter:brightness(.8);}
+#flipToggleBtn.tilt-mid #flipMid{transform:translateY(0);filter:brightness(1.2);}
+#flipToggleBtn.tilt-mid #flipTop,#flipToggleBtn.tilt-mid #flipBottom{filter:brightness(.8);}
 #flipToggleBtn.tilt-bottom #flipBottom{transform:translateY(3px);filter:brightness(1.15);}
-#flipToggleBtn.tilt-bottom #flipTop{filter:brightness(.85);}
+#flipToggleBtn.tilt-bottom #flipTop,#flipToggleBtn.tilt-bottom #flipMid{filter:brightness(.8);}
 </style>
 <div id="flipToggleWidget">
   <div id="flipToggleBtn">
-    <div id="flipTop" class="flipHalf" title="Ouvrir Claude"
-         onmouseenter="flipTilt('top')" onmouseleave="flipTilt(null)"
-         onclick="window.open('https://claude.ai/','_blank')">
+    <div id="flipTop" class="flipHalf" title="Ouvrir Claude" data-url="https://claude.ai/">
       <span class="flipIcon">🤖</span><span>Claude</span>
     </div>
-    <div id="flipBottom" class="flipHalf" title="Ouvrir ChatGPT"
-         onmouseenter="flipTilt('bottom')" onmouseleave="flipTilt(null)"
-         onclick="window.open('https://chatgpt.com/','_blank')">
+    <div id="flipMid" class="flipHalf" title="Ouvrir ChatGPT" data-url="https://chatgpt.com/">
       <span class="flipIcon">🧠</span><span>GPT</span>
+    </div>
+    <div id="flipBottom" class="flipHalf" title="Ouvrir GitHub" data-url="https://github.com/bencm0i">
+      <span class="flipIcon">🐙</span><span>GitHub</span>
     </div>
   </div>
 </div>
 <script>
-function flipTilt(side){
-  var btn = document.getElementById('flipToggleBtn');
-  btn.classList.remove('tilt-top','tilt-bottom');
-  if(side === 'top') btn.classList.add('tilt-top');
-  else if(side === 'bottom') btn.classList.add('tilt-bottom');
-}
+(function(){
+  const wrap = document.getElementById('flipToggleWidget');
+  const btn = document.getElementById('flipToggleBtn');
+  const zones = [
+    {el: document.getElementById('flipTop'), cls: 'tilt-top'},
+    {el: document.getElementById('flipMid'), cls: 'tilt-mid'},
+    {el: document.getElementById('flipBottom'), cls: 'tilt-bottom'}
+  ];
+  const SK = 'flipToggleWidgetPos';
+
+  function setTilt(cls){
+    btn.classList.remove('tilt-top','tilt-mid','tilt-bottom');
+    if(cls) btn.classList.add(cls);
+  }
+  zones.forEach(z => {
+    z.el.addEventListener('mouseenter', () => { if(!dragging) setTilt(z.cls); });
+    z.el.addEventListener('mouseleave', () => { if(!dragging) setTilt(null); });
+  });
+
+  function applyPos(left, top){
+    wrap.style.left = left + 'px';
+    wrap.style.top = top + 'px';
+    wrap.style.bottom = 'auto';
+  }
+  const saved = JSON.parse(localStorage.getItem(SK) || 'null');
+  if(saved) applyPos(saved.left, saved.top);
+
+  let dragging = false, didDrag = false, startX, startY, origLeft, origTop;
+
+  function pointerDown(clientX, clientY){
+    dragging = true; didDrag = false;
+    startX = clientX; startY = clientY;
+    const r = wrap.getBoundingClientRect();
+    origLeft = r.left; origTop = r.top;
+    btn.classList.add('dragging');
+  }
+  function pointerMove(clientX, clientY){
+    if(!dragging) return;
+    const dx = clientX - startX, dy = clientY - startY;
+    if(Math.abs(dx) > 3 || Math.abs(dy) > 3) didDrag = true;
+    const left = Math.max(0, Math.min(origLeft + dx, window.innerWidth - wrap.offsetWidth));
+    const top = Math.max(30, Math.min(origTop + dy, window.innerHeight - wrap.offsetHeight - 4));
+    applyPos(left, top);
+  }
+  function pointerUp(clientX, clientY){
+    if(!dragging) return;
+    dragging = false;
+    btn.classList.remove('dragging');
+    if(!didDrag){
+      // clic simple : ouvre le lien de la zone survolée
+      const r = wrap.getBoundingClientRect();
+      const relY = clientY - r.top;
+      const idx = Math.min(2, Math.max(0, Math.floor(relY / (r.height / 3))));
+      window.open(zones[idx].el.dataset.url, '_blank');
+      setTilt(null);
+    } else {
+      const r = wrap.getBoundingClientRect();
+      localStorage.setItem(SK, JSON.stringify({left: r.left, top: r.top}));
+    }
+  }
+
+  btn.addEventListener('mousedown', e => {
+    if(e.button !== 0) return;
+    pointerDown(e.clientX, e.clientY);
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', e => pointerMove(e.clientX, e.clientY));
+  document.addEventListener('mouseup', e => pointerUp(e.clientX, e.clientY));
+
+  btn.addEventListener('touchstart', e => {
+    const t = e.touches[0];
+    pointerDown(t.clientX, t.clientY);
+  }, {passive: true});
+  document.addEventListener('touchmove', e => {
+    if(!dragging) return;
+    const t = e.touches[0];
+    pointerMove(t.clientX, t.clientY);
+    e.preventDefault();
+  }, {passive: false});
+  document.addEventListener('touchend', e => {
+    const t = e.changedTouches[0];
+    pointerUp(t.clientX, t.clientY);
+  });
+})();
 </script>
 </body>
 </html>
