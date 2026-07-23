@@ -1294,6 +1294,14 @@ body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
   font-size:0.75rem; line-height:1; padding:2px;
 }
 .citation-empty { font-size:0.62rem; color:var(--muted); font-style:italic; text-align:center; padding:4px 0; }
+.citation-mode-toggle { display:flex; gap:6px; }
+.citation-mode-btn {
+  flex:1; padding:6px 6px; border-radius:10px; border:1.5px solid var(--border);
+  background:rgba(255,255,255,0.5); font-size:0.6rem; font-weight:700; color:var(--muted);
+  cursor:pointer; transition:all 0.15s; text-align:center; font-family:'Inter',sans-serif;
+}
+.citation-mode-btn:hover { border-color:var(--c2); color:var(--c2); }
+.citation-mode-btn.active { background:linear-gradient(90deg,var(--c1),var(--c2)); color:#fff; border-color:transparent; }
 
 /* ── WIDGET POINTEUSE FLOTTANT (style météo) ── */
 #pointeuseWidget {
@@ -2492,6 +2500,10 @@ body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
   <button class="meteo-retry-btn" onclick="citationNext()">🔀 Nouvelle citation</button>
   <button class="meteo-retry-btn" style="background:linear-gradient(90deg,#456b63,var(--c3));" onclick="toggleCitationSettings()">⚙️ Mes citations</button>
   <div id="citationSettings">
+    <div id="citationModeToggle" class="citation-mode-toggle">
+      <button class="citation-mode-btn" data-mode="default" onclick="citationSetMode('default')">📚 Enregistrées</button>
+      <button class="citation-mode-btn" data-mode="perso" onclick="citationSetMode('perso')">✍️ Perso</button>
+    </div>
     <textarea id="citationInput" placeholder="Texte de la citation…"></textarea>
     <input id="citationAuthorInput" type="text" placeholder="Auteur (optionnel)">
     <button class="meteo-retry-btn" onclick="citationAdd()">➕ Ajouter à mes citations</button>
@@ -5769,7 +5781,9 @@ const CITATION_DEFAULTS = [
   { text: "Ne compte pas les jours, fais que les jours comptent.", author: "Muhammad Ali" }
 ];
 const CITATION_CUSTOM_KEY = 'citationCustomList';
+const CITATION_MODE_KEY = 'citationMode';
 let citationCurrent = null;
+let citationMode = localStorage.getItem(CITATION_MODE_KEY) === 'perso' ? 'perso' : 'default';
 
 function citationLoadCustom(){
   try { return JSON.parse(localStorage.getItem(CITATION_CUSTOM_KEY) || '[]'); }
@@ -5779,11 +5793,26 @@ function citationSaveCustom(list){
   localStorage.setItem(CITATION_CUSTOM_KEY, JSON.stringify(list));
 }
 function citationPool(){
-  return CITATION_DEFAULTS.concat(citationLoadCustom());
+  return citationMode === 'perso' ? citationLoadCustom() : CITATION_DEFAULTS;
+}
+function citationSetMode(mode){
+  citationMode = (mode === 'perso') ? 'perso' : 'default';
+  localStorage.setItem(CITATION_MODE_KEY, citationMode);
+  document.querySelectorAll('.citation-mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === citationMode));
+  citationCurrent = null;
+  citationNext();
 }
 function citationNext(){
   const pool = citationPool();
-  if(!pool.length) return;
+  if(!pool.length){
+    citationCurrent = null;
+    const emptyMsg = citationMode === 'perso' ? 'Aucune citation perso' : 'Aucune citation';
+    document.getElementById('citationShort').textContent = emptyMsg;
+    document.getElementById('citationFullText').textContent = citationMode === 'perso' ? 'Ajoute une citation ci-dessous ⚙️' : '--';
+    document.getElementById('citationAuthor').textContent = '';
+    document.getElementById('citationWidget').title = emptyMsg;
+    return;
+  }
   let pick;
   if(pool.length === 1) pick = pool[0];
   else {
@@ -5809,12 +5838,14 @@ function citationAdd(){
   input.value = '';
   authorInput.value = '';
   citationRenderList();
+  if(citationMode === 'perso') citationNext();
 }
 function citationRemove(idx){
   const list = citationLoadCustom();
   list.splice(idx, 1);
   citationSaveCustom(list);
   citationRenderList();
+  if(citationMode === 'perso') citationNext();
 }
 function citationRenderList(){
   const wrap = document.getElementById('citationListWrap');
@@ -5847,6 +5878,9 @@ function citationTailCycle(e){
 (function(){
   const saved = localStorage.getItem(CITATION_TAIL_KEY);
   if(saved && CITATION_TAIL_ORDER.includes(saved)) citationApplyTail(saved);
+})();
+(function(){
+  document.querySelectorAll('.citation-mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === citationMode));
 })();
 let citationTooltipOpen = false;
 function toggleCitationTooltip(){
