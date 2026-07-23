@@ -2523,7 +2523,7 @@ body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
 <div class="page" id="mainPage">
 
   <div class="site-header">
-    <input id="page-title" value="Mon Tableau ✨" oninput="save()">
+    <input id="page-title" value="" oninput="save()">
     <div style="display:flex;gap:8px;align-items:center">
       <span class="save-dot" id="saveDot"></span>
     </div>
@@ -3431,7 +3431,7 @@ function resetAll(){
   compactLinks = DEFAULT_COMPACT_LINKS.map(l=>({...l}));
   launcherLinks = DEFAULT_LAUNCHER.map(l=>({...l}));
   localStorage.removeItem('dashboard_launcher');
-  document.getElementById('page-title').value = 'Mon Tableau ✨';
+  document.getElementById('page-title').value = '';
   const _naC = document.getElementById('notesArea'); if(_naC) _naC.value = '';
   [0,1,2].forEach(i=>{ const el=document.getElementById('transp'+i); if(el) el.value=''; });
   const bg=document.getElementById('bg-layer');
