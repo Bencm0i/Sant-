@@ -3817,6 +3817,7 @@ function bgConfirmCancel(){
 let canvas, ctx;
 let drawing=false, currentColor='#2b2b2b', currentSize=3, history=[];
 let drawEnabled=false, erasing=false;
+let drawTool='pen', shapeStart=null, shapeSnapshot=null;
 const DRAW_HISTORY_MAX = 25;
 
 function initCanvas(){
@@ -3869,29 +3870,75 @@ function startDraw(e){
     if(history.length > DRAW_HISTORY_MAX) history.shift();
   }catch(err){}
   const p = getDrawPos(e);
-  ctx.beginPath();
-  ctx.moveTo(p.x, p.y);
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
+  if(drawTool === 'pen'){
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+  } else {
+    shapeStart = p;
+    try{ shapeSnapshot = ctx.getImageData(0, 0, canvas.width, canvas.height); }catch(err){ shapeSnapshot = null; }
+  }
 }
 
 function draw(e){
   if(!drawing || !drawEnabled || !ctx) return;
   const p = getDrawPos(e);
-  ctx.globalCompositeOperation = erasing ? 'destination-out' : 'source-over';
+
+  if(drawTool === 'pen'){
+    ctx.globalCompositeOperation = erasing ? 'destination-out' : 'source-over';
+    ctx.strokeStyle = currentColor;
+    ctx.lineWidth = erasing ? currentSize * 4 : currentSize;
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    return;
+  }
+
+  // ── Outils formes : rectangle/carré, ellipse/cercle, avec aperçu en direct ──
+  if(!shapeStart) return;
+  if(shapeSnapshot) ctx.putImageData(shapeSnapshot, 0, 0);
+  ctx.globalCompositeOperation = 'source-over';
   ctx.strokeStyle = currentColor;
-  ctx.lineWidth = erasing ? currentSize * 4 : currentSize;
-  ctx.lineTo(p.x, p.y);
-  ctx.stroke();
+  ctx.lineWidth = currentSize;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  let w = p.x - shapeStart.x;
+  let h = p.y - shapeStart.y;
+  if(e.shiftKey){
+    const s = Math.max(Math.abs(w), Math.abs(h));
+    w = (w < 0 ? -1 : 1) * s;
+    h = (h < 0 ? -1 : 1) * s;
+  }
+
   ctx.beginPath();
-  ctx.moveTo(p.x, p.y);
+  if(drawTool === 'rect'){
+    ctx.strokeRect(shapeStart.x, shapeStart.y, w, h);
+  } else if(drawTool === 'ellipse'){
+    const cx = shapeStart.x + w / 2, cy = shapeStart.y + h / 2;
+    ctx.ellipse(cx, cy, Math.abs(w / 2), Math.abs(h / 2), 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
 }
 
 function endDraw(){
   if(!drawing) return;
   drawing = false;
+  if(drawTool !== 'pen'){ shapeStart = null; shapeSnapshot = null; }
   ctx.beginPath();
   saveCanvas();
+}
+
+function drawSetTool(tool){
+  drawTool = tool;
+  erasing = false;
+  const eraserBtn = document.getElementById('drawEraserBtn');
+  if(eraserBtn) eraserBtn.classList.remove('active');
+  document.querySelectorAll('.draw-tool-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('drawTool_' + tool);
+  if(btn) btn.classList.add('active');
 }
 
 function drawSetColor(color, el){
@@ -3911,7 +3958,13 @@ function drawToggleEraser(){
   erasing = !erasing;
   const btn = document.getElementById('drawEraserBtn');
   if(btn) btn.classList.toggle('active', erasing);
-  if(erasing) document.querySelectorAll('.draw-color-swatch').forEach(s => s.classList.remove('active'));
+  if(erasing){
+    drawTool = 'pen';
+    document.querySelectorAll('.draw-color-swatch').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.draw-tool-btn').forEach(b => b.classList.remove('active'));
+    const penBtn = document.getElementById('drawTool_pen');
+    if(penBtn) penBtn.classList.add('active');
+  }
 }
 
 function undoDraw(){
@@ -7635,6 +7688,10 @@ document.addEventListener('keydown', function(e){
     <div class="draw-sep"></div>
     <span style="font-size:0.62rem;font-weight:700;color:var(--muted)">✏️</span>
     <input type="range" class="draw-size-range" id="drawSizeRange" min="1" max="30" value="3" oninput="drawSetSize(this.value)" title="Épaisseur">
+    <div class="draw-sep"></div>
+    <button class="draw-btn draw-tool-btn active" id="drawTool_pen" onclick="drawSetTool('pen')" title="Stylo (main levée)">✏️</button>
+    <button class="draw-btn draw-tool-btn" id="drawTool_rect" onclick="drawSetTool('rect')" title="Rectangle / carré (Maj = carré)">▭</button>
+    <button class="draw-btn draw-tool-btn" id="drawTool_ellipse" onclick="drawSetTool('ellipse')" title="Ellipse / cercle (Maj = cercle)">⬭</button>
     <div class="draw-sep"></div>
     <button class="draw-btn" id="drawEraserBtn" onclick="drawToggleEraser()" title="Gomme">🧽</button>
     <button class="draw-btn" onclick="drawUndo()" title="Annuler">↩</button>
