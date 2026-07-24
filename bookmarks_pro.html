@@ -4987,14 +4987,37 @@ function launcherOpenEdit(i){
   document.getElementById('launcherModal').classList.add('open');
 }
 function launcherCloseModal(){ document.getElementById('launcherModal').classList.remove('open'); }
+// ── prochaine position libre pour une nouvelle icône : colonnes de 80px, on repart en haut
+// dans la colonne suivante dès que ça dépasserait le bas de l'écran visible ──
+function launcherNextFreePos(){
+  const topY = 160, stepY = 110, stepX = 100, maxY = window.innerHeight - 90;
+  const bounds = _lchBounds();
+  let x = bounds.minX + 80, y = topY;
+  if(!launcherLinks.length) return {x, y};
+  // Reconstituer les colonnes déjà occupées (regroupe les icônes par x le plus proche)
+  const cols = {};
+  launcherLinks.forEach(l => {
+    const cx = Math.round((l.x||80) / stepX) * stepX;
+    cols[cx] = Math.max(cols[cx] || 0, l.y || 0);
+  });
+  const colXs = Object.keys(cols).map(Number).sort((a,b)=>a-b);
+  // Essaye chaque colonne existante d'abord, puis en ouvre une nouvelle
+  for(const cx of colXs){
+    const nextY = cols[cx] + stepY;
+    if(nextY <= maxY) return {x: cx, y: nextY};
+  }
+  let cx = colXs.length ? Math.max(...colXs) + stepX : bounds.minX + 80;
+  while(cx < bounds.maxX && cols[cx] !== undefined) cx += stepX;
+  return {x: Math.min(cx, bounds.maxX), y: topY};
+}
 function launcherSaveModal(){
   let url  = document.getElementById('launcherModalUrl').value.trim();
   const name  = document.getElementById('launcherModalName').value.trim() || 'Lien';
   const emoji = launcherSelEmoji();
   if(url && !url.startsWith('http')) url = 'https://' + url;
   if(launcherEditIdx === null){
-    const lastY = launcherLinks.length ? Math.max(...launcherLinks.map(l => l.y||0)) + 110 : 160;
-    const obj = {emoji, name, url, x:80, y:lastY};
+    const pos = launcherNextFreePos();
+    const obj = {emoji, name, url, x:pos.x, y:pos.y};
     if(launcherModalIcon) obj.icon = launcherModalIcon;
     if(launcherModalNoPreview) obj.noPreview = true;
     launcherLinks.push(obj);
