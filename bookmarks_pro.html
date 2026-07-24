@@ -2968,6 +2968,23 @@ body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
 </div>
 
 <div class="emoji-picker" id="emojiPicker" style="display:none"></div>
+
+<div class="link-preview-tip" id="linkPreviewTip">
+  <div class="link-preview-img-wrap">
+    <img id="linkPreviewImg" alt="">
+    <div class="link-preview-loading" id="linkPreviewLoading">Chargement de l'aperçu…</div>
+  </div>
+  <div class="link-preview-name" id="linkPreviewName"></div>
+</div>
+<style>
+  .link-preview-tip{position:fixed;z-index:900;width:260px;pointer-events:none;background:var(--surface);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1.5px solid var(--border);border-radius:14px;box-shadow:0 18px 50px rgba(15,23,42,0.3);overflow:hidden;opacity:0;transform:translateY(4px);transition:opacity 0.15s,transform 0.15s;display:none;}
+  .link-preview-tip.show{display:block;opacity:1;transform:translateY(0);}
+  .link-preview-img-wrap{position:relative;width:100%;aspect-ratio:16/10;background:rgba(0,0,0,0.06);overflow:hidden;}
+  .link-preview-img-wrap img{width:100%;height:100%;object-fit:cover;object-position:top;display:block;opacity:0;transition:opacity 0.2s;}
+  .link-preview-img-wrap img.loaded{opacity:1;}
+  .link-preview-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:0.65rem;color:var(--muted);text-align:center;padding:8px;}
+  .link-preview-name{padding:8px 10px;font-size:0.7rem;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+</style>
 <input type="file" id="customIconFileInput" accept="image/*" style="display:none" onchange="handleCustomIconFile(this)">
 <input type="file" id="wallpaperFileInput" accept="image/*" style="display:none" onchange="wallpaperHandleFile(this)">
 
@@ -3337,6 +3354,11 @@ function renderFrequentShortcuts(){
       <span class="freq-shortcut-name">${lk.name || 'Lien'}</span>
     </a>
   `).join('');
+  row.querySelectorAll('.freq-shortcut').forEach((a, idx) => {
+    const lk = top[idx];
+    a.addEventListener('mouseenter', () => scheduleLinkPreview(a, lk.url, lk.name));
+    a.addEventListener('mouseleave', cancelLinkPreview);
+  });
 }
 
 // ── État accordéon ──
@@ -3437,6 +3459,56 @@ function openEmojiCompact(e, idx){
   picker.style.left = Math.min(r.left, window.innerWidth-230)+'px';
   picker.style.top = (r.bottom+6)+'px';
 }
+
+// ── APERÇU AU SURVOL (capture d'écran du site, via le service gratuit mshots) ──
+let linkPreviewTimer = null;
+let linkPreviewCurrentUrl = null;
+
+function scheduleLinkPreview(el, url, name){
+  if(!url) return;
+  clearTimeout(linkPreviewTimer);
+  linkPreviewTimer = setTimeout(() => showLinkPreview(el, url, name), 380);
+}
+
+function cancelLinkPreview(){
+  clearTimeout(linkPreviewTimer);
+  hideLinkPreview();
+}
+
+function showLinkPreview(el, url, name){
+  const tip = document.getElementById('linkPreviewTip');
+  const img = document.getElementById('linkPreviewImg');
+  const loading = document.getElementById('linkPreviewLoading');
+  const nameEl = document.getElementById('linkPreviewName');
+  if(!tip || !el.isConnected) return;
+
+  linkPreviewCurrentUrl = url;
+  img.classList.remove('loaded');
+  loading.style.display = 'flex';
+  loading.textContent = "Chargement de l'aperçu…";
+  nameEl.textContent = name || url;
+
+  const r = el.getBoundingClientRect();
+  const tipW = 260, tipH = 190;
+  let left = r.left + r.width/2 - tipW/2;
+  left = Math.max(8, Math.min(left, window.innerWidth - tipW - 8));
+  let top = r.bottom + 10;
+  if(top + tipH > window.innerHeight - 8) top = r.top - tipH - 10;
+  tip.style.left = left + 'px';
+  tip.style.top = Math.max(8, top) + 'px';
+  tip.classList.add('show');
+
+  img.onload = () => { if(linkPreviewCurrentUrl === url){ img.classList.add('loaded'); loading.style.display = 'none'; } };
+  img.onerror = () => { if(linkPreviewCurrentUrl === url) loading.textContent = 'Aperçu indisponible'; };
+  img.src = 'https://s.wordpress.com/mshots/v1/' + encodeURIComponent(url) + '?w=500';
+}
+
+function hideLinkPreview(){
+  const tip = document.getElementById('linkPreviewTip');
+  if(tip) tip.classList.remove('show');
+  linkPreviewCurrentUrl = null;
+}
+
 
 // ── Import d'une icône personnalisée (image locale → data URL redimensionnée) ──
 function resizeIconFile(file, size){
@@ -4427,6 +4499,11 @@ function launcherRender(){
     wrap.appendChild(label);
     desktop.appendChild(wrap);
 
+    if(lk.url){
+      wrap.addEventListener('mouseenter', () => scheduleLinkPreview(btn, lk.url, lk.name));
+      wrap.addEventListener('mouseleave', cancelLinkPreview);
+    }
+
     // ══ MOUSEDOWN : démarre le potentiel drag ══
     wrap.addEventListener('mousedown', e => {
       if(e.button !== 0) return;
@@ -4708,6 +4785,10 @@ function smRender(filter){
     row.appendChild(name);
     row.appendChild(catTag);
     row.appendChild(actions);
+    if(it.url){
+      row.addEventListener('mouseenter', () => scheduleLinkPreview(row, it.url, it.name));
+      row.addEventListener('mouseleave', cancelLinkPreview);
+    }
     list.appendChild(row);
   });
 }
@@ -4973,6 +5054,8 @@ function buildCompactLinkEl(lk, i){
   emBtn.className = 'compact-link-emoji-btn';
   emBtn.title = 'Changer icône';
   emBtn.onclick = (e) => { e.stopPropagation(); openEmojiCompact(e, i); };
+  emBtn.addEventListener('mouseenter', () => { if(lk.url) scheduleLinkPreview(emBtn, lk.url, lk.name); });
+  emBtn.addEventListener('mouseleave', cancelLinkPreview);
   if(lk.icon){
     // Icône personnalisée (image importée par l'utilisateur) : prioritaire sur emoji/favicon
     const custom = document.createElement('img');
