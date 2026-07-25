@@ -1060,7 +1060,7 @@ body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
   border:2.5px solid #20242c; border-radius:20px;
   padding:9px 16px;
   box-shadow:0 3px 0 #20242c, 0 7px 16px rgba(20,20,20,0.25);
-  cursor:grab; transition:transform 0.15s ease, box-shadow 0.15s ease;
+  cursor:grab; transition:transform 0.15s ease, box-shadow 0.15s ease, height 0.15s ease;
   font-family:'Comic Neue','Inter',sans-serif;
   user-select:none;
 }
@@ -1098,8 +1098,9 @@ body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
 #citationIcon { display:none; }
 #citationShort {
   font-size:0.82rem; font-weight:700; color:#20242c; font-style:italic;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:210px;
-  line-height:1.2;
+  white-space:normal; overflow:visible; text-overflow:clip; word-break:break-word;
+  max-width:210px; line-height:1.28;
+  display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:5;
 }
 #citationWidgetLabel { display:none; }
 #citationTooltip {
@@ -7463,16 +7464,19 @@ function ghLinkGenerate(){
 
 <!-- ═══════════ WIDGET BASCULE Claude / ChatGPT / GitHub (déplaçable) ═══════════ -->
 <style>
-#flipToggleWidget{position:fixed;bottom:41px;left:calc(50% + 150px);z-index:950;font-family:inherit;perspective:420px;touch-action:none;}
-#flipToggleBtn{width:52px;height:128px;border-radius:14px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.35);border:1.5px solid rgba(255,255,255,.15);background:#111;display:flex;flex-direction:column;transform-style:preserve-3d;transition:transform .35s cubic-bezier(.34,1.56,.64,1),box-shadow .2s;cursor:grab;}
+#flipToggleWidget{position:fixed;bottom:41px;left:calc(50% + 150px);z-index:950;font-family:inherit;perspective:520px;touch-action:none;}
+#flipToggleBtn{width:52px;height:128px;border-radius:14px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.35),inset 0 10px 16px -8px rgba(0,0,0,.55),inset 0 -10px 16px -8px rgba(0,0,0,.55);border:1.5px solid rgba(255,255,255,.15);background:#0b0b0f;position:relative;transform-style:preserve-3d;transition:box-shadow .2s;cursor:grab;}
 #flipToggleBtn.dragging{cursor:grabbing;box-shadow:0 8px 26px rgba(0,0,0,.45);transition:box-shadow .2s;}
-.flipHalf{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:9.5px;font-weight:600;color:#fff;letter-spacing:.2px;transition:transform .35s cubic-bezier(.34,1.56,.64,1),filter .25s;user-select:none;}
-.flipHalf:not(:last-child){border-bottom:1px solid rgba(255,255,255,.18);}
+.flipHalf{
+  position:absolute;left:0;top:50%;width:100%;height:32px;margin-top:-16px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  font-size:9.5px;font-weight:600;color:#fff;letter-spacing:.2px;user-select:none;
+  border-top:1px solid rgba(255,255,255,.16);border-bottom:1px solid rgba(0,0,0,.35);
+  backface-visibility:hidden;
+  transition:transform .5s cubic-bezier(.25,1,.4,1),filter .35s,opacity .35s;
+  will-change:transform;
+}
 .flipHalf .flipIcon{font-size:15px;line-height:1;}
-.flipHalf.tilt-in{filter:brightness(1.15);}
-.flipHalf.tilt-in.tilt-first{transform:translateY(-3px);}
-.flipHalf.tilt-in.tilt-last{transform:translateY(3px);}
-.flipHalf.tilt-out{filter:brightness(.8);}
 </style>
 <div id="flipToggleWidget">
   <div id="flipToggleBtn">
@@ -7497,22 +7501,29 @@ function ghLinkGenerate(){
   const zones = Array.from(btn.querySelectorAll('.flipHalf')).map(el => ({el}));
   const SK = 'flipToggleWidgetPos';
 
-  function setTilt(idx){
+  // --- Effet roue verticale (cylindre 3D) ---
+  const N = zones.length;
+  const ITEM_H = zones[0].el.offsetHeight || 32;
+  const ANGLE_STEP = 26; // degrés entre chaque icône sur la roue
+  const RADIUS = Math.round((ITEM_H/2) / Math.tan((ANGLE_STEP*Math.PI/180)/2) * 1.05);
+  const DEFAULT_FOCUS = (N-1)/2; // position de repos : roue centrée entre les icônes du milieu
+  let hoverIdx = null;
+
+  function renderWheel(focus){
     zones.forEach((z,i) => {
-      z.el.classList.remove('tilt-in','tilt-out','tilt-first','tilt-last');
-      if(idx === null) return;
-      if(i === idx){
-        z.el.classList.add('tilt-in');
-        if(i === 0) z.el.classList.add('tilt-first');
-        if(i === zones.length - 1) z.el.classList.add('tilt-last');
-      } else {
-        z.el.classList.add('tilt-out');
-      }
+      const angle = (i - focus) * ANGLE_STEP;
+      const absA = Math.abs(angle);
+      z.el.style.transform = `rotateX(${-angle}deg) translateZ(${RADIUS}px)`;
+      z.el.style.filter = `brightness(${Math.max(0.4, 1.15 - absA/95)})`;
+      z.el.style.opacity = absA > 110 ? '0' : '1';
+      z.el.style.zIndex = Math.round(200 - absA);
     });
   }
+  renderWheel(DEFAULT_FOCUS);
+
   zones.forEach((z,i) => {
-    z.el.addEventListener('mouseenter', () => { if(!dragging) setTilt(i); });
-    z.el.addEventListener('mouseleave', () => { if(!dragging) setTilt(null); });
+    z.el.addEventListener('mouseenter', () => { if(!dragging){ hoverIdx = i; renderWheel(i); } });
+    z.el.addEventListener('mouseleave', () => { if(!dragging){ hoverIdx = null; renderWheel(DEFAULT_FOCUS); } });
   });
 
   function applyPos(left, top){
@@ -7545,12 +7556,16 @@ function ghLinkGenerate(){
     dragging = false;
     btn.classList.remove('dragging');
     if(!didDrag){
-      // clic simple : ouvre le lien de la zone survolée
-      const r = wrap.getBoundingClientRect();
-      const relY = clientY - r.top;
-      const idx = Math.min(zones.length - 1, Math.max(0, Math.floor(relY / (r.height / zones.length))));
+      // clic simple : ouvre le lien de la zone survolée (ou estimée au toucher)
+      let idx = hoverIdx;
+      if(idx === null){
+        const r = wrap.getBoundingClientRect();
+        const relY = clientY - r.top;
+        idx = Math.min(zones.length - 1, Math.max(0, Math.floor(relY / (r.height / zones.length))));
+      }
       window.open(zones[idx].el.dataset.url, '_blank');
-      setTilt(null);
+      hoverIdx = null;
+      renderWheel(DEFAULT_FOCUS);
     } else {
       const r = wrap.getBoundingClientRect();
       localStorage.setItem(SK, JSON.stringify({left: r.left, top: r.top}));
