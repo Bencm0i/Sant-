@@ -104,6 +104,12 @@ select{cursor:pointer;}
 th.sortable{cursor:pointer; user-select:none;}
 th.sortable:hover{color:var(--text);}
 .sort-arrow{display:inline-block; width:10px; font-size:10px; color:var(--accent);}
+
+.statut-pill{display:inline-block; font-size:11px; font-weight:700; padding:3px 9px; border-radius:12px;}
+.statut-pill.ok{background:rgba(62,207,142,.15); color:var(--green); border:1px solid rgba(62,207,142,.4);}
+.statut-pill.attendu{background:rgba(232,179,57,.15); color:var(--amber); border:1px solid rgba(232,179,57,.4);}
+.statut-pill.retard{background:rgba(239,91,91,.15); color:var(--red); border:1px solid rgba(239,91,91,.4);}
+.statut-pill.na{background:var(--panel2); color:var(--muted); border:1px solid var(--border);}
 </style>
 </head>
 <body>
@@ -176,6 +182,25 @@ th.sortable:hover{color:var(--text);}
 
 <!-- ================= ONGLET REVENUS ================= -->
 <div id="tab-revenus" class="tab-content">
+<div class="panel">
+  <h2 style="margin-top:0;border:none;">✅ État des versements — <span id="moisCourantLabel"></span></h2>
+  <div class="note" style="margin-top:0;">Vérifie, pour chaque SCPI, si un versement a déjà été enregistré ce mois-ci. Le statut "attendu" ou "en retard" s'appuie sur la périodicité et sur l'intervalle moyen constaté entre les derniers versements.</div>
+  <div style="overflow-x:auto;margin-top:8px;">
+  <table id="tblEtatMois">
+    <thead>
+      <tr>
+        <th>SCPI</th>
+        <th>Périodicité</th>
+        <th>Statut</th>
+        <th class="num">Montant versé (€)</th>
+        <th>Détail</th>
+      </tr>
+    </thead>
+    <tbody id="bodyEtatMois"></tbody>
+  </table>
+  </div>
+</div>
+
 <div class="panel">
   <h2 style="margin-top:0;border:none;">🔮 Prédiction du prochain versement</h2>
   <div class="note" style="margin-top:0;">Estimation basée sur l'intervalle moyen entre les 3 derniers versements enregistrés pour chaque SCPI (date du dernier versement + intervalle moyen constaté).</div>
@@ -527,6 +552,7 @@ function renderRevenus(){
   if(listeFiltree.length === 0){
     tbody.innerHTML = `<tr><td colspan="6" class="note">${revenuFiltreId ? 'Aucun versement pour cette SCPI.' : 'Aucun versement enregistré.'}</td></tr>`;
     renderPrediction();
+    renderEtatMois();
     return;
   }
   listeFiltree.forEach(rev=>{
@@ -557,6 +583,7 @@ function renderRevenus(){
     });
   });
   renderPrediction();
+  renderEtatMois();
 }
 function renderRevenusSCPIOptions(){ renderRevenus(); }
 
@@ -1014,6 +1041,79 @@ function deleteBackup(idx){
   renderBackups();
 }
 
+// ================= ETAT DES VERSEMENTS DU MOIS EN COURS =================
+function calcEtatVersementMois(){
+  const today = new Date();
+  const todayISO = today.toISOString().slice(0,10);
+  const currentYM = todayISO.slice(0,7);
+  const predictions = calcPredictionVersements(); // meme ordre que portefeuille
+
+  return portefeuille.map((p,i)=>{
+    const revP = revenus.filter(r=>r.scpiId===p.id && r.date).sort((a,b)=>a.date.localeCompare(b.date));
+    const periodicite = revP.length ? (revP[revP.length-1].periodicite||'—') : '—';
+    const paiementsCeMois = revP.filter(r=>r.date.slice(0,7)===currentYM);
+
+    if(paiementsCeMois.length){
+      const montant = paiementsCeMois.reduce((s,r)=> s + (r.net!=null && r.net!=='' ? parseFloat(r.net) : (r.brut||0)), 0);
+      return {nom:p.nom, periodicite, statut:'ok', montant,
+        detail:`Versé le ${paiementsCeMois.map(r=>new Date(r.date).toLocaleDateString('fr-FR')).join(', ')}`};
+    }
+
+    const pred = predictions[i];
+    if(pred && pred.prediction){
+      const predYM = pred.prediction.toISOString().slice(0,7);
+      if(predYM === currentYM){
+        if(pred.prediction.toISOString().slice(0,10) < todayISO){
+          return {nom:p.nom, periodicite, statut:'retard', montant:null,
+            detail:`Versement prévu vers le ${pred.prediction.toLocaleDateString('fr-FR')}, toujours pas reçu`};
+        }
+        return {nom:p.nom, periodicite, statut:'attendu', montant:null,
+          detail:`Versement attendu vers le ${pred.prediction.toLocaleDateString('fr-FR')}`};
+      }
+      if(predYM < currentYM){
+        return {nom:p.nom, periodicite, statut:'retard', montant:null,
+          detail:`Versement attendu depuis le ${pred.prediction.toLocaleDateString('fr-FR')}, toujours pas reçu`};
+      }
+      // predYM > currentYM : pas concernée ce mois-ci (ex: trimestrielle)
+      return {nom:p.nom, periodicite, statut:'na', montant:null,
+        detail:`Prochain versement estimé vers le ${pred.prediction.toLocaleDateString('fr-FR')}`};
+    }
+
+    // pas assez de donnees pour predire -> se baser sur la periodicite declaree
+    if(periodicite==='Mensuelle'){
+      return {nom:p.nom, periodicite, statut:'attendu', montant:null,
+        detail:`Aucun versement enregistré ce mois-ci (données insuffisantes pour une prédiction précise)`};
+    }
+    return {nom:p.nom, periodicite, statut:'na', montant:null,
+      detail:revP.length ? `Pas assez d'historique pour prédire l'échéance` : `Aucun versement enregistré pour cette SCPI`};
+  });
+}
+
+function renderEtatMois(){
+  const tbody = document.getElementById('bodyEtatMois');
+  if(!tbody) return;
+  const label = document.getElementById('moisCourantLabel');
+  if(label) label.textContent = new Date().toLocaleDateString('fr-FR',{month:'long', year:'numeric'});
+
+  const data = calcEtatVersementMois();
+  const pillMap = {
+    ok:      {cls:'ok',      txt:'✅ Versé'},
+    attendu: {cls:'attendu', txt:'⏳ Attendu ce mois'},
+    retard:  {cls:'retard',  txt:'⚠️ En retard'},
+    na:      {cls:'na',      txt:'— Non concernée ce mois'}
+  };
+  tbody.innerHTML = data.length ? data.map(x=>{
+    const pill = pillMap[x.statut] || pillMap.na;
+    return `<tr>
+      <td>${x.nom}</td>
+      <td>${x.periodicite}</td>
+      <td><span class="statut-pill ${pill.cls}">${pill.txt}</span></td>
+      <td class="num">${x.montant!=null ? fmt(x.montant)+' €' : '—'}</td>
+      <td class="note" style="margin:0;">${x.detail}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="5" class="note">Aucune SCPI enregistrée.</td></tr>';
+}
+
 // ================= PREDICTION PROCHAIN VERSEMENT =================
 function calcPredictionVersements(){
   return portefeuille.map(p=>{
@@ -1085,6 +1185,7 @@ function importJSON(evt){
 // ================= INIT =================
 renderPortefeuille();
 renderRevenus();
+renderEtatMois();
 renderKPI();
 renderBackups();
 </script>
