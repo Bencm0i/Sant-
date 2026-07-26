@@ -55,6 +55,14 @@ select{cursor:pointer;}
 .kpi-label{color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.03em; margin-bottom:4px;}
 .kpi-value{font-size:20px; font-weight:700;}
 .kpi-sub{font-size:11px; color:var(--muted); margin-top:2px;}
+.kpi-card.highlight{
+  background:linear-gradient(135deg, rgba(79,140,255,.18), var(--panel2));
+  border:1.5px solid var(--accent); box-shadow:0 0 0 1px rgba(79,140,255,.15), 0 4px 14px rgba(79,140,255,.12);
+  grid-column: span 2;
+}
+.kpi-card.highlight .kpi-label{color:var(--accent);}
+.kpi-card.highlight .kpi-value{font-size:30px;}
+@media (max-width:500px){ .kpi-card.highlight{grid-column:span 1;} }
 
 .rank-list{list-style:none; margin:0; padding:0;}
 .rank-list li{display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid #22262f; font-size:12.5px;}
@@ -169,9 +177,30 @@ th.sortable:hover{color:var(--text);}
 <!-- ================= ONGLET REVENUS ================= -->
 <div id="tab-revenus" class="tab-content">
 <div class="panel">
+  <h2 style="margin-top:0;border:none;">🔮 Prédiction du prochain versement</h2>
+  <div class="note" style="margin-top:0;">Estimation basée sur l'intervalle moyen entre les 3 derniers versements enregistrés pour chaque SCPI (date du dernier versement + intervalle moyen constaté).</div>
+  <div style="overflow-x:auto;margin-top:8px;">
+  <table id="tblPrediction">
+    <thead>
+      <tr>
+        <th>SCPI</th>
+        <th>Dernier versement</th>
+        <th class="num">Intervalle moyen</th>
+        <th>Prochain versement estimé</th>
+      </tr>
+    </thead>
+    <tbody id="bodyPrediction"></tbody>
+  </table>
+  </div>
+</div>
+
+<div class="panel">
   <h2 style="margin-top:0;border:none;">Revenus perçus</h2>
   <div class="toolbar">
     <button class="btn" onclick="addRevenu()">+ Ajouter un versement</button>
+    <select id="filtreRevenuSCPI" onchange="onFiltreRevenuChange()" style="width:auto;min-width:180px;border:1px solid var(--border);">
+      <option value="">Toutes les SCPI</option>
+    </select>
   </div>
   <div style="overflow-x:auto;">
   <table id="tblRevenus">
@@ -189,24 +218,6 @@ th.sortable:hover{color:var(--text);}
   </table>
   </div>
   <div class="note">Montant net fiscal = optionnel (après prélèvement / CSG-CRDS si votre SCPI le communique). Laissez vide sinon, le KPI utilisera le brut.</div>
-</div>
-
-<div class="panel">
-  <h2 style="margin-top:0;border:none;">🔮 Prédiction du prochain versement</h2>
-  <div class="note" style="margin-top:0;">Estimation basée sur l'intervalle moyen entre les 3 derniers versements enregistrés pour chaque SCPI (date du dernier versement + intervalle moyen constaté).</div>
-  <div style="overflow-x:auto;margin-top:8px;">
-  <table id="tblPrediction">
-    <thead>
-      <tr>
-        <th>SCPI</th>
-        <th>Dernier versement</th>
-        <th class="num">Intervalle moyen</th>
-        <th>Prochain versement estimé</th>
-      </tr>
-    </thead>
-    <tbody id="bodyPrediction"></tbody>
-  </table>
-  </div>
 </div>
 </div>
 
@@ -289,6 +300,32 @@ const MAX_BACKUPS = 10;
 let portefeuille = load(LS_PORT, []);
 let revenus = load(LS_REV, []);
 let tauxImpot = load(LS_TAUX, 30);
+
+// ---- Tranches Marginales d'Imposition (TMI) + prélèvements sociaux ----
+const PS_RATE = 17.2; // prélèvements sociaux (%)
+const TMI_BRACKETS = [0, 11, 30, 41, 45];
+
+function tauxPresetOptionsHTML(valeurActuelle){
+  let matched = false;
+  const opts = TMI_BRACKETS.map(t=>{
+    const total = Math.round((t + PS_RATE)*100)/100;
+    const isSel = Math.abs(total - valeurActuelle) < 0.01;
+    if(isSel) matched = true;
+    return `<option value="${total}" ${isSel?'selected':''}>${t}% (TMI) + ${PS_RATE}% (prélèv. sociaux) = ${total}%</option>`;
+  }).join('');
+  return `<select id="selectTauxPreset" onchange="onTauxPresetChange()">
+    ${opts}
+    <option value="custom" ${matched?'':'selected'}>Personnalisé…</option>
+  </select>`;
+}
+
+function onTauxPresetChange(){
+  const sel = document.getElementById('selectTauxPreset');
+  if(!sel || sel.value === 'custom') return;
+  tauxImpot = parseFloat(sel.value) || 0;
+  localStorage.setItem(LS_TAUX, JSON.stringify(tauxImpot));
+  renderKPI();
+}
 
 function load(key, def){
   try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; }
@@ -419,6 +456,7 @@ function delLigne(id){
 
 // ================= REVENUS =================
 let revSort = {field:'date', dir:-1}; // tri par defaut: date la plus recente en premier
+let revenuFiltreId = ''; // '' = toutes les SCPI
 
 function sortRevenus(field){
   if(revSort.field === field){ revSort.dir *= -1; }
@@ -426,8 +464,25 @@ function sortRevenus(field){
   renderRevenus();
 }
 
+function renderFiltreRevenu(){
+  const sel = document.getElementById('filtreRevenuSCPI');
+  if(!sel) return;
+  // si la SCPI selectionnee dans le filtre a ete supprimee, on revient a "toutes"
+  if(revenuFiltreId && !portefeuille.some(p=>p.id===revenuFiltreId)) revenuFiltreId = '';
+  const options = portefeuille.map(p=>`<option value="${p.id}" ${p.id===revenuFiltreId?'selected':''}>${p.nom}</option>`).join('');
+  sel.innerHTML = `<option value="">Toutes les SCPI</option>${options}`;
+  sel.value = revenuFiltreId;
+}
+
+function onFiltreRevenuChange(){
+  const sel = document.getElementById('filtreRevenuSCPI');
+  revenuFiltreId = sel ? sel.value : '';
+  renderRevenus();
+}
+
 function getRevenusTries(){
-  const arr = [...revenus];
+  let arr = [...revenus];
+  if(revenuFiltreId) arr = arr.filter(r=>r.scpiId===revenuFiltreId);
   if(!revSort.field) return arr;
   const nomScpi = id => (portefeuille.find(p=>p.id===id)||{}).nom || '';
   arr.sort((a,b)=>{
@@ -467,7 +522,14 @@ function renderRevenus(){
   const tbody = document.getElementById('bodyRevenus');
   tbody.innerHTML = '';
   updateSortArrows();
-  getRevenusTries().forEach(rev=>{
+  renderFiltreRevenu();
+  const listeFiltree = getRevenusTries();
+  if(listeFiltree.length === 0){
+    tbody.innerHTML = `<tr><td colspan="6" class="note">${revenuFiltreId ? 'Aucun versement pour cette SCPI.' : 'Aucun versement enregistré.'}</td></tr>`;
+    renderPrediction();
+    return;
+  }
+  listeFiltree.forEach(rev=>{
     const tr = document.createElement('tr');
     const options = portefeuille.map(p=>`<option value="${p.id}" ${p.id===rev.scpiId?'selected':''}>${p.nom}</option>`).join('');
     tr.innerHTML = `
@@ -582,7 +644,14 @@ function renderKPI(){
   const grid = document.getElementById('kpiGrid');
   const tauxFocused = document.activeElement && document.activeElement.id === 'inputTauxImpot';
   const tauxSelStart = tauxFocused ? document.activeElement.selectionStart : null;
+  const revenuMensuelNetEstime = revenuAnnuelNetEstime / 12;
+
   grid.innerHTML = `
+    <div class="kpi-card highlight">
+      <div class="kpi-label">💰 Revenu net mensuel estimé (toutes SCPI)</div>
+      <div class="kpi-value ${revenuMensuelNetEstime>=0?'pos':'neg'}">${fmt(revenuMensuelNetEstime)} € / mois</div>
+      <div class="kpi-sub">Après taux d'imposition de ${fmtPct(tauxImpot)} — basé sur les revenus bruts des 12 derniers mois (${fmt(revenus12mBrut)} € / an), soit ${fmt(revenuAnnuelNetEstime)} € net / an</div>
+    </div>
     <div class="kpi-card">
       <div class="kpi-label">Total investi</div>
       <div class="kpi-value">${fmt(totalInvesti)} €</div>
@@ -635,9 +704,10 @@ function renderKPI(){
     </div>
     <div class="kpi-card">
       <div class="kpi-label">Taux d'imposition sur revenus (%)</div>
+      <div style="margin-bottom:6px;">${tauxPresetOptionsHTML(tauxImpot)}</div>
       <input type="number" id="inputTauxImpot" step="0.1" min="0" max="100" value="${tauxImpot}"
              style="font-size:20px;font-weight:700;padding:2px 4px;border:1px solid var(--border);">
-      <div class="kpi-sub">TMI + prélèvements sociaux — éditable, sert au calcul ci-dessous</div>
+      <div class="kpi-sub">Choisissez votre tranche (TMI) + prélèvements sociaux (${PS_RATE}%), ou éditez le total manuellement — sert aux calculs ci-dessus/ci-dessous</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">Durée de détention moyenne</div>
