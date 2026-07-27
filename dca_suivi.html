@@ -26,6 +26,16 @@ h1{font-family:var(--mono);font-size:18px;font-weight:600;letter-spacing:.02em;m
 .sub{color:var(--muted);font-size:12.5px;margin-bottom:20px;font-family:var(--mono);}
 .wrap{max-width:1180px;margin:0 auto;}
 
+.tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--border);}
+.tab-btn{
+  font-family:var(--mono);font-size:13px;padding:10px 18px;background:transparent;border:none;
+  color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;
+}
+.tab-btn:hover{color:var(--text);}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
 .alerts{margin-bottom:18px;display:flex;flex-direction:column;gap:8px;}
 .alert{border-radius:6px;padding:10px 14px;font-size:13px;font-family:var(--mono);border:1px solid;display:flex;align-items:center;gap:10px;}
 .alert.warn{background:rgba(245,165,36,.08);border-color:rgba(245,165,36,.35);color:var(--warn);}
@@ -83,6 +93,34 @@ td.num{text-align:right;}
 .json-status{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:8px;}
 #fileInput{display:none;}
 footer{text-align:center;color:var(--muted);font-size:11px;font-family:var(--mono);margin-top:24px;padding-top:16px;border-top:1px solid var(--border);}
+
+/* Analyse tab */
+.verdict-summary{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;}
+.verdict-pill{font-family:var(--mono);font-size:12px;padding:8px 14px;border-radius:20px;border:1px solid var(--border);background:var(--panel);}
+.verdict-pill .n{font-weight:700;margin-right:6px;}
+.verdict-pill.good{color:var(--accent);border-color:rgba(45,212,191,.4);}
+.verdict-pill.neutral{color:var(--warn);border-color:rgba(245,165,36,.4);}
+.verdict-pill.bad{color:var(--danger);border-color:rgba(239,68,68,.4);}
+
+.analysis-card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:18px;margin-bottom:14px;}
+.analysis-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
+.analysis-head .name{font-family:var(--mono);font-size:15px;font-weight:600;color:#eef1f4;}
+.badge{font-family:var(--mono);font-size:11px;padding:4px 12px;border-radius:14px;border:1px solid;text-transform:uppercase;letter-spacing:.04em;}
+.badge.good{color:var(--accent);border-color:rgba(45,212,191,.4);background:rgba(45,212,191,.08);}
+.badge.neutral{color:var(--warn);border-color:rgba(245,165,36,.4);background:rgba(245,165,36,.08);}
+.badge.bad{color:var(--danger);border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.08);}
+.badge.na{color:var(--muted);border-color:var(--border);background:var(--panel-2);}
+
+.analysis-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:14px;}
+.mini-kpi{background:var(--panel-2);border:1px solid var(--border);border-radius:6px;padding:10px 12px;}
+.mini-kpi .l{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+.mini-kpi .v{font-family:var(--mono);font-size:15px;font-weight:600;color:#eef1f4;}
+.mini-kpi .v.pos{color:var(--accent);}
+.mini-kpi .v.neg{color:var(--danger);}
+
+.reading{font-size:12.5px;color:var(--muted);line-height:1.6;border-top:1px solid var(--border);padding-top:12px;margin-top:2px;}
+.reading b{color:var(--text);}
+.disclaimer{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:4px;}
 </style>
 </head>
 <body>
@@ -90,114 +128,144 @@ footer{text-align:center;color:var(--muted);font-size:11px;font-family:var(--mon
   <h1>DCA — SUIVI</h1>
   <div class="sub">plusieurs lignes DCA / capital / KPI / alertes — stockage local uniquement</div>
 
-  <div class="alerts" id="alerts"></div>
-
-  <div class="gauge-row">
-    <svg class="gauge" id="gaugeSvg" width="88" height="88" viewBox="0 0 88 88"></svg>
-    <div class="gauge-text">
-      <div class="big" id="gaugeBig">0 %</div>
-      <div class="small" id="gaugeSmall">du capital cumulé déployé (tous programmes)</div>
-    </div>
+  <div class="tabs">
+    <button class="tab-btn active" id="tabBtnSuivi" onclick="switchTab('suivi')">Suivi</button>
+    <button class="tab-btn" id="tabBtnAnalyse" onclick="switchTab('analyse')">Analyse</button>
   </div>
 
-  <div class="kpi-grid">
-    <div class="kpi"><div class="label">Capital cible total</div><div class="value" id="kpiCapital">0 €</div></div>
-    <div class="kpi"><div class="label">Total investi</div><div class="value" id="kpiInvesti">0 €</div></div>
-    <div class="kpi"><div class="label">Capital restant</div><div class="value" id="kpiRestant">0 €</div></div>
-    <div class="kpi"><div class="label">Valeur actuelle</div><div class="value" id="kpiValeur">—</div><div class="sub-value" id="kpiPL"></div></div>
-    <div class="kpi"><div class="label">Programmes actifs</div><div class="value" id="kpiNbProgrammes">0</div></div>
+  <!-- ============ ONGLET SUIVI ============ -->
+  <div class="tab-panel active" id="tabSuivi">
+
+    <div class="alerts" id="alerts"></div>
+
+    <div class="gauge-row">
+      <svg class="gauge" id="gaugeSvg" width="88" height="88" viewBox="0 0 88 88"></svg>
+      <div class="gauge-text">
+        <div class="big" id="gaugeBig">0 %</div>
+        <div class="small" id="gaugeSmall">du capital cumulé déployé (tous programmes)</div>
+      </div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi"><div class="label">Capital cible total</div><div class="value" id="kpiCapital">0 €</div></div>
+      <div class="kpi"><div class="label">Total investi</div><div class="value" id="kpiInvesti">0 €</div></div>
+      <div class="kpi"><div class="label">Capital restant</div><div class="value" id="kpiRestant">0 €</div></div>
+      <div class="kpi"><div class="label">Valeur actuelle</div><div class="value" id="kpiValeur">—</div><div class="sub-value" id="kpiPL"></div></div>
+      <div class="kpi"><div class="label">Programmes actifs</div><div class="value" id="kpiNbProgrammes">0</div></div>
+    </div>
+
+    <div class="panel">
+      <h2><span>Programmes DCA <span class="count" id="progCount">(0)</span></span></h2>
+      <div class="form-grid">
+        <div>
+          <label>Actif</label>
+          <input type="text" id="pActif" placeholder="ex. S&amp;P500 x2, BTC...">
+        </div>
+        <div>
+          <label>Capital cible (€)</label>
+          <input type="number" id="pCapital" min="0" step="0.01" placeholder="0">
+        </div>
+        <div>
+          <label>Montant par versement (€)</label>
+          <input type="number" id="pMontant" min="0" step="0.01" placeholder="0">
+        </div>
+        <div>
+          <label>Fréquence</label>
+          <select id="pFreq">
+            <option value="7">Hebdomadaire</option>
+            <option value="14">Bi-hebdomadaire</option>
+            <option value="30" selected>Mensuelle</option>
+            <option value="90">Trimestrielle</option>
+          </select>
+        </div>
+        <div>
+          <label>Date de début</label>
+          <input type="date" id="pDebut">
+        </div>
+        <div>
+          <label>Prix actuel (optionnel)</label>
+          <input type="number" id="pPrixActuel" min="0" step="0.0001" placeholder="pour calcul P&amp;L">
+        </div>
+      </div>
+      <div class="toolbar">
+        <button class="btn primary" id="progSaveBtn" onclick="saveProgram()">Ajouter le programme</button>
+        <button class="btn" id="progCancelBtn" onclick="cancelEditProgram()" style="display:none;">Annuler la modification</button>
+      </div>
+
+      <table style="margin-top:16px;">
+        <thead>
+          <tr><th>Actif</th><th class="num">Capital</th><th class="num">Versement</th><th>Fréq.</th><th>Échéance</th><th class="num">Investi</th><th class="num">%</th><th></th></tr>
+        </thead>
+        <tbody id="programsBody"></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>Ajouter un versement</h2>
+      <div class="form-grid">
+        <div>
+          <label>Programme</label>
+          <select id="eProgram"></select>
+        </div>
+        <div>
+          <label>Date</label>
+          <input type="date" id="eDate">
+        </div>
+        <div>
+          <label>Montant (€)</label>
+          <input type="number" id="eMontant" min="0" step="0.01" placeholder="0">
+        </div>
+        <div>
+          <label>Prix unitaire à l'achat (optionnel)</label>
+          <input type="number" id="ePrix" min="0" step="0.0001" placeholder="pour calcul PRU">
+        </div>
+      </div>
+      <div class="toolbar">
+        <button class="btn primary" onclick="addEntry()">Ajouter</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2><span>Historique <span class="count" id="histCount">(0)</span></span></h2>
+      <table>
+        <thead>
+          <tr><th>Programme</th><th>Date</th><th class="num">Montant</th><th class="num">Prix</th><th class="num">Quantité</th><th></th></tr>
+        </thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>Sauvegarde</h2>
+      <div class="toolbar">
+        <button class="btn" onclick="exportJSON()">⬇ Exporter JSON</button>
+        <button class="btn" onclick="document.getElementById('fileInput').click()">⬆ Importer JSON</button>
+        <button class="btn danger-outline" onclick="resetAll()">Réinitialiser</button>
+        <input type="file" id="fileInput" accept="application/json" onchange="importJSON(event)">
+      </div>
+      <div class="json-status" id="jsonStatus">Sauvegarde automatique locale active.</div>
+    </div>
+
   </div>
 
-  <div class="panel">
-    <h2><span>Programmes DCA <span class="count" id="progCount">(0)</span></span></h2>
-    <div class="form-grid">
-      <div>
-        <label>Actif</label>
-        <input type="text" id="pActif" placeholder="ex. S&amp;P500 x2, BTC...">
+  <!-- ============ ONGLET ANALYSE ============ -->
+  <div class="tab-panel" id="tabAnalyse">
+
+    <div class="verdict-summary" id="verdictSummary"></div>
+
+    <div id="analysisCards"></div>
+
+    <div class="panel">
+      <h2>Comment lire ces verdicts</h2>
+      <div class="reading">
+        Le verdict combine 4 signaux calculés à partir de tes données saisies : <b>performance latente</b> (valeur actuelle vs investi),
+        <b>discipline</b> (versements réalisés vs attendus depuis le début selon la fréquence choisie),
+        <b>ponctualité actuelle</b> (retard ou non sur le prochain versement), et <b>effet de lissage</b>
+        (valeur réelle obtenue vs une hypothèse où tout le capital aurait été investi en une fois au prix du premier versement).
       </div>
-      <div>
-        <label>Capital cible (€)</label>
-        <input type="number" id="pCapital" min="0" step="0.01" placeholder="0">
-      </div>
-      <div>
-        <label>Montant par versement (€)</label>
-        <input type="number" id="pMontant" min="0" step="0.01" placeholder="0">
-      </div>
-      <div>
-        <label>Fréquence</label>
-        <select id="pFreq">
-          <option value="7">Hebdomadaire</option>
-          <option value="14">Bi-hebdomadaire</option>
-          <option value="30" selected>Mensuelle</option>
-          <option value="90">Trimestrielle</option>
-        </select>
-      </div>
-      <div>
-        <label>Date de début</label>
-        <input type="date" id="pDebut">
-      </div>
-      <div>
-        <label>Prix actuel (optionnel)</label>
-        <input type="number" id="pPrixActuel" min="0" step="0.0001" placeholder="pour calcul P&amp;L">
-      </div>
-    </div>
-    <div class="toolbar">
-      <button class="btn primary" id="progSaveBtn" onclick="saveProgram()">Ajouter le programme</button>
-      <button class="btn" id="progCancelBtn" onclick="cancelEditProgram()" style="display:none;">Annuler la modification</button>
+      <div class="disclaimer">Lecture indicative basée uniquement sur les données que tu saisis ici — ce n'est pas un conseil financier.</div>
     </div>
 
-    <table style="margin-top:16px;">
-      <thead>
-        <tr><th>Actif</th><th class="num">Capital</th><th class="num">Versement</th><th>Fréq.</th><th>Échéance</th><th class="num">Investi</th><th class="num">%</th><th></th></tr>
-      </thead>
-      <tbody id="programsBody"></tbody>
-    </table>
-  </div>
-
-  <div class="panel">
-    <h2>Ajouter un versement</h2>
-    <div class="form-grid">
-      <div>
-        <label>Programme</label>
-        <select id="eProgram"></select>
-      </div>
-      <div>
-        <label>Date</label>
-        <input type="date" id="eDate">
-      </div>
-      <div>
-        <label>Montant (€)</label>
-        <input type="number" id="eMontant" min="0" step="0.01" placeholder="0">
-      </div>
-      <div>
-        <label>Prix unitaire à l'achat (optionnel)</label>
-        <input type="number" id="ePrix" min="0" step="0.0001" placeholder="pour calcul PRU">
-      </div>
-    </div>
-    <div class="toolbar">
-      <button class="btn primary" onclick="addEntry()">Ajouter</button>
-    </div>
-  </div>
-
-  <div class="panel">
-    <h2><span>Historique <span class="count" id="histCount">(0)</span></span></h2>
-    <table>
-      <thead>
-        <tr><th>Programme</th><th>Date</th><th class="num">Montant</th><th class="num">Prix</th><th class="num">Quantité</th><th></th></tr>
-      </thead>
-      <tbody id="historyBody"></tbody>
-    </table>
-  </div>
-
-  <div class="panel">
-    <h2>Sauvegarde</h2>
-    <div class="toolbar">
-      <button class="btn" onclick="exportJSON()">⬇ Exporter JSON</button>
-      <button class="btn" onclick="document.getElementById('fileInput').click()">⬆ Importer JSON</button>
-      <button class="btn danger-outline" onclick="resetAll()">Réinitialiser</button>
-      <input type="file" id="fileInput" accept="application/json" onchange="importJSON(event)">
-    </div>
-    <div class="json-status" id="jsonStatus">Sauvegarde automatique locale active.</div>
   </div>
 
   <footer>dca_suivi.html — local, sans tracking</footer>
@@ -211,6 +279,14 @@ let editingProgramId = null;
 
 function uid(){
   return (crypto.randomUUID ? crypto.randomUUID() : 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2));
+}
+
+function switchTab(name){
+  document.getElementById('tabSuivi').classList.toggle('active', name==='suivi');
+  document.getElementById('tabAnalyse').classList.toggle('active', name==='analyse');
+  document.getElementById('tabBtnSuivi').classList.toggle('active', name==='suivi');
+  document.getElementById('tabBtnAnalyse').classList.toggle('active', name==='analyse');
+  if(name === 'analyse') renderAnalysis();
 }
 
 function load(){
@@ -301,6 +377,7 @@ function editProgram(id){
   document.getElementById('pPrixActuel').value = p.prixActuel ?? '';
   document.getElementById('progSaveBtn').textContent = 'Enregistrer la modification';
   document.getElementById('progCancelBtn').style.display = 'inline-block';
+  switchTab('suivi');
   window.scrollTo({top:0, behavior:'smooth'});
 }
 
@@ -349,10 +426,10 @@ function deleteEntry(id){
   render();
 }
 
-// ---------- KPI par programme ----------
+// ---------- KPI par programme (onglet Suivi) ----------
 
 function computeProgramKPI(p){
-  const entries = state.entries.filter(e => e.programId === p.id);
+  const entries = state.entries.filter(e => e.programId === p.id).sort((a,b)=>a.date.localeCompare(b.date));
   const totalInvesti = entries.reduce((s,e)=>s+e.montant,0);
   const totalQty = entries.reduce((s,e)=> s + (e.quantite||0), 0);
   const pru = totalQty > 0 ? totalInvesti / totalQty : null;
@@ -385,7 +462,7 @@ function computeProgramKPI(p){
   const retard = diffDays !== null && diffDays < 0;
   const capitalAtteint = p.capital > 0 && totalInvesti >= p.capital;
 
-  return { totalInvesti, totalQty, pru, restant, pct, valeurActuelle, pl, plPct, prochaine, diffDays, echeance, bientot, retard, capitalAtteint };
+  return { entries, totalInvesti, totalQty, pru, restant, pct, valeurActuelle, pl, plPct, prochaine, diffDays, echeance, bientot, retard, capitalAtteint };
 }
 
 function drawGauge(pct){
@@ -514,6 +591,184 @@ function render(){
         </tr>`;
     }).join('');
   }
+
+  if(document.getElementById('tabAnalyse').classList.contains('active')) renderAnalysis();
+}
+
+// ---------- Onglet Analyse ----------
+
+function stdev(arr){
+  if(arr.length < 2) return null;
+  const mean = arr.reduce((a,b)=>a+b,0)/arr.length;
+  const variance = arr.reduce((s,v)=> s + Math.pow(v-mean,2), 0) / arr.length;
+  return Math.sqrt(variance);
+}
+
+function computeAnalysis(p){
+  const k = computeProgramKPI(p);
+  const entries = k.entries;
+  const pricedEntries = entries.filter(e => e.prix);
+
+  // Discipline : versements réels vs attendus depuis le début
+  let attendus = null, tauxDiscipline = null;
+  const startStr = p.debut || (entries[0] && entries[0].date);
+  if(startStr && p.freq){
+    const start0 = new Date(startStr); start0.setHours(0,0,0,0);
+    const today0 = new Date(); today0.setHours(0,0,0,0);
+    const joursEcoules = Math.max((today0 - start0) / 86400000, 0);
+    attendus = Math.floor(joursEcoules / p.freq) + 1;
+    tauxDiscipline = attendus > 0 ? Math.min(entries.length / attendus * 100, 100) : null;
+  }
+
+  // Lissage : fourchette des prix payés + comparaison à un investissement en une fois
+  let prixMin=null, prixMax=null, ecartType=null, lumpSumValeur=null, effetLissage=null, effetLissagePct=null;
+  if(pricedEntries.length > 0){
+    const prix = pricedEntries.map(e=>e.prix);
+    prixMin = Math.min(...prix);
+    prixMax = Math.max(...prix);
+    ecartType = stdev(prix);
+    if(p.prixActuel){
+      const p0 = pricedEntries[0].prix;
+      const qtyLumpSum = p0 ? (k.totalInvesti / p0) : null;
+      if(qtyLumpSum){
+        lumpSumValeur = qtyLumpSum * p.prixActuel;
+        if(k.valeurActuelle !== null){
+          effetLissage = k.valeurActuelle - lumpSumValeur;
+          effetLissagePct = lumpSumValeur > 0 ? (effetLissage/lumpSumValeur*100) : null;
+        }
+      }
+    }
+  }
+
+  // Score / verdict
+  let score = 0, maxScore = 0, hasEnoughData = (entries.length > 0);
+  const signals = [];
+  if(k.plPct !== null){
+    maxScore++; if(k.plPct > 0) score++;
+    signals.push({label:'Performance latente', ok: k.plPct > 0, detail: (k.plPct>=0?'+':'')+k.plPct.toFixed(1)+'%'});
+  }
+  if(tauxDiscipline !== null){
+    maxScore++; if(tauxDiscipline >= 80) score++;
+    signals.push({label:'Discipline', ok: tauxDiscipline >= 80, detail: tauxDiscipline.toFixed(0)+'% des versements prévus réalisés'});
+  }
+  if(k.diffDays !== null){
+    maxScore++; if(!k.retard) score++;
+    signals.push({label:'Ponctualité', ok: !k.retard, detail: k.retard ? 'en retard' : 'à jour'});
+  }
+  if(effetLissagePct !== null){
+    maxScore++; if(effetLissage >= 0) score++;
+    signals.push({label:'Effet de lissage vs investissement unique', ok: effetLissage>=0, detail: (effetLissage>=0?'+':'')+effetLissagePct.toFixed(1)+'% vs lump sum'});
+  }
+
+  let verdict = 'na', verdictLabel = 'Données insuffisantes';
+  if(maxScore > 0){
+    const ratio = score/maxScore;
+    if(ratio >= 0.75){ verdict='good'; verdictLabel='Sur de bons rails'; }
+    else if(ratio >= 0.4){ verdict='neutral'; verdictLabel='Neutre / à surveiller'; }
+    else { verdict='bad'; verdictLabel='Signal faible'; }
+  }
+
+  return { k, attendus, tauxDiscipline, prixMin, prixMax, ecartType, lumpSumValeur, effetLissage, effetLissagePct, signals, verdict, verdictLabel, hasEnoughData };
+}
+
+function renderAnalysis(){
+  const container = document.getElementById('analysisCards');
+  const summaryEl = document.getElementById('verdictSummary');
+
+  if(state.programs.length === 0){
+    container.innerHTML = '<div class="panel"><div class="reading">Aucun programme DCA à analyser. Ajoute une ligne dans l\'onglet Suivi.</div></div>';
+    summaryEl.innerHTML = '';
+    return;
+  }
+
+  const analyses = state.programs.map(p => ({p, a: computeAnalysis(p)}));
+
+  const counts = {good:0, neutral:0, bad:0, na:0};
+  analyses.forEach(({a}) => counts[a.verdict]++);
+  const pillDefs = [
+    {key:'good', label:'Sur de bons rails', cls:'good'},
+    {key:'neutral', label:'À surveiller', cls:'neutral'},
+    {key:'bad', label:'Signal faible', cls:'bad'},
+    {key:'na', label:'Données insuffisantes', cls:''}
+  ];
+  summaryEl.innerHTML = pillDefs.filter(d=>counts[d.key]>0).map(d =>
+    `<div class="verdict-pill ${d.cls}"><span class="n">${counts[d.key]}</span>${d.label}</div>`
+  ).join('');
+
+  container.innerHTML = analyses.map(({p,a}) => {
+    const k = a.k;
+    const signalsHtml = a.signals.map(s => `
+      <div class="mini-kpi">
+        <div class="l">${s.label}</div>
+        <div class="v ${s.ok?'pos':'neg'}">${s.ok?'✓':'✕'} ${s.detail}</div>
+      </div>
+    `).join('');
+
+    let lissageHtml = '';
+    if(a.prixMin !== null){
+      lissageHtml = `
+        <div class="mini-kpi">
+          <div class="l">Fourchette des prix payés</div>
+          <div class="v">${a.prixMin.toLocaleString('fr-FR',{maximumFractionDigits:4})} — ${a.prixMax.toLocaleString('fr-FR',{maximumFractionDigits:4})}</div>
+        </div>`;
+    }
+    if(a.lumpSumValeur !== null){
+      lissageHtml += `
+        <div class="mini-kpi">
+          <div class="l">Valeur si investi en une fois</div>
+          <div class="v">${fmtEUR(a.lumpSumValeur)}</div>
+        </div>`;
+    }
+
+    let reading = '';
+    if(!a.hasEnoughData){
+      reading = `Aucun versement enregistré pour ce programme — ajoute des versements dans l'onglet Suivi pour obtenir une analyse.`;
+    } else {
+      const parts = [];
+      if(k.plPct !== null){
+        parts.push(k.plPct >= 0
+          ? `la valeur actuelle est <b>supérieure au capital investi</b> (${(k.plPct>=0?'+':'')+k.plPct.toFixed(1)}%)`
+          : `la valeur actuelle est <b>inférieure au capital investi</b> (${k.plPct.toFixed(1)}%) — normal en début de programme ou en phase de baisse`);
+      }
+      if(a.tauxDiscipline !== null){
+        parts.push(a.tauxDiscipline >= 80
+          ? `le rythme de versement est <b>respecté</b> (${a.tauxDiscipline.toFixed(0)}%)`
+          : `le rythme de versement <b>prend du retard</b> sur le calendrier prévu (${a.tauxDiscipline.toFixed(0)}% des versements attendus)`);
+      }
+      if(a.effetLissagePct !== null){
+        parts.push(a.effetLissagePct >= 0
+          ? `le DCA a <b>mieux performé</b> qu'un investissement unique au premier prix payé (${(a.effetLissagePct>=0?'+':'')+a.effetLissagePct.toFixed(1)}%)`
+          : `un investissement unique au premier prix payé aurait <b>mieux performé</b> que l'étalement actuel (${a.effetLissagePct.toFixed(1)}%) — cohérent si le prix a globalement monté depuis le début`);
+      }
+      reading = parts.length ? parts.join(' ; ') + '.' : 'Pas assez de données pour une lecture détaillée.';
+    }
+
+    return `
+      <div class="analysis-card">
+        <div class="analysis-head">
+          <div class="name"><span class="actif-tag">${p.actif}</span></div>
+          <div class="badge ${a.verdict}">${a.verdictLabel}</div>
+        </div>
+        <div class="analysis-grid">
+          <div class="mini-kpi">
+            <div class="l">Investi / Cible</div>
+            <div class="v">${fmtEUR(k.totalInvesti)} ${p.capital ? '/ '+fmtEUR(p.capital) : ''}</div>
+          </div>
+          <div class="mini-kpi">
+            <div class="l">PRU moyen</div>
+            <div class="v">${k.pru ? k.pru.toLocaleString('fr-FR',{maximumFractionDigits:4})+' €' : '—'}</div>
+          </div>
+          <div class="mini-kpi">
+            <div class="l">P&amp;L latent</div>
+            <div class="v ${k.pl!==null ? (k.pl>=0?'pos':'neg') : ''}">${k.pl!==null ? (k.pl>=0?'+':'')+fmtEUR(k.pl) : '—'}</div>
+          </div>
+          ${lissageHtml}
+          ${signalsHtml}
+        </div>
+        <div class="reading">${reading}</div>
+      </div>
+    `;
+  }).join('');
 }
 
 // ---------- Export / Import / Reset ----------
