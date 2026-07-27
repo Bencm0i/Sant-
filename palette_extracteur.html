@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Extracteur de palette — mélanges acryliques</title>
+<style>
+  :root{
+    --bg:#1a1815;
+    --surface:#211e1a;
+    --surface-2:#2a2620;
+    --line:#3c362d;
+    --ink:#ece6da;
+    --muted:#948b7a;
+    --ochre:#c9963f;
+    --ochre-dim:#6b5228;
+    --teal:#5b8a86;
+    --red:#b25a4e;
+    --serif: Georgia, "Iowan Old Style", serif;
+    --sans: -apple-system, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", Menlo, Consolas, monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:14px;
+    line-height:1.5;
+  }
+  header{
+    padding:26px 24px 16px;
+    border-bottom:1px solid var(--line);
+  }
+  header .title{font-family:var(--serif);font-size:24px;}
+  header .title em{color:var(--ochre);font-style:normal;}
+  header .subtitle{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:4px;}
+
+  main{max-width:1040px;margin:0 auto;padding:26px 24px;}
+
+  .dropzone{
+    border:1.5px dashed var(--line);
+    border-radius:6px;
+    padding:40px 20px;
+    text-align:center;
+    cursor:pointer;
+    color:var(--muted);
+    font-family:var(--mono);
+    font-size:12.5px;
+    transition:border-color .15s;
+  }
+  .dropzone:hover, .dropzone.drag{border-color:var(--ochre);color:var(--ink);}
+  .dropzone strong{color:var(--ink);font-family:var(--sans);font-size:14px;display:block;margin-bottom:6px;}
+
+  .work-area{display:none;margin-top:24px;grid-template-columns:1fr 340px;gap:24px;}
+  .work-area.active{display:grid;}
+  @media (max-width:820px){ .work-area.active{grid-template-columns:1fr;} }
+
+  .preview-panel img, .preview-panel canvas{
+    width:100%;
+    border-radius:6px;
+    display:block;
+    border:1px solid var(--line);
+  }
+  .controls{display:flex;justify-content:space-between;align-items:center;margin-top:12px;}
+  .controls label{font-family:var(--mono);font-size:11px;color:var(--muted);}
+  .controls select{
+    background:var(--surface-2);border:1px solid var(--line);color:var(--ink);
+    padding:5px 8px;border-radius:3px;font-family:var(--mono);font-size:11.5px;
+  }
+  .reset-btn{
+    font-family:var(--mono);font-size:11px;background:transparent;border:1px solid var(--line);
+    color:var(--muted);padding:5px 10px;border-radius:3px;cursor:pointer;
+  }
+  .reset-btn:hover{color:var(--ink);border-color:var(--muted);}
+
+  .palette-strip{display:flex;margin-top:16px;border-radius:6px;overflow:hidden;border:1px solid var(--line);}
+  .swatch{flex:1;height:56px;cursor:pointer;position:relative;transition:flex-grow .15s;}
+  .swatch.selected{outline:2px solid var(--ochre);outline-offset:-2px;z-index:1;}
+  .swatch:hover{flex-grow:1.4;}
+
+  /* --- Recipe panel --- */
+  .recipe-panel{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:20px;
+  }
+  .recipe-panel h2{
+    font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:0 0 14px;
+  }
+  .color-head{display:flex;align-items:center;gap:12px;margin-bottom:18px;}
+  .color-swatch-big{width:52px;height:52px;border-radius:6px;border:1px solid var(--line);flex-shrink:0;}
+  .color-hex{font-family:var(--mono);font-size:16px;}
+  .color-rgb{font-family:var(--mono);font-size:11px;color:var(--muted);}
+
+  .recipe-row{margin-bottom:12px;}
+  .recipe-label{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px;}
+  .recipe-name{display:flex;align-items:center;gap:7px;}
+  .pigment-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+  .recipe-pct{font-family:var(--mono);color:var(--muted);}
+  .recipe-bar-bg{height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden;}
+  .recipe-bar-fill{height:100%;border-radius:3px;}
+
+  .accuracy-note{
+    font-family:var(--mono);font-size:10.5px;color:var(--muted);
+    margin-top:18px;padding-top:14px;border-top:1px solid var(--line);line-height:1.6;
+  }
+
+  .empty-recipe{color:var(--muted);font-family:var(--mono);font-size:12px;text-align:center;padding:30px 0;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title">Extracteur de <em>palette</em></div>
+  <div class="subtitle">photo → couleurs dominantes → dosage de mélange en pigments primaires — local, aucun envoi réseau</div>
+</header>
+
+<main>
+  <div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()">
+    <strong>Déposer une photo ici, ou cliquer pour choisir un fichier</strong>
+    référence peinture, photo de chantier, œuvre en cours…
+  </div>
+  <input type="file" id="fileInput" accept="image/*" style="display:none">
+
+  <div class="work-area" id="workArea">
+    <div class="preview-panel">
+      <canvas id="imgCanvas"></canvas>
+      <div class="controls">
+        <div>
+          <label>nombre de couleurs&nbsp;</label>
+          <select id="kSelect" onchange="extractPalette()">
+            <option value="5">5</option>
+            <option value="6" selected>6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+          </select>
+        </div>
+        <button class="reset-btn" onclick="resetTool()">charger une autre image</button>
+      </div>
+      <div class="palette-strip" id="paletteStrip"></div>
+    </div>
+
+    <div class="recipe-panel">
+      <h2>Dosage de mélange</h2>
+      <div id="recipeContent"><div class="empty-recipe">clique une couleur de la palette</div></div>
+    </div>
+  </div>
+</main>
+
+<script>
+// --- Primaires acryliques de référence (RGB approximatif tube) ---
+const PIGMENTS = [
+  { name:"Blanc de titane",      rgb:[247,246,240], color:"#f7f6f0" },
+  { name:"Jaune Hansa",          rgb:[250,209,18],  color:"#fad112" },
+  { name:"Magenta quinacridone", rgb:[172,24,88],   color:"#ac1858" },
+  { name:"Bleu phtalo",          rgb:[13,68,140],   color:"#0d448c" },
+  { name:"Noir ivoire",          rgb:[24,22,20],    color:"#181614" }
+];
+
+let imgCanvas = document.getElementById('imgCanvas');
+let ctx = imgCanvas.getContext('2d', {willReadFrequently:true});
+let currentPalette = [];
+
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+
+dropzone.addEventListener('dragover', e=>{ e.preventDefault(); dropzone.classList.add('drag'); });
+dropzone.addEventListener('dragleave', ()=> dropzone.classList.remove('drag'));
+dropzone.addEventListener('drop', e=>{
+  e.preventDefault(); dropzone.classList.remove('drag');
+  if(e.dataTransfer.files.length) loadImage(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e=>{
+  if(e.target.files.length) loadImage(e.target.files[0]);
+});
+
+function loadImage(file){
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const maxW = 640;
+      const scale = Math.min(1, maxW/img.width);
+      imgCanvas.width = img.width*scale;
+      imgCanvas.height = img.height*scale;
+      ctx.drawImage(img,0,0,imgCanvas.width,imgCanvas.height);
+      document.getElementById('workArea').classList.add('active');
+      dropzone.style.display = 'none';
+      extractPalette();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function resetTool(){
+  document.getElementById('workArea').classList.remove('active');
+  dropzone.style.display = 'block';
+  fileInput.value = '';
+  document.getElementById('recipeContent').innerHTML = '<div class="empty-recipe">clique une couleur de la palette</div>';
+}
+
+// --- K-means simplifié en espace RGB ---
+function extractPalette(){
+  const k = parseInt(document.getElementById('kSelect').value,10);
+  const w = imgCanvas.width, h = imgCanvas.height;
+  const data = ctx.getImageData(0,0,w,h).data;
+
+  // échantillonnage (un pixel sur N pour rester rapide)
+  const samples = [];
+  const step = Math.max(1, Math.floor((w*h)/8000));
+  for(let i=0;i<data.length;i+=4*step){
+    samples.push([data[i],data[i+1],data[i+2]]);
+  }
+
+  // init centroïdes: pixels espacés régulièrement dans l'échantillon
+  let centroids = [];
+  for(let i=0;i<k;i++){
+    centroids.push(samples[Math.floor(i*samples.length/k)].slice());
+  }
+
+  for(let iter=0; iter<12; iter++){
+    const clusters = Array.from({length:k}, ()=>[]);
+    samples.forEach(p=>{
+      let best=0, bestDist=Infinity;
+      centroids.forEach((c,ci)=>{
+        const d = (p[0]-c[0])**2 + (p[1]-c[1])**2 + (p[2]-c[2])**2;
+        if(d<bestDist){bestDist=d; best=ci;}
+      });
+      clusters[best].push(p);
+    });
+    centroids = clusters.map((cl,ci)=>{
+      if(!cl.length) return centroids[ci];
+      const sum = cl.reduce((a,p)=>[a[0]+p[0],a[1]+p[1],a[2]+p[2]],[0,0,0]);
+      return [sum[0]/cl.length, sum[1]/cl.length, sum[2]/cl.length];
+    });
+  }
+
+  currentPalette = centroids.map(c=>c.map(v=>Math.round(v)))
+    .sort((a,b)=> (b[0]+b[1]+b[2]) - (a[0]+a[1]+a[2])); // du plus clair au plus sombre
+
+  renderPaletteStrip();
+}
+
+function rgbToHex(rgb){
+  return '#' + rgb.map(v=>v.toString(16).padStart(2,'0')).join('');
+}
+
+function renderPaletteStrip(){
+  const strip = document.getElementById('paletteStrip');
+  strip.innerHTML = '';
+  currentPalette.forEach((rgb,i)=>{
+    const sw = document.createElement('div');
+    sw.className = 'swatch';
+    sw.style.background = rgbToHex(rgb);
+    sw.title = rgbToHex(rgb);
+    sw.onclick = ()=>{
+      document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('selected'));
+      sw.classList.add('selected');
+      showRecipe(rgb);
+    };
+    strip.appendChild(sw);
+  });
+  if(currentPalette.length){
+    strip.children[0].classList.add('selected');
+    showRecipe(currentPalette[0]);
+  }
+}
+
+// --- Résolution du dosage par descente de gradient projetée ---
+// minimise || sum(w_i * pigment_i) - target ||^2, sous w_i >= 0, somme(w_i) = 1
+function solveMix(target){
+  let weights = PIGMENTS.map(()=> 1/PIGMENTS.length);
+  const lr = 0.6;
+
+  for(let iter=0; iter<300; iter++){
+    // couleur actuelle du mélange
+    const mix = [0,0,0];
+    PIGMENTS.forEach((p,i)=>{
+      mix[0]+=weights[i]*p.rgb[0];
+      mix[1]+=weights[i]*p.rgb[1];
+      mix[2]+=weights[i]*p.rgb[2];
+    });
+    const err = [mix[0]-target[0], mix[1]-target[1], mix[2]-target[2]];
+
+    // gradient par pigment
+    const grad = PIGMENTS.map(p=>
+      2*(err[0]*p.rgb[0] + err[1]*p.rgb[1] + err[2]*p.rgb[2]) / (255*255*3)
+    );
+
+    weights = weights.map((w,i)=> w - lr*grad[i]);
+    // projection: w>=0
+    weights = weights.map(w=>Math.max(0,w));
+    // projection: somme = 1
+    const s = weights.reduce((a,b)=>a+b,0) || 1;
+    weights = weights.map(w=>w/s);
+  }
+  return weights;
+}
+
+function showRecipe(rgb){
+  const weights = solveMix(rgb);
+  const hex = rgbToHex(rgb);
+
+  const mix = [0,0,0];
+  PIGMENTS.forEach((p,i)=>{
+    mix[0]+=weights[i]*p.rgb[0];
+    mix[1]+=weights[i]*p.rgb[1];
+    mix[2]+=weights[i]*p.rgb[2];
+  });
+  const errPct = Math.round(100 * Math.sqrt(((mix[0]-rgb[0])**2+(mix[1]-rgb[1])**2+(mix[2]-rgb[2])**2)) / 441);
+
+  const rows = PIGMENTS.map((p,i)=>({p, w:weights[i]}))
+    .filter(r=>r.w > 0.025)
+    .sort((a,b)=>b.w-a.w);
+
+  const html = `
+    <div class="color-head">
+      <div class="color-swatch-big" style="background:${hex}"></div>
+      <div>
+        <div class="color-hex">${hex}</div>
+        <div class="color-rgb">rgb(${rgb.join(', ')})</div>
+      </div>
+    </div>
+    ${rows.map(r=>`
+      <div class="recipe-row">
+        <div class="recipe-label">
+          <span class="recipe-name"><span class="pigment-dot" style="background:${r.p.color}"></span>${r.p.name}</span>
+          <span class="recipe-pct">${Math.round(r.w*100)}%</span>
+        </div>
+        <div class="recipe-bar-bg"><div class="recipe-bar-fill" style="width:${r.w*100}%;background:${r.p.color}"></div></div>
+      </div>
+    `).join('')}
+    <div class="accuracy-note">
+      Approximation par mélange additif RGB (pas Kubelka-Munk) — fiable pour doser les proportions, à ajuster à l'œil sur la toile. Écart estimé au rendu final : ~${errPct}%.<br>
+      Triade de référence : blanc de titane, jaune hansa, magenta quinacridone, bleu phtalo, noir ivoire.
+    </div>
+  `;
+  document.getElementById('recipeContent').innerHTML = html;
+}
+</script>
+
+</body>
+</html>
