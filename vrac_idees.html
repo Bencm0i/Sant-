@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vrac — fil d'idées</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%231c2420'/%3E%3Cpath d='M32 14 L46 44 L18 44 Z' fill='none' stroke='%23e8935a' stroke-width='4' stroke-linejoin='round'/%3E%3Cline x1='32' y1='24' x2='32' y2='34' stroke='%23e8935a' stroke-width='4' stroke-linecap='round'/%3E%3Ccircle cx='32' cy='39' r='2.4' fill='%23e8935a'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#171d1a;
+    --surface:#1e2521;
+    --surface-2:#252d28;
+    --line:#333d37;
+    --ink:#e6e8e4;
+    --muted:#8a9590;
+    --coral:#e8935a;
+    --coral-dim:#5c4530;
+    --teal:#5fa89e;
+    --red:#c1594e;
+    --sans: -apple-system,"Segoe UI",sans-serif;
+    --mono:"IBM Plex Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:var(--sans);font-size:14px;line-height:1.55;
+  }
+  header{
+    padding:22px 20px 14px;border-bottom:1px solid var(--line);
+    display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:10px;
+  }
+  .title{font-family:var(--mono);font-size:19px;letter-spacing:0.3px;}
+  .title span{color:var(--coral);}
+  .subtitle{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:3px;}
+  .io-actions{display:flex;gap:8px;}
+  .io-actions button{
+    background:transparent;border:1px solid var(--line);color:var(--muted);
+    font-family:var(--mono);font-size:11px;padding:6px 10px;border-radius:3px;cursor:pointer;
+  }
+  .io-actions button:hover{border-color:var(--coral-dim);color:var(--ink);}
+
+  main{max-width:720px;margin:0 auto;padding:22px 18px 60px;}
+
+  /* --- Composer --- */
+  .composer{
+    background:var(--surface);border:1px solid var(--line);border-radius:6px;
+    padding:16px 18px;margin-bottom:22px;
+  }
+  .composer input[type=text], .composer textarea{
+    width:100%;background:var(--surface-2);border:1px solid var(--line);color:var(--ink);
+    padding:9px 10px;border-radius:4px;font-family:var(--sans);font-size:13.5px;margin-bottom:10px;
+  }
+  .composer textarea{min-height:70px;resize:vertical;}
+  .composer-row{display:flex;justify-content:space-between;align-items:center;gap:10px;}
+  .tag-input-wrap{position:relative;flex:1;}
+  #tagInput{margin-bottom:0;}
+  .tag-suggest{
+    position:absolute;top:100%;left:0;right:0;background:var(--surface-2);
+    border:1px solid var(--line);border-top:none;border-radius:0 0 4px 4px;
+    max-height:140px;overflow-y:auto;z-index:5;
+  }
+  .tag-suggest div{padding:6px 10px;font-family:var(--mono);font-size:12px;cursor:pointer;color:var(--muted);}
+  .tag-suggest div:hover{background:var(--surface);color:var(--ink);}
+  .composer-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+  .composer-tag{
+    font-family:var(--mono);font-size:11px;color:var(--coral);border:1px solid var(--coral-dim);
+    padding:2px 8px;border-radius:10px;cursor:pointer;
+  }
+  .composer-tag::after{content:" ×";opacity:0.6;}
+  button.post-btn{
+    background:var(--coral);color:#241408;border:none;font-family:var(--mono);font-weight:600;
+    font-size:12px;padding:9px 18px;border-radius:4px;cursor:pointer;flex-shrink:0;
+  }
+  button.post-btn:hover{background:#f1a877;}
+
+  /* --- Controls --- */
+  .controls-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;flex-wrap:wrap;}
+  .sort-tabs{display:flex;gap:2px;}
+  .sort-tab{font-family:var(--mono);font-size:11.5px;padding:6px 12px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;}
+  .sort-tab.active{color:var(--ink);border-bottom-color:var(--coral);}
+  #searchInput{
+    background:var(--surface-2);border:1px solid var(--line);color:var(--ink);
+    padding:7px 10px;border-radius:4px;font-family:var(--sans);font-size:12.5px;width:200px;
+  }
+
+  .tag-filter-bar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px;}
+  .filter-chip{
+    font-family:var(--mono);font-size:10.5px;padding:3px 9px;border-radius:10px;
+    border:1px solid var(--line);color:var(--muted);cursor:pointer;
+  }
+  .filter-chip.active{background:var(--coral);color:#241408;border-color:var(--coral);}
+
+  /* --- Feed --- */
+  .post{
+    background:var(--surface);border:1px solid var(--line);border-radius:6px;
+    padding:14px 16px;margin-bottom:10px;display:flex;gap:14px;
+  }
+  .up-col{display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;width:38px;}
+  .up-btn{
+    background:var(--surface-2);border:1px solid var(--line);color:var(--muted);
+    width:34px;height:34px;border-radius:6px;cursor:pointer;font-size:15px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .up-btn:hover{border-color:var(--coral);color:var(--coral);}
+  .up-btn.upped{background:var(--coral-dim);border-color:var(--coral);color:var(--coral);}
+  .up-count{font-family:var(--mono);font-size:12px;color:var(--coral);}
+
+  .post-body{flex:1;min-width:0;}
+  .post-top{display:flex;justify-content:space-between;gap:10px;align-items:baseline;}
+  .post-title{font-size:14.5px;font-weight:600;color:var(--ink);}
+  .post-meta{font-family:var(--mono);font-size:10.5px;color:var(--muted);white-space:nowrap;}
+  .post-content{color:var(--ink);font-size:13.5px;margin-top:5px;white-space:pre-wrap;}
+  .post-tags{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;}
+  .post-tag{font-family:var(--mono);font-size:10px;color:var(--teal);border:1px solid #2e4c48;padding:2px 7px;border-radius:10px;cursor:pointer;}
+  .post-tag:hover{background:#2e4c48;}
+  .post-actions{margin-top:8px;}
+  .del-btn{background:none;border:none;color:var(--muted);font-family:var(--mono);font-size:10.5px;cursor:pointer;padding:0;}
+  .del-btn:hover{color:var(--red);}
+
+  .empty{color:var(--muted);font-family:var(--mono);font-size:12px;text-align:center;padding:40px 0;}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="title">vrac<span>_idées</span></div>
+    <div class="subtitle">fil chronologique, tags, up pour faire remonter — local, sans compte</div>
+  </div>
+  <div class="io-actions">
+    <button onclick="exportData()">exporter .json</button>
+    <button onclick="document.getElementById('importFile').click()">importer</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+  </div>
+</header>
+
+<main>
+  <div class="composer">
+    <input type="text" id="cTitle" placeholder="titre (facultatif)">
+    <textarea id="cContent" placeholder="l'idée, la note, le truc à ne pas perdre…"></textarea>
+    <div class="composer-row">
+      <div class="tag-input-wrap">
+        <input type="text" id="tagInput" placeholder="tags (entrée ou virgule pour valider)" oninput="showTagSuggest()" onkeydown="tagKeydown(event)">
+        <div class="tag-suggest" id="tagSuggest" style="display:none"></div>
+      </div>
+      <button class="post-btn" onclick="addPost()">poster</button>
+    </div>
+    <div class="composer-tags" id="composerTags"></div>
+  </div>
+
+  <div class="controls-bar">
+    <div class="sort-tabs">
+      <div class="sort-tab active" data-sort="recent" onclick="setSort('recent')">Récent</div>
+      <div class="sort-tab" data-sort="top" onclick="setSort('top')">Plus upé</div>
+      <div class="sort-tab" data-sort="random" onclick="setSort('random')">Aléatoire</div>
+    </div>
+    <input type="text" id="searchInput" placeholder="rechercher…" oninput="render()">
+  </div>
+
+  <div class="tag-filter-bar" id="tagFilterBar"></div>
+
+  <div id="feed"></div>
+</main>
+
+<script>
+const STORAGE_KEY = "vrac_idees_v1";
+let posts = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+let pendingTags = [];
+let activeFilterTag = null;
+let sortMode = 'recent';
+let randomSeed = Math.random();
+
+function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(posts)); }
+
+function allTags(){
+  const set = new Set();
+  posts.forEach(p=> (p.tags||[]).forEach(t=>set.add(t)));
+  return Array.from(set).sort();
+}
+
+// --- Composer tag input ---
+function showTagSuggest(){
+  const val = document.getElementById('tagInput').value.trim().toLowerCase();
+  const box = document.getElementById('tagSuggest');
+  if(!val){ box.style.display='none'; return; }
+  const matches = allTags().filter(t=>t.toLowerCase().includes(val) && !pendingTags.includes(t));
+  if(!matches.length){ box.style.display='none'; return; }
+  box.innerHTML = matches.map(t=>`<div onclick="pickTag('${t.replace(/'/g,"\\'")}')">${t}</div>`).join('');
+  box.style.display = 'block';
+}
+function pickTag(t){
+  if(!pendingTags.includes(t)) pendingTags.push(t);
+  document.getElementById('tagInput').value = '';
+  document.getElementById('tagSuggest').style.display = 'none';
+  renderComposerTags();
+}
+function tagKeydown(e){
+  if(e.key==='Enter' || e.key===','){
+    e.preventDefault();
+    const val = document.getElementById('tagInput').value.trim().replace(/,$/,'');
+    if(val) pickTag(val.toLowerCase());
+  }
+}
+function renderComposerTags(){
+  document.getElementById('composerTags').innerHTML = pendingTags.map(t=>
+    `<span class="composer-tag" onclick="removeTag('${t.replace(/'/g,"\\'")}')">${t}</span>`
+  ).join('');
+}
+function removeTag(t){
+  pendingTags = pendingTags.filter(x=>x!==t);
+  renderComposerTags();
+}
+
+function addPost(){
+  const title = document.getElementById('cTitle').value.trim();
+  const content = document.getElementById('cContent').value.trim();
+  if(!content){ alert('Écris au moins une idée avant de poster.'); return; }
+  const now = Date.now();
+  posts.unshift({
+    id: 'p'+now,
+    title, content,
+    tags: [...pendingTags],
+    created: now,
+    lastActivity: now,
+    ups: 0,
+    upped: false
+  });
+  document.getElementById('cTitle').value='';
+  document.getElementById('cContent').value='';
+  pendingTags = [];
+  renderComposerTags();
+  save();
+  render();
+}
+
+function upPost(id){
+  const p = posts.find(x=>x.id===id);
+  if(!p) return;
+  if(p.upped){
+    p.ups = Math.max(0,p.ups-1);
+    p.upped = false;
+  } else {
+    p.ups++;
+    p.upped = true;
+    p.lastActivity = Date.now(); // un up fait remonter le sujet, comme un bump de forum
+  }
+  save();
+  render();
+}
+
+function deletePost(id){
+  if(!confirm('Supprimer ce post ?')) return;
+  posts = posts.filter(p=>p.id!==id);
+  save();
+  render();
+}
+
+function setSort(mode){
+  sortMode = mode;
+  if(mode==='random') randomSeed = Math.random();
+  document.querySelectorAll('.sort-tab').forEach(t=>t.classList.toggle('active', t.dataset.sort===mode));
+  render();
+}
+
+function filterByTag(t){
+  activeFilterTag = (activeFilterTag===t) ? null : t;
+  render();
+}
+
+function fmtDate(ts){
+  const d = new Date(ts);
+  return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short'}) + ' ' + d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+}
+
+function escapeHtml(s){
+  const d = document.createElement('div'); d.textContent = s||''; return d.innerHTML;
+}
+
+// pseudo-random déterministe basé sur seed + id, pour un ordre aléatoire stable pendant l'affichage
+function pseudoRand(str){
+  let h = 0;
+  for(let i=0;i<str.length;i++) h = (h*31 + str.charCodeAt(i)) >>> 0;
+  return ((h ^ (randomSeed*1e9|0)) >>> 0) / 4294967295;
+}
+
+function render(){
+  const tagBar = document.getElementById('tagFilterBar');
+  const tags = allTags();
+  tagBar.innerHTML = tags.map(t=>
+    `<span class="filter-chip ${activeFilterTag===t?'active':''}" onclick="filterByTag('${t.replace(/'/g,"\\'")}')">${t}</span>`
+  ).join('');
+
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  let list = posts.filter(p=>{
+    const matchesTag = !activeFilterTag || (p.tags||[]).includes(activeFilterTag);
+    const matchesSearch = !q || p.title.toLowerCase().includes(q) || p.content.toLowerCase().includes(q) || (p.tags||[]).some(t=>t.toLowerCase().includes(q));
+    return matchesTag && matchesSearch;
+  });
+
+  if(sortMode==='recent') list = list.slice().sort((a,b)=>b.lastActivity - a.lastActivity);
+  else if(sortMode==='top') list = list.slice().sort((a,b)=> b.ups - a.ups || b.lastActivity - a.lastActivity);
+  else if(sortMode==='random') list = list.slice().sort((a,b)=> pseudoRand(a.id) - pseudoRand(b.id));
+
+  const feed = document.getElementById('feed');
+  feed.innerHTML = list.length ? '' : `<div class="empty">${posts.length ? 'rien ne correspond à ce filtre' : 'le fil est vide — poste ta première idée'}</div>`;
+
+  list.forEach(p=>{
+    const div = document.createElement('div');
+    div.className = 'post';
+    div.innerHTML = `
+      <div class="up-col">
+        <button class="up-btn ${p.upped?'upped':''}" onclick="upPost('${p.id}')">▲</button>
+        <div class="up-count">${p.ups}</div>
+      </div>
+      <div class="post-body">
+        <div class="post-top">
+          <div class="post-title">${p.title ? escapeHtml(p.title) : '<span style="color:var(--muted);font-weight:400">sans titre</span>'}</div>
+          <div class="post-meta">${fmtDate(p.created)}</div>
+        </div>
+        <div class="post-content">${escapeHtml(p.content)}</div>
+        <div class="post-tags">
+          ${(p.tags||[]).map(t=>`<span class="post-tag" onclick="filterByTag('${t.replace(/'/g,"\\'")}')">${t}</span>`).join('')}
+        </div>
+        <div class="post-actions"><button class="del-btn" onclick="deletePost('${p.id}')">supprimer</button></div>
+      </div>
+    `;
+    feed.appendChild(div);
+  });
+}
+
+function exportData(){
+  const blob = new Blob([JSON.stringify(posts,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'vrac_idees_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+}
+function importData(evt){
+  const file = evt.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e=>{
+    try{
+      const data = JSON.parse(e.target.result);
+      if(Array.isArray(data)){ posts = data; save(); render(); }
+    }catch(err){ alert('Fichier invalide.'); }
+  };
+  reader.readAsText(file);
+}
+
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.tag-input-wrap')) document.getElementById('tagSuggest').style.display='none';
+});
+
+render();
+</script>
+
+</body>
+</html>
