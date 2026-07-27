@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DCA — Suivi</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230d1117'/%3E%3Cpath d='M5 22 L12 15 L17 19 L27 7' stroke='%232dd4bf' stroke-width='2.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='27' cy='7' r='2.4' fill='%232dd4bf'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0b0f14;
+  --panel:#121821;
+  --panel-2:#161d28;
+  --border:#232c3a;
+  --text:#c9d1d9;
+  --muted:#7a8699;
+  --accent:#2dd4bf;
+  --accent-dim:#1a8f80;
+  --warn:#f5a524;
+  --danger:#ef4444;
+  --mono: "IBM Plex Mono","SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  --sans: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;padding:24px;}
+h1{font-family:var(--mono);font-size:18px;font-weight:600;letter-spacing:.02em;margin:0 0 4px;color:#eef1f4;}
+.sub{color:var(--muted);font-size:12.5px;margin-bottom:20px;font-family:var(--mono);}
+.wrap{max-width:1180px;margin:0 auto;}
+
+.alerts{margin-bottom:18px;display:flex;flex-direction:column;gap:8px;}
+.alert{border-radius:6px;padding:10px 14px;font-size:13px;font-family:var(--mono);border:1px solid;display:flex;align-items:center;gap:10px;}
+.alert.warn{background:rgba(245,165,36,.08);border-color:rgba(245,165,36,.35);color:var(--warn);}
+.alert.danger{background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.35);color:var(--danger);}
+.alert.ok{background:rgba(45,212,191,.07);border-color:rgba(45,212,191,.3);color:var(--accent);}
+.alert.muted{background:rgba(122,134,153,.08);border-color:rgba(122,134,153,.3);color:var(--muted);}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:20px;}
+.kpi{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:14px 16px;}
+.kpi .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+.kpi .value{font-family:var(--mono);font-size:19px;font-weight:600;color:#eef1f4;}
+.kpi .value.pos{color:var(--accent);}
+.kpi .value.neg{color:var(--danger);}
+.kpi .sub-value{font-size:11px;color:var(--muted);margin-top:4px;font-family:var(--mono);}
+
+.gauge-row{display:flex;gap:16px;align-items:center;margin-bottom:20px;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px;}
+.gauge{flex-shrink:0;}
+.gauge-text{flex:1;}
+.gauge-text .big{font-family:var(--mono);font-size:22px;font-weight:600;color:#eef1f4;}
+.gauge-text .small{font-size:12px;color:var(--muted);margin-top:4px;}
+
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:18px;margin-bottom:16px;}
+.panel h2{font-family:var(--mono);font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 14px;border-bottom:1px solid var(--border);padding-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
+.panel h2 .count{color:var(--accent);}
+
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
+label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:5px;}
+input,select{width:100%;background:var(--panel-2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:8px 9px;font-family:var(--mono);font-size:13px;}
+input:focus,select:focus{outline:none;border-color:var(--accent-dim);}
+
+.btn{font-family:var(--mono);font-size:12.5px;padding:8px 14px;border-radius:5px;border:1px solid var(--border);background:var(--panel-2);color:var(--text);cursor:pointer;transition:border-color .15s;}
+.btn:hover{border-color:var(--accent-dim);}
+.btn.primary{background:var(--accent);color:#04211d;border-color:var(--accent);font-weight:600;}
+.btn.primary:hover{background:#3ee0cb;}
+.btn.danger-outline{color:var(--danger);}
+.btn.danger-outline:hover{border-color:var(--danger);}
+.btn.small{padding:4px 9px;font-size:11px;}
+
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+
+table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12.5px;}
+th{text-align:left;color:var(--muted);font-weight:500;text-transform:uppercase;font-size:10.5px;letter-spacing:.05em;padding:8px 10px;border-bottom:1px solid var(--border);}
+td{padding:9px 10px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+td.num{text-align:right;}
+.del-row{cursor:pointer;color:var(--muted);}
+.del-row:hover{color:var(--danger);}
+.empty-row td{color:var(--muted);text-align:center;padding:20px;}
+.actif-tag{display:inline-block;padding:2px 8px;border-radius:4px;background:var(--panel-2);border:1px solid var(--border);font-size:11px;color:var(--accent);}
+.row-actions{display:flex;gap:6px;justify-content:flex-end;}
+.due-today{color:var(--warn);}
+.due-late{color:var(--danger);}
+.due-soon{color:var(--accent);}
+
+.json-status{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:8px;}
+#fileInput{display:none;}
+footer{text-align:center;color:var(--muted);font-size:11px;font-family:var(--mono);margin-top:24px;padding-top:16px;border-top:1px solid var(--border);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>DCA — SUIVI</h1>
+  <div class="sub">plusieurs lignes DCA / capital / KPI / alertes — stockage local uniquement</div>
+
+  <div class="alerts" id="alerts"></div>
+
+  <div class="gauge-row">
+    <svg class="gauge" id="gaugeSvg" width="88" height="88" viewBox="0 0 88 88"></svg>
+    <div class="gauge-text">
+      <div class="big" id="gaugeBig">0 %</div>
+      <div class="small" id="gaugeSmall">du capital cumulé déployé (tous programmes)</div>
+    </div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi"><div class="label">Capital cible total</div><div class="value" id="kpiCapital">0 €</div></div>
+    <div class="kpi"><div class="label">Total investi</div><div class="value" id="kpiInvesti">0 €</div></div>
+    <div class="kpi"><div class="label">Capital restant</div><div class="value" id="kpiRestant">0 €</div></div>
+    <div class="kpi"><div class="label">Valeur actuelle</div><div class="value" id="kpiValeur">—</div><div class="sub-value" id="kpiPL"></div></div>
+    <div class="kpi"><div class="label">Programmes actifs</div><div class="value" id="kpiNbProgrammes">0</div></div>
+  </div>
+
+  <div class="panel">
+    <h2><span>Programmes DCA <span class="count" id="progCount">(0)</span></span></h2>
+    <div class="form-grid">
+      <div>
+        <label>Actif</label>
+        <input type="text" id="pActif" placeholder="ex. S&amp;P500 x2, BTC...">
+      </div>
+      <div>
+        <label>Capital cible (€)</label>
+        <input type="number" id="pCapital" min="0" step="0.01" placeholder="0">
+      </div>
+      <div>
+        <label>Montant par versement (€)</label>
+        <input type="number" id="pMontant" min="0" step="0.01" placeholder="0">
+      </div>
+      <div>
+        <label>Fréquence</label>
+        <select id="pFreq">
+          <option value="7">Hebdomadaire</option>
+          <option value="14">Bi-hebdomadaire</option>
+          <option value="30" selected>Mensuelle</option>
+          <option value="90">Trimestrielle</option>
+        </select>
+      </div>
+      <div>
+        <label>Date de début</label>
+        <input type="date" id="pDebut">
+      </div>
+      <div>
+        <label>Prix actuel (optionnel)</label>
+        <input type="number" id="pPrixActuel" min="0" step="0.0001" placeholder="pour calcul P&amp;L">
+      </div>
+    </div>
+    <div class="toolbar">
+      <button class="btn primary" id="progSaveBtn" onclick="saveProgram()">Ajouter le programme</button>
+      <button class="btn" id="progCancelBtn" onclick="cancelEditProgram()" style="display:none;">Annuler la modification</button>
+    </div>
+
+    <table style="margin-top:16px;">
+      <thead>
+        <tr><th>Actif</th><th class="num">Capital</th><th class="num">Versement</th><th>Fréq.</th><th>Échéance</th><th class="num">Investi</th><th class="num">%</th><th></th></tr>
+      </thead>
+      <tbody id="programsBody"></tbody>
+    </table>
+  </div>
+
+  <div class="panel">
+    <h2>Ajouter un versement</h2>
+    <div class="form-grid">
+      <div>
+        <label>Programme</label>
+        <select id="eProgram"></select>
+      </div>
+      <div>
+        <label>Date</label>
+        <input type="date" id="eDate">
+      </div>
+      <div>
+        <label>Montant (€)</label>
+        <input type="number" id="eMontant" min="0" step="0.01" placeholder="0">
+      </div>
+      <div>
+        <label>Prix unitaire à l'achat (optionnel)</label>
+        <input type="number" id="ePrix" min="0" step="0.0001" placeholder="pour calcul PRU">
+      </div>
+    </div>
+    <div class="toolbar">
+      <button class="btn primary" onclick="addEntry()">Ajouter</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2><span>Historique <span class="count" id="histCount">(0)</span></span></h2>
+    <table>
+      <thead>
+        <tr><th>Programme</th><th>Date</th><th class="num">Montant</th><th class="num">Prix</th><th class="num">Quantité</th><th></th></tr>
+      </thead>
+      <tbody id="historyBody"></tbody>
+    </table>
+  </div>
+
+  <div class="panel">
+    <h2>Sauvegarde</h2>
+    <div class="toolbar">
+      <button class="btn" onclick="exportJSON()">⬇ Exporter JSON</button>
+      <button class="btn" onclick="document.getElementById('fileInput').click()">⬆ Importer JSON</button>
+      <button class="btn danger-outline" onclick="resetAll()">Réinitialiser</button>
+      <input type="file" id="fileInput" accept="application/json" onchange="importJSON(event)">
+    </div>
+    <div class="json-status" id="jsonStatus">Sauvegarde automatique locale active.</div>
+  </div>
+
+  <footer>dca_suivi.html — local, sans tracking</footer>
+</div>
+
+<script>
+const STORAGE_KEY = 'dca_suivi_data';
+
+let state = { programs: [], entries: [] };
+let editingProgramId = null;
+
+function uid(){
+  return (crypto.randomUUID ? crypto.randomUUID() : 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2));
+}
+
+function load(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(raw){
+    try{
+      const parsed = JSON.parse(raw);
+      // migration depuis l'ancien format mono-programme
+      if(parsed.program && !parsed.programs){
+        const id = uid();
+        state = {
+          programs: (parsed.program.actif || parsed.program.capital) ? [{...parsed.program, id}] : [],
+          entries: parsed.entries.map(e => ({...e, programId: id}))
+        };
+      } else {
+        state = { programs: parsed.programs || [], entries: parsed.entries || [] };
+      }
+    }catch(e){ console.error('JSON local corrompu', e); }
+  }
+  if(!document.getElementById('eDate').value){
+    document.getElementById('eDate').value = new Date().toISOString().slice(0,10);
+  }
+  render();
+}
+
+function persist(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  document.getElementById('jsonStatus').textContent = 'Sauvegardé localement — ' + new Date().toLocaleTimeString('fr-FR');
+}
+
+function fmtEUR(v){
+  if(v === null || v === undefined || isNaN(v)) return '—';
+  return v.toLocaleString('fr-FR',{minimumFractionDigits:2, maximumFractionDigits:2}) + ' €';
+}
+
+function freqLabel(freq){
+  return {7:'Hebdo',14:'Bi-hebdo',30:'Mensuel',90:'Trimestriel'}[freq] || freq+'j';
+}
+
+// ---------- Programmes ----------
+
+function readProgramForm(){
+  return {
+    actif: document.getElementById('pActif').value.trim(),
+    capital: parseFloat(document.getElementById('pCapital').value) || 0,
+    montant: parseFloat(document.getElementById('pMontant').value) || 0,
+    freq: parseInt(document.getElementById('pFreq').value) || 30,
+    debut: document.getElementById('pDebut').value || '',
+    prixActuel: document.getElementById('pPrixActuel').value ? parseFloat(document.getElementById('pPrixActuel').value) : null
+  };
+}
+
+function clearProgramForm(){
+  document.getElementById('pActif').value = '';
+  document.getElementById('pCapital').value = '';
+  document.getElementById('pMontant').value = '';
+  document.getElementById('pFreq').value = 30;
+  document.getElementById('pDebut').value = '';
+  document.getElementById('pPrixActuel').value = '';
+}
+
+function saveProgram(){
+  const data = readProgramForm();
+  if(!data.actif){ alert("Nom de l'actif requis."); return; }
+  if(editingProgramId){
+    const idx = state.programs.findIndex(p => p.id === editingProgramId);
+    if(idx >= 0) state.programs[idx] = {...data, id: editingProgramId};
+    editingProgramId = null;
+    document.getElementById('progSaveBtn').textContent = 'Ajouter le programme';
+    document.getElementById('progCancelBtn').style.display = 'none';
+  } else {
+    state.programs.push({...data, id: uid()});
+  }
+  clearProgramForm();
+  persist();
+  render();
+}
+
+function editProgram(id){
+  const p = state.programs.find(x => x.id === id);
+  if(!p) return;
+  editingProgramId = id;
+  document.getElementById('pActif').value = p.actif || '';
+  document.getElementById('pCapital').value = p.capital || '';
+  document.getElementById('pMontant').value = p.montant || '';
+  document.getElementById('pFreq').value = p.freq || 30;
+  document.getElementById('pDebut').value = p.debut || '';
+  document.getElementById('pPrixActuel').value = p.prixActuel ?? '';
+  document.getElementById('progSaveBtn').textContent = 'Enregistrer la modification';
+  document.getElementById('progCancelBtn').style.display = 'inline-block';
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function cancelEditProgram(){
+  editingProgramId = null;
+  clearProgramForm();
+  document.getElementById('progSaveBtn').textContent = 'Ajouter le programme';
+  document.getElementById('progCancelBtn').style.display = 'none';
+}
+
+function deleteProgram(id){
+  const p = state.programs.find(x => x.id === id);
+  const nbEntries = state.entries.filter(e => e.programId === id).length;
+  const msg = nbEntries > 0
+    ? `Supprimer "${p.actif}" et ses ${nbEntries} versement(s) associé(s) ?`
+    : `Supprimer "${p.actif}" ?`;
+  if(!confirm(msg)) return;
+  state.programs = state.programs.filter(x => x.id !== id);
+  state.entries = state.entries.filter(e => e.programId !== id);
+  if(editingProgramId === id) cancelEditProgram();
+  persist();
+  render();
+}
+
+// ---------- Versements ----------
+
+function addEntry(){
+  const programId = document.getElementById('eProgram').value;
+  const date = document.getElementById('eDate').value;
+  const montant = parseFloat(document.getElementById('eMontant').value);
+  const prix = document.getElementById('ePrix').value ? parseFloat(document.getElementById('ePrix').value) : null;
+  if(!programId){ alert('Crée d\'abord un programme DCA.'); return; }
+  if(!date || !montant){ alert('Date et montant requis.'); return; }
+  const quantite = prix ? (montant / prix) : null;
+  state.entries.push({ id: uid(), programId, date, montant, prix, quantite });
+  state.entries.sort((a,b)=> a.date.localeCompare(b.date));
+  document.getElementById('eMontant').value = '';
+  document.getElementById('ePrix').value = '';
+  persist();
+  render();
+}
+
+function deleteEntry(id){
+  state.entries = state.entries.filter(e => e.id !== id);
+  persist();
+  render();
+}
+
+// ---------- KPI par programme ----------
+
+function computeProgramKPI(p){
+  const entries = state.entries.filter(e => e.programId === p.id);
+  const totalInvesti = entries.reduce((s,e)=>s+e.montant,0);
+  const totalQty = entries.reduce((s,e)=> s + (e.quantite||0), 0);
+  const pru = totalQty > 0 ? totalInvesti / totalQty : null;
+  const restant = Math.max((p.capital||0) - totalInvesti, 0);
+  const pct = p.capital > 0 ? Math.min(totalInvesti / p.capital * 100, 100) : 0;
+
+  let valeurActuelle = null, pl = null, plPct = null;
+  if(p.prixActuel && totalQty > 0){
+    valeurActuelle = totalQty * p.prixActuel;
+    pl = valeurActuelle - totalInvesti;
+    plPct = totalInvesti > 0 ? (pl / totalInvesti * 100) : null;
+  }
+
+  let prochaine = null;
+  if(entries.length > 0 && p.freq){
+    const lastDate = new Date(entries[entries.length-1].date);
+    prochaine = new Date(lastDate.getTime() + p.freq*86400000);
+  } else if(p.debut && p.freq){
+    prochaine = new Date(p.debut);
+  }
+
+  let diffDays = null;
+  if(prochaine){
+    const today0 = new Date(); today0.setHours(0,0,0,0);
+    const proch0 = new Date(prochaine); proch0.setHours(0,0,0,0);
+    diffDays = Math.round((proch0 - today0) / 86400000);
+  }
+  const echeance = diffDays !== null && diffDays === 0;
+  const bientot = diffDays !== null && diffDays > 0 && diffDays <= 3;
+  const retard = diffDays !== null && diffDays < 0;
+  const capitalAtteint = p.capital > 0 && totalInvesti >= p.capital;
+
+  return { totalInvesti, totalQty, pru, restant, pct, valeurActuelle, pl, plPct, prochaine, diffDays, echeance, bientot, retard, capitalAtteint };
+}
+
+function drawGauge(pct){
+  const svg = document.getElementById('gaugeSvg');
+  const r = 36, cx = 44, cy = 44;
+  const circ = 2*Math.PI*r;
+  const offset = circ - (pct/100)*circ;
+  svg.innerHTML = `
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#232c3a" stroke-width="8"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#2dd4bf" stroke-width="8"
+      stroke-dasharray="${circ}" stroke-dashoffset="${offset}" stroke-linecap="round"
+      transform="rotate(-90 ${cx} ${cy})" style="transition:stroke-dashoffset .3s"/>
+  `;
+}
+
+function render(){
+  // dropdown programme pour ajout de versement
+  const sel = document.getElementById('eProgram');
+  const prevVal = sel.value;
+  sel.innerHTML = state.programs.map(p => `<option value="${p.id}">${p.actif}</option>`).join('');
+  if(state.programs.some(p=>p.id===prevVal)) sel.value = prevVal;
+
+  // KPI agrégés
+  let capitalTotal=0, investiTotal=0, restantTotal=0, valeurTotal=0, hasValeur=false;
+  const perProgram = state.programs.map(p => ({p, k: computeProgramKPI(p)}));
+  perProgram.forEach(({p,k}) => {
+    capitalTotal += p.capital || 0;
+    investiTotal += k.totalInvesti;
+    restantTotal += k.restant;
+    if(k.valeurActuelle !== null){ valeurTotal += k.valeurActuelle; hasValeur = true; }
+  });
+  const pctGlobal = capitalTotal > 0 ? Math.min(investiTotal/capitalTotal*100,100) : 0;
+
+  document.getElementById('kpiCapital').textContent = fmtEUR(capitalTotal);
+  document.getElementById('kpiInvesti').textContent = fmtEUR(investiTotal);
+  document.getElementById('kpiRestant').textContent = fmtEUR(restantTotal);
+  document.getElementById('kpiNbProgrammes').textContent = state.programs.length;
+
+  const valEl = document.getElementById('kpiValeur');
+  const plEl = document.getElementById('kpiPL');
+  if(hasValeur){
+    const plTotal = valeurTotal - investiTotal;
+    valEl.textContent = fmtEUR(valeurTotal);
+    valEl.className = 'value ' + (plTotal >= 0 ? 'pos':'neg');
+    const plPctTotal = investiTotal>0 ? (plTotal/investiTotal*100) : null;
+    plEl.textContent = (plTotal>=0?'+':'') + fmtEUR(plTotal) + (plPctTotal!==null ? ' ('+(plPctTotal>=0?'+':'')+plPctTotal.toFixed(1)+'%)' : '');
+  } else {
+    valEl.textContent = '—'; valEl.className = 'value'; plEl.textContent = '';
+  }
+
+  document.getElementById('gaugeBig').textContent = pctGlobal.toFixed(1) + ' %';
+  drawGauge(pctGlobal);
+
+  // Alertes — une ligne par programme concerné
+  const alerts = [];
+  perProgram.forEach(({p,k}) => {
+    if(k.retard){
+      alerts.push({type:'danger', msg:`⚠ <span class="actif-tag">${p.actif}</span> — versement en retard, prévu le ${k.prochaine.toLocaleDateString('fr-FR')} (${Math.abs(k.diffDays)} j).`});
+    } else if(k.echeance){
+      alerts.push({type:'warn', msg:`⏰ <span class="actif-tag">${p.actif}</span> — échéance aujourd'hui, versement de ${fmtEUR(p.montant)} à effectuer.`});
+    } else if(k.bientot){
+      alerts.push({type:'ok', msg:`<span class="actif-tag">${p.actif}</span> — prochain versement dans ${k.diffDays} j (${k.prochaine.toLocaleDateString('fr-FR')}), ${fmtEUR(p.montant)}.`});
+    }
+    if(p.capital && k.restant < (p.montant||0) && k.restant > 0){
+      alerts.push({type:'warn', msg:`<span class="actif-tag">${p.actif}</span> — capital restant (${fmtEUR(k.restant)}) inférieur au prochain versement (${fmtEUR(p.montant)}).`});
+    }
+    if(k.capitalAtteint){
+      alerts.push({type:'ok', msg:`✓ <span class="actif-tag">${p.actif}</span> — capital cible entièrement déployé.`});
+    }
+  });
+  if(state.programs.length === 0){
+    alerts.push({type:'muted', msg:'Aucun programme DCA — ajoute une première ligne ci-dessous.'});
+  }
+  document.getElementById('alerts').innerHTML = alerts.map(a=>`<div class="alert ${a.type}">${a.msg}</div>`).join('');
+
+  // Table programmes
+  document.getElementById('progCount').textContent = `(${state.programs.length})`;
+  const progBody = document.getElementById('programsBody');
+  if(state.programs.length === 0){
+    progBody.innerHTML = '<tr class="empty-row"><td colspan="8">Aucun programme DCA enregistré.</td></tr>';
+  } else {
+    progBody.innerHTML = perProgram.map(({p,k}) => {
+      let echeanceCell = '—', echeanceClass = '';
+      if(k.prochaine){
+        echeanceCell = k.prochaine.toLocaleDateString('fr-FR');
+        if(k.retard) echeanceClass = 'due-late';
+        else if(k.echeance) echeanceClass = 'due-today';
+        else if(k.bientot) echeanceClass = 'due-soon';
+      }
+      return `
+        <tr>
+          <td><span class="actif-tag">${p.actif}</span></td>
+          <td class="num">${fmtEUR(p.capital)}</td>
+          <td class="num">${fmtEUR(p.montant)}</td>
+          <td>${freqLabel(p.freq)}</td>
+          <td class="${echeanceClass}">${echeanceCell}</td>
+          <td class="num">${fmtEUR(k.totalInvesti)}</td>
+          <td class="num">${k.pct.toFixed(0)}%</td>
+          <td>
+            <div class="row-actions">
+              <button class="btn small" onclick="editProgram('${p.id}')">Éditer</button>
+              <button class="btn small danger-outline" onclick="deleteProgram('${p.id}')">Suppr.</button>
+            </div>
+          </td>
+        </tr>`;
+    }).join('');
+  }
+
+  // Table historique
+  document.getElementById('histCount').textContent = `(${state.entries.length})`;
+  const histBody = document.getElementById('historyBody');
+  if(state.entries.length === 0){
+    histBody.innerHTML = '<tr class="empty-row"><td colspan="6">Aucun versement enregistré.</td></tr>';
+  } else {
+    const sorted = [...state.entries].sort((a,b)=> b.date.localeCompare(a.date));
+    histBody.innerHTML = sorted.map(e => {
+      const prog = state.programs.find(p => p.id === e.programId);
+      return `
+        <tr>
+          <td><span class="actif-tag">${prog ? prog.actif : '—'}</span></td>
+          <td>${new Date(e.date).toLocaleDateString('fr-FR')}</td>
+          <td class="num">${fmtEUR(e.montant)}</td>
+          <td class="num">${e.prix ? e.prix.toLocaleString('fr-FR',{maximumFractionDigits:4}) : '—'}</td>
+          <td class="num">${e.quantite ? e.quantite.toFixed(6) : '—'}</td>
+          <td class="num del-row" onclick="deleteEntry('${e.id}')" title="Supprimer">✕</td>
+        </tr>`;
+    }).join('');
+  }
+}
+
+// ---------- Export / Import / Reset ----------
+
+function exportJSON(){
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const stamp = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `dca_suivi_${stamp}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importJSON(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try{
+      const data = JSON.parse(e.target.result);
+      if(!Array.isArray(data.programs) || !Array.isArray(data.entries)) throw new Error('structure invalide');
+      state = data;
+      cancelEditProgram();
+      persist();
+      render();
+    }catch(err){
+      alert('Fichier JSON invalide : ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function resetAll(){
+  if(!confirm('Réinitialiser toutes les données locales ?')) return;
+  state = { programs: [], entries: [] };
+  cancelEditProgram();
+  persist();
+  render();
+}
+
+load();
+</script>
+</body>
+</html>
