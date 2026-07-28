@@ -40,6 +40,7 @@ body{font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden;position:
 
 /* HEADER */
 .site-header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+#versionBadge.version-badge{background:#ff6b35 !important;color:#ffffff !important;-webkit-text-fill-color:#ffffff !important;font-family:'Inter',sans-serif !important;font-size:0.72rem !important;font-weight:800 !important;letter-spacing:0.03em;padding:3px 10px !important;border-radius:999px !important;line-height:1.4;box-shadow:0 2px 6px rgba(255,107,53,0.45);white-space:nowrap;user-select:none;}
 #page-title{font-size:2rem;font-weight:800;background:linear-gradient(90deg,var(--c1),var(--c2),var(--c3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;border:none;background-color:transparent;outline:none;font-family:'Inter',sans-serif;cursor:text;min-width:200px;}
 .bg-btn{display:flex;align-items:center;gap:6px;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:7px 14px;font-family:'Inter',sans-serif;font-size:0.75rem;font-weight:700;color:var(--muted);cursor:pointer;box-shadow:var(--shadow);transition:all 0.15s;backdrop-filter:blur(8px);}
 .bg-btn:hover{color:var(--c2);border-color:var(--c2);}
@@ -2403,7 +2404,10 @@ body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
 <div class="page" id="mainPage">
 
   <div class="site-header">
-    <input id="page-title" value="" oninput="save()">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <input id="page-title" value="" oninput="save()">
+      <span id="versionBadge" class="version-badge" title="Numéro de version des données (incrémenté à chaque sauvegarde) — sert à comparer PC et smartphone">v0</span>
+    </div>
     <div style="display:flex;gap:8px;align-items:center">
       <span class="save-dot" id="saveDot"></span>
     </div>
@@ -3045,6 +3049,33 @@ body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
 <input type="file" id="wallpaperFileInput" accept="image/*" style="display:none" onchange="wallpaperHandleFile(this)">
 
 <script>
+// ── VERSION (compteur incrémenté à chaque sauvegarde, pour comparer PC / smartphone) ──
+const VERSION_KEY = 'dashboard_version';
+let dashboardVersion = parseInt(localStorage.getItem(VERSION_KEY) || '0', 10) || 0;
+
+// Point d'écriture unique pour localStorage : toute sauvegarde passe par ici
+// et incrémente automatiquement le compteur de version (sauf la clé de version elle-même).
+function lsSet(key, value){
+  localStorage.setItem(key, value);
+  if(key !== VERSION_KEY){
+    dashboardVersion++;
+    localStorage.setItem(VERSION_KEY, String(dashboardVersion));
+    updateVersionBadge();
+  }
+}
+
+// Remplace intégralement la version locale par une version importée (ne l'incrémente pas).
+function setDashboardVersion(v){
+  dashboardVersion = parseInt(v, 10) || 0;
+  localStorage.setItem(VERSION_KEY, String(dashboardVersion));
+  updateVersionBadge();
+}
+
+function updateVersionBadge(){
+  const b = document.getElementById('versionBadge');
+  if(b) b.textContent = 'v' + dashboardVersion;
+}
+
 const EMOJIS=['🔗','🌐','📧','📁','🎵','🎬','📚','🛒','💼','🏠','⚙️','🎮','📊','🗓️','📸','🔑','💡','🚀','⭐','❤️','🌈','🎯','🔍','💬','📱','🖥️','🎨','📝','🏋️','🌿'];
 const LINK_COLORS=['#6b4f5c','#464a63','#3d5a73','#456b63','#5c5f4f','#b3564f','#6b5a3f','#5c4a63','#6b4f5c','#464a63'];
 
@@ -3052,7 +3083,7 @@ let transpTexts = ['','',''];
 
 function saveTransp(idx, val){
   transpTexts[idx] = val;
-  localStorage.setItem('dashboard_transp', JSON.stringify(transpTexts));
+  lsSet('dashboard_transp', JSON.stringify(transpTexts));
   save();
 }
 
@@ -3150,7 +3181,7 @@ async function wallSetCurrent(id){
   try{
     const rec = await wallGet(id);
     if(rec){
-      localStorage.setItem('dashboard_wallpaper_current', id);
+      lsSet('dashboard_wallpaper_current', id);
       wallApplyBlob(rec.full);
     }
   }catch(e){}
@@ -3166,7 +3197,7 @@ function wallpaperClear(){
 function wallpaperSetOverlay(val){
   const pct = Math.max(0, Math.min(90, Number(val) || 0));
   document.documentElement.style.setProperty('--wall-overlay-opacity', pct/100);
-  localStorage.setItem('dashboard_wallpaper_overlay', pct);
+  lsSet('dashboard_wallpaper_overlay', pct);
   const label = document.getElementById('wallOpacityVal');
   if(label) label.textContent = pct + '%';
   const slider = document.getElementById('wallOpacitySlider');
@@ -3259,7 +3290,7 @@ let clockColor = localStorage.getItem('dashboard_clock_color') || 'white';
 
 function setClockColor(color, el){
   clockColor = color;
-  localStorage.setItem('dashboard_clock_color', color);
+  lsSet('dashboard_clock_color', color);
   document.querySelectorAll('.clock-color-btn').forEach(b => b.classList.remove('active'));
   if(el) el.classList.add('active');
   applyClockColor();
@@ -3346,7 +3377,7 @@ function loadCompactLinks(){
 }
 
 function saveCompactLinks(){
-  localStorage.setItem('dashboard_compact_links', JSON.stringify(compactLinks));
+  lsSet('dashboard_compact_links', JSON.stringify(compactLinks));
 }
 
 function addCompactLink(){
@@ -3374,7 +3405,7 @@ function clLoadHits(){
 }
 
 function clSaveHits(){
-  localStorage.setItem('dashboard_link_hits', JSON.stringify(linkHits));
+  lsSet('dashboard_link_hits', JSON.stringify(linkHits));
 }
 
 function clRecordClick(url){
@@ -3387,7 +3418,7 @@ function clRecordClick(url){
 
 function clSetThresh(val){
   clThresh = parseInt(val);
-  localStorage.setItem('dashboard_cl_thresh', clThresh);
+  lsSet('dashboard_cl_thresh', clThresh);
   document.getElementById('clThreshVal').textContent = clThresh;
   renderCompactLinks();
 }
@@ -3467,7 +3498,7 @@ function renderCompactLinks(){
     btn.innerHTML = `Autres <span class="cl-accordion-chevron">▼</span> <span style="font-size:0.55rem;opacity:0.5">(${count})</span>`;
     btn.onclick = () => {
       clAccordionOpen = !clAccordionOpen;
-      localStorage.setItem('dashboard_cl_accordion', JSON.stringify(clAccordionOpen));
+      lsSet('dashboard_cl_accordion', JSON.stringify(clAccordionOpen));
       btn.classList.toggle('open', clAccordionOpen);
       body.style.maxHeight = clAccordionOpen ? body.scrollHeight + 'px' : '0';
     };
@@ -3557,7 +3588,7 @@ function updateLinkPreviewToggleUI(){
 
 function toggleLinkPreviewEnabled(){
   linkPreviewEnabled = !linkPreviewEnabled;
-  localStorage.setItem('dashboard_link_preview_enabled', linkPreviewEnabled ? '1' : '0');
+  lsSet('dashboard_link_preview_enabled', linkPreviewEnabled ? '1' : '0');
   updateLinkPreviewToggleUI();
   if(!linkPreviewEnabled) cancelLinkPreview();
 }
@@ -3883,7 +3914,7 @@ function drawClearAll(){
 
 function saveCanvas(){
   if(!canvas) return;
-  try{ localStorage.setItem('dashboard_canvas', canvas.toDataURL()); }catch(e){}
+  try{ lsSet('dashboard_canvas', canvas.toDataURL()); }catch(e){}
 }
 
 function drawPanelToggle(){
@@ -3971,13 +4002,13 @@ async function exportVault(){
       fullType: it.full.type||'image/jpeg'
     })));
   }catch(e){}
-  const data={ v:2, exportedAt:Date.now(), localStorage:ls, wallpapers };
+  const data={ v:2, dataVersion:dashboardVersion, exportedAt:Date.now(), localStorage:ls, wallpapers };
   try{
     const enc=await encryptData(data,pwd);
     const blob=new Blob([enc],{type:'text/plain'});
     const a=document.createElement('a');
     a.href=URL.createObjectURL(blob);
-    a.download='montableau_'+new Date().toISOString().slice(0,10)+'.vault';
+    a.download='montableau_v'+dashboardVersion+'_'+new Date().toISOString().slice(0,10)+'.vault';
     a.click();
   }catch(e){ alert('Erreur export : '+e.message); }
 }
@@ -3996,6 +4027,8 @@ async function importVault(e){
         if(!confirm('⚠️ Restaurer cette sauvegarde va remplacer TOUS les réglages actuels de ce tableau (liens, widgets, fonds d\'écran, etc.). Continuer ?')) { e.target.value=''; return; }
         localStorage.clear();
         Object.keys(data.localStorage).forEach(k=>localStorage.setItem(k, data.localStorage[k]));
+        // La version importée remplace la version locale immédiatement (avant tout save différé / reload).
+        setDashboardVersion(data.dataVersion ?? data.localStorage[VERSION_KEY]);
         try{
           const existing=await wallGetAll();
           for(const it of existing) await wallDelete(it.id);
@@ -4014,7 +4047,7 @@ async function importVault(e){
       if(data.links) { links=data.links; }
       if(data.compactLinks) { compactLinks=data.compactLinks; renderCompactLinks(); }
       if(data.notes){ const _naI = document.getElementById('notesArea'); if(_naI) _naI.value=data.notes; }
-      if(data.canvas){ localStorage.setItem('dashboard_canvas',data.canvas); const img=new Image(); img.onload=()=>ctx.drawImage(img,0,0,window.innerWidth,window.innerHeight); img.src=data.canvas; }
+      if(data.canvas){ lsSet('dashboard_canvas',data.canvas); const img=new Image(); img.onload=()=>ctx.drawImage(img,0,0,window.innerWidth,window.innerHeight); img.src=data.canvas; }
       save();
       alert('✅ Importé avec succès !');
     }catch(err){ alert('❌ Fichier corrompu ou incompatible.'); }
@@ -4030,9 +4063,9 @@ function save(){
   clearTimeout(saveTimer);
   document.getElementById('saveDot').classList.add('show');
   saveTimer=setTimeout(()=>{
-    localStorage.setItem('dashboard_title',document.getElementById('page-title').value);
-    localStorage.setItem('dashboard_links',JSON.stringify(links));
-    const _na = document.getElementById('notesArea'); if(_na) localStorage.setItem('dashboard_notes', _na.value);
+    lsSet('dashboard_title',document.getElementById('page-title').value);
+    lsSet('dashboard_links',JSON.stringify(links));
+    const _na = document.getElementById('notesArea'); if(_na) lsSet('dashboard_notes', _na.value);
     setTimeout(()=>document.getElementById('saveDot').classList.remove('show'),600);
   },600);
 }
@@ -4048,7 +4081,7 @@ function toggleSunsetWidget(){
   const w = document.getElementById('sunsetWidget');
   w.classList.toggle('hidden-widget', !sunsetVisible);
   const _stb = document.getElementById('sunsetToggleBtn'); if(_stb) _stb.textContent = sunsetVisible ? '👁' : '🙈';
-  localStorage.setItem('dashboard_sunset_visible', sunsetVisible ? '1' : '0');
+  lsSet('dashboard_sunset_visible', sunsetVisible ? '1' : '0');
 }
 
 function loadSunsetColors(){
@@ -4064,7 +4097,7 @@ function updateSunsetColors(){
   const c1 = document.getElementById('sunC1').value;
   const c2 = document.getElementById('sunC2').value;
   const c3 = document.getElementById('sunC3').value;
-  localStorage.setItem('dashboard_sunset_colors', JSON.stringify([c1, c2, c3]));
+  lsSet('dashboard_sunset_colors', JSON.stringify([c1, c2, c3]));
   renderSunset();
 }
 
@@ -4235,6 +4268,7 @@ function lerpColor(a, b, t){
 
 
 function initApp(){
+  updateVersionBadge();
   const title=localStorage.getItem('dashboard_title');
   if(title) document.getElementById('page-title').value=title;
   const tr=localStorage.getItem('dashboard_transp');
@@ -4409,7 +4443,7 @@ function tickerGetTodoItems(){
 
 function tickerToggleHide(){
   tickerHidden = !tickerHidden;
-  localStorage.setItem('dashboard_ticker_hidden', tickerHidden ? '1' : '0');
+  lsSet('dashboard_ticker_hidden', tickerHidden ? '1' : '0');
   tickerRender();
 }
 
@@ -4420,7 +4454,7 @@ function tickerToggleSpeed(){
 
 function tickerSetSpeed(val){
   tickerSpeed = parseInt(val);
-  localStorage.setItem('dashboard_ticker_speed', tickerSpeed);
+  lsSet('dashboard_ticker_speed', tickerSpeed);
   tickerUpdateSpeedLabel(tickerSpeed);
   tickerRender();
 }
@@ -4461,7 +4495,7 @@ function todoLoad(){
 }
 
 function todoSave(){
-  localStorage.setItem('dashboard_todo', JSON.stringify(todoItems));
+  lsSet('dashboard_todo', JSON.stringify(todoItems));
   if(typeof tickerRender === 'function') tickerRender();
 }
 
@@ -4570,7 +4604,7 @@ function launcherLoad(){
   try{ launcherLinks = JSON.parse(localStorage.getItem('dashboard_launcher')||'null') || DEFAULT_LAUNCHER.map(l=>({...l})); }
   catch(e){ launcherLinks = DEFAULT_LAUNCHER.map(l=>({...l})); }
 }
-function launcherSave(){ localStorage.setItem('dashboard_launcher', JSON.stringify(launcherLinks)); }
+function launcherSave(){ lsSet('dashboard_launcher', JSON.stringify(launcherLinks)); }
 
 function launcherRender(){
   const desktop = document.getElementById('launcherDesktop');
@@ -4763,7 +4797,7 @@ function smLoad(){
   smItems.forEach(it => { if(!it.cat) it.cat = 'Autre'; });
   smCatLoad();
 }
-function smSave(){ localStorage.setItem('dashboard_startmenu', JSON.stringify(smItems)); }
+function smSave(){ lsSet('dashboard_startmenu', JSON.stringify(smItems)); }
 
 function smCatLoad(){
   try{ smCategories = JSON.parse(localStorage.getItem('dashboard_startmenu_cats')||'null') || DEFAULT_SM_CATEGORIES.slice(); }
@@ -4771,7 +4805,7 @@ function smCatLoad(){
   // s'assure que toute catégorie utilisée par un item existe dans la liste
   smItems.forEach(it => { if(it.cat && !smCategories.includes(it.cat)) smCategories.push(it.cat); });
 }
-function smCatSave(){ localStorage.setItem('dashboard_startmenu_cats', JSON.stringify(smCategories)); }
+function smCatSave(){ lsSet('dashboard_startmenu_cats', JSON.stringify(smCategories)); }
 
 function smRenderTabs(){
   const bar = document.getElementById('smCatTabs');
@@ -5431,7 +5465,7 @@ document.addEventListener('click', (e) => {
     if(!didDrag){ toggleMeteoTooltip(); }
     else {
       const r = el.getBoundingClientRect();
-      localStorage.setItem(SK, JSON.stringify({left: r.left, top: r.top}));
+      lsSet(SK, JSON.stringify({left: r.left, top: r.top}));
     }
   });
 })();
@@ -5459,14 +5493,14 @@ function citationLoadCustom(){
   catch(e){ return []; }
 }
 function citationSaveCustom(list){
-  localStorage.setItem(CITATION_CUSTOM_KEY, JSON.stringify(list));
+  lsSet(CITATION_CUSTOM_KEY, JSON.stringify(list));
 }
 function citationPool(){
   return citationMode === 'perso' ? citationLoadCustom() : CITATION_DEFAULTS;
 }
 function citationSetMode(mode){
   citationMode = (mode === 'perso') ? 'perso' : 'default';
-  localStorage.setItem(CITATION_MODE_KEY, citationMode);
+  lsSet(CITATION_MODE_KEY, citationMode);
   document.querySelectorAll('.citation-mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === citationMode));
   citationCurrent = null;
   citationNext();
@@ -5541,7 +5575,7 @@ function citationTailCycle(e){
   const current = CITATION_TAIL_ORDER.find(c => w.classList.contains(c)) || 'tail-bl';
   const next = CITATION_TAIL_ORDER[(CITATION_TAIL_ORDER.indexOf(current) + 1) % CITATION_TAIL_ORDER.length];
   citationApplyTail(next);
-  localStorage.setItem(CITATION_TAIL_KEY, next);
+  lsSet(CITATION_TAIL_KEY, next);
 }
 (function(){
   const saved = localStorage.getItem(CITATION_TAIL_KEY);
@@ -5621,7 +5655,7 @@ document.addEventListener('click', (e) => {
     if(!didDrag){ toggleCitationTooltip(); }
     else {
       const r = el.getBoundingClientRect();
-      localStorage.setItem(SK, JSON.stringify({left: r.left, top: r.top}));
+      lsSet(SK, JSON.stringify({left: r.left, top: r.top}));
     }
   });
 })();
@@ -5638,7 +5672,7 @@ function citationAvatarUpload(e){
   if(!file) return;
   const reader = new FileReader();
   reader.onload = () => {
-    localStorage.setItem(CITATION_AVATAR_IMG_KEY, reader.result);
+    lsSet(CITATION_AVATAR_IMG_KEY, reader.result);
     citationAvatarApplyImage(reader.result);
   };
   reader.readAsDataURL(file);
@@ -5707,7 +5741,7 @@ function citationAvatarApplyImage(dataUrl){
       setTimeout(() => el.classList.remove('pulse'), 350);
     } else {
       const r = el.getBoundingClientRect();
-      localStorage.setItem(CITATION_AVATAR_POS_KEY, JSON.stringify({left: r.left, top: r.top}));
+      lsSet(CITATION_AVATAR_POS_KEY, JSON.stringify({left: r.left, top: r.top}));
     }
   });
 })();
@@ -5747,7 +5781,7 @@ function citationAvatarApplyImage(dataUrl){
     dragging = false;
     el.classList.remove('dragging');
     const r = el.getBoundingClientRect();
-    localStorage.setItem(SK, JSON.stringify({left: r.left, top: r.top}));
+    lsSet(SK, JSON.stringify({left: r.left, top: r.top}));
   });
 })();
 
@@ -5813,7 +5847,7 @@ document.addEventListener('click', (e) => {
     if(!didDrag){ togglePtzTooltip(); }
     else {
       const r = el.getBoundingClientRect();
-      localStorage.setItem(SK, JSON.stringify({left: r.left, top: r.top}));
+      lsSet(SK, JSON.stringify({left: r.left, top: r.top}));
     }
   });
   // Support tactile (mobile)
@@ -5995,7 +6029,7 @@ function agendaInit(){
 }
 
 function agendaSave(){
-  localStorage.setItem('dashboard_agenda', JSON.stringify(agendaEvents));
+  lsSet('dashboard_agenda', JSON.stringify(agendaEvents));
   // Refresh ticker to reflect possible new next event
   if(typeof tickerRender === 'function') tickerRender();
 }
@@ -6129,7 +6163,7 @@ function saveQuickNotes(){
   clearTimeout(quickNotesSaveTimer);
   quickNotesSaveTimer = setTimeout(() => {
     const val = document.getElementById('quickNotesArea').value;
-    localStorage.setItem('dashboard_quick_notes', val);
+    lsSet('dashboard_quick_notes', val);
     const el = document.getElementById('quickNotesSaved');
     if(el){ el.classList.add('show'); setTimeout(()=>el.classList.remove('show'), 1500); }
   }, 600);
@@ -6159,7 +6193,7 @@ function txHost(){
   const v = (document.getElementById('txHostInput')?.value || 'http://localhost:9091').replace(/\/$/, '');
   return v + '/transmission/rpc';
 }
-function txSaveHost(){ localStorage.setItem('tx_host', document.getElementById('txHostInput')?.value || ''); }
+function txSaveHost(){ lsSet('tx_host', document.getElementById('txHostInput')?.value || ''); }
 
 async function txCall(body){
   const url = txHost();
@@ -6348,10 +6382,10 @@ function chCompute(){
     `<strong>${day.label}</strong> — Officiel : ${arriveEl.value.replace(':','h')}–${psEl.value.replace(':','h')} / ${peEl.value.replace(':','h')}–${day.pmEndRef.replace(':','h')}<br>` +
     `Temps requis : <strong>${chFmt(day.workMin)}</strong> · Plage de départ : <strong>${day.departPlage}</strong>`;
 
-  localStorage.setItem('dashboard_ch_day', chSel);
-  localStorage.setItem('dashboard_ch_arrive', arriveEl.value);
-  localStorage.setItem('dashboard_ch_ps', psEl.value);
-  localStorage.setItem('dashboard_ch_pe', peEl.value);
+  lsSet('dashboard_ch_day', chSel);
+  lsSet('dashboard_ch_arrive', arriveEl.value);
+  lsSet('dashboard_ch_ps', psEl.value);
+  lsSet('dashboard_ch_pe', peEl.value);
 }
 
 function chToggleCollapse(){
@@ -6359,7 +6393,7 @@ function chToggleCollapse(){
   const btn  = document.getElementById('chCollapseBtn');
   const collapsed = body.classList.toggle('ch-collapsed');
   btn.textContent = collapsed ? '﹀' : '︿';
-  localStorage.setItem('dashboard_ch_collapsed', collapsed ? '1' : '0');
+  lsSet('dashboard_ch_collapsed', collapsed ? '1' : '0');
 }
 
 function chInit(){
@@ -6505,11 +6539,11 @@ function prCompute(){
   document.getElementById('prLabelEnd').textContent   = depEl.value;
 
   // Sauvegarde spécifique au jour sélectionné (le vendredi garde son propre horaire)
-  localStorage.setItem('dashboard_pr_arrive_'+prSel, arriveEl.value);
-  localStorage.setItem('dashboard_pr_ps_'+prSel, psEl.value);
-  localStorage.setItem('dashboard_pr_pe_'+prSel, peEl.value);
-  localStorage.setItem('dashboard_pr_depart_'+prSel, depEl.value);
-  localStorage.setItem('dashboard_pr_day', prSel);
+  lsSet('dashboard_pr_arrive_'+prSel, arriveEl.value);
+  lsSet('dashboard_pr_ps_'+prSel, psEl.value);
+  lsSet('dashboard_pr_pe_'+prSel, peEl.value);
+  lsSet('dashboard_pr_depart_'+prSel, depEl.value);
+  lsSet('dashboard_pr_day', prSel);
 }
 
 function prToggleCollapse(){
@@ -6517,7 +6551,7 @@ function prToggleCollapse(){
   const btn  = document.getElementById('prCollapseBtn');
   const collapsed = body.classList.toggle('pr-collapsed');
   btn.textContent = collapsed ? '﹀' : '︿';
-  localStorage.setItem('dashboard_pr_collapsed', collapsed ? '1' : '0');
+  lsSet('dashboard_pr_collapsed', collapsed ? '1' : '0');
 }
 
 function prInit(){
@@ -6561,7 +6595,7 @@ function ytLoad(){
 }
 
 function ytSave(){
-  localStorage.setItem('yt_history', JSON.stringify(ytHistory.slice(0,10)));
+  lsSet('yt_history', JSON.stringify(ytHistory.slice(0,10)));
 }
 
 function ytSearch(){
@@ -6791,7 +6825,7 @@ function editorPositionToggleBtn(){
 
 function editorToggle(){
   editorVisible = !editorVisible;
-  localStorage.setItem('dashboard_editor_visible', editorVisible ? '1' : '0');
+  lsSet('dashboard_editor_visible', editorVisible ? '1' : '0');
   const panel = document.getElementById('editorPanel');
   const btn = document.getElementById('editorToggleBtn');
   if(editorVisible){
@@ -6818,7 +6852,7 @@ function editorSaveTabs(){
     const tabR = editorTabs.find(t => t.id === editorRightId);
     if(tabR && areaR) tabR.html = areaR.innerHTML;
   }
-  localStorage.setItem('dashboard_editor_tabs', JSON.stringify(editorTabs));
+  lsSet('dashboard_editor_tabs', JSON.stringify(editorTabs));
 }
 
 function editorRenderTabs(){
@@ -6828,7 +6862,7 @@ function editorRenderTabs(){
     const el = document.createElement('button');
     el.className = 'editor-tab' + (tab.id === editorActiveId ? ' active' : '');
     el.title = 'Double-clic pour renommer';
-    el.innerHTML = `<span class="editor-tab-name">${escHtml(tab.name)}</span><button class="editor-tab-close" onclick="event.stopPropagation();editorCloseTab(${tab.id})" title="Fermer">✕</button>`;
+    el.innerHTML = `<span class="editor-tab-name">${escHtml(tab.name)}</span><span class="editor-tab-close" onclick="event.stopPropagation();editorCloseTab(${tab.id})" title="Fermer">✕</span>`;
     el.addEventListener('click', () => editorSwitchTab(tab.id));
     el.addEventListener('dblclick', (e) => { e.stopPropagation(); editorRenameTab(tab.id); });
     bar.appendChild(el);
@@ -6886,6 +6920,8 @@ function editorAddTab(){
 function editorCloseTab(id){
   if(editorTabs.length <= 1){ return; } // toujours garder au moins 1
   const idx = editorTabs.findIndex(t => t.id === id);
+  const tab = editorTabs[idx];
+  if(!confirm('Supprimer l\'onglet "' + (tab ? tab.name : '') + '" ? Cette action est irréversible.')) return;
   editorTabs.splice(idx, 1);
   if(editorActiveId === id){
     editorActiveId = editorTabs[Math.max(0, idx-1)].id;
@@ -6894,7 +6930,7 @@ function editorCloseTab(id){
   if(editorRightId === id){
     const other = editorTabs.find(t => t.id !== editorActiveId) || editorTabs[0];
     editorRightId = other.id;
-    localStorage.setItem('dashboard_editor_right_id', String(editorRightId));
+    lsSet('dashboard_editor_right_id', String(editorRightId));
     editorLoadRight();
   }
   editorRenderTabs();
@@ -6987,7 +7023,7 @@ function editorKeydown(e){
 
 function editorToggleSplit(){
   editorSplitActive = !editorSplitActive;
-  localStorage.setItem('dashboard_editor_split', editorSplitActive ? '1' : '0');
+  lsSet('dashboard_editor_split', editorSplitActive ? '1' : '0');
   editorApplySplitState();
 }
 
@@ -7003,7 +7039,7 @@ function editorApplySplitState(){
     if(editorRightId === null || !editorTabs.find(t => t.id === editorRightId)){
       const other = editorTabs.find(t => t.id !== editorActiveId);
       editorRightId = other ? other.id : editorActiveId;
-      localStorage.setItem('dashboard_editor_right_id', String(editorRightId));
+      lsSet('dashboard_editor_right_id', String(editorRightId));
     }
     editorPopulateRightSelect();
     editorLoadRight();
@@ -7042,7 +7078,7 @@ function editorRightSwitch(id){
   const cur = editorTabs.find(t => t.id === editorRightId);
   if(cur && area) cur.html = area.innerHTML;
   editorRightId = Number(id);
-  localStorage.setItem('dashboard_editor_right_id', String(editorRightId));
+  lsSet('dashboard_editor_right_id', String(editorRightId));
   editorLoadRight();
   editorSaveTabs();
 }
@@ -7103,7 +7139,7 @@ window.addEventListener('load', () => { editorLoad(); });
     dragging = false;
     cw.classList.remove('dragging');
     const r = cw.getBoundingClientRect();
-    localStorage.setItem('dashboard_clock_pos', JSON.stringify({x: Math.round(r.left), y: Math.round(r.top)}));
+    lsSet('dashboard_clock_pos', JSON.stringify({x: Math.round(r.left), y: Math.round(r.top)}));
   });
 
   // Double-clic → recentrer
@@ -7161,7 +7197,7 @@ function pzLoadAll(){
 }
 
 function pzSaveAll(){
-  try{ localStorage.setItem('dashboard_pointage_v4',JSON.stringify({pzSettings,profile:pzCurrentProfile,alarmEnabled:pzAlarmEnabled})); }catch(e){}
+  try{ lsSet('dashboard_pointage_v4',JSON.stringify({pzSettings,profile:pzCurrentProfile,alarmEnabled:pzAlarmEnabled})); }catch(e){}
 }
 
 // ── Profile ───────────────────────────────────────────────────────────────────
@@ -7656,7 +7692,7 @@ function ghLinkGenerate(){
       window.open(zones[idx].el.dataset.url, '_blank');
     } else {
       const r = wrap.getBoundingClientRect();
-      localStorage.setItem(SK, JSON.stringify({left: r.left, top: r.top}));
+      lsSet(SK, JSON.stringify({left: r.left, top: r.top}));
     }
   }
 
