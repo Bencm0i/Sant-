@@ -1147,6 +1147,34 @@ body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
 .citation-mode-btn:hover { border-color:var(--c2); color:var(--c2); }
 .citation-mode-btn.active { background:linear-gradient(90deg,var(--c1),var(--c2)); color:#fff; border-color:transparent; }
 
+/* ── AVATAR CITATION (image personnalisable, à côté de la bulle) ── */
+#citationAvatarWrap {
+  position:fixed; z-index:20;
+  width:52px; height:52px; border-radius:50%;
+  cursor:pointer; user-select:none;
+}
+#citationAvatarImg {
+  width:100%; height:100%; border-radius:50%; object-fit:cover;
+  border:2.5px solid #20242c; box-shadow:0 3px 0 #20242c, 0 6px 14px rgba(20,20,20,0.25);
+  background:#fffdf6;
+  transition:transform 0.12s ease;
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.5rem;
+}
+#citationAvatarWrap:hover #citationAvatarImg { transform:scale(1.06) translateY(-2px); }
+#citationAvatarWrap.dragging #citationAvatarImg { transform:scale(1.1); cursor:grabbing; }
+#citationAvatarWrap.pulse #citationAvatarImg { animation:citationAvatarPulse 0.35s ease; }
+@keyframes citationAvatarPulse { 0%{transform:scale(1)} 45%{transform:scale(0.88)} 100%{transform:scale(1)} }
+#citationAvatarEditBtn {
+  position:absolute; bottom:-4px; right:-4px; width:20px; height:20px; border-radius:50%;
+  background:#20242c; color:#fffdf6; border:2px solid #fffdf6; font-size:0.62rem;
+  display:flex; align-items:center; justify-content:center; cursor:pointer;
+  opacity:0; pointer-events:none; transition:opacity 0.15s;
+}
+#citationAvatarWrap:hover #citationAvatarEditBtn { opacity:1; pointer-events:auto; }
+#citationAvatarImg.is-placeholder { display:flex; }
+#citationAvatarImg:not(.is-placeholder) { padding:0; }
+
 /* ── WIDGET POINTEUSE FLOTTANT (style météo) ── */
 #pointeuseWidget {
   position:fixed; bottom:36px; left:20px; z-index:20;
@@ -2357,6 +2385,13 @@ body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
     <div id="citationListWrap"></div>
   </div>
 </div>
+
+<!-- AVATAR CITATION (image personnalisable qui rafraîchit l'expression dans la bulle) -->
+<div id="citationAvatarWrap" title="Clic = nouvelle expression · glisser = déplacer">
+  <div id="citationAvatarImg" class="is-placeholder">🙂</div>
+  <button id="citationAvatarEditBtn" onclick="citationAvatarPickFile(event)" title="Changer l'image">🖼️</button>
+</div>
+<input type="file" id="citationAvatarInput" accept="image/*" style="display:none" onchange="citationAvatarUpload(event)">
 
 <div class="blob blob1"></div>
 <div class="blob blob2"></div>
@@ -5587,6 +5622,92 @@ document.addEventListener('click', (e) => {
     else {
       const r = el.getBoundingClientRect();
       localStorage.setItem(SK, JSON.stringify({left: r.left, top: r.top}));
+    }
+  });
+})();
+
+// ── Avatar citation : image personnalisable + rafraîchissement des expressions ──
+const CITATION_AVATAR_IMG_KEY = 'citationAvatarImg';
+const CITATION_AVATAR_POS_KEY = 'citationAvatarPos';
+function citationAvatarPickFile(e){
+  if(e) e.stopPropagation();
+  document.getElementById('citationAvatarInput').click();
+}
+function citationAvatarUpload(e){
+  const file = e.target.files && e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    localStorage.setItem(CITATION_AVATAR_IMG_KEY, reader.result);
+    citationAvatarApplyImage(reader.result);
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+}
+function citationAvatarApplyImage(dataUrl){
+  const img = document.getElementById('citationAvatarImg');
+  if(dataUrl){
+    img.style.backgroundImage = `url(${dataUrl})`;
+    img.style.backgroundSize = 'cover';
+    img.style.backgroundPosition = 'center';
+    img.textContent = '';
+    img.classList.remove('is-placeholder');
+  } else {
+    img.style.backgroundImage = '';
+    img.textContent = '🙂';
+    img.classList.add('is-placeholder');
+  }
+}
+(function(){
+  const saved = localStorage.getItem(CITATION_AVATAR_IMG_KEY);
+  if(saved) citationAvatarApplyImage(saved);
+})();
+(function(){
+  const el = document.getElementById('citationAvatarWrap');
+  if(!el) return;
+  function defaultPos(){
+    const cw = document.getElementById('citationWidget');
+    const r = cw ? cw.getBoundingClientRect() : null;
+    return r ? { left: r.left - 62, top: r.top - 4 } : { left: window.innerWidth - 90, top: window.innerHeight - 100 };
+  }
+  function applyPos(left, top){
+    left = Math.max(0, Math.min(left, window.innerWidth - el.offsetWidth));
+    top = Math.max(30, Math.min(top, window.innerHeight - el.offsetHeight - 4));
+    el.style.left = left + 'px';
+    el.style.top = top + 'px';
+  }
+  const saved = JSON.parse(localStorage.getItem(CITATION_AVATAR_POS_KEY) || 'null');
+  const pos = saved || defaultPos();
+  applyPos(pos.left, pos.top);
+
+  let dragging = false, startX, startY, origLeft, origTop, didDrag = false;
+  el.addEventListener('mousedown', e => {
+    if(e.button !== 0) return;
+    if(e.target.closest('#citationAvatarEditBtn')) return;
+    dragging = true; didDrag = false;
+    startX = e.clientX; startY = e.clientY;
+    const r = el.getBoundingClientRect();
+    origLeft = r.left; origTop = r.top;
+    el.classList.add('dragging');
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', e => {
+    if(!dragging) return;
+    const dx = e.clientX - startX, dy = e.clientY - startY;
+    if(Math.abs(dx) > 3 || Math.abs(dy) > 3) didDrag = true;
+    applyPos(origLeft + dx, origTop + dy);
+  });
+  document.addEventListener('mouseup', () => {
+    if(!dragging) return;
+    dragging = false;
+    el.classList.remove('dragging');
+    if(!didDrag){
+      citationNext();
+      el.classList.add('pulse');
+      setTimeout(() => el.classList.remove('pulse'), 350);
+    } else {
+      const r = el.getBoundingClientRect();
+      localStorage.setItem(CITATION_AVATAR_POS_KEY, JSON.stringify({left: r.left, top: r.top}));
     }
   });
 })();
