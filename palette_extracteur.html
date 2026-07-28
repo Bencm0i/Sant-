@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Extracteur de palette — mélanges acryliques</title>
+<title>Extracteur de palette — mélanges acryliques &amp; mise au carreau</title>
 <style>
   :root{
     --bg:#1a1815;
@@ -53,16 +53,29 @@
   .dropzone:hover, .dropzone.drag{border-color:var(--ochre);color:var(--ink);}
   .dropzone strong{color:var(--ink);font-family:var(--sans);font-size:14px;display:block;margin-bottom:6px;}
 
-  .work-area{display:none;margin-top:24px;grid-template-columns:1fr 340px;gap:24px;}
+  .mode-switch{display:none;gap:8px;margin-top:20px;}
+  .mode-switch.active{display:flex;}
+  .mode-btn{
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.3px;text-transform:uppercase;
+    background:var(--surface);border:1px solid var(--line);color:var(--muted);
+    padding:8px 14px;border-radius:4px;cursor:pointer;
+  }
+  .mode-btn:hover{color:var(--ink);}
+  .mode-btn.on{color:var(--bg);background:var(--ochre);border-color:var(--ochre);font-weight:600;}
+
+  .work-area{display:none;margin-top:16px;grid-template-columns:1fr 340px;gap:24px;}
   .work-area.active{display:grid;}
   @media (max-width:820px){ .work-area.active{grid-template-columns:1fr;} }
 
+  .canvas-wrap{position:relative;}
   .preview-panel img, .preview-panel canvas{
     width:100%;
     border-radius:6px;
     display:block;
     border:1px solid var(--line);
   }
+  #overlayCanvas{position:absolute;top:0;left:0;pointer-events:none;border:none !important;}
+
   .controls{display:flex;justify-content:space-between;align-items:center;margin-top:12px;}
   .controls label{font-family:var(--mono);font-size:11px;color:var(--muted);}
   .controls select{
@@ -80,7 +93,7 @@
   .swatch.selected{outline:2px solid var(--ochre);outline-offset:-2px;z-index:1;}
   .swatch:hover{flex-grow:1.4;}
 
-  /* --- Recipe panel --- */
+  /* --- panneaux latéraux --- */
   .recipe-panel{
     background:var(--surface);
     border:1px solid var(--line);
@@ -109,13 +122,45 @@
   }
 
   .empty-recipe{color:var(--muted);font-family:var(--mono);font-size:12px;text-align:center;padding:30px 0;}
+
+  /* --- panneau grille --- */
+  .field-row{margin-bottom:14px;}
+  .field-row label{display:block;font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:5px;}
+  .field-row select, .field-row input[type=number]{
+    width:100%;background:var(--surface-2);border:1px solid var(--line);color:var(--ink);
+    padding:7px 8px;border-radius:3px;font-family:var(--mono);font-size:12.5px;
+  }
+  .field-pair{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .checkline{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-bottom:14px;cursor:pointer;}
+  .checkline input{accent-color:var(--ochre);}
+  .cell-info{
+    background:var(--surface-2);border:1px solid var(--line);border-radius:5px;
+    padding:12px;font-family:var(--mono);font-size:12px;margin-bottom:16px;
+  }
+  .cell-info .big{font-size:17px;color:var(--ochre);}
+  .cell-info .sub{color:var(--muted);font-size:10.5px;margin-top:2px;}
+  .warn{color:var(--red);}
+  .action-btn{
+    width:100%;font-family:var(--mono);font-size:11.5px;text-transform:uppercase;letter-spacing:.3px;
+    background:var(--ochre-dim);border:1px solid var(--ochre);color:var(--ink);
+    padding:9px;border-radius:4px;cursor:pointer;margin-top:6px;
+  }
+  .action-btn:hover{background:var(--ochre);color:var(--bg);}
+  .action-btn.secondary{background:transparent;border-color:var(--line);color:var(--muted);}
+  .action-btn.secondary:hover{color:var(--ink);border-color:var(--muted);background:transparent;}
+
+  @media print{
+    body *{visibility:hidden;}
+    .canvas-wrap, .canvas-wrap *{visibility:visible;}
+    .canvas-wrap{position:absolute;top:0;left:0;width:100%;}
+  }
 </style>
 </head>
 <body>
 
 <header>
   <div class="title">Extracteur de <em>palette</em></div>
-  <div class="subtitle">photo → couleurs dominantes → dosage de mélange en pigments primaires — local, aucun envoi réseau</div>
+  <div class="subtitle">photo → couleurs dominantes → dosage de mélange en pigments primaires, ou mise au carreau pour peindre — local, aucun envoi réseau</div>
 </header>
 
 <main>
@@ -125,11 +170,19 @@
   </div>
   <input type="file" id="fileInput" accept="image/*" style="display:none">
 
+  <div class="mode-switch" id="modeSwitch">
+    <button class="mode-btn on" id="btnModePalette" onclick="setMode('palette')">Dosage de mélange</button>
+    <button class="mode-btn" id="btnModeGrid" onclick="setMode('grid')">Mise au carreau</button>
+  </div>
+
   <div class="work-area" id="workArea">
     <div class="preview-panel">
-      <canvas id="imgCanvas"></canvas>
+      <div class="canvas-wrap">
+        <canvas id="imgCanvas"></canvas>
+        <canvas id="overlayCanvas"></canvas>
+      </div>
       <div class="controls">
-        <div>
+        <div id="paletteKControl">
           <label>nombre de couleurs&nbsp;</label>
           <select id="kSelect" onchange="extractPalette()">
             <option value="5">5</option>
@@ -143,9 +196,57 @@
       <div class="palette-strip" id="paletteStrip"></div>
     </div>
 
-    <div class="recipe-panel">
+    <div class="recipe-panel" id="palettePanel">
       <h2>Dosage de mélange</h2>
       <div id="recipeContent"><div class="empty-recipe">clique une couleur de la palette</div></div>
+    </div>
+
+    <div class="recipe-panel" id="gridPanel" style="display:none;">
+      <h2>Grille de mise au carreau</h2>
+
+      <div class="field-row">
+        <label>découpage (colonnes × lignes)</label>
+        <select id="gridDivisions" onchange="onGridSettingsChange()">
+          <option value="4x3">4 × 3</option>
+          <option value="6x4" selected>6 × 4</option>
+          <option value="8x6">8 × 6</option>
+          <option value="10x8">10 × 8</option>
+          <option value="12x9">12 × 9</option>
+          <option value="custom">personnalisé…</option>
+        </select>
+      </div>
+      <div class="field-row" id="customDivRow" style="display:none;">
+        <div class="field-pair">
+          <input type="number" id="customCols" min="1" max="40" value="6" onchange="onGridSettingsChange()" placeholder="colonnes">
+          <input type="number" id="customRows" min="1" max="40" value="4" onchange="onGridSettingsChange()" placeholder="lignes">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <label>dimensions de la toile / du support</label>
+        <div class="field-pair">
+          <input type="number" id="canvasW" min="1" value="60" onchange="onGridSettingsChange()" placeholder="largeur (cm)">
+          <input type="number" id="canvasH" min="1" value="40" onchange="onGridSettingsChange()" placeholder="hauteur (cm)">
+        </div>
+      </div>
+
+      <label class="checkline">
+        <input type="checkbox" id="showDiagonals" onchange="onGridSettingsChange()">
+        diagonales dans chaque case (aide aux angles)
+      </label>
+      <label class="checkline">
+        <input type="checkbox" id="showLabels" checked onchange="onGridSettingsChange()">
+        repères ligne/colonne (A1, B2…)
+      </label>
+
+      <div class="cell-info" id="cellInfo"></div>
+
+      <button class="action-btn" onclick="printGrid()">imprimer la référence quadrillée</button>
+      <button class="action-btn secondary" onclick="downloadGridImage()">télécharger l'image + grille (PNG)</button>
+
+      <div class="accuracy-note">
+        Trace la même grille (au crayon, léger) sur la toile aux dimensions ci-dessus, puis reporte case par case ce qui est vu dans chaque carreau de la photo. Les repères A1, B2… permettent de garder la correspondance entre la photo et la toile.
+      </div>
     </div>
   </div>
 </main>
@@ -162,7 +263,10 @@ const PIGMENTS = [
 
 let imgCanvas = document.getElementById('imgCanvas');
 let ctx = imgCanvas.getContext('2d', {willReadFrequently:true});
+let overlayCanvas = document.getElementById('overlayCanvas');
+let octx = overlayCanvas.getContext('2d');
 let currentPalette = [];
+let currentMode = 'palette';
 
 const dropzone = document.getElementById('dropzone');
 const fileInput = document.getElementById('fileInput');
@@ -188,7 +292,9 @@ function loadImage(file){
       imgCanvas.height = img.height*scale;
       ctx.drawImage(img,0,0,imgCanvas.width,imgCanvas.height);
       document.getElementById('workArea').classList.add('active');
+      document.getElementById('modeSwitch').classList.add('active');
       dropzone.style.display = 'none';
+      setMode('palette');
       extractPalette();
     };
     img.src = ev.target.result;
@@ -198,9 +304,30 @@ function loadImage(file){
 
 function resetTool(){
   document.getElementById('workArea').classList.remove('active');
+  document.getElementById('modeSwitch').classList.remove('active');
   dropzone.style.display = 'block';
   fileInput.value = '';
   document.getElementById('recipeContent').innerHTML = '<div class="empty-recipe">clique une couleur de la palette</div>';
+  octx.clearRect(0,0,overlayCanvas.width,overlayCanvas.height);
+}
+
+// --- bascule entre les deux modes ---
+function setMode(mode){
+  currentMode = mode;
+  const isPalette = mode === 'palette';
+  document.getElementById('btnModePalette').classList.toggle('on', isPalette);
+  document.getElementById('btnModeGrid').classList.toggle('on', !isPalette);
+  document.getElementById('palettePanel').style.display = isPalette ? 'block' : 'none';
+  document.getElementById('gridPanel').style.display = isPalette ? 'none' : 'block';
+  document.getElementById('paletteKControl').style.display = isPalette ? 'block' : 'none';
+  document.getElementById('paletteStrip').style.display = isPalette ? 'flex' : 'none';
+
+  if(isPalette){
+    octx.clearRect(0,0,overlayCanvas.width,overlayCanvas.height);
+  } else {
+    syncOverlaySize();
+    onGridSettingsChange();
+  }
 }
 
 // --- K-means simplifié en espace RGB ---
@@ -209,14 +336,12 @@ function extractPalette(){
   const w = imgCanvas.width, h = imgCanvas.height;
   const data = ctx.getImageData(0,0,w,h).data;
 
-  // échantillonnage (un pixel sur N pour rester rapide)
   const samples = [];
   const step = Math.max(1, Math.floor((w*h)/8000));
   for(let i=0;i<data.length;i+=4*step){
     samples.push([data[i],data[i+1],data[i+2]]);
   }
 
-  // init centroïdes: pixels espacés régulièrement dans l'échantillon
   let centroids = [];
   for(let i=0;i<k;i++){
     centroids.push(samples[Math.floor(i*samples.length/k)].slice());
@@ -240,7 +365,7 @@ function extractPalette(){
   }
 
   currentPalette = centroids.map(c=>c.map(v=>Math.round(v)))
-    .sort((a,b)=> (b[0]+b[1]+b[2]) - (a[0]+a[1]+a[2])); // du plus clair au plus sombre
+    .sort((a,b)=> (b[0]+b[1]+b[2]) - (a[0]+a[1]+a[2]));
 
   renderPaletteStrip();
 }
@@ -270,14 +395,11 @@ function renderPaletteStrip(){
   }
 }
 
-// --- Résolution du dosage par descente de gradient projetée ---
-// minimise || sum(w_i * pigment_i) - target ||^2, sous w_i >= 0, somme(w_i) = 1
 function solveMix(target){
   let weights = PIGMENTS.map(()=> 1/PIGMENTS.length);
   const lr = 0.6;
 
   for(let iter=0; iter<300; iter++){
-    // couleur actuelle du mélange
     const mix = [0,0,0];
     PIGMENTS.forEach((p,i)=>{
       mix[0]+=weights[i]*p.rgb[0];
@@ -286,15 +408,12 @@ function solveMix(target){
     });
     const err = [mix[0]-target[0], mix[1]-target[1], mix[2]-target[2]];
 
-    // gradient par pigment
     const grad = PIGMENTS.map(p=>
       2*(err[0]*p.rgb[0] + err[1]*p.rgb[1] + err[2]*p.rgb[2]) / (255*255*3)
     );
 
     weights = weights.map((w,i)=> w - lr*grad[i]);
-    // projection: w>=0
     weights = weights.map(w=>Math.max(0,w));
-    // projection: somme = 1
     const s = weights.reduce((a,b)=>a+b,0) || 1;
     weights = weights.map(w=>w/s);
   }
@@ -341,6 +460,150 @@ function showRecipe(rgb){
   `;
   document.getElementById('recipeContent').innerHTML = html;
 }
+
+// ================= MÉTHODE DES GRILLES (MISE AU CARREAU) =================
+
+function syncOverlaySize(){
+  overlayCanvas.width = imgCanvas.width;
+  overlayCanvas.height = imgCanvas.height;
+  overlayCanvas.style.width = imgCanvas.clientWidth + 'px';
+  overlayCanvas.style.height = imgCanvas.clientHeight + 'px';
+}
+
+function getGridDims(){
+  const sel = document.getElementById('gridDivisions').value;
+  document.getElementById('customDivRow').style.display = sel === 'custom' ? 'block' : 'none';
+  if(sel === 'custom'){
+    const cols = Math.max(1, parseInt(document.getElementById('customCols').value,10) || 1);
+    const rows = Math.max(1, parseInt(document.getElementById('customRows').value,10) || 1);
+    return {cols, rows};
+  }
+  const [cols, rows] = sel.split('x').map(Number);
+  return {cols, rows};
+}
+
+function colLabel(i){
+  let s = '';
+  i++;
+  while(i>0){
+    const rem = (i-1) % 26;
+    s = String.fromCharCode(65+rem) + s;
+    i = Math.floor((i-1)/26);
+  }
+  return s;
+}
+
+function onGridSettingsChange(){
+  if(currentMode !== 'grid') return;
+  syncOverlaySize();
+  const {cols, rows} = getGridDims();
+  const showDiag = document.getElementById('showDiagonals').checked;
+  const showLbl = document.getElementById('showLabels').checked;
+  drawGridOverlay(cols, rows, showDiag, showLbl);
+  updateCellInfo(cols, rows);
+}
+
+function drawGridOverlay(cols, rows, showDiag, showLbl){
+  const w = overlayCanvas.width, h = overlayCanvas.height;
+  octx.clearRect(0,0,w,h);
+  const cellW = w/cols, cellH = h/rows;
+
+  octx.strokeStyle = 'rgba(201,150,63,0.85)';
+  octx.lineWidth = Math.max(1, w/700);
+
+  for(let i=1;i<cols;i++){
+    const x = i*cellW;
+    octx.beginPath(); octx.moveTo(x,0); octx.lineTo(x,h); octx.stroke();
+  }
+  for(let j=1;j<rows;j++){
+    const y = j*cellH;
+    octx.beginPath(); octx.moveTo(0,y); octx.lineTo(w,y); octx.stroke();
+  }
+  octx.strokeRect(0,0,w,h);
+
+  if(showDiag){
+    octx.save();
+    octx.strokeStyle = 'rgba(91,138,134,0.65)';
+    octx.lineWidth = Math.max(1, w/900);
+    octx.setLineDash([w/160, w/160]);
+    for(let c=0;c<cols;c++){
+      for(let r=0;r<rows;r++){
+        const x0=c*cellW, y0=r*cellH;
+        octx.beginPath(); octx.moveTo(x0,y0); octx.lineTo(x0+cellW,y0+cellH); octx.stroke();
+        octx.beginPath(); octx.moveTo(x0+cellW,y0); octx.lineTo(x0,y0+cellH); octx.stroke();
+      }
+    }
+    octx.restore();
+  }
+
+  if(showLbl){
+    const fontSize = Math.max(11, Math.min(cellW,cellH)*0.22);
+    octx.font = `600 ${fontSize}px monospace`;
+    octx.textBaseline = 'top';
+    for(let c=0;c<cols;c++){
+      for(let r=0;r<rows;r++){
+        const label = colLabel(c) + (r+1);
+        const x = c*cellW + 4, y = r*cellH + 3;
+        const tw = octx.measureText(label).width;
+        octx.fillStyle = 'rgba(26,24,21,0.55)';
+        octx.fillRect(x-2, y-1, tw+4, fontSize+3);
+        octx.fillStyle = '#ece6da';
+        octx.fillText(label, x, y);
+      }
+    }
+  }
+}
+
+function updateCellInfo(cols, rows){
+  const canvasW = parseFloat(document.getElementById('canvasW').value) || 0;
+  const canvasH = parseFloat(document.getElementById('canvasH').value) || 0;
+  const info = document.getElementById('cellInfo');
+
+  if(!canvasW || !canvasH){
+    info.innerHTML = `<div class="sub">indique la largeur et la hauteur de la toile pour obtenir la taille de chaque case.</div>`;
+    return;
+  }
+
+  const cellW = canvasW/cols, cellH = canvasH/rows;
+  const imgAspect = imgCanvas.width/imgCanvas.height;
+  const canvasAspect = canvasW/canvasH;
+  const diffPct = Math.round(Math.abs(imgAspect-canvasAspect)/canvasAspect*100);
+
+  let warn = '';
+  if(diffPct > 4){
+    warn = `<div class="sub warn">⚠ ratio photo (${imgAspect.toFixed(2)}) ≠ ratio toile (${canvasAspect.toFixed(2)}) — écart ${diffPct}%, prévoir un recadrage ou une marge.</div>`;
+  }
+
+  info.innerHTML = `
+    <div class="big">${cellW.toFixed(1)} × ${cellH.toFixed(1)} cm</div>
+    <div class="sub">taille d'une case sur la toile (${cols} × ${rows} cases, support ${canvasW}×${canvasH} cm)</div>
+    ${warn}
+  `;
+}
+
+function mergedGridCanvas(){
+  const merged = document.createElement('canvas');
+  merged.width = imgCanvas.width;
+  merged.height = imgCanvas.height;
+  const mctx = merged.getContext('2d');
+  mctx.drawImage(imgCanvas,0,0);
+  mctx.drawImage(overlayCanvas,0,0);
+  return merged;
+}
+
+function downloadGridImage(){
+  const merged = mergedGridCanvas();
+  const a = document.createElement('a');
+  a.download = 'reference-quadrillee.png';
+  a.href = merged.toDataURL('image/png');
+  a.click();
+}
+
+function printGrid(){
+  window.print();
+}
+
+window.addEventListener('resize', ()=>{ if(currentMode==='grid') syncOverlaySize(); });
 </script>
 
 </body>
