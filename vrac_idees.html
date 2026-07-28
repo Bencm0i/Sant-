@@ -232,6 +232,7 @@
       <button onclick="exportData()">exporter .json</button>
       <button onclick="document.getElementById('importFile').click()">importer</button>
       <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+      <button onclick="resetDashboardVersion()" title="Remet le compteur de version à 0">↺ version</button>
     </div>
   </div>
 </header>
@@ -307,7 +308,6 @@ const STATUS_LABEL = { explorer:'à explorer', encours:'en cours', classe:'class
 const FORGOTTEN_DAYS = 60;
 
 function save(){
-  dataVersion++;
   localStorage.setItem(STORAGE_KEY, JSON.stringify({version: dataVersion, posts}));
   updateVersionBadge();
 }
@@ -315,6 +315,18 @@ function save(){
 function updateVersionBadge(){
   const el = document.getElementById('versionBadge');
   if(el) el.textContent = 'v' + dataVersion;
+}
+
+// N'incrémente la version que lors d'un export réel (bouton "exporter .json"), pas à chaque save.
+function bumpVersion(){
+  dataVersion++;
+  save();
+}
+
+function resetDashboardVersion(){
+  if(!confirm('Remettre le compteur de version à 0 ? (actuellement v' + dataVersion + ')')) return;
+  dataVersion = 0;
+  save();
 }
 
 function allTags(){
@@ -591,6 +603,7 @@ function render(){
 }
 
 function exportData(){
+  bumpVersion(); // la version n'avance qu'au moment d'un export réel
   const payload = {
     version: dataVersion,
     exportedAt: new Date().toISOString(),
