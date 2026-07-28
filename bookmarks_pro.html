@@ -3049,19 +3049,21 @@ body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
 <input type="file" id="wallpaperFileInput" accept="image/*" style="display:none" onchange="wallpaperHandleFile(this)">
 
 <script>
-// ── VERSION (compteur incrémenté à chaque sauvegarde, pour comparer PC / smartphone) ──
+// ── VERSION (compteur incrémenté uniquement à l'export du fichier, pour comparer PC / smartphone) ──
 const VERSION_KEY = 'dashboard_version';
 let dashboardVersion = parseInt(localStorage.getItem(VERSION_KEY) || '0', 10) || 0;
 
-// Point d'écriture unique pour localStorage : toute sauvegarde passe par ici
-// et incrémente automatiquement le compteur de version (sauf la clé de version elle-même).
+// Point d'écriture unique pour localStorage (centralise toutes les sauvegardes).
 function lsSet(key, value){
   localStorage.setItem(key, value);
-  if(key !== VERSION_KEY){
-    dashboardVersion++;
-    localStorage.setItem(VERSION_KEY, String(dashboardVersion));
-    updateVersionBadge();
-  }
+}
+
+// Incrémente la version et la persiste — appelé uniquement lors de l'export d'un fichier.
+function bumpDashboardVersion(){
+  dashboardVersion++;
+  localStorage.setItem(VERSION_KEY, String(dashboardVersion));
+  updateVersionBadge();
+  return dashboardVersion;
 }
 
 // Remplace intégralement la version locale par une version importée (ne l'incrémente pas).
@@ -3986,6 +3988,7 @@ function base64ToBlob(b64, type){
 // ── EXPORT ──
 async function exportVault(){
   const pwd='montableau_nolock';
+  bumpDashboardVersion(); // la version n'avance qu'au moment d'un export réel
   // 1) TOUS les réglages (localStorage complet, sans liste blanche → rien n'est oublié)
   const ls={};
   for(let i=0;i<localStorage.length;i++){
