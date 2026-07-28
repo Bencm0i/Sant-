@@ -32,8 +32,13 @@
     padding:22px 20px 14px;border-bottom:1px solid var(--line);
     display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:10px;
   }
-  .title{font-family:var(--mono);font-size:19px;letter-spacing:0.3px;}
+  .title{font-family:var(--mono);font-size:19px;letter-spacing:0.3px;display:flex;align-items:center;gap:10px;}
   .title span{color:var(--coral);}
+  .version-badge, .title .version-badge{
+    font-family:var(--mono);font-size:13px;font-weight:700;color:#241408 !important;
+    background:var(--coral);padding:3px 9px;border-radius:5px;letter-spacing:0.3px;
+    box-shadow:0 0 0 1px var(--coral-dim);
+  }
   .subtitle{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:3px;}
   .header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
   .io-actions{display:flex;gap:8px;}
@@ -170,6 +175,7 @@
     body{font-size:15px;}
     header{padding:14px 14px 10px;gap:8px;}
     .title{font-size:17px;}
+    .version-badge{font-size:12px;padding:3px 8px;}
     .header-actions{width:100%;}
     .io-actions button{padding:8px 11px;font-size:11px;}
     .filters-toggle-btn{display:inline-flex;align-items:center;padding:8px 11px;font-size:11px;}
@@ -217,7 +223,7 @@
 
 <header>
   <div>
-    <div class="title">vrac<span>_idées</span></div>
+    <div class="title">vrac<span>_idées</span> <span class="version-badge" id="versionBadge" title="numéro de version des données — sert à comparer rapidement PC et smartphone">v0</span></div>
     <div class="subtitle">fil chronologique, tags, up pour faire remonter — local, sans compte</div>
   </div>
   <div class="header-actions">
@@ -276,7 +282,19 @@
 
 <script>
 const STORAGE_KEY = "vrac_idees_v1";
-let posts = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+let posts = [];
+let dataVersion = 0;
+{
+  const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+  if(Array.isArray(raw)){
+    // ancien format (juste un tableau) : migration
+    posts = raw;
+    dataVersion = 0;
+  } else if(raw && typeof raw === 'object'){
+    posts = raw.posts || [];
+    dataVersion = raw.version || 0;
+  }
+}
 let pendingTags = [];
 let activeFilterTag = null;
 let sortMode = 'recent';
@@ -288,7 +306,16 @@ const STATUS_CYCLE = [null, 'explorer', 'encours', 'classe'];
 const STATUS_LABEL = { explorer:'à explorer', encours:'en cours', classe:'classé sans suite' };
 const FORGOTTEN_DAYS = 60;
 
-function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(posts)); }
+function save(){
+  dataVersion++;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({version: dataVersion, posts}));
+  updateVersionBadge();
+}
+
+function updateVersionBadge(){
+  const el = document.getElementById('versionBadge');
+  if(el) el.textContent = 'v' + dataVersion;
+}
 
 function allTags(){
   const counts = {};
@@ -564,10 +591,15 @@ function render(){
 }
 
 function exportData(){
-  const blob = new Blob([JSON.stringify(posts,null,2)], {type:'application/json'});
+  const payload = {
+    version: dataVersion,
+    exportedAt: new Date().toISOString(),
+    posts
+  };
+  const blob = new Blob([JSON.stringify(payload,null,2)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'vrac_idees_' + new Date().toISOString().slice(0,10) + '.json';
+  a.download = 'vrac_idees_v' + dataVersion + '_' + new Date().toISOString().slice(0,10) + '.json';
   a.click();
 }
 function importData(evt){
@@ -577,7 +609,20 @@ function importData(evt){
   reader.onload = e=>{
     try{
       const data = JSON.parse(e.target.result);
-      if(Array.isArray(data)){ posts = data; save(); render(); }
+      if(Array.isArray(data)){
+        // ancien format : juste un tableau de posts, pas de version connue
+        posts = data;
+        dataVersion = 0;
+      } else if(data && typeof data === 'object' && Array.isArray(data.posts)){
+        posts = data.posts;
+        dataVersion = data.version || 0;
+      } else {
+        alert('Fichier invalide.');
+        return;
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({version: dataVersion, posts}));
+      updateVersionBadge();
+      render();
     }catch(err){ alert('Fichier invalide.'); }
   };
   reader.readAsText(file);
@@ -588,6 +633,7 @@ document.addEventListener('click', e=>{
 });
 
 autoGrow(document.getElementById('cContent'));
+updateVersionBadge();
 render();
 </script>
 
