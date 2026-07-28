@@ -2418,33 +2418,6 @@ body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
     <!-- COL 1 : LIENS + DESSIN + NOTES -->
     <div class="col-left" id="colLeftPanel" style="display:flex;flex-direction:column;gap:16px">
 
-      <div class="card">
-        <div class="card-head">
-          <span class="card-title">🔗 Mes liens</span>
-          <div style="display:flex;gap:4px;align-items:center">
-            <button class="card-action" onclick="toggleClThreshPanel()" title="Seuil remontée auto" id="clThreshBtn">⚡</button>
-            <button class="card-action" onclick="addCompactLink()" title="Ajouter un lien">＋</button>
-          </div>
-        </div>
-        <div id="clThreshPanel">
-          <label>Remonter automatiquement après <span id="clThreshVal">5</span> clics</label>
-          <div id="clThreshRow">
-            <input type="range" id="clThreshSlider" min="1" max="30" value="5" oninput="clSetThresh(this.value)">
-            <button id="clResetHitsBtn" onclick="clResetHits()">Réinitialiser</button>
-          </div>
-        </div>
-        <div class="links-search-wrap">
-          <span class="links-search-icon">🔍</span>
-          <input class="links-search-input" id="linksSearch" placeholder="Rechercher un lien…" oninput="filterLinks(this.value)">
-          <button class="links-search-clear" id="linksSearchClear" onclick="clearLinksSearch()">✕</button>
-        </div>
-        <!-- Liste plate unique, toujours visible, drag & drop -->
-        <div class="compact-links-wrap" id="compactLinksWrap" style="padding:6px 10px 10px;"></div>
-      </div>
-
-
-
-
 
 
 
@@ -3481,6 +3454,7 @@ let clAccordionOpen = JSON.parse(localStorage.getItem('dashboard_cl_accordion') 
 
 function renderCompactLinks(){
   const wrap = document.getElementById('compactLinksWrap');
+  if(!wrap) return;
   wrap.innerHTML = '';
 
   // Split: hot (>= threshold) vs rest
