@@ -88,6 +88,14 @@
   }
   .reset-btn:hover{color:var(--ink);border-color:var(--muted);}
 
+  .pipette-btn{
+    font-family:var(--mono);font-size:11px;background:transparent;border:1px solid var(--line);
+    color:var(--muted);padding:5px 10px;border-radius:3px;cursor:pointer;display:flex;align-items:center;gap:6px;
+  }
+  .pipette-btn:hover{color:var(--ink);border-color:var(--muted);}
+  .pipette-btn.on{color:var(--bg);background:var(--teal);border-color:var(--teal);font-weight:600;}
+  .canvas-wrap.pipette-mode #imgCanvas{cursor:crosshair;}
+
   .palette-strip{display:flex;margin-top:16px;border-radius:6px;overflow:hidden;border:1px solid var(--line);}
   .swatch{flex:1;height:56px;cursor:pointer;position:relative;transition:flex-grow .15s;}
   .swatch.selected{outline:2px solid var(--ochre);outline-offset:-2px;z-index:1;}
@@ -177,7 +185,7 @@
 
   <div class="work-area" id="workArea">
     <div class="preview-panel">
-      <div class="canvas-wrap">
+      <div class="canvas-wrap" id="canvasWrap">
         <canvas id="imgCanvas"></canvas>
         <canvas id="overlayCanvas"></canvas>
       </div>
@@ -191,6 +199,7 @@
             <option value="8">8</option>
           </select>
         </div>
+        <button class="pipette-btn" id="pipetteBtn" onclick="togglePipette()" title="cliquer sur l'image pour analyser une couleur précise">💧 pipette</button>
         <button class="reset-btn" onclick="resetTool()">charger une autre image</button>
       </div>
       <div class="palette-strip" id="paletteStrip"></div>
@@ -198,7 +207,7 @@
 
     <div class="recipe-panel" id="palettePanel">
       <h2>Dosage de mélange</h2>
-      <div id="recipeContent"><div class="empty-recipe">clique une couleur de la palette</div></div>
+      <div id="recipeContent"><div class="empty-recipe">clique une couleur de la palette, ou active la pipette pour analyser un point précis de la photo</div></div>
     </div>
 
     <div class="recipe-panel" id="gridPanel" style="display:none;">
@@ -267,6 +276,10 @@ let overlayCanvas = document.getElementById('overlayCanvas');
 let octx = overlayCanvas.getContext('2d');
 let currentPalette = [];
 let currentMode = 'palette';
+let pipetteActive = false;
+const canvasWrap = document.getElementById('canvasWrap');
+
+imgCanvas.addEventListener('click', pickColorAt);
 
 const dropzone = document.getElementById('dropzone');
 const fileInput = document.getElementById('fileInput');
@@ -309,6 +322,9 @@ function resetTool(){
   fileInput.value = '';
   document.getElementById('recipeContent').innerHTML = '<div class="empty-recipe">clique une couleur de la palette</div>';
   octx.clearRect(0,0,overlayCanvas.width,overlayCanvas.height);
+  pipetteActive = false;
+  document.getElementById('pipetteBtn').classList.remove('on');
+  canvasWrap.classList.remove('pipette-mode');
 }
 
 // --- bascule entre les deux modes ---
@@ -328,6 +344,52 @@ function setMode(mode){
     syncOverlaySize();
     onGridSettingsChange();
   }
+}
+
+// --- pipette : analyse d'une couleur précise au clic ---
+function togglePipette(){
+  pipetteActive = !pipetteActive;
+  document.getElementById('pipetteBtn').classList.toggle('on', pipetteActive);
+  canvasWrap.classList.toggle('pipette-mode', pipetteActive);
+}
+
+function pickColorAt(e){
+  if(!pipetteActive) return;
+  const rect = imgCanvas.getBoundingClientRect();
+  const scaleX = imgCanvas.width / rect.width;
+  const scaleY = imgCanvas.height / rect.height;
+  const x = Math.min(imgCanvas.width-1, Math.max(0, Math.floor((e.clientX-rect.left)*scaleX)));
+  const y = Math.min(imgCanvas.height-1, Math.max(0, Math.floor((e.clientY-rect.top)*scaleY)));
+
+  const px = ctx.getImageData(x,y,1,1).data;
+  const rgb = [px[0],px[1],px[2]];
+
+  if(currentMode !== 'palette') setMode('palette');
+  document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('selected'));
+  showRecipe(rgb);
+  drawPipetteMarker(x,y);
+}
+
+function drawPipetteMarker(x,y){
+  syncOverlaySize();
+  octx.clearRect(0,0,overlayCanvas.width,overlayCanvas.height);
+  const r = Math.max(7, imgCanvas.width/80);
+
+  octx.strokeStyle = 'rgba(26,24,21,0.9)';
+  octx.lineWidth = 3;
+  octx.beginPath(); octx.arc(x,y,r,0,Math.PI*2); octx.stroke();
+  octx.strokeStyle = '#ece6da';
+  octx.lineWidth = 1.5;
+  octx.beginPath(); octx.arc(x,y,r,0,Math.PI*2); octx.stroke();
+
+  octx.strokeStyle = '#ece6da';
+  octx.lineWidth = 1.5;
+  octx.beginPath();
+  octx.moveTo(x-r-8,y); octx.lineTo(x-r+3,y);
+  octx.moveTo(x+r-3,y); octx.lineTo(x+r+8,y);
+  octx.moveTo(x,y-r-8); octx.lineTo(x,y-r+3);
+  octx.moveTo(x,y+r-3); octx.lineTo(x,y+r+8);
+  octx.stroke();
 }
 
 // --- K-means simplifié en espace RGB ---
