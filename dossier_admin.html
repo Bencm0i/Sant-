@@ -166,6 +166,49 @@
   .badge.a_faire{color:var(--red);border-color:var(--red);}
   .badge.attente{color:var(--amber);border-color:var(--amber);}
   .badge.fourni{color:var(--green);border-color:var(--green);}
+  .badge.overdue{color:var(--red);border-color:var(--red);}
+
+  /* échéance / obligatoire / retard */
+  select.oblig{font-size:11px;padding:4px 5px;color:var(--text-dim);}
+  .echeance-line{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);}
+  .echeance-line input[type=date]{font-size:11px;padding:3px 5px;}
+  .doc-row.overdue, .piece-row.overdue{border-color:var(--red);}
+
+  /* réordonner / dupliquer */
+  .reorder-col{display:flex;flex-direction:column;gap:2px;}
+  .reorder-col button{padding:1px 5px;font-size:10px;line-height:1;}
+  .reorder-col button:disabled{opacity:.25;cursor:default;}
+  button.dup-btn{font-size:12px;}
+
+  /* sélecteur de dossier */
+  #dossierSwitcher{
+    background:transparent;border:none;color:var(--khaki-dim);font-size:11px;
+    border-bottom:1px dashed var(--border-dim);padding:2px 0;max-width:280px;margin-bottom:2px;
+  }
+  #dossierSwitcher:hover,#dossierSwitcher:focus{border-bottom-color:var(--khaki);outline:none;}
+
+  /* rappel export */
+  #exportReminder{
+    font-size:10.5px;padding:4px 8px;border-radius:2px;border:1px solid var(--amber);color:var(--amber);display:none;
+  }
+
+  /* édition journal */
+  .jtext[contenteditable="true"]{outline:1px dashed var(--khaki);padding:2px 4px;border-radius:2px;background:var(--bg2);}
+  .journal-entry .jedit{position:absolute;top:2px;right:16px;font-size:10px;color:var(--text-dim);cursor:pointer;border:none;background:none;padding:2px;}
+  .journal-entry .jedit:hover{color:var(--khaki);}
+
+  /* impression */
+  @media print{
+    body{background:#fff;color:#000;}
+    header .header-actions, #dossierSwitcher, footer, .icon-btn, .thumb .clear-thumb,
+    #btnAddContact, #btnAddDocRef, #btnAddPiece, .journal-add, .reorder-col, .dup-btn,
+    input[type=file]{display:none !important;}
+    section.panel{border:1px solid #999;break-inside:avoid;}
+    main{grid-template-columns:1fr;}
+    input,textarea,select{border:none;background:transparent;color:#000;}
+    #journalEntries{max-height:none;overflow:visible;}
+    .thumb{display:none;}
+  }
 
   /* progress */
   .progress-wrap{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-dim);}
@@ -204,12 +247,15 @@
 <header>
   <div class="id-block">
     <div class="eyebrow">// dossier administratif</div>
+    <select id="dossierSwitcher" title="Changer de dossier"></select>
     <input id="titreDossier" value="Nouveau dossier" spellcheck="false">
     <input id="objetDossier" placeholder="Objet / référence du dossier (ex: renouvellement titre de séjour, dossier CAF...)" spellcheck="false">
     <div class="meta-line">Créé le <span id="dateCreation">--</span> · dernière modif. <span id="dateMaj">--</span></div>
   </div>
   <div class="header-actions">
+    <span id="exportReminder"></span>
     <span id="dirtyFlag" class="saved">✔ sauvegardé (local)</span>
+    <button id="btnPrint" title="Vue impression / PDF">🖶 imprimer</button>
     <button id="btnExport" title="Exporter toutes les données en .json">⭳ export json</button>
     <button id="btnImportTrigger" title="Recharger un .json exporté">⭱ import json</button>
     <input type="file" id="btnImport" accept="application/json">
@@ -304,9 +350,41 @@
 
   let storageKey = STORAGE_PREFIX + slug(state.titre);
   let dirty = false;
+  let modCount = 0;
+  let lastExportModCount = 0;
+  const EXPORT_REMINDER_THRESHOLD = 10;
 
   function currentKeyForTitle(titre){
     return STORAGE_PREFIX + slug(titre);
+  }
+
+  function listDossiers(){
+    const out = [];
+    try{
+      for(let i=0;i<localStorage.length;i++){
+        const k = localStorage.key(i);
+        if(k && k.indexOf(STORAGE_PREFIX) === 0){
+          try{
+            const obj = JSON.parse(localStorage.getItem(k));
+            out.push({key:k, titre: (obj && obj.titre) || k.replace(STORAGE_PREFIX,'')});
+          }catch(e){ /* clé corrompue, on ignore */ }
+        }
+      }
+    }catch(e){ /* localStorage inaccessible */ }
+    out.sort((a,b) => a.titre.localeCompare(b.titre, 'fr'));
+    return out;
+  }
+
+  function updateExportReminder(){
+    const el = document.getElementById('exportReminder');
+    if(!el) return;
+    const since = modCount - lastExportModCount;
+    if(since >= EXPORT_REMINDER_THRESHOLD){
+      el.textContent = `💾 ${since} modifs depuis le dernier export`;
+      el.style.display = '';
+    } else {
+      el.style.display = 'none';
+    }
   }
 
   function safeLocalStorageGet(key){
@@ -339,7 +417,7 @@
     }
   }
 
-  function persist(){
+  function persistData(){
     state.dateMaj = nowStr();
     document.getElementById('dateMaj').textContent = state.dateMaj;
     // storage key follows the title (slug) so different dossiers made from
@@ -347,10 +425,24 @@
     storageKey = currentKeyForTitle(state.titre);
     const ok = safeLocalStorageSet(storageKey, JSON.stringify(state));
     setDirty(!ok); // if localStorage failed, keep flag as "dirty" to nudge export
-    if(ok) setDirty(false); else setDirty(true);
-    renderAll();
+    modCount++;
+    updateExportReminder();
+    return ok;
   }
-  function touch(){ setDirty(true); persist(); }
+  // touch(section) : sauvegarde puis ne re-rend que la section concernée
+  // (évite de perdre le scroll du journal / la position dans les listes à chaque frappe)
+  function touch(section){
+    persistData();
+    switch(section){
+      case 'contacts': renderContacts(); break;
+      case 'docsRef': renderDocsRef(); break;
+      case 'pieces': renderPieces(); break;
+      case 'journal': renderJournal(); break;
+      default: renderAll();
+    }
+  }
+  // pour les opérations qui remplacent l'état entier (import/reset/nouveau dossier)
+  function saveAndRenderAll(){ persistData(); renderAll(); }
 
   // ---------- generic helpers ----------
   function extIcon(path){
@@ -468,10 +560,12 @@
       row.style.paddingBottom = '8px';
       row.style.borderBottom = '1px dashed var(--border-dim)';
       row.querySelectorAll('input').forEach(inp => {
-        inp.addEventListener('change', function(){ c[inp.dataset.f] = inp.value; touch(); });
+        inp.addEventListener('change', function(){ c[inp.dataset.f] = inp.value; touch('contacts'); });
       });
       row.querySelector('[data-del]').addEventListener('click', function(){
-        state.contacts = state.contacts.filter(x => x.id !== c.id); touch();
+        if(confirm('Supprimer le contact "' + (c.nom || 'sans nom') + '" ?')){
+          state.contacts = state.contacts.filter(x => x.id !== c.id); touch('contacts');
+        }
       });
       wrap.appendChild(row);
     });
@@ -484,23 +578,30 @@
     if(!state.docsRef.length){
       wrap.innerHTML = '<div class="empty-hint">Aucun document de référence.</div>';
     }
-    state.docsRef.forEach(function(d){
-      wrap.appendChild(buildDocLikeRow(d, function(){ 
-        state.docsRef = state.docsRef.filter(x => x.id !== d.id); touch();
-      }, 'doc-row'));
+    state.docsRef.forEach(function(d, idx){
+      wrap.appendChild(buildDocLikeRow(d, state.docsRef, idx, 'docsRef', false));
     });
   }
 
-  // shared builder for docRef rows (no statut) and piece rows (with statut)
-  function buildDocLikeRow(item, onDelete, cls, withStatut){
+  // shared builder for docRef rows (no statut) and piece rows (with statut+échéance+obligatoire)
+  // arr/idx permettent le réordonnancement, la duplication et la suppression in-place
+  function buildDocLikeRow(item, arr, idx, section, withStatut){
     const row = document.createElement('div');
-    row.className = cls;
+    row.className = withStatut ? 'piece-row' : 'doc-row';
+
+    let overdue = false;
+    if(withStatut && item.echeance && item.statut !== 'fourni'){
+      const today = new Date(); today.setHours(0,0,0,0);
+      const d = new Date(item.echeance);
+      if(!isNaN(d) && d < today) overdue = true;
+    }
+    if(overdue) row.classList.add('overdue');
 
     const thumbEl = document.createElement('div');
     thumbEl.className = 'thumb';
     function refreshThumb(){ renderThumb(thumbEl, item, refreshThumb); }
     refreshThumb();
-    attachThumbEvents(thumbEl, () => item, function(){ refreshThumb(); touch(); });
+    attachThumbEvents(thumbEl, () => item, function(){ refreshThumb(); touch(section); });
     row.appendChild(thumbEl);
 
     const fields = document.createElement('div');
@@ -512,19 +613,46 @@
     nomInput.className = 'nom';
     nomInput.placeholder = 'Nom de la pièce / du document';
     nomInput.value = item.nom || '';
-    nomInput.addEventListener('change', () => { item.nom = nomInput.value; touch(); });
+    nomInput.addEventListener('change', () => { item.nom = nomInput.value; touch(section); });
     nameLine.appendChild(nomInput);
 
     if(withStatut){
+      const oblig = document.createElement('select');
+      oblig.className = 'oblig';
+      oblig.innerHTML = `<option value="obligatoire">obligatoire</option><option value="optionnel">optionnel</option>`;
+      oblig.value = (item.obligatoire === false) ? 'optionnel' : 'obligatoire';
+      oblig.addEventListener('change', () => { item.obligatoire = (oblig.value === 'obligatoire'); touch(section); });
+      nameLine.appendChild(oblig);
+
       const sel = document.createElement('select');
       sel.className = 'statut';
       sel.innerHTML = `<option value="a_faire">à faire</option><option value="attente">en attente</option><option value="fourni">fourni</option>`;
       sel.value = item.statut || 'a_faire';
       sel.dataset.v = sel.value;
-      sel.addEventListener('change', () => { item.statut = sel.value; sel.dataset.v = sel.value; touch(); });
+      sel.addEventListener('change', () => { item.statut = sel.value; sel.dataset.v = sel.value; touch(section); });
       nameLine.appendChild(sel);
     }
     fields.appendChild(nameLine);
+
+    if(withStatut){
+      const echLine = document.createElement('div');
+      echLine.className = 'echeance-line';
+      const echLabel = document.createElement('span');
+      echLabel.textContent = 'échéance :';
+      const echInput = document.createElement('input');
+      echInput.type = 'date';
+      echInput.value = item.echeance || '';
+      echInput.addEventListener('change', () => { item.echeance = echInput.value; touch(section); });
+      echLine.appendChild(echLabel);
+      echLine.appendChild(echInput);
+      if(overdue){
+        const warn = document.createElement('span');
+        warn.className = 'badge overdue';
+        warn.textContent = 'en retard';
+        echLine.appendChild(warn);
+      }
+      fields.appendChild(echLine);
+    }
 
     const linkLine = document.createElement('div');
     linkLine.className = 'link-line';
@@ -539,7 +667,7 @@
     openLink.target = '_blank';
     openLink.rel = 'noopener';
     lienInput.addEventListener('input', () => { item.lien = lienInput.value; openLink.href = item.lien || '#'; refreshThumbIcon(); });
-    lienInput.addEventListener('change', () => touch());
+    lienInput.addEventListener('change', () => touch(section));
     function refreshThumbIcon(){ if(!item.thumb){ thumbEl.textContent = extIcon(item.lien); } }
     linkLine.appendChild(lienInput);
     linkLine.appendChild(openLink);
@@ -550,7 +678,7 @@
     noteInput.className = 'row-note';
     noteInput.placeholder = 'note (optionnel)';
     noteInput.value = item.note || '';
-    noteInput.addEventListener('change', () => { item.note = noteInput.value; touch(); });
+    noteInput.addEventListener('change', () => { item.note = noteInput.value; touch(section); });
     fields.appendChild(noteInput);
 
     row.appendChild(fields);
@@ -563,10 +691,46 @@
       badge.textContent = (item.statut === 'fourni' ? 'fourni' : item.statut === 'attente' ? 'attente' : 'à faire');
       actions.appendChild(badge);
     }
+
+    const reorderWrap = document.createElement('div');
+    reorderWrap.className = 'reorder-col';
+    const upBtn = document.createElement('button');
+    upBtn.className = 'icon-btn'; upBtn.textContent = '▲'; upBtn.title = 'Monter';
+    upBtn.disabled = idx === 0;
+    upBtn.addEventListener('click', () => {
+      if(idx > 0){ const tmp = arr[idx-1]; arr[idx-1] = arr[idx]; arr[idx] = tmp; touch(section); }
+    });
+    const downBtn = document.createElement('button');
+    downBtn.className = 'icon-btn'; downBtn.textContent = '▼'; downBtn.title = 'Descendre';
+    downBtn.disabled = idx === arr.length - 1;
+    downBtn.addEventListener('click', () => {
+      if(idx < arr.length - 1){ const tmp = arr[idx+1]; arr[idx+1] = arr[idx]; arr[idx] = tmp; touch(section); }
+    });
+    reorderWrap.appendChild(upBtn);
+    reorderWrap.appendChild(downBtn);
+    actions.appendChild(reorderWrap);
+
+    const dupBtn = document.createElement('button');
+    dupBtn.className = 'icon-btn dup-btn';
+    dupBtn.textContent = '⧉';
+    dupBtn.title = 'Dupliquer';
+    dupBtn.addEventListener('click', () => {
+      const copy = Object.assign({}, item, {id: uid()});
+      arr.splice(idx + 1, 0, copy);
+      touch(section);
+    });
+    actions.appendChild(dupBtn);
+
     const delBtn = document.createElement('button');
     delBtn.className = 'icon-btn';
     delBtn.textContent = '✕';
-    delBtn.addEventListener('click', onDelete);
+    delBtn.title = 'Supprimer';
+    delBtn.addEventListener('click', function(){
+      if(confirm('Supprimer "' + (item.nom || 'cet élément') + '" ?')){
+        arr.splice(idx, 1);
+        touch(section);
+      }
+    });
     actions.appendChild(delBtn);
     row.appendChild(actions);
 
@@ -580,10 +744,8 @@
     if(!state.pieces.length){
       wrap.innerHTML = '<div class="empty-hint">Aucune pièce enregistrée.</div>';
     }
-    state.pieces.forEach(function(p){
-      wrap.appendChild(buildDocLikeRow(p, function(){
-        state.pieces = state.pieces.filter(x => x.id !== p.id); touch();
-      }, 'piece-row', true));
+    state.pieces.forEach(function(p, idx){
+      wrap.appendChild(buildDocLikeRow(p, state.pieces, idx, 'pieces', true));
     });
     const total = state.pieces.length;
     const fournies = state.pieces.filter(p => p.statut === 'fourni').length;
@@ -592,8 +754,18 @@
   }
 
   // ---------- JOURNAL ----------
+  function placeCaretAtEnd(el){
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(false);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+
   function renderJournal(){
     const wrap = document.getElementById('journalEntries');
+    const prevScroll = wrap.scrollTop;
     wrap.innerHTML = '';
     if(!state.journal.length){
       wrap.innerHTML = '<div class="empty-hint">Aucune note pour l\'instant.</div>';
@@ -603,13 +775,32 @@
     sorted.forEach(function(j){
       const el = document.createElement('div');
       el.className = 'journal-entry';
-      el.innerHTML = `<div class="jdate">${escapeHtml(j.date)}</div><div class="jtext"></div><button class="jdel" title="supprimer">✕</button>`;
-      el.querySelector('.jtext').textContent = j.texte;
+      el.innerHTML = `<div class="jdate">${escapeHtml(j.date)}</div><div class="jtext"></div><button class="jedit" title="modifier">✎</button><button class="jdel" title="supprimer">✕</button>`;
+      const jtext = el.querySelector('.jtext');
+      jtext.textContent = j.texte;
+      const editBtn = el.querySelector('.jedit');
+      editBtn.addEventListener('click', function(){
+        if(jtext.isContentEditable){
+          jtext.contentEditable = 'false';
+          j.texte = jtext.textContent.trim() || j.texte;
+          jtext.textContent = j.texte;
+          editBtn.textContent = '✎';
+          touch('journal');
+        } else {
+          jtext.contentEditable = 'true';
+          jtext.focus();
+          placeCaretAtEnd(jtext);
+          editBtn.textContent = '✔';
+        }
+      });
       el.querySelector('.jdel').addEventListener('click', function(){
-        state.journal = state.journal.filter(x => x.id !== j.id); touch();
+        if(confirm('Supprimer cette note du journal ?')){
+          state.journal = state.journal.filter(x => x.id !== j.id); touch('journal');
+        }
       });
       wrap.appendChild(el);
     });
+    wrap.scrollTop = prevScroll;
   }
 
   function escapeHtml(s){
@@ -622,6 +813,30 @@
     document.getElementById('objetDossier').value = state.objet;
     document.getElementById('dateCreation').textContent = state.dateCreation;
     document.getElementById('dateMaj').textContent = state.dateMaj || '--';
+    renderDossierSwitcher();
+  }
+
+  function renderDossierSwitcher(){
+    const sel = document.getElementById('dossierSwitcher');
+    if(!sel) return;
+    const dossiers = listDossiers();
+    // le dossier courant peut ne pas encore exister en storage (tout premier chargement) : on l'ajoute quand même
+    if(!dossiers.some(d => d.key === storageKey)){
+      dossiers.push({key: storageKey, titre: state.titre});
+      dossiers.sort((a,b) => a.titre.localeCompare(b.titre, 'fr'));
+    }
+    sel.innerHTML = '';
+    dossiers.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d.key;
+      opt.textContent = d.titre;
+      if(d.key === storageKey) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    const optNew = document.createElement('option');
+    optNew.value = '__new__';
+    optNew.textContent = '+ Nouveau dossier...';
+    sel.appendChild(optNew);
   }
 
   function renderAll(){
@@ -645,13 +860,13 @@
   });
 
   document.getElementById('btnAddContact').addEventListener('click', function(){
-    state.contacts.push({id:uid(), nom:'', role:'', tel:'', email:'', adresse:''}); touch();
+    state.contacts.push({id:uid(), nom:'', role:'', tel:'', email:'', adresse:''}); touch('contacts');
   });
   document.getElementById('btnAddDocRef').addEventListener('click', function(){
-    state.docsRef.push({id:uid(), nom:'', lien:'', note:'', thumb:null}); touch();
+    state.docsRef.push({id:uid(), nom:'', lien:'', note:'', thumb:null}); touch('docsRef');
   });
   document.getElementById('btnAddPiece').addEventListener('click', function(){
-    state.pieces.push({id:uid(), nom:'', lien:'', note:'', statut:'a_faire', thumb:null}); touch();
+    state.pieces.push({id:uid(), nom:'', lien:'', note:'', statut:'a_faire', thumb:null, echeance:'', obligatoire:true}); touch('pieces');
   });
   document.getElementById('btnAddJournal').addEventListener('click', function(){
     const inp = document.getElementById('journalInput');
@@ -659,7 +874,7 @@
     if(!txt) return;
     state.journal.push({id:uid(), date: nowStr(), texte: txt, ts: Date.now()});
     inp.value = '';
-    touch();
+    touch('journal');
   });
   document.getElementById('journalInput').addEventListener('keydown', function(e){
     if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){
@@ -674,6 +889,11 @@
     a.download = slug(state.titre) + '.json';
     a.click();
     setDirty(false);
+    lastExportModCount = modCount;
+    updateExportReminder();
+  });
+  document.getElementById('btnPrint').addEventListener('click', function(){
+    window.print();
   });
   document.getElementById('btnImportTrigger').addEventListener('click', function(){
     document.getElementById('btnImport').click();
@@ -689,7 +909,7 @@
           titre:'Nouveau dossier', objet:'', dateCreation: todayStr(),
           contacts:[], notes:'', docsRef:[], pieces:[], journal:[]
         }, parsed);
-        persist();
+        saveAndRenderAll();
       }catch(err){
         alert('Fichier JSON invalide.');
       }
@@ -700,7 +920,32 @@
   document.getElementById('btnReset').addEventListener('click', function(){
     if(confirm('Effacer toutes les données de ce dossier ? Pense à exporter avant si besoin.')){
       state = {titre:'Nouveau dossier', objet:'', dateCreation: todayStr(), contacts:[], notes:'', docsRef:[], pieces:[], journal:[]};
-      persist();
+      saveAndRenderAll();
+    }
+  });
+
+  document.getElementById('dossierSwitcher').addEventListener('change', function(e){
+    const val = e.target.value;
+    if(val === '__new__'){
+      const titre = prompt('Titre du nouveau dossier :', 'Nouveau dossier');
+      if(!titre){ renderDossierSwitcher(); return; }
+      state = {titre: titre.trim() || 'Nouveau dossier', objet:'', dateCreation: todayStr(), contacts:[], notes:'', docsRef:[], pieces:[], journal:[]};
+      storageKey = currentKeyForTitle(state.titre);
+      saveAndRenderAll();
+      return;
+    }
+    if(val === storageKey) return;
+    const raw = safeLocalStorageGet(val);
+    if(raw){
+      try{
+        state = JSON.parse(raw);
+        storageKey = val;
+        renderAll();
+        setDirty(false);
+      }catch(err){
+        alert('Ce dossier est illisible (JSON corrompu).');
+        renderDossierSwitcher();
+      }
     }
   });
 
@@ -712,6 +957,7 @@
   load();
   renderAll();
   setDirty(false);
+  updateExportReminder();
 })();
 </script>
 </body>
