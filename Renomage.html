@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Renommage de fichier</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f0d;
+    --surface: #191917;
+    --surface2: #222220;
+    --border: #2e2e2b;
+    --border2: #3d3d3a;
+    --accent: #c8f53a;
+    --accent-dim: #8fad1f;
+    --text: #eeecea;
+    --text2: #9a9893;
+    --text3: #5c5c59;
+    --danger: #ff5c5c;
+    --mono: 'DM Mono', monospace;
+    --display: 'Syne', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--display);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 24px 80px;
+  }
+
+  .page-header {
+    width: 100%;
+    max-width: 720px;
+    margin-bottom: 48px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 20px;
+  }
+
+  .page-header h1 {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text2);
+  }
+
+  .page-header .version {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+  }
+
+  .card {
+    width: 100%;
+    max-width: 720px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    animation: fadeUp 0.4s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .card-section {
+    padding: 28px 32px;
+    border-bottom: 1px solid var(--border);
+    animation: fadeUp 0.4s ease both;
+  }
+  .card-section:last-child { border-bottom: none; }
+  .card-section:nth-child(2) { animation-delay: 0.05s; }
+  .card-section:nth-child(3) { animation-delay: 0.10s; }
+  .card-section:nth-child(4) { animation-delay: 0.15s; }
+  .card-section:nth-child(5) { animation-delay: 0.20s; }
+  .card-section:nth-child(6) { animation-delay: 0.25s; }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* DROP ZONE */
+  .dropzone {
+    border: 1px dashed var(--border2);
+    border-radius: 4px;
+    padding: 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+  }
+  .dropzone:hover, .dropzone.drag-over {
+    border-color: var(--accent);
+    background: rgba(200,245,58,0.03);
+  }
+  .dropzone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+  .dropzone-icon {
+    width: 40px;
+    height: 40px;
+    margin: 0 auto 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .dropzone-icon svg { width: 40px; height: 40px; }
+  .dropzone p { font-size: 13px; color: var(--text2); font-family: var(--mono); }
+  .dropzone strong { color: var(--accent); font-weight: 500; }
+
+  .file-pill {
+    display: none;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+  }
+  .file-pill.show { display: flex; }
+  .file-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    padding: 4px 8px;
+    background: var(--accent);
+    color: #0f0f0d;
+    border-radius: 2px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .file-pill-name { font-family: var(--mono); font-size: 13px; color: var(--text); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-pill-size { font-family: var(--mono); font-size: 11px; color: var(--text3); }
+  .btn-ghost {
+    background: none;
+    border: 1px solid var(--border2);
+    color: var(--text3);
+    padding: 5px 10px;
+    border-radius: 2px;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: var(--mono);
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .btn-ghost:hover { border-color: var(--danger); color: var(--danger); }
+
+  /* GRID ROW */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+  .field-label {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+
+  input[type="date"],
+  input[type="text"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.15s;
+    color-scheme: dark;
+  }
+  input[type="date"]:focus,
+  input[type="text"]:focus { border-color: var(--accent); }
+
+  /* TAG GRID */
+  .tag-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 8px;
+  }
+
+  .tag-btn {
+    padding: 9px 6px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    border-radius: 2px;
+    color: var(--text2);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.12s;
+  }
+  .tag-btn:hover { border-color: var(--border2); color: var(--text); }
+  .tag-btn.active {
+    border-color: var(--accent);
+    background: rgba(200,245,58,0.08);
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  #customTagWrap { margin-top: 10px; display: none; }
+  #customTagWrap.show { display: block; }
+
+  /* SAVED CUSTOM TAGS */
+  #savedTagsWrap { margin-top: 10px; display: none; }
+  #savedTagsWrap.show { display: block; }
+  #savedTagsWrap .section-sub {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text3);
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .tag-btn-saved {
+    position: relative;
+    padding: 9px 24px 9px 6px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    border-radius: 2px;
+    color: var(--text2);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.12s;
+  }
+  .tag-btn-saved:hover { border-color: var(--border2); color: var(--text); }
+  .tag-btn-saved.active {
+    border-color: var(--accent);
+    background: rgba(200,245,58,0.08);
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .tag-btn-saved .del-tag {
+    position: absolute;
+    top: 2px; right: 3px;
+    font-size: 9px;
+    color: var(--text3);
+    line-height: 1;
+    cursor: pointer;
+    transition: color 0.12s;
+  }
+  .tag-btn-saved .del-tag:hover { color: var(--danger); }
+
+  /* TOGGLE */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+  }
+  .toggle-label { font-size: 13px; color: var(--text2); font-family: var(--mono); }
+  .toggle-label em { color: var(--accent); font-style: normal; margin-left: 8px; font-size: 11px; }
+
+  .toggle { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+  .toggle input { display: none; }
+  .toggle-track {
+    position: absolute; inset: 0; border-radius: 12px;
+    background: var(--border2); cursor: pointer; transition: background 0.2s;
+  }
+  .toggle input:checked + .toggle-track { background: var(--accent-dim); }
+  .toggle-thumb {
+    position: absolute; top: 4px; left: 4px;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--text3); transition: all 0.2s; pointer-events: none;
+  }
+  .toggle input:checked ~ .toggle-thumb { transform: translateX(20px); background: var(--accent); }
+
+  /* PREVIEW */
+  .preview-inner {
+    background: #080807;
+    border-radius: 2px;
+    padding: 18px 20px;
+    min-height: 56px;
+    display: flex;
+    align-items: center;
+  }
+  .preview-text {
+    font-family: var(--mono);
+    font-size: 13px;
+    word-break: break-all;
+    line-height: 1.6;
+    color: var(--text3);
+    font-style: italic;
+  }
+  .preview-text.has-value { color: var(--text); font-style: normal; }
+  .chunk { display: inline; }
+  .chunk-date { color: var(--accent); }
+  .chunk-tag  { color: #64d8ff; }
+  .chunk-ia   { color: #c084fc; }
+  .chunk-prov { color: #fbbf24; }
+  .chunk-name { color: var(--text2); }
+  .chunk-sep  { color: var(--text3); }
+  .chunk-ext  { color: var(--text3); }
+
+  /* ACTIONS */
+  .actions { display: flex; gap: 12px; }
+
+  .btn-primary {
+    flex: 1;
+    padding: 14px 24px;
+    background: var(--accent);
+    color: #0f0f0d;
+    border: none;
+    border-radius: 2px;
+    font-family: var(--display);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .btn-primary:hover:not(:disabled) { opacity: 0.88; }
+  .btn-primary:active:not(:disabled) { transform: scale(0.99); }
+  .btn-primary:disabled { opacity: 0.25; cursor: not-allowed; }
+
+  .btn-reset {
+    padding: 14px 20px;
+    background: none;
+    border: 1px solid var(--border2);
+    border-radius: 2px;
+    color: var(--text3);
+    font-family: var(--mono);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-reset:hover { border-color: var(--border2); color: var(--text2); }
+
+  /* SUCCESS */
+  .success-bar {
+    display: none;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    background: rgba(200,245,58,0.06);
+    border: 1px solid rgba(200,245,58,0.25);
+    border-radius: 2px;
+    margin-top: 14px;
+    animation: fadeUp 0.3s ease;
+  }
+  .success-bar.show { display: flex; }
+  .success-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+  .success-bar p { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+  .success-bar .copied { font-size: 11px; color: var(--accent-dim); margin-left: auto; cursor: pointer; text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<header class="page-header">
+  <h1>Renommage de fichier</h1>
+  <span class="version">v2.1 · tags persistants</span>
+</header>
+
+<div class="card">
+
+  <!-- FICHIER -->
+  <div class="card-section">
+    <div class="section-label">Fichier source</div>
+    <div class="dropzone" id="dropzone">
+      <input type="file" id="fileInput" onchange="handleFile(this)">
+      <div class="dropzone-icon">
+        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="8" y="4" width="18" height="24" rx="2" stroke="#3d3d3a" stroke-width="1.5"/>
+          <path d="M22 4v8h8" stroke="#3d3d3a" stroke-width="1.5"/>
+          <path d="M26 4l4 8" stroke="#3d3d3a" stroke-width="1.5"/>
+          <circle cx="29" cy="29" r="8" fill="#191917" stroke="#c8f53a" stroke-width="1.5"/>
+          <path d="M29 25v8M25 29h8" stroke="#c8f53a" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <p>Glisser un fichier ici ou <strong>cliquer pour parcourir</strong></p>
+    </div>
+    <div class="file-pill" id="filePill">
+      <span class="file-badge" id="fileBadge">—</span>
+      <span class="file-pill-name" id="filePillName">—</span>
+      <span class="file-pill-size" id="filePillSize">—</span>
+      <button class="btn-ghost" onclick="clearFile()">✕ changer</button>
+    </div>
+  </div>
+
+  <!-- DATE & PROVENANCE -->
+  <div class="card-section">
+    <div class="two-col">
+      <div>
+        <div class="field-label">Date</div>
+        <input type="date" id="dateInput" oninput="updatePreview()">
+      </div>
+      <div>
+        <div class="field-label">Provenance</div>
+        <input type="text" id="provenance" placeholder="SCANNER, EMAIL, CLIENT…" oninput="handleProvenance(this)" style="text-transform:uppercase;">
+      </div>
+    </div>
+  </div>
+
+  <!-- TAG -->
+  <div class="card-section">
+    <div class="section-label">Tag</div>
+    <div class="tag-grid">
+      <button class="tag-btn" onclick="selectTag('IMP3D',this)">IMP3D</button>
+      <button class="tag-btn" onclick="selectTag('ADMIN',this)">ADMIN</button>
+      <button class="tag-btn" onclick="selectTag('PRO',this)">PRO</button>
+      <button class="tag-btn" onclick="selectTag('MAISON',this)">MAISON</button>
+      <button class="tag-btn" onclick="selectTag('FINANCE',this)">FINANCE</button>
+      <button class="tag-btn" onclick="selectTag('IMPOTS',this)">IMPOTS</button>
+      <button class="tag-btn" onclick="selectTag('VEHICULE',this)">VEHICULE</button>
+      <button class="tag-btn" onclick="selectTag('SANTE',this)">SANTE</button>
+      <button class="tag-btn" onclick="selectTag('ASSURANCE',this)">ASSURANCE</button>
+      <button class="tag-btn" onclick="selectTag('__custom__',this)">Autre…</button>
+    </div>
+    <div id="customTagWrap">
+      <input type="text" id="customTag" placeholder="Saisir un tag personnalisé" oninput="handleCustomTag(this)" style="text-transform:uppercase; margin-top:0;">
+    </div>
+    <div id="savedTagsWrap">
+      <div class="section-sub" style="margin-top:12px;">Tags sauvegardés</div>
+      <div class="tag-grid" id="savedTagGrid"></div>
+    </div>
+  </div>
+
+  <!-- IA TOGGLE -->
+  <div class="card-section">
+    <div class="section-label">Options</div>
+    <div class="toggle-row">
+      <span class="toggle-label">
+        Prêt pour traitement IA
+        <em id="iaLabel"></em>
+      </span>
+      <label class="toggle">
+        <input type="checkbox" id="iaToggle" onchange="updatePreview()">
+        <div class="toggle-track"></div>
+        <div class="toggle-thumb"></div>
+      </label>
+    </div>
+  </div>
+
+  <!-- PREVIEW -->
+  <div class="card-section">
+    <div class="section-label">Aperçu du nom</div>
+    <div class="preview-inner">
+      <div class="preview-text" id="previewText">
+        <span style="font-style:italic; color:var(--text3);">Remplissez les champs pour voir le résultat…</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="card-section">
+    <div class="actions">
+      <button class="btn-primary" id="copyBtn" onclick="copyName()" disabled>Copier le nom</button>
+      <button class="btn-reset" onclick="resetAll()">Réinitialiser</button>
+    </div>
+    <div class="success-bar" id="successBar">
+      <div class="success-dot"></div>
+      <p id="successText">Nom copié dans le presse-papiers.</p>
+      <span class="copied" onclick="copyName()">copier à nouveau</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const STORAGE_KEY = 'renomage_custom_tags';
+
+  // Built-in tags (never stored, never deletable)
+  const BUILTIN_TAGS = ['IMP3D','ADMIN','PRO','MAISON','FINANCE','IMPOTS','VEHICULE','SANTE','ASSURANCE'];
+
+  let state = {
+    fileName: '',
+    fileExt: '',
+    fileSize: '',
+    tag: '',
+    customTag: '',
+    isCustom: false,
+    provenance: '',
+    ia: false,
+    date: ''
+  };
+
+  /* ── LOCAL STORAGE ── */
+  function loadSavedTags() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+    catch { return []; }
+  }
+
+  function saveTags(tags) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tags));
+  }
+
+  function addSavedTag(tag) {
+    if (!tag || BUILTIN_TAGS.includes(tag)) return;
+    const tags = loadSavedTags();
+    if (!tags.includes(tag)) { tags.push(tag); saveTags(tags); }
+    renderSavedTags();
+  }
+
+  function removeSavedTag(tag) {
+    const tags = loadSavedTags().filter(t => t !== tag);
+    saveTags(tags);
+    // If the deleted tag was selected, deselect
+    if (state.tag === tag) {
+      state.tag = '';
+      state.isCustom = false;
+    }
+    renderSavedTags();
+    updatePreview();
+  }
+
+  function renderSavedTags() {
+    const tags = loadSavedTags();
+    const wrap = document.getElementById('savedTagsWrap');
+    const grid = document.getElementById('savedTagGrid');
+    grid.innerHTML = '';
+    if (!tags.length) { wrap.classList.remove('show'); return; }
+    wrap.classList.add('show');
+    tags.forEach(tag => {
+      const btn = document.createElement('button');
+      btn.className = 'tag-btn-saved' + (state.tag === tag && !state.isCustom ? ' active' : '');
+      btn.innerHTML = esc(tag) + `<span class="del-tag" title="Supprimer" data-tag="${esc(tag)}">✕</span>`;
+      btn.addEventListener('click', () => selectSavedTag(tag, btn));
+      btn.querySelector('.del-tag').addEventListener('click', e => {
+        e.stopPropagation();
+        removeSavedTag(tag);
+      });
+      grid.appendChild(btn);
+    });
+  }
+
+  function selectSavedTag(tag, btn) {
+    // Deselect all built-in + saved
+    document.querySelectorAll('.tag-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tag-btn-saved').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.isCustom = false;
+    state.tag = tag;
+    document.getElementById('customTagWrap').classList.remove('show');
+    updatePreview();
+  }
+
+  /* ── INIT DATE ── */
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth()+1).padStart(2,'0');
+  const dd = String(today.getDate()).padStart(2,'0');
+  document.getElementById('dateInput').value = `${yyyy}-${mm}-${dd}`;
+  state.date = `${yyyy}-${mm}-${dd}`;
+  document.getElementById('dateInput').addEventListener('input', e => { state.date = e.target.value; updatePreview(); });
+
+  /* ── DRAG & DROP ── */
+  const dz = document.getElementById('dropzone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault();
+    dz.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f) applyFile(f);
+  });
+
+  function handleFile(input) {
+    if (input.files[0]) applyFile(input.files[0]);
+  }
+
+  function applyFile(f) {
+    const parts = f.name.split('.');
+    state.fileExt = parts.length > 1 ? parts.pop() : '';
+    state.fileName = parts.join('.');
+    state.fileSize = formatSize(f.size);
+    document.getElementById('dropzone').style.display = 'none';
+    const pill = document.getElementById('filePill');
+    pill.classList.add('show');
+    document.getElementById('fileBadge').textContent = state.fileExt.toUpperCase() || 'FILE';
+    document.getElementById('filePillName').textContent = f.name;
+    document.getElementById('filePillSize').textContent = state.fileSize;
+    if (state.fileExt.toLowerCase() === 'pdf') {
+      document.getElementById('iaToggle').checked = true;
+      state.ia = true;
+    }
+    updatePreview();
+  }
+
+  function clearFile() {
+    state.fileName = ''; state.fileExt = ''; state.fileSize = '';
+    document.getElementById('dropzone').style.display = '';
+    document.getElementById('filePill').classList.remove('show');
+    document.getElementById('fileInput').value = '';
+    document.getElementById('iaToggle').checked = false;
+    state.ia = false;
+    updatePreview();
+  }
+
+  function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' o';
+    if (bytes < 1048576) return (bytes/1024).toFixed(1) + ' Ko';
+    return (bytes/1048576).toFixed(1) + ' Mo';
+  }
+
+  function selectTag(tag, btn) {
+    document.querySelectorAll('.tag-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tag-btn-saved').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const wrap = document.getElementById('customTagWrap');
+    if (tag === '__custom__') {
+      state.isCustom = true;
+      state.tag = state.customTag || '';
+      wrap.classList.add('show');
+      document.getElementById('customTag').focus();
+    } else {
+      state.isCustom = false;
+      state.tag = tag;
+      wrap.classList.remove('show');
+    }
+    updatePreview();
+  }
+
+  function handleCustomTag(input) {
+    const val = input.value.replace(/\s+/g,'_').toUpperCase();
+    state.customTag = val;
+    state.tag = val;
+    updatePreview();
+  }
+
+  // Save custom tag when user leaves the field or presses Enter
+  document.getElementById('customTag').addEventListener('blur', () => {
+    if (state.isCustom && state.tag) addSavedTag(state.tag);
+  });
+  document.getElementById('customTag').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && state.isCustom && state.tag) {
+      addSavedTag(state.tag);
+      e.target.blur();
+    }
+  });
+
+  function handleProvenance(input) {
+    state.provenance = input.value.replace(/\s+/g,'_').toUpperCase();
+    updatePreview();
+  }
+
+  function buildName() {
+    if (!state.date || !state.tag || !state.provenance || !state.fileName) return null;
+    const ia = state.ia ? '[OK-IA]-' : '';
+    const ext = state.fileExt ? '.' + state.fileExt : '';
+    return `${state.date}-${state.tag}-${ia}${state.provenance}-${state.fileName}${ext}`;
+  }
+
+  function updatePreview() {
+    state.ia = document.getElementById('iaToggle').checked;
+    document.getElementById('iaLabel').textContent = state.ia ? '[OK-IA] activé' : '';
+    const name = buildName();
+    const el = document.getElementById('previewText');
+    const btn = document.getElementById('copyBtn');
+    if (!name) {
+      el.innerHTML = '<span style="font-style:italic;color:var(--text3);">Remplissez les champs pour voir le résultat…</span>';
+      el.classList.remove('has-value');
+      btn.disabled = true;
+      return;
+    }
+    el.classList.add('has-value');
+    const ext = state.fileExt ? '.' + state.fileExt : '';
+    el.innerHTML =
+      `<span class="chunk chunk-date">${esc(state.date)}</span>` +
+      `<span class="chunk chunk-sep">-</span>` +
+      `<span class="chunk chunk-tag">${esc(state.tag)}</span>` +
+      `<span class="chunk chunk-sep">-</span>` +
+      (state.ia ? `<span class="chunk chunk-ia">[OK-IA]</span><span class="chunk chunk-sep">-</span>` : '') +
+      `<span class="chunk chunk-prov">${esc(state.provenance)}</span>` +
+      `<span class="chunk chunk-sep">-</span>` +
+      `<span class="chunk chunk-name">${esc(state.fileName)}</span>` +
+      `<span class="chunk chunk-ext">${esc(ext)}</span>`;
+    btn.disabled = false;
+    document.getElementById('successBar').classList.remove('show');
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function copyName() {
+    const name = buildName();
+    if (!name) return;
+    navigator.clipboard.writeText(name).then(() => {
+      const bar = document.getElementById('successBar');
+      document.getElementById('successText').textContent = `"${name}" copié.`;
+      bar.classList.add('show');
+    }).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = name; document.body.appendChild(ta);
+      ta.select(); document.execCommand('copy');
+      document.body.removeChild(ta);
+      document.getElementById('successBar').classList.add('show');
+    });
+  }
+
+  function resetAll() {
+    clearFile();
+    state.tag = ''; state.isCustom = false; state.provenance = ''; state.customTag = '';
+    document.querySelectorAll('.tag-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tag-btn-saved').forEach(b => b.classList.remove('active'));
+    document.getElementById('customTagWrap').classList.remove('show');
+    document.getElementById('customTag').value = '';
+    document.getElementById('provenance').value = '';
+    const d = new Date();
+    const v = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    document.getElementById('dateInput').value = v;
+    state.date = v;
+    document.getElementById('successBar').classList.remove('show');
+    updatePreview();
+  }
+
+  // Initial render
+  renderSavedTags();
+  updatePreview();
+</script>
+</body>
+</html>
