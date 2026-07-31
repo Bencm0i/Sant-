@@ -4740,6 +4740,7 @@ function lchShowCtxMenu(cx, cy, idx){
   m.style.cssText = `position:fixed;left:${Math.min(cx, window.innerWidth-160)}px;top:${Math.min(cy, window.innerHeight-80)}px;z-index:800;background:rgba(20,12,48,0.96);backdrop-filter:blur(16px);border:1.5px solid rgba(61,90,115,0.35);border-radius:12px;padding:6px 0;min-width:150px;box-shadow:0 8px 32px rgba(0,0,0,0.4);font-family:'Inter',sans-serif;`;
   const items = [
     {icon:'✏️', label:'Modifier', fn: () => { launcherOpenEdit(idx); }},
+    {icon:'📌', label:'Ajouter au menu démarrer', fn: () => { launcherAddToStartMenu(idx); }},
     {icon:'🗑', label:'Supprimer', fn: () => { launcherLinks.splice(idx,1); launcherSave(); launcherRender(); }, danger:true},
   ];
   items.forEach(it => {
@@ -4756,6 +4757,31 @@ function lchShowCtxMenu(cx, cy, idx){
   setTimeout(() => document.addEventListener('click', lchHideCtxMenu, {once:true}), 0);
 }
 function lchHideCtxMenu(){ if(_lchCtx){ _lchCtx.remove(); _lchCtx = null; } }
+
+// ── ajoute un raccourci du bureau (launcher) dans le menu démarrer ──
+function launcherAddToStartMenu(idx){
+  const lk = launcherLinks[idx];
+  if(!lk) return;
+  const cat = (smActiveCat && smActiveCat !== 'Tout') ? smActiveCat : (smCategories[0] || 'Autre');
+  const obj = { emoji: lk.emoji || '🔗', name: lk.name || 'Lien', url: lk.url || '', cat };
+  if(lk.icon) obj.icon = lk.icon;
+  if(lk.noPreview) obj.noPreview = true;
+  smItems.push(obj);
+  smSave();
+  smRenderTabs();
+  smRender(document.getElementById('smSearch') ? document.getElementById('smSearch').value : '');
+  launcherFlashStartMenuBtn();
+}
+
+// ── petit retour visuel sur le bouton "menu démarrer" pour confirmer l'ajout ──
+function launcherFlashStartMenuBtn(){
+  const btn = document.getElementById('smBtn');
+  if(!btn) return;
+  btn.style.transition = 'transform 0.15s, box-shadow 0.15s';
+  btn.style.transform = 'scale(1.25)';
+  btn.style.boxShadow = '0 0 0 4px rgba(65,112,138,0.35)';
+  setTimeout(() => { btn.style.transform = ''; btn.style.boxShadow = ''; }, 260);
+}
 
 // ── modal ──
 function launcherToggleEdit(){} // plus utilisé mais gardé pour compatibilité bouton
@@ -4898,6 +4924,11 @@ function smRender(filter){
 
     const actions = document.createElement('div');
     actions.className = 'sm-item-actions';
+    const pinBtn = document.createElement('button');
+    pinBtn.className = 'sm-item-btn';
+    pinBtn.title = 'Ajouter au bureau';
+    pinBtn.textContent = '📌';
+    pinBtn.onclick = (e) => { e.stopPropagation(); smAddToDesktop(i); };
     const editBtn = document.createElement('button');
     editBtn.className = 'sm-item-btn';
     editBtn.title = 'Modifier';
@@ -4908,6 +4939,7 @@ function smRender(filter){
     delBtn.title = 'Supprimer';
     delBtn.textContent = '🗑';
     delBtn.onclick = (e) => { e.stopPropagation(); smItems.splice(i,1); smSave(); smRender(document.getElementById('smSearch').value); };
+    actions.appendChild(pinBtn);
     actions.appendChild(editBtn);
     actions.appendChild(delBtn);
 
@@ -4921,6 +4953,46 @@ function smRender(filter){
     }
     list.appendChild(row);
   });
+}
+
+// ── ajoute un raccourci du menu démarrer sur le bureau (launcher) ──
+function smAddToDesktop(i){
+  const it = smItems[i];
+  if(!it) return;
+  const pos = _lchNextFreeSpot();
+  const obj = { emoji: it.emoji || '🔗', name: it.name || 'Lien', url: it.url || '', x: pos.x, y: pos.y };
+  if(it.icon) obj.icon = it.icon;
+  if(it.noPreview) obj.noPreview = true;
+  launcherLinks.push(obj);
+  launcherSave();
+  launcherRender();
+  smFlashDesktopBtn();
+}
+
+// ── calcule un emplacement libre pour une nouvelle icône de bureau ──
+function _lchNextFreeSpot(){
+  const bounds = _lchBounds();
+  const stepY = 110, colX = 80, startY = 160;
+  let x = Math.max(bounds.minX + 12, colX);
+  let y = startY;
+  const taken = launcherLinks.map(l => `${l.x ?? colX},${l.y ?? startY}`);
+  let guard = 0;
+  while(taken.includes(`${x},${y}`) && guard < 200){
+    y += stepY;
+    if(y > window.innerHeight - 90){ y = startY; x += 100; if(x > bounds.maxX) x = bounds.minX + 12; }
+    guard++;
+  }
+  return { x, y };
+}
+
+// ── petit retour visuel sur le bouton "＋ raccourci bureau" pour confirmer l'ajout ──
+function smFlashDesktopBtn(){
+  const btn = document.getElementById('lchAddBtn');
+  if(!btn) return;
+  btn.style.transition = 'transform 0.15s, box-shadow 0.15s';
+  btn.style.transform = 'scale(1.25)';
+  btn.style.boxShadow = '0 0 0 4px rgba(65,112,138,0.35)';
+  setTimeout(() => { btn.style.transform = ''; btn.style.boxShadow = ''; }, 260);
 }
 
 function smToggle(){
