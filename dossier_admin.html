@@ -20,6 +20,7 @@
     --amber:#d1a92c;
     --red:#b5533f;
     --green:#6f8f4e;
+    --dossier-color: transparent;
     --font: ui-monospace, 'JetBrains Mono', 'Fira Code', Consolas, 'Courier New', monospace;
   }
   *{box-sizing:border-box;}
@@ -34,6 +35,22 @@
     font-size:13px;
     line-height:1.5;
     min-height:100vh;
+  }
+  /* cadre coloré fixe = identifiant visuel du dossier courant, pour reconnaître
+     immédiatement dans quel dossier on se trouve (utile si plusieurs onglets ouverts) */
+  body::before{
+    content:'';
+    position:fixed;
+    inset:0;
+    border:5px solid var(--dossier-color);
+    pointer-events:none;
+    z-index:9999;
+  }
+  .dossier-color-dot{
+    display:inline-block;width:9px;height:9px;border-radius:50%;
+    background:var(--dossier-color);
+    border:1px solid rgba(0,0,0,.3);
+    margin-right:6px;vertical-align:middle;
   }
   ::selection{background:var(--khaki);color:var(--bg);}
   input,textarea,select{
@@ -199,6 +216,7 @@
 
   /* impression */
   @media print{
+    body::before{display:none;}
     body{background:#fff;color:#000;}
     header .header-actions, #dossierSwitcher, footer, .icon-btn, .thumb .clear-thumb,
     #btnAddContact, #btnAddDocRef, #btnAddPiece, .journal-add, .reorder-col, .dup-btn,
@@ -247,7 +265,10 @@
 <header>
   <div class="id-block">
     <div class="eyebrow">// dossier administratif</div>
-    <select id="dossierSwitcher" title="Changer de dossier"></select>
+    <div style="display:flex;align-items:center;">
+      <span class="dossier-color-dot" title="Couleur d'identification de ce dossier"></span>
+      <select id="dossierSwitcher" title="Changer de dossier"></select>
+    </div>
     <input id="titreDossier" value="Nouveau dossier" spellcheck="false">
     <input id="objetDossier" placeholder="Objet / référence du dossier (ex: renouvellement titre de séjour, dossier CAF...)" spellcheck="false">
     <div class="meta-line">Créé le <span id="dateCreation">--</span> · dernière modif. <span id="dateMaj">--</span></div>
@@ -813,7 +834,25 @@
     document.getElementById('objetDossier').value = state.objet;
     document.getElementById('dateCreation').textContent = state.dateCreation;
     document.getElementById('dateMaj').textContent = state.dateMaj || '--';
+    applyDossierColor();
     renderDossierSwitcher();
+  }
+
+  // couleur déterministe par dossier : même clé de stockage => toujours la même teinte,
+  // ce qui permet de reconnaître un dossier d'un coup d'oeil (cadre + pastille)
+  function hashStr(str){
+    let h = 5381;
+    for(let i = 0; i < str.length; i++){
+      h = ((h * 33) ^ str.charCodeAt(i)) >>> 0;
+    }
+    return h;
+  }
+  function dossierColor(key){
+    const hue = hashStr(key) % 360;
+    return `hsl(${hue} 65% 52%)`;
+  }
+  function applyDossierColor(){
+    document.documentElement.style.setProperty('--dossier-color', dossierColor(storageKey));
   }
 
   function renderDossierSwitcher(){
