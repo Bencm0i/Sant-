@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DOSSIER // Suivi administratif</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='5' fill='%23232619'/%3E%3Cpath d='M4 10 L4 25 Q4 26 5 26 L27 26 Q28 26 28 25 L28 12 Q28 11 27 11 L15 11 L13 8 L5 8 Q4 8 4 9 Z' fill='%23b5b483' stroke='%234a4f34' stroke-width='1'/%3E%3Crect x='9' y='16' width='9' height='2' fill='%233a3d29'/%3E%3Crect x='9' y='20' width='6' height='2' fill='%233a3d29'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#1e2116;
+    --bg2:#262a1c;
+    --panel:#282c1e;
+    --panel2:#2f3322;
+    --border:#4a4f34;
+    --border-dim:#383c28;
+    --khaki:#b5b483;
+    --khaki-dim:#8a8a5c;
+    --text:#d9d9c0;
+    --text-dim:#8f8f72;
+    --amber:#d1a92c;
+    --red:#b5533f;
+    --green:#6f8f4e;
+    --font: ui-monospace, 'JetBrains Mono', 'Fira Code', Consolas, 'Courier New', monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      repeating-linear-gradient(0deg, rgba(181,180,131,0.035) 0px, rgba(181,180,131,0.035) 1px, transparent 1px, transparent 24px),
+      repeating-linear-gradient(90deg, rgba(181,180,131,0.035) 0px, rgba(181,180,131,0.035) 1px, transparent 1px, transparent 24px),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--font);
+    font-size:13px;
+    line-height:1.5;
+    min-height:100vh;
+  }
+  ::selection{background:var(--khaki);color:var(--bg);}
+  input,textarea,select{
+    font-family:var(--font);
+    background:var(--bg2);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:5px 7px;
+    font-size:12.5px;
+    border-radius:2px;
+  }
+  input:focus,textarea:focus,select:focus{outline:1px solid var(--khaki);border-color:var(--khaki);}
+  textarea{resize:vertical;width:100%;}
+  button{
+    font-family:var(--font);
+    background:var(--panel2);
+    border:1px solid var(--border);
+    color:var(--khaki);
+    padding:5px 10px;
+    cursor:pointer;
+    font-size:12px;
+    border-radius:2px;
+    letter-spacing:.02em;
+  }
+  button:hover{border-color:var(--khaki);background:#343a24;}
+  button.danger:hover{border-color:var(--red);color:var(--red);}
+  button.primary{background:#3a4128;border-color:var(--khaki-dim);}
+
+  /* ---- header ---- */
+  header{
+    padding:16px 20px 12px;
+    border-bottom:1px solid var(--border);
+    background:linear-gradient(180deg, var(--bg2), transparent);
+    display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;justify-content:space-between;
+  }
+  .id-block{flex:1;min-width:260px;}
+  .id-block .eyebrow{color:var(--khaki-dim);font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;margin-bottom:4px;}
+  #titreDossier{
+    background:transparent;border:none;color:var(--khaki);font-size:22px;font-weight:700;
+    padding:0;width:100%;letter-spacing:.01em;border-bottom:1px dashed transparent;
+  }
+  #titreDossier:hover,#titreDossier:focus{border-bottom:1px dashed var(--border);}
+  #objetDossier{
+    background:transparent;border:none;color:var(--text-dim);font-size:12.5px;
+    padding:2px 0 0;width:100%;border-bottom:1px dashed transparent;
+  }
+  #objetDossier:hover,#objetDossier:focus{border-bottom:1px dashed var(--border);}
+  .meta-line{color:var(--text-dim);font-size:11px;margin-top:6px;}
+  .meta-line span{color:var(--khaki-dim);}
+  .header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  #dirtyFlag{
+    font-size:10.5px;padding:4px 8px;border-radius:2px;border:1px solid var(--border-dim);color:var(--text-dim);
+  }
+  #dirtyFlag.dirty{color:var(--amber);border-color:var(--amber);}
+  #dirtyFlag.saved{color:var(--green);border-color:var(--green);}
+
+  /* ---- layout ---- */
+  main{
+    padding:18px 20px 40px;
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:16px;
+    max-width:1500px;
+    margin:0 auto;
+  }
+  @media (max-width:1050px){ main{grid-template-columns:1fr;} }
+
+  section.panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:3px;
+    display:flex;flex-direction:column;
+    min-height:200px;
+  }
+  section.panel > .panel-head{
+    padding:10px 14px;border-bottom:1px solid var(--border-dim);
+    display:flex;align-items:center;justify-content:space-between;
+    background:var(--bg2);
+  }
+  section.panel > .panel-head h2{
+    margin:0;font-size:11.5px;letter-spacing:.14em;color:var(--khaki);text-transform:uppercase;font-weight:700;
+  }
+  section.panel > .panel-body{padding:12px 14px;display:flex;flex-direction:column;gap:14px;flex:1;}
+  .sub-label{font-size:10.5px;letter-spacing:.1em;color:var(--text-dim);text-transform:uppercase;margin-bottom:6px;}
+  hr.sep{border:none;border-top:1px solid var(--border-dim);margin:2px 0;}
+
+  /* ---- contacts ---- */
+  .contact-row{
+    display:grid;grid-template-columns:1fr 1fr auto;gap:5px;margin-bottom:5px;
+  }
+  .contact-row input{width:100%;}
+  .contact-row2{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:5px;}
+
+  /* ---- doc / piece rows ---- */
+  .row-list{display:flex;flex-direction:column;gap:8px;}
+  .doc-row, .piece-row{
+    border:1px solid var(--border-dim);border-radius:2px;padding:8px;
+    display:grid;grid-template-columns:44px 1fr auto;gap:8px;background:var(--panel2);
+  }
+  .thumb{
+    width:44px;height:52px;border:1px dashed var(--border);border-radius:2px;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    background:var(--bg2);color:var(--text-dim);font-size:16px;overflow:hidden;position:relative;
+  }
+  .thumb:hover{border-color:var(--khaki);}
+  .thumb img{width:100%;height:100%;object-fit:cover;}
+  .thumb .clear-thumb{
+    position:absolute;top:0;right:0;background:rgba(0,0,0,.65);color:var(--red);
+    font-size:9px;padding:1px 3px;display:none;line-height:1;
+  }
+  .thumb:hover .clear-thumb{display:block;}
+  .row-fields{display:flex;flex-direction:column;gap:5px;}
+  .row-fields input, .row-fields textarea{width:100%;}
+  .row-fields .name-line{display:flex;gap:5px;align-items:center;}
+  .row-fields .name-line input.nom{flex:1;font-weight:600;color:var(--khaki);}
+  .link-line{display:flex;gap:5px;align-items:center;}
+  .link-line input.lien{flex:1;font-size:11.5px;color:var(--text-dim);}
+  .link-line a.open-link{
+    color:var(--khaki);text-decoration:none;font-size:14px;border:1px solid var(--border-dim);
+    padding:3px 6px;border-radius:2px;flex-shrink:0;
+  }
+  .link-line a.open-link:hover{border-color:var(--khaki);}
+  .row-note{font-size:11px;color:var(--text-dim);min-height:24px;}
+  .row-actions{display:flex;flex-direction:column;gap:5px;align-items:flex-end;}
+  select.statut{font-size:11px;padding:4px 5px;}
+  select.statut[data-v="a_faire"]{color:var(--red);}
+  select.statut[data-v="attente"]{color:var(--amber);}
+  select.statut[data-v="fourni"]{color:var(--green);}
+  .badge{font-size:9.5px;padding:2px 5px;border-radius:2px;letter-spacing:.05em;text-transform:uppercase;border:1px solid;}
+  .badge.a_faire{color:var(--red);border-color:var(--red);}
+  .badge.attente{color:var(--amber);border-color:var(--amber);}
+  .badge.fourni{color:var(--green);border-color:var(--green);}
+
+  /* progress */
+  .progress-wrap{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-dim);}
+  .progress-bar{flex:1;height:6px;background:var(--bg2);border:1px solid var(--border-dim);border-radius:3px;overflow:hidden;}
+  .progress-bar > div{height:100%;background:var(--green);}
+
+  /* journal */
+  .journal-add{display:flex;flex-direction:column;gap:6px;}
+  #journalEntries{display:flex;flex-direction:column;gap:8px;max-height:520px;overflow-y:auto;padding-right:2px;}
+  .journal-entry{border-left:2px solid var(--border);padding:4px 0 4px 10px;position:relative;}
+  .journal-entry .jdate{font-size:10px;color:var(--khaki-dim);letter-spacing:.05em;}
+  .journal-entry .jtext{font-size:12px;white-space:pre-wrap;margin-top:2px;}
+  .journal-entry .jdel{position:absolute;top:2px;right:0;font-size:10px;color:var(--text-dim);cursor:pointer;border:none;background:none;padding:2px;}
+  .journal-entry .jdel:hover{color:var(--red);}
+  .empty-hint{color:var(--text-dim);font-size:11px;font-style:italic;padding:6px 2px;}
+
+  footer{
+    text-align:center;color:var(--text-dim);font-size:10.5px;padding:14px 20px 26px;
+  }
+  footer a{color:var(--khaki-dim);}
+
+  /* lightbox */
+  #lightbox{
+    display:none;position:fixed;inset:0;background:rgba(10,11,7,.88);
+    align-items:center;justify-content:center;z-index:50;cursor:zoom-out;
+  }
+  #lightbox img{max-width:90vw;max-height:90vh;border:1px solid var(--border);}
+
+  .icon-btn{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:13px;padding:2px 4px;}
+  .icon-btn:hover{color:var(--red);}
+  input[type=file]{display:none;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="id-block">
+    <div class="eyebrow">// dossier administratif</div>
+    <input id="titreDossier" value="Nouveau dossier" spellcheck="false">
+    <input id="objetDossier" placeholder="Objet / référence du dossier (ex: renouvellement titre de séjour, dossier CAF...)" spellcheck="false">
+    <div class="meta-line">Créé le <span id="dateCreation">--</span> · dernière modif. <span id="dateMaj">--</span></div>
+  </div>
+  <div class="header-actions">
+    <span id="dirtyFlag" class="saved">✔ sauvegardé (local)</span>
+    <button id="btnExport" title="Exporter toutes les données en .json">⭳ export json</button>
+    <button id="btnImportTrigger" title="Recharger un .json exporté">⭱ import json</button>
+    <input type="file" id="btnImport" accept="application/json">
+    <button id="btnReset" class="danger" title="Effacer toutes les données de ce dossier">🗑 vider</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- =================== NOTICE =================== -->
+  <section class="panel">
+    <div class="panel-head"><h2>// Notice &amp; contacts</h2></div>
+    <div class="panel-body">
+      <div>
+        <div class="sub-label">Contacts</div>
+        <div id="contactsList"></div>
+        <button id="btnAddContact">➕ contact</button>
+      </div>
+      <hr class="sep">
+      <div>
+        <div class="sub-label">Instructions / notice / démarches</div>
+        <textarea id="notesLibres" rows="6" placeholder="Résumé de la procédure, étapes, délais, liens utiles..."></textarea>
+      </div>
+      <hr class="sep">
+      <div>
+        <div class="sub-label">Documents de référence (notices, courriers, modèles...)</div>
+        <div id="docsRefList" class="row-list"></div>
+        <button id="btnAddDocRef" style="margin-top:8px;">➕ document de référence</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================== PIECES A FOURNIR =================== -->
+  <section class="panel">
+    <div class="panel-head"><h2>// Pièces à fournir</h2></div>
+    <div class="panel-body">
+      <div class="progress-wrap">
+        <span id="progressLabel">0/0 fournies</span>
+        <div class="progress-bar"><div id="progressFill" style="width:0%"></div></div>
+      </div>
+      <div id="piecesList" class="row-list"></div>
+      <button id="btnAddPiece" class="primary">➕ pièce à fournir</button>
+    </div>
+  </section>
+
+  <!-- =================== JOURNAL =================== -->
+  <section class="panel">
+    <div class="panel-head"><h2>// Journal / notes</h2></div>
+    <div class="panel-body">
+      <div class="journal-add">
+        <textarea id="journalInput" rows="2" placeholder="Note rapide (appel effectué, RDV pris, doc envoyé...)"></textarea>
+        <button id="btnAddJournal" class="primary" style="align-self:flex-end;">➕ ajouter au journal</button>
+      </div>
+      <div id="journalEntries"></div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  Fichier autonome, aucune donnée envoyée sur le réseau. Les liens vers les pièces sont des chemins relatifs/locaux (protocole <code>file://</code>).<br>
+  Pense à faire <span style="color:var(--khaki-dim)">⭳ export json</span> régulièrement — le stockage navigateur (localStorage) sur <code>file://</code> n'est pas garanti fiable d'une machine/navigateur à l'autre.
+</footer>
+
+<div id="lightbox"><img id="lightboxImg" src=""></div>
+
+<script>
+(function(){
+  "use strict";
+
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+  const nowStr = () => new Date().toLocaleString('fr-FR');
+  const todayStr = () => new Date().toLocaleDateString('fr-FR');
+
+  function slug(s){
+    return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,40) || 'dossier';
+  }
+
+  const STORAGE_PREFIX = 'dossier_admin_v1__';
+
+  let state = {
+    titre: 'Nouveau dossier',
+    objet: '',
+    dateCreation: todayStr(),
+    contacts: [],
+    notes: '',
+    docsRef: [],
+    pieces: [],
+    journal: []
+  };
+
+  let storageKey = STORAGE_PREFIX + slug(state.titre);
+  let dirty = false;
+
+  function currentKeyForTitle(titre){
+    return STORAGE_PREFIX + slug(titre);
+  }
+
+  function safeLocalStorageGet(key){
+    try { return localStorage.getItem(key); } catch(e){ return null; }
+  }
+  function safeLocalStorageSet(key, val){
+    try { localStorage.setItem(key, val); return true; } catch(e){ return false; }
+  }
+
+  function load(){
+    // find any existing key for this filename's default title, else start fresh
+    const raw = safeLocalStorageGet(storageKey);
+    if(raw){
+      try{
+        const parsed = JSON.parse(raw);
+        state = Object.assign(state, parsed);
+      }catch(e){ /* ignore corrupt data */ }
+    }
+  }
+
+  function setDirty(isDirty){
+    dirty = isDirty;
+    const flag = document.getElementById('dirtyFlag');
+    if(isDirty){
+      flag.textContent = '● modifications non exportées';
+      flag.className = 'dirty';
+    } else {
+      flag.textContent = '✔ sauvegardé (local)';
+      flag.className = 'saved';
+    }
+  }
+
+  function persist(){
+    state.dateMaj = nowStr();
+    document.getElementById('dateMaj').textContent = state.dateMaj;
+    // storage key follows the title (slug) so different dossiers made from
+    // this same file don't collide if the browser shares file:// storage
+    storageKey = currentKeyForTitle(state.titre);
+    const ok = safeLocalStorageSet(storageKey, JSON.stringify(state));
+    setDirty(!ok); // if localStorage failed, keep flag as "dirty" to nudge export
+    if(ok) setDirty(false); else setDirty(true);
+    renderAll();
+  }
+  function touch(){ setDirty(true); persist(); }
+
+  // ---------- generic helpers ----------
+  function extIcon(path){
+    const p = (path||'').toLowerCase();
+    if(/\.(pdf)$/.test(p)) return '📕';
+    if(/\.(jpe?g|png|gif|webp|bmp|heic)$/.test(p)) return '🖼️';
+    if(/\.(docx?|odt)$/.test(p)) return '📝';
+    if(/\.(xlsx?|ods|csv)$/.test(p)) return '📊';
+    if(/\.(zip|tar|gz|7z)$/.test(p)) return '🗜️';
+    if(!p) return '📎';
+    return '📄';
+  }
+
+  function resizeImageFile(file, maxW, cb){
+    const reader = new FileReader();
+    reader.onload = function(e){
+      const img = new Image();
+      img.onload = function(){
+        const scale = Math.min(1, maxW / img.width);
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        cb(canvas.toDataURL('image/jpeg', 0.55));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function attachThumbEvents(thumbEl, getRow, onUpdate){
+    thumbEl.tabIndex = 0;
+    thumbEl.title = 'Coller (Ctrl+V) une capture d\'écran, ou glisser une image ici';
+    thumbEl.addEventListener('paste', function(e){
+      const items = (e.clipboardData || {}).items || [];
+      for(const it of items){
+        if(it.type && it.type.indexOf('image') === 0){
+          const file = it.getAsFile();
+          resizeImageFile(file, 140, function(dataUrl){
+            getRow().thumb = dataUrl; onUpdate();
+          });
+          e.preventDefault();
+          return;
+        }
+      }
+    });
+    thumbEl.addEventListener('dragover', function(e){ e.preventDefault(); thumbEl.style.borderColor='var(--khaki)'; });
+    thumbEl.addEventListener('dragleave', function(){ thumbEl.style.borderColor=''; });
+    thumbEl.addEventListener('drop', function(e){
+      e.preventDefault();
+      thumbEl.style.borderColor='';
+      const files = e.dataTransfer.files;
+      if(!files || !files.length) return;
+      const file = files[0];
+      if(file.type && file.type.indexOf('image') === 0){
+        resizeImageFile(file, 140, function(dataUrl){
+          getRow().thumb = dataUrl; onUpdate();
+        });
+      } else {
+        // not an image: at least prefill the filename into the lien field
+        const row = getRow();
+        if(!row.lien) row.lien = file.name;
+        onUpdate();
+      }
+    });
+  }
+
+  function renderThumb(container, row, onUpdate){
+    container.innerHTML = '';
+    if(row.thumb){
+      const img = document.createElement('img');
+      img.src = row.thumb;
+      img.addEventListener('click', function(ev){
+        ev.stopPropagation();
+        document.getElementById('lightboxImg').src = row.thumb;
+        document.getElementById('lightbox').style.display = 'flex';
+      });
+      const clr = document.createElement('div');
+      clr.className = 'clear-thumb';
+      clr.textContent = '✕';
+      clr.addEventListener('click', function(ev){
+        ev.stopPropagation();
+        row.thumb = null; onUpdate();
+      });
+      container.appendChild(img);
+      container.appendChild(clr);
+    } else {
+      container.textContent = extIcon(row.lien);
+    }
+  }
+
+  // ---------- CONTACTS ----------
+  function renderContacts(){
+    const wrap = document.getElementById('contactsList');
+    wrap.innerHTML = '';
+    if(!state.contacts.length){
+      wrap.innerHTML = '<div class="empty-hint">Aucun contact enregistré.</div>';
+    }
+    state.contacts.forEach(function(c){
+      const row = document.createElement('div');
+      row.innerHTML = `
+        <div class="contact-row">
+          <input data-f="nom" placeholder="Nom / organisme" value="${escapeAttr(c.nom)}">
+          <input data-f="role" placeholder="Rôle / service" value="${escapeAttr(c.role)}">
+          <button class="icon-btn" data-del>✕</button>
+        </div>
+        <div class="contact-row2">
+          <input data-f="tel" placeholder="Téléphone" value="${escapeAttr(c.tel)}">
+          <input data-f="email" placeholder="Email" value="${escapeAttr(c.email)}">
+        </div>
+        <input data-f="adresse" placeholder="Adresse" value="${escapeAttr(c.adresse)}" style="width:100%;margin-top:5px;">
+      `;
+      row.style.marginBottom = '10px';
+      row.style.paddingBottom = '8px';
+      row.style.borderBottom = '1px dashed var(--border-dim)';
+      row.querySelectorAll('input').forEach(inp => {
+        inp.addEventListener('change', function(){ c[inp.dataset.f] = inp.value; touch(); });
+      });
+      row.querySelector('[data-del]').addEventListener('click', function(){
+        state.contacts = state.contacts.filter(x => x.id !== c.id); touch();
+      });
+      wrap.appendChild(row);
+    });
+  }
+
+  // ---------- DOCS REF ----------
+  function renderDocsRef(){
+    const wrap = document.getElementById('docsRefList');
+    wrap.innerHTML = '';
+    if(!state.docsRef.length){
+      wrap.innerHTML = '<div class="empty-hint">Aucun document de référence.</div>';
+    }
+    state.docsRef.forEach(function(d){
+      wrap.appendChild(buildDocLikeRow(d, function(){ 
+        state.docsRef = state.docsRef.filter(x => x.id !== d.id); touch();
+      }, 'doc-row'));
+    });
+  }
+
+  // shared builder for docRef rows (no statut) and piece rows (with statut)
+  function buildDocLikeRow(item, onDelete, cls, withStatut){
+    const row = document.createElement('div');
+    row.className = cls;
+
+    const thumbEl = document.createElement('div');
+    thumbEl.className = 'thumb';
+    function refreshThumb(){ renderThumb(thumbEl, item, refreshThumb); }
+    refreshThumb();
+    attachThumbEvents(thumbEl, () => item, function(){ refreshThumb(); touch(); });
+    row.appendChild(thumbEl);
+
+    const fields = document.createElement('div');
+    fields.className = 'row-fields';
+
+    const nameLine = document.createElement('div');
+    nameLine.className = 'name-line';
+    const nomInput = document.createElement('input');
+    nomInput.className = 'nom';
+    nomInput.placeholder = 'Nom de la pièce / du document';
+    nomInput.value = item.nom || '';
+    nomInput.addEventListener('change', () => { item.nom = nomInput.value; touch(); });
+    nameLine.appendChild(nomInput);
+
+    if(withStatut){
+      const sel = document.createElement('select');
+      sel.className = 'statut';
+      sel.innerHTML = `<option value="a_faire">à faire</option><option value="attente">en attente</option><option value="fourni">fourni</option>`;
+      sel.value = item.statut || 'a_faire';
+      sel.dataset.v = sel.value;
+      sel.addEventListener('change', () => { item.statut = sel.value; sel.dataset.v = sel.value; touch(); });
+      nameLine.appendChild(sel);
+    }
+    fields.appendChild(nameLine);
+
+    const linkLine = document.createElement('div');
+    linkLine.className = 'link-line';
+    const lienInput = document.createElement('input');
+    lienInput.className = 'lien';
+    lienInput.placeholder = './pieces/nom_fichier.pdf  (chemin relatif ou absolu)';
+    lienInput.value = item.lien || '';
+    const openLink = document.createElement('a');
+    openLink.className = 'open-link';
+    openLink.textContent = '🔗';
+    openLink.href = item.lien || '#';
+    openLink.target = '_blank';
+    openLink.rel = 'noopener';
+    lienInput.addEventListener('input', () => { item.lien = lienInput.value; openLink.href = item.lien || '#'; refreshThumbIcon(); });
+    lienInput.addEventListener('change', () => touch());
+    function refreshThumbIcon(){ if(!item.thumb){ thumbEl.textContent = extIcon(item.lien); } }
+    linkLine.appendChild(lienInput);
+    linkLine.appendChild(openLink);
+    fields.appendChild(linkLine);
+
+    const noteInput = document.createElement('textarea');
+    noteInput.rows = 1;
+    noteInput.className = 'row-note';
+    noteInput.placeholder = 'note (optionnel)';
+    noteInput.value = item.note || '';
+    noteInput.addEventListener('change', () => { item.note = noteInput.value; touch(); });
+    fields.appendChild(noteInput);
+
+    row.appendChild(fields);
+
+    const actions = document.createElement('div');
+    actions.className = 'row-actions';
+    if(withStatut){
+      const badge = document.createElement('span');
+      badge.className = 'badge ' + (item.statut || 'a_faire');
+      badge.textContent = (item.statut === 'fourni' ? 'fourni' : item.statut === 'attente' ? 'attente' : 'à faire');
+      actions.appendChild(badge);
+    }
+    const delBtn = document.createElement('button');
+    delBtn.className = 'icon-btn';
+    delBtn.textContent = '✕';
+    delBtn.addEventListener('click', onDelete);
+    actions.appendChild(delBtn);
+    row.appendChild(actions);
+
+    return row;
+  }
+
+  // ---------- PIECES ----------
+  function renderPieces(){
+    const wrap = document.getElementById('piecesList');
+    wrap.innerHTML = '';
+    if(!state.pieces.length){
+      wrap.innerHTML = '<div class="empty-hint">Aucune pièce enregistrée.</div>';
+    }
+    state.pieces.forEach(function(p){
+      wrap.appendChild(buildDocLikeRow(p, function(){
+        state.pieces = state.pieces.filter(x => x.id !== p.id); touch();
+      }, 'piece-row', true));
+    });
+    const total = state.pieces.length;
+    const fournies = state.pieces.filter(p => p.statut === 'fourni').length;
+    document.getElementById('progressLabel').textContent = `${fournies}/${total} fournies`;
+    document.getElementById('progressFill').style.width = total ? Math.round(fournies/total*100) + '%' : '0%';
+  }
+
+  // ---------- JOURNAL ----------
+  function renderJournal(){
+    const wrap = document.getElementById('journalEntries');
+    wrap.innerHTML = '';
+    if(!state.journal.length){
+      wrap.innerHTML = '<div class="empty-hint">Aucune note pour l\'instant.</div>';
+      return;
+    }
+    const sorted = [...state.journal].sort((a,b) => b.ts - a.ts);
+    sorted.forEach(function(j){
+      const el = document.createElement('div');
+      el.className = 'journal-entry';
+      el.innerHTML = `<div class="jdate">${escapeHtml(j.date)}</div><div class="jtext"></div><button class="jdel" title="supprimer">✕</button>`;
+      el.querySelector('.jtext').textContent = j.texte;
+      el.querySelector('.jdel').addEventListener('click', function(){
+        state.journal = state.journal.filter(x => x.id !== j.id); touch();
+      });
+      wrap.appendChild(el);
+    });
+  }
+
+  function escapeHtml(s){
+    return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function escapeAttr(s){ return escapeHtml(s); }
+
+  function renderHeader(){
+    document.getElementById('titreDossier').value = state.titre;
+    document.getElementById('objetDossier').value = state.objet;
+    document.getElementById('dateCreation').textContent = state.dateCreation;
+    document.getElementById('dateMaj').textContent = state.dateMaj || '--';
+  }
+
+  function renderAll(){
+    renderHeader();
+    renderContacts();
+    renderDocsRef();
+    renderPieces();
+    renderJournal();
+    document.getElementById('notesLibres').value = state.notes || '';
+  }
+
+  // ---------- bindings ----------
+  document.getElementById('titreDossier').addEventListener('change', function(e){
+    state.titre = e.target.value.trim() || 'Dossier sans titre'; touch();
+  });
+  document.getElementById('objetDossier').addEventListener('change', function(e){
+    state.objet = e.target.value; touch();
+  });
+  document.getElementById('notesLibres').addEventListener('change', function(e){
+    state.notes = e.target.value; touch();
+  });
+
+  document.getElementById('btnAddContact').addEventListener('click', function(){
+    state.contacts.push({id:uid(), nom:'', role:'', tel:'', email:'', adresse:''}); touch();
+  });
+  document.getElementById('btnAddDocRef').addEventListener('click', function(){
+    state.docsRef.push({id:uid(), nom:'', lien:'', note:'', thumb:null}); touch();
+  });
+  document.getElementById('btnAddPiece').addEventListener('click', function(){
+    state.pieces.push({id:uid(), nom:'', lien:'', note:'', statut:'a_faire', thumb:null}); touch();
+  });
+  document.getElementById('btnAddJournal').addEventListener('click', function(){
+    const inp = document.getElementById('journalInput');
+    const txt = inp.value.trim();
+    if(!txt) return;
+    state.journal.push({id:uid(), date: nowStr(), texte: txt, ts: Date.now()});
+    inp.value = '';
+    touch();
+  });
+  document.getElementById('journalInput').addEventListener('keydown', function(e){
+    if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){
+      document.getElementById('btnAddJournal').click();
+    }
+  });
+
+  document.getElementById('btnExport').addEventListener('click', function(){
+    const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = slug(state.titre) + '.json';
+    a.click();
+    setDirty(false);
+  });
+  document.getElementById('btnImportTrigger').addEventListener('click', function(){
+    document.getElementById('btnImport').click();
+  });
+  document.getElementById('btnImport').addEventListener('change', function(e){
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev){
+      try{
+        const parsed = JSON.parse(ev.target.result);
+        state = Object.assign({
+          titre:'Nouveau dossier', objet:'', dateCreation: todayStr(),
+          contacts:[], notes:'', docsRef:[], pieces:[], journal:[]
+        }, parsed);
+        persist();
+      }catch(err){
+        alert('Fichier JSON invalide.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+  document.getElementById('btnReset').addEventListener('click', function(){
+    if(confirm('Effacer toutes les données de ce dossier ? Pense à exporter avant si besoin.')){
+      state = {titre:'Nouveau dossier', objet:'', dateCreation: todayStr(), contacts:[], notes:'', docsRef:[], pieces:[], journal:[]};
+      persist();
+    }
+  });
+
+  document.getElementById('lightbox').addEventListener('click', function(){
+    this.style.display = 'none';
+  });
+
+  // ---------- init ----------
+  load();
+  renderAll();
+  setDirty(false);
+})();
+</script>
+</body>
+</html>
