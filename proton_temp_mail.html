@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Générateur Proton temp-mail</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📧</text></svg>">
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --border:#2a2f3a;
+    --text:#e6e8ec; --muted:#8b93a3; --accent:#6d4aff; --accent2:#8a6bff;
+    --ok:#2ecc71; --danger:#e74c3c; --mono:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    background:var(--bg); color:var(--text); padding:24px;
+  }
+  h1{font-size:1.25rem; margin:0 0 4px}
+  .sub{color:var(--muted); font-size:.85rem; margin-bottom:20px}
+  .card{
+    background:var(--panel); border:1px solid var(--border); border-radius:10px;
+    padding:18px; margin-bottom:18px;
+  }
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+  label{font-size:.78rem; color:var(--muted); display:block; margin-bottom:4px}
+  select, input{
+    background:var(--panel2); border:1px solid var(--border); color:var(--text);
+    border-radius:6px; padding:8px 10px; font-size:.9rem; font-family:var(--mono);
+  }
+  select{font-family:inherit}
+  button{
+    cursor:pointer; border:none; border-radius:6px; padding:9px 14px;
+    font-size:.85rem; font-weight:600; transition:opacity .15s;
+  }
+  button:hover{opacity:.85}
+  .btn-main{background:var(--accent); color:#fff}
+  .btn-ghost{background:var(--panel2); color:var(--text); border:1px solid var(--border)}
+  .btn-danger{background:transparent; color:var(--danger); border:1px solid var(--danger)}
+  .result{margin-top:14px}
+  .field{
+    display:flex; align-items:center; gap:8px; background:var(--panel2);
+    border:1px solid var(--border); border-radius:6px; padding:8px 10px; margin-bottom:8px;
+  }
+  .field span.k{color:var(--muted); font-size:.7rem; width:70px; flex-shrink:0; text-transform:uppercase; letter-spacing:.05em}
+  .field code{font-family:var(--mono); font-size:.92rem; flex:1; word-break:break-all}
+  .field button{padding:5px 9px; font-size:.75rem}
+  table{width:100%; border-collapse:collapse; font-size:.82rem}
+  th,td{text-align:left; padding:8px 6px; border-bottom:1px solid var(--border)}
+  th{color:var(--muted); font-weight:600; font-size:.72rem; text-transform:uppercase}
+  td code{font-family:var(--mono)}
+  tr:hover{background:var(--panel2)}
+  .actions-col{white-space:nowrap; text-align:right}
+  .empty{color:var(--muted); font-size:.85rem; text-align:center; padding:20px}
+  .toast{
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+    background:var(--accent); color:#fff; padding:9px 16px; border-radius:20px;
+    font-size:.82rem; opacity:0; pointer-events:none; transition:opacity .2s;
+  }
+  .toast.show{opacity:1}
+  .footer-row{display:flex; justify-content:space-between; align-items:center; margin-top:10px}
+  .count{color:var(--muted); font-size:.78rem}
+</style>
+</head>
+<body>
+
+<h1>📧 Générateur d'identités temporaires</h1>
+<div class="sub">Génère une adresse email plausible + mot de passe robuste. Aucune connexion réseau — tout reste dans ce fichier (localStorage) + export JSON.</div>
+
+<div class="card">
+  <div class="row">
+    <div>
+      <label>Domaine</label>
+      <select id="domain">
+        <option value="proton.me">proton.me</option>
+        <option value="protonmail.com">protonmail.com</option>
+        <option value="pm.me">pm.me</option>
+        <option value="custom">— personnalisé —</option>
+      </select>
+    </div>
+    <div id="customDomainWrap" style="display:none">
+      <label>Domaine personnalisé</label>
+      <input id="customDomain" placeholder="exemple.com">
+    </div>
+    <div>
+      <label>Style du nom</label>
+      <select id="style">
+        <option value="word">mot + chiffres</option>
+        <option value="random">chaîne aléatoire</option>
+        <option value="firstlast">prénom.nom</option>
+      </select>
+    </div>
+    <div>
+      <label>Longueur mot de passe</label>
+      <input id="pwlen" type="number" min="8" max="64" value="18" style="width:70px">
+    </div>
+    <div style="align-self:flex-end">
+      <button class="btn-main" onclick="generate()">⚡ Générer</button>
+    </div>
+  </div>
+
+  <div class="result" id="result" style="display:none">
+    <div class="field">
+      <span class="k">Email</span>
+      <code id="outEmail"></code>
+      <button class="btn-ghost" onclick="copyText('outEmail')">Copier</button>
+    </div>
+    <div class="field">
+      <span class="k">Mot de passe</span>
+      <code id="outPass"></code>
+      <button class="btn-ghost" onclick="copyText('outPass')">Copier</button>
+    </div>
+    <div class="row">
+      <button class="btn-ghost" onclick="saveCurrent()">💾 Sauvegarder</button>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="footer-row">
+    <strong style="font-size:.9rem">Historique</strong>
+    <div class="row">
+      <button class="btn-ghost" onclick="exportJson()">⬇ Exporter JSON</button>
+      <button class="btn-ghost" onclick="document.getElementById('importFile').click()">⬆ Importer JSON</button>
+      <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importJson(event)">
+      <button class="btn-danger" onclick="clearAll()">🗑 Tout effacer</button>
+    </div>
+  </div>
+  <table id="table" style="margin-top:12px">
+    <thead>
+      <tr><th>Créé le</th><th>Email</th><th>Mot de passe</th><th class="actions-col">Actions</th></tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <div id="emptyMsg" class="empty" style="display:none">Aucune identité enregistrée pour l'instant.</div>
+  <div class="count" id="count"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORE_KEY = 'temp_identities_v1';
+let current = null;
+
+const WORDS = ['nova','orion','cobalt','ember','quartz','lumen','onyx','drift','pixel','vale',
+  'raven','cedar','ionis','flux','nimbus','sable','tundra','opal','vertex','solace'];
+
+function el(id){ return document.getElementById(id); }
+
+el('domain').addEventListener('change', () => {
+  el('customDomainWrap').style.display = el('domain').value === 'custom' ? 'block' : 'none';
+});
+
+function randInt(max){ return Math.floor(Math.random()*max); }
+
+function randomLocalPart(style){
+  if(style === 'random'){
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let s = '';
+    for(let i=0;i<10;i++) s += chars[randInt(chars.length)];
+    return s;
+  }
+  if(style === 'firstlast'){
+    const first = WORDS[randInt(WORDS.length)];
+    const last = WORDS[randInt(WORDS.length)];
+    return `${first}.${last}${randInt(90)+10}`;
+  }
+  // word
+  const w = WORDS[randInt(WORDS.length)];
+  return `${w}${randInt(9000)+100}`;
+}
+
+function generatePassword(len){
+  const lower = 'abcdefghijklmnopqrstuvwxyz';
+  const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const digits = '0123456789';
+  const symbols = '!@#$%^&*-_=+?';
+  const all = lower+upper+digits+symbols;
+  let pw = [
+    lower[randInt(lower.length)],
+    upper[randInt(upper.length)],
+    digits[randInt(digits.length)],
+    symbols[randInt(symbols.length)]
+  ];
+  for(let i=pw.length;i<len;i++) pw.push(all[randInt(all.length)]);
+  // shuffle
+  for(let i=pw.length-1;i>0;i--){
+    const j = randInt(i+1);
+    [pw[i],pw[j]] = [pw[j],pw[i]];
+  }
+  return pw.join('');
+}
+
+function generate(){
+  const domainSel = el('domain').value;
+  const domain = domainSel === 'custom' ? (el('customDomain').value.trim() || 'exemple.com') : domainSel;
+  const style = el('style').value;
+  const pwlen = Math.min(64, Math.max(8, parseInt(el('pwlen').value) || 18));
+
+  const local = randomLocalPart(style);
+  const email = `${local}@${domain}`;
+  const password = generatePassword(pwlen);
+
+  current = { email, password, createdAt: new Date().toISOString() };
+
+  el('outEmail').textContent = email;
+  el('outPass').textContent = password;
+  el('result').style.display = 'block';
+}
+
+function loadStore(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  }catch(e){ return []; }
+}
+
+function saveStore(list){
+  localStorage.setItem(STORE_KEY, JSON.stringify(list, null, 2));
+}
+
+function saveCurrent(){
+  if(!current) return;
+  const list = loadStore();
+  list.unshift(current);
+  saveStore(list);
+  renderTable();
+  toast('Identité sauvegardée');
+}
+
+function renderTable(){
+  const list = loadStore();
+  const tbody = el('tbody');
+  tbody.innerHTML = '';
+  el('emptyMsg').style.display = list.length ? 'none' : 'block';
+  el('count').textContent = list.length ? `${list.length} identité(s) enregistrée(s)` : '';
+
+  list.forEach((item, idx) => {
+    const tr = document.createElement('tr');
+    const date = new Date(item.createdAt).toLocaleString('fr-FR');
+    tr.innerHTML = `
+      <td>${date}</td>
+      <td><code>${escapeHtml(item.email)}</code></td>
+      <td><code>${escapeHtml(item.password)}</code></td>
+      <td class="actions-col">
+        <button class="btn-ghost" onclick="copyRaw('${escapeAttr(item.email)}')">Copier email</button>
+        <button class="btn-ghost" onclick="copyRaw('${escapeAttr(item.password)}')">Copier mdp</button>
+        <button class="btn-danger" onclick="deleteItem(${idx})">Suppr</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function deleteItem(idx){
+  const list = loadStore();
+  list.splice(idx,1);
+  saveStore(list);
+  renderTable();
+}
+
+function clearAll(){
+  if(!confirm('Effacer toutes les identités enregistrées ?')) return;
+  saveStore([]);
+  renderTable();
+  toast('Historique effacé');
+}
+
+function exportJson(){
+  const list = loadStore();
+  const blob = new Blob([JSON.stringify(list, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `temp_identities_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importJson(evt){
+  const file = evt.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const imported = JSON.parse(reader.result);
+      if(!Array.isArray(imported)) throw new Error('format invalide');
+      const list = loadStore();
+      saveStore(list.concat(imported));
+      renderTable();
+      toast(`${imported.length} identité(s) importée(s)`);
+    }catch(e){
+      toast('Erreur : fichier JSON invalide');
+    }
+  };
+  reader.readAsText(file);
+  evt.target.value = '';
+}
+
+function copyText(id){
+  copyRaw(el(id).textContent);
+}
+
+function copyRaw(text){
+  navigator.clipboard.writeText(text).then(() => toast('Copié !'));
+}
+
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(s){ return s.replace(/'/g, "\\'"); }
+
+let toastTimer;
+function toast(msg){
+  const t = el('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+renderTable();
+</script>
+</body>
+</html>
