@@ -7678,7 +7678,7 @@ function ghLinkGenerate(){
 <!-- ═══════════ WIDGET BASCULE Claude / ChatGPT / GitHub (déplaçable) ═══════════ -->
 <style>
 #flipToggleWidget{position:fixed;bottom:41px;left:calc(50% + 150px);z-index:950;font-family:inherit;touch-action:none;}
-#flipToggleBtn{width:52px;height:128px;border-radius:14px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.35);border:1.5px solid rgba(255,255,255,.15);background:#0b0b0f;display:flex;flex-direction:column;transition:box-shadow .2s,transform .15s;cursor:grab;}
+#flipToggleBtn{width:52px;height:160px;border-radius:14px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.35);border:1.5px solid rgba(255,255,255,.15);background:#0b0b0f;display:flex;flex-direction:column;transition:box-shadow .2s,transform .15s;cursor:grab;}
 #flipToggleBtn.dragging{cursor:grabbing;box-shadow:0 8px 26px rgba(0,0,0,.45);transition:box-shadow .2s;}
 #flipToggleBtn:hover{transform:scale(1.04);}
 .flipHalf{
@@ -7703,6 +7703,9 @@ function ghLinkGenerate(){
     </div>
     <div class="flipHalf" title="Ouvrir GitHub" data-url="https://github.com/bencm0i" style="background:linear-gradient(160deg,#3a3a3a,#111);">
       <span class="flipIcon">🐙</span><span>GitHub</span>
+    </div>
+    <div class="flipHalf" title="Ouvrir NotebookLM" data-url="https://notebooklm.google.com/" style="background:linear-gradient(160deg,#4285f4,#673ab7);">
+      <span class="flipIcon">📓</span><span>NLM</span>
     </div>
   </div>
 </div>
