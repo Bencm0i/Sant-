@@ -7901,36 +7901,53 @@ function ghLinkGenerate(){
 })();
 </script>
 
-<!-- ═══════════ WIDGET MOT DE PASSE SANDBOX (déplaçable, masquable comme le champignon) ═══════════ -->
+<!-- ═══════════ WIDGET GESTIONNAIRE DE MOTS DE PASSE (déplaçable, masquable comme le champignon) ═══════════ -->
 <style>
-#pwdWidget{position:fixed;bottom:24px;right:24px;z-index:960;width:220px;touch-action:none;background:var(--surface);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1.5px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+#pwdWidget{position:fixed;bottom:24px;right:24px;z-index:960;width:290px;touch-action:none;background:var(--surface);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1.5px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
 #pwdWidget.hidden-widget{display:none;}
 #pwdWidgetHead{cursor:grab;user-select:none;}
 #pwdWidgetHead.dragging{cursor:grabbing;}
-#pwdWidgetBody{padding:10px 14px 14px;display:flex;flex-direction:column;gap:8px;}
+#pwdWidgetBody{padding:10px 12px 12px;display:flex;flex-direction:column;gap:8px;}
 #pwdWidgetBody.collapsed{display:none;}
 .pwd-row{display:flex;align-items:center;gap:6px;}
-#sandboxPwdInput{flex:1;min-width:0;font-family:'Inter',sans-serif;font-size:0.78rem;padding:6px 8px;border-radius:8px;border:1.5px solid var(--border);background:rgba(255,255,255,0.65);color:var(--text);outline:none;}
-.pwd-eye-btn{background:transparent;border:none;cursor:pointer;font-size:1rem;opacity:.6;transition:opacity .15s;padding:2px 4px;flex-shrink:0;}
-.pwd-eye-btn:hover{opacity:1;}
+#pwdSearchInput{flex:1;min-width:0;font-family:'Inter',sans-serif;font-size:0.75rem;padding:6px 8px;border-radius:8px;border:1.5px solid var(--border);background:rgba(255,255,255,0.65);color:var(--text);outline:none;}
+.pwd-eye-btn,.pwd-mini-btn{background:transparent;border:none;cursor:pointer;font-size:0.9rem;opacity:.6;transition:opacity .15s;padding:2px 4px;flex-shrink:0;}
+.pwd-eye-btn:hover,.pwd-mini-btn:hover{opacity:1;}
 .pwd-copy-btn{flex:1;justify-content:center;padding:6px 4px;font-size:0.62rem;letter-spacing:0.02em;}
 #pwdWidgetRevive{position:fixed;bottom:24px;right:0;z-index:960;width:26px;height:46px;border-radius:10px 0 0 10px;background:var(--surface);backdrop-filter:blur(16px);border:1.5px solid var(--border);border-right:none;display:none;align-items:center;justify-content:center;cursor:pointer;box-shadow:-2px 2px 10px rgba(0,0,0,.2);}
 #pwdWidgetRevive span{font-size:15px;}
+#pwdEntryList{display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto;}
+.pwd-entry{border:1.5px solid var(--border);border-radius:10px;padding:7px 8px;background:rgba(255,255,255,0.4);}
+.pwd-entry-top{display:flex;align-items:center;gap:6px;}
+.pwd-entry-label{flex:1;min-width:0;font-family:'Inter',sans-serif;font-size:0.78rem;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pwd-entry-field-row{display:flex;align-items:center;gap:4px;margin-top:3px;}
+.pwd-entry-field-row input{flex:1;min-width:0;font-family:'Inter',sans-serif;font-size:0.7rem;padding:4px 6px;border-radius:7px;border:1.5px solid var(--border);background:rgba(255,255,255,0.6);color:var(--text);outline:none;}
+.pwd-entry-field-row input[readonly]{cursor:default;}
+.pwd-empty-msg{font-family:'Inter',sans-serif;font-size:0.72rem;color:var(--muted);text-align:center;padding:6px 0;}
+#pwdAddForm{display:none;flex-direction:column;gap:6px;border-top:1.5px solid rgba(255,255,255,0.6);padding-top:8px;margin-top:2px;}
+#pwdAddForm.open{display:flex;}
+#pwdAddForm input{font-family:'Inter',sans-serif;font-size:0.75rem;padding:6px 8px;border-radius:8px;border:1.5px solid var(--border);background:rgba(255,255,255,0.65);color:var(--text);outline:none;}
 </style>
 <div id="pwdWidget">
-  <div class="card-head" id="pwdWidgetHead" title="Sandbox — glisser pour déplacer, double-clic pour masquer">
-    <span class="card-title">🔒 Sandbox</span>
+  <div class="card-head" id="pwdWidgetHead" title="Gestionnaire de mots de passe — glisser pour déplacer, double-clic pour masquer">
+    <span class="card-title">🔒 Mots de passe</span>
     <span class="card-action" id="pwdWidgetChevron" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()" onclick="event.stopPropagation(); togglePwdWidgetCollapse();">▾</span>
   </div>
   <div id="pwdWidgetBody">
     <div class="pwd-row">
-      <input id="sandboxPwdInput" type="password" placeholder="Mot de passe par défaut" onmousedown="event.stopPropagation()">
-      <button class="pwd-eye-btn" id="sandboxPwdEye" onmousedown="event.stopPropagation()" onclick="event.stopPropagation(); toggleSandboxPwd();" title="Afficher / masquer">👁</button>
+      <input id="pwdSearchInput" type="text" placeholder="Rechercher…" onmousedown="event.stopPropagation()">
+      <button class="pwd-mini-btn" id="pwdAddToggleBtn" onmousedown="event.stopPropagation()" onclick="event.stopPropagation(); togglePwdAddForm();" title="Ajouter une entrée">➕</button>
     </div>
-    <button class="bg-btn pwd-copy-btn" onmousedown="event.stopPropagation()" onclick="event.stopPropagation(); copySandboxPwd(this);">📋 Copier</button>
+    <div id="pwdEntryList" onmousedown="event.stopPropagation()"></div>
+    <div id="pwdAddForm" onmousedown="event.stopPropagation()">
+      <input id="pwdNewLabel" type="text" placeholder="Nom du site / service">
+      <input id="pwdNewLogin" type="text" placeholder="Identifiant / login">
+      <input id="pwdNewPwd" type="text" placeholder="Mot de passe">
+      <button class="bg-btn pwd-copy-btn" onclick="event.stopPropagation(); saveNewPwdEntry();">💾 Enregistrer</button>
+    </div>
   </div>
 </div>
-<div id="pwdWidgetRevive" title="Réafficher le widget Sandbox"><span>🔒</span></div>
+<div id="pwdWidgetRevive" title="Réafficher le gestionnaire de mots de passe"><span>🔒</span></div>
 <script>
 (function(){
   const wrap = document.getElementById('pwdWidget');
@@ -8015,31 +8032,123 @@ function ghLinkGenerate(){
 
   revive.addEventListener('click', () => setHidden(false));
 
-  // ── mot de passe ──
-  const KEY = 'dashboard_sandbox_pwd';
+  // ── gestionnaire de mots de passe (multi-entrées) ──
+  const ENTRIES_KEY = 'dashboard_pwd_entries';
+  const OLD_KEY = 'dashboard_sandbox_pwd';
   const COLLAPSE_KEY = 'dashboard_sandbox_pwd_collapsed';
-  const inp = document.getElementById('sandboxPwdInput');
-  const eye = document.getElementById('sandboxPwdEye');
+  const list = document.getElementById('pwdEntryList');
+  const searchInp = document.getElementById('pwdSearchInput');
   const body = document.getElementById('pwdWidgetBody');
   const chevron = document.getElementById('pwdWidgetChevron');
+  const addForm = document.getElementById('pwdAddForm');
 
-  const savedPwd = localStorage.getItem(KEY);
-  if(savedPwd !== null) inp.value = savedPwd;
-  inp.addEventListener('input', () => localStorage.setItem(KEY, inp.value));
+  function loadEntries(){
+    try{ return JSON.parse(localStorage.getItem(ENTRIES_KEY) || '[]'); }
+    catch(e){ return []; }
+  }
+  function saveEntries(entries){
+    localStorage.setItem(ENTRIES_KEY, JSON.stringify(entries));
+  }
+  let entries = loadEntries();
 
-  window.toggleSandboxPwd = function(){
-    if(inp.type === 'password'){ inp.type = 'text'; eye.textContent = '🙈'; }
-    else { inp.type = 'password'; eye.textContent = '👁'; }
+  // migration depuis l'ancien mot de passe unique
+  const oldPwd = localStorage.getItem(OLD_KEY);
+  if(oldPwd !== null && oldPwd !== ''){
+    entries.push({id: 'e' + Date.now(), label: 'Ancien mot de passe', login: '', password: oldPwd});
+    saveEntries(entries);
+    localStorage.removeItem(OLD_KEY);
+  }
+
+  function flashBtn(btn, label){
+    if(!btn) return;
+    const original = btn.textContent;
+    btn.textContent = label;
+    setTimeout(() => { btn.textContent = original; }, 1100);
+  }
+
+  function copyText(text, btn){
+    if(!text) return;
+    navigator.clipboard?.writeText(text).then(() => flashBtn(btn, '✓')).catch(() => {});
+  }
+
+  function renderEntries(){
+    const filter = (searchInp.value || '').toLowerCase().trim();
+    const filtered = entries.filter(en =>
+      !filter || en.label.toLowerCase().includes(filter) || (en.login || '').toLowerCase().includes(filter)
+    );
+    if(filtered.length === 0){
+      list.innerHTML = '<div class="pwd-empty-msg">' + (entries.length === 0 ? 'Aucun mot de passe enregistré' : 'Aucun résultat') + '</div>';
+      return;
+    }
+    list.innerHTML = filtered.map(en => `
+      <div class="pwd-entry" data-id="${en.id}">
+        <div class="pwd-entry-top">
+          <span class="pwd-entry-label" title="${escapeAttr(en.label)}">${escapeHtml(en.label)}</span>
+          <button class="pwd-mini-btn" data-act="del" title="Supprimer">🗑</button>
+        </div>
+        ${en.login ? `<div class="pwd-entry-field-row">
+          <input type="text" readonly value="${escapeAttr(en.login)}" onclick="this.select()">
+          <button class="pwd-mini-btn" data-act="copylogin" title="Copier l'identifiant">👤</button>
+        </div>` : ''}
+        <div class="pwd-entry-field-row">
+          <input type="password" readonly value="${escapeAttr(en.password)}" onclick="this.select()">
+          <button class="pwd-mini-btn" data-act="toggle" title="Afficher / masquer">👁</button>
+          <button class="pwd-mini-btn" data-act="copypwd" title="Copier le mot de passe">📋</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function escapeHtml(s){
+    return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function escapeAttr(s){ return escapeHtml(s); }
+
+  list.addEventListener('click', e => {
+    const btn = e.target.closest('.pwd-mini-btn');
+    if(!btn) return;
+    const entryEl = e.target.closest('.pwd-entry');
+    const id = entryEl.dataset.id;
+    const act = btn.dataset.act;
+    if(act === 'del'){
+      if(!confirm('Supprimer cette entrée ?')) return;
+      entries = entries.filter(en => en.id !== id);
+      saveEntries(entries);
+      renderEntries();
+      return;
+    }
+    const en = entries.find(x => x.id === id);
+    if(!en) return;
+    if(act === 'copylogin'){
+      copyText(en.login, btn);
+    } else if(act === 'copypwd'){
+      copyText(en.password, btn);
+    } else if(act === 'toggle'){
+      const pwdInput = entryEl.querySelector('.pwd-entry-field-row:last-child input');
+      if(pwdInput.type === 'password'){ pwdInput.type = 'text'; btn.textContent = '🙈'; }
+      else { pwdInput.type = 'password'; btn.textContent = '👁'; }
+    }
+  });
+
+  searchInp.addEventListener('input', renderEntries);
+
+  window.togglePwdAddForm = function(){
+    addForm.classList.toggle('open');
+    if(addForm.classList.contains('open')) document.getElementById('pwdNewLabel').focus();
   };
 
-  window.copySandboxPwd = function(btn){
-    if(!inp.value) return;
-    navigator.clipboard?.writeText(inp.value).then(() => {
-      if(!btn) return;
-      const original = btn.textContent;
-      btn.textContent = '✓ Copié';
-      setTimeout(() => { btn.textContent = original; }, 1200);
-    }).catch(() => {});
+  window.saveNewPwdEntry = function(){
+    const label = document.getElementById('pwdNewLabel').value.trim();
+    const login = document.getElementById('pwdNewLogin').value.trim();
+    const pwd = document.getElementById('pwdNewPwd').value;
+    if(!label || !pwd){ alert('Nom et mot de passe requis.'); return; }
+    entries.push({id: 'e' + Date.now(), label, login, password: pwd});
+    saveEntries(entries);
+    document.getElementById('pwdNewLabel').value = '';
+    document.getElementById('pwdNewLogin').value = '';
+    document.getElementById('pwdNewPwd').value = '';
+    addForm.classList.remove('open');
+    renderEntries();
   };
 
   window.togglePwdWidgetCollapse = function(){
@@ -8051,6 +8160,8 @@ function ghLinkGenerate(){
     body.classList.add('collapsed');
     chevron.textContent = '▸';
   }
+
+  renderEntries();
 })();
 </script>
 </body>
