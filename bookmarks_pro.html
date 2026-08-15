@@ -8206,6 +8206,16 @@ function ghLinkGenerate(){
   const body = document.getElementById('kbdWidgetBody');
   const chevron = document.getElementById('kbdWidgetChevron');
 
+  function clampPos(left, top){
+    const w = wrap.offsetWidth || 520;
+    const h = wrap.offsetHeight || 200;
+    const maxLeft = Math.max(0, window.innerWidth - w);
+    const maxTop = Math.max(30, window.innerHeight - h - 4);
+    return {
+      left: Math.min(Math.max(0, left), maxLeft),
+      top: Math.min(Math.max(30, top), maxTop)
+    };
+  }
   function applyPos(left, top){
     wrap.style.left = left + 'px';
     wrap.style.top = top + 'px';
@@ -8213,7 +8223,21 @@ function ghLinkGenerate(){
     wrap.style.bottom = 'auto';
   }
   const savedPos = JSON.parse(localStorage.getItem(POS_KEY) || 'null');
-  if(savedPos) applyPos(savedPos.left, savedPos.top);
+  if(savedPos){
+    const c = clampPos(savedPos.left, savedPos.top);
+    applyPos(c.left, c.top);
+    if(c.left !== savedPos.left || c.top !== savedPos.top){
+      localStorage.setItem(POS_KEY, JSON.stringify(c));
+    }
+  }
+  window.addEventListener('resize', () => {
+    const r = wrap.getBoundingClientRect();
+    const c = clampPos(r.left, r.top);
+    if(c.left !== r.left || c.top !== r.top){
+      applyPos(c.left, c.top);
+      localStorage.setItem(POS_KEY, JSON.stringify(c));
+    }
+  });
 
   function setHidden(hidden){
     wrap.classList.toggle('hidden-widget', hidden);
