@@ -8164,5 +8164,154 @@ function ghLinkGenerate(){
   renderEntries();
 })();
 </script>
+
+<!-- ═══════════ WIDGET CLAVIER AZERTY (déplaçable, masquable comme les autres widgets) ═══════════ -->
+<style>
+#kbdWidget{position:fixed;bottom:24px;left:24px;z-index:960;width:520px;max-width:calc(100vw - 24px);touch-action:none;background:var(--surface);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1.5px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+#kbdWidget.hidden-widget{display:none;}
+#kbdWidgetHead{cursor:grab;user-select:none;}
+#kbdWidgetHead.dragging{cursor:grabbing;}
+#kbdWidgetBody{padding:12px 14px 14px;display:flex;flex-direction:column;gap:5px;}
+#kbdWidgetBody.collapsed{display:none;}
+#kbdWidgetRevive{position:fixed;bottom:24px;left:0;z-index:960;width:26px;height:46px;border-radius:0 10px 10px 0;background:var(--surface);backdrop-filter:blur(16px);border:1.5px solid var(--border);border-left:none;display:none;align-items:center;justify-content:center;cursor:pointer;box-shadow:2px 2px 10px rgba(0,0,0,.2);}
+#kbdWidgetRevive span{font-size:15px;}
+.kbd-row{display:flex;gap:4px;justify-content:center;}
+.kbd-key{position:relative;flex:1;min-width:0;aspect-ratio:1/0.85;border-radius:7px;border:1.5px solid var(--border);background:rgba(255,255,255,0.55);display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;font-weight:700;font-size:0.85rem;color:var(--text);}
+.kbd-key.changed{background:linear-gradient(135deg,var(--c1),var(--c2));color:#fff;border-color:transparent;box-shadow:0 2px 8px rgba(51,70,92,0.35);}
+.kbd-key .kbd-old{position:absolute;top:1px;right:3px;font-size:0.5rem;font-weight:600;opacity:.65;letter-spacing:0;}
+.kbd-legend{display:flex;align-items:center;gap:14px;margin-top:6px;font-family:'Inter',sans-serif;font-size:0.68rem;color:var(--muted);}
+.kbd-legend-swatch{display:inline-block;width:12px;height:12px;border-radius:4px;margin-right:5px;vertical-align:middle;}
+</style>
+<div id="kbdWidget">
+  <div class="card-head" id="kbdWidgetHead" title="Disposition AZERTY — glisser pour déplacer, double-clic pour masquer">
+    <span class="card-title">⌨️ AZERTY vs QWERTY</span>
+    <span class="card-action" id="kbdWidgetChevron" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()" onclick="event.stopPropagation(); toggleKbdWidgetCollapse();">▾</span>
+  </div>
+  <div id="kbdWidgetBody">
+    <div id="kbdRows"></div>
+    <div class="kbd-legend">
+      <span><span class="kbd-legend-swatch" style="background:linear-gradient(135deg,var(--c1),var(--c2));"></span>Touche différente en QWERTY (petite lettre = touche QWERTY à cet emplacement)</span>
+    </div>
+  </div>
+</div>
+<div id="kbdWidgetRevive" title="Réafficher le clavier AZERTY"><span>⌨️</span></div>
+<script>
+(function(){
+  const wrap = document.getElementById('kbdWidget');
+  const head = document.getElementById('kbdWidgetHead');
+  const revive = document.getElementById('kbdWidgetRevive');
+  const POS_KEY = 'kbdWidgetPos';
+  const HIDDEN_KEY = 'kbdWidgetHidden';
+  const COLLAPSE_KEY = 'kbdWidgetCollapsed';
+  const body = document.getElementById('kbdWidgetBody');
+  const chevron = document.getElementById('kbdWidgetChevron');
+
+  function applyPos(left, top){
+    wrap.style.left = left + 'px';
+    wrap.style.top = top + 'px';
+    wrap.style.right = 'auto';
+    wrap.style.bottom = 'auto';
+  }
+  const savedPos = JSON.parse(localStorage.getItem(POS_KEY) || 'null');
+  if(savedPos) applyPos(savedPos.left, savedPos.top);
+
+  function setHidden(hidden){
+    wrap.classList.toggle('hidden-widget', hidden);
+    revive.style.display = hidden ? 'flex' : 'none';
+    localStorage.setItem(HIDDEN_KEY, hidden ? '1' : '0');
+  }
+  setHidden(localStorage.getItem(HIDDEN_KEY) === '1');
+
+  let dragging = false, didDrag = false, startX, startY, origLeft, origTop;
+
+  function pointerDown(clientX, clientY){
+    dragging = true; didDrag = false;
+    startX = clientX; startY = clientY;
+    const r = wrap.getBoundingClientRect();
+    origLeft = r.left; origTop = r.top;
+    head.classList.add('dragging');
+  }
+  function pointerMove(clientX, clientY){
+    if(!dragging) return;
+    const dx = clientX - startX, dy = clientY - startY;
+    if(Math.abs(dx) > 3 || Math.abs(dy) > 3) didDrag = true;
+    const left = Math.max(0, Math.min(origLeft + dx, window.innerWidth - wrap.offsetWidth));
+    const top = Math.max(30, Math.min(origTop + dy, window.innerHeight - wrap.offsetHeight - 4));
+    applyPos(left, top);
+  }
+  let clickTimer = null;
+  function pointerUp(){
+    if(!dragging) return;
+    dragging = false;
+    head.classList.remove('dragging');
+    if(!didDrag){
+      if(clickTimer){
+        clearTimeout(clickTimer);
+        clickTimer = null;
+        setHidden(true);
+      } else {
+        clickTimer = setTimeout(() => { clickTimer = null; }, 280);
+      }
+    } else {
+      const r = wrap.getBoundingClientRect();
+      localStorage.setItem(POS_KEY, JSON.stringify({left: r.left, top: r.top}));
+    }
+  }
+
+  head.addEventListener('mousedown', e => {
+    if(e.button !== 0) return;
+    pointerDown(e.clientX, e.clientY);
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', e => pointerMove(e.clientX, e.clientY));
+  document.addEventListener('mouseup', pointerUp);
+
+  head.addEventListener('touchstart', e => {
+    const t = e.touches[0];
+    pointerDown(t.clientX, t.clientY);
+  }, {passive: true});
+  document.addEventListener('touchmove', e => {
+    if(!dragging) return;
+    const t = e.touches[0];
+    pointerMove(t.clientX, t.clientY);
+    e.preventDefault();
+  }, {passive: false});
+  document.addEventListener('touchend', pointerUp);
+
+  revive.addEventListener('click', () => setHidden(false));
+
+  window.toggleKbdWidgetCollapse = function(){
+    const collapsed = body.classList.toggle('collapsed');
+    chevron.textContent = collapsed ? '▸' : '▾';
+    localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0');
+  };
+  if(localStorage.getItem(COLLAPSE_KEY) === '1'){
+    body.classList.add('collapsed');
+    chevron.textContent = '▸';
+  }
+
+  // ── disposition AZERTY (FR) vs QWERTY (US), touche par touche, même position physique ──
+  const rows = [
+    [['1','&'],['2','é'],['3','"'],['4',"'"],['5','('],['6','-'],['7','è'],['8','_'],['9','ç'],['0','à'],['-',')'],['=','=']],
+    [['Q','A'],['W','Z'],['E','E'],['R','R'],['T','T'],['Y','Y'],['U','U'],['I','I'],['O','O'],['P','P'],['[','^'],[']','$']],
+    [['A','Q'],['S','S'],['D','D'],['F','F'],['G','G'],['H','H'],['J','J'],['K','K'],['L','L'],[';','M'],["'",'ù']],
+    [['Z','W'],['X','X'],['C','C'],['V','V'],['B','B'],['N','N'],['M',','],[',',';'],['.',':'],['/','!']]
+  ];
+
+  const rowsEl = document.getElementById('kbdRows');
+  rows.forEach(row => {
+    const rowDiv = document.createElement('div');
+    rowDiv.className = 'kbd-row';
+    row.forEach(([qwerty, azerty]) => {
+      const changed = qwerty.toUpperCase() !== azerty.toUpperCase();
+      const key = document.createElement('div');
+      key.className = 'kbd-key' + (changed ? ' changed' : '');
+      key.innerHTML = azerty + (changed ? '<span class="kbd-old">' + qwerty + '</span>' : '');
+      rowDiv.appendChild(key);
+    });
+    rowsEl.appendChild(rowDiv);
+  });
+})();
+</script>
 </body>
 </html>
