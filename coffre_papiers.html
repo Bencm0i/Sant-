@@ -171,7 +171,10 @@
       <label>Libellé (optionnel)</label>
       <input type="text" id="newLabel" placeholder="ex : CNI recto / verso">
       <label>Fichier (image ou PDF)</label>
-      <input type="file" id="newFile" accept="image/*,application/pdf">
+      <div id="dropZone" style="border:1px dashed var(--line);padding:14px 10px;text-align:center;font-size:12px;color:var(--text-dim);">
+        <input type="file" id="newFile" accept="image/*,application/pdf" style="border:none;padding:0;">
+        <div style="margin-top:6px;">ou glissez-déposez un fichier ici</div>
+      </div>
       <div class="row">
         <button class="primary" id="btnAdd">Chiffrer et ajouter au coffre</button>
       </div>
@@ -180,7 +183,22 @@
 
     <div class="panel">
       <h2>Documents (<span id="docCount2">0</span>)</h2>
-      <div id="docGrid" class="doc-grid"></div>
+      <div class="row" style="margin-top:0;">
+        <input type="text" id="searchBox" placeholder="rechercher par libellé ou nom de fichier..." style="flex:2;min-width:180px;">
+        <select id="filterCat" style="flex:1;min-width:140px;">
+          <option value="">Toutes les catégories</option>
+          <option>Carte d'identité</option>
+          <option>Passeport</option>
+          <option>Permis de conduire</option>
+          <option>Carte grise</option>
+          <option>Carte vitale</option>
+          <option>RIB</option>
+          <option>Justificatif de domicile</option>
+          <option>Titre de séjour</option>
+          <option>Autre</option>
+        </select>
+      </div>
+      <div id="docGrid" class="doc-grid" style="margin-top:14px;"></div>
       <div id="emptyMsg" class="empty">Aucun document pour l'instant.</div>
     </div>
 
@@ -336,6 +354,29 @@ document.getElementById('btnLock').addEventListener('click', () => {
   setLockStatus('', false);
 });
 
+// ---------- drag & drop ----------
+const dropZone = document.getElementById('dropZone');
+['dragenter','dragover'].forEach(ev => dropZone.addEventListener(ev, (e) => {
+  e.preventDefault(); e.stopPropagation();
+  dropZone.style.borderColor = 'var(--khaki)';
+  dropZone.style.color = 'var(--khaki)';
+}));
+['dragleave','drop'].forEach(ev => dropZone.addEventListener(ev, (e) => {
+  e.preventDefault(); e.stopPropagation();
+  dropZone.style.borderColor = 'var(--line)';
+  dropZone.style.color = 'var(--text-dim)';
+}));
+dropZone.addEventListener('drop', (e) => {
+  const files = e.dataTransfer.files;
+  if(files && files.length){
+    document.getElementById('newFile').files = files;
+  }
+});
+
+// ---------- search & filter ----------
+document.getElementById('searchBox').addEventListener('input', renderDocs);
+document.getElementById('filterCat').addEventListener('change', renderDocs);
+
 // ---------- add document ----------
 document.getElementById('btnAdd').addEventListener('click', async () => {
   const fileInput = document.getElementById('newFile');
@@ -372,8 +413,22 @@ function renderDocs(){
   grid.innerHTML = '';
   document.getElementById('docCount').textContent = state.documents.length + ' document(s)';
   document.getElementById('docCount2').textContent = state.documents.length;
-  document.getElementById('emptyMsg').style.display = state.documents.length ? 'none' : 'block';
-  state.documents.forEach((doc, idx) => {
+
+  const term = (document.getElementById('searchBox').value || '').trim().toLowerCase();
+  const catFilter = document.getElementById('filterCat').value;
+  const visible = state.documents.filter(d => {
+    const matchTerm = !term || d.label.toLowerCase().includes(term) || d.filename.toLowerCase().includes(term);
+    const matchCat = !catFilter || d.cat === catFilter;
+    return matchTerm && matchCat;
+  });
+
+  document.getElementById('emptyMsg').style.display = visible.length ? 'none' : 'block';
+  document.getElementById('emptyMsg').textContent = state.documents.length
+    ? 'Aucun document ne correspond à la recherche.'
+    : 'Aucun document pour l\'instant.';
+
+  visible.forEach((doc) => {
+    const idx = state.documents.indexOf(doc);
     const card = document.createElement('div');
     card.className = 'doc-card';
     card.innerHTML = `
@@ -464,8 +519,21 @@ async function openStampDialog(doc){
   document.getElementById('stampGenerate').addEventListener('click', async () => {
     const purpose = document.getElementById('stampPurpose').value.trim() || 'usage non précisé';
     const dateVal = document.getElementById('stampDate').value || today;
+    const wrap = document.getElementById('stampCanvasWrap');
+    document.getElementById('stampDownloadWrap').style.display = 'none';
+
+    if(doc.mime === 'application/pdf'){
+      wrap.innerHTML = '<p class="hint">Chargement du moteur PDF (nécessite une connexion internet, une seule fois)...</p>';
+      try{
+        await renderPdfStamp(doc, purpose, dateVal, wrap);
+      }catch(e){
+        wrap.innerHTML = `<p class="hint" style="color:var(--red);">Impossible de générer le filigrane PDF : ${escapeHtml(e.message)}</p>`;
+      }
+      return;
+    }
+
     if(!doc.mime.startsWith('image/')){
-      document.getElementById('stampCanvasWrap').innerHTML = '<p class="hint">Le filigrane n\'est disponible que pour les images (pas pour les PDF).</p>';
+      wrap.innerHTML = '<p class="hint">Le filigrane n\'est disponible que pour les images et les PDF.</p>';
       return;
     }
     const plain = await decryptBuffer(state.key, doc.iv, doc.data);
@@ -479,8 +547,8 @@ async function openStampDialog(doc){
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0);
       drawWatermark(ctx, canvas.width, canvas.height, purpose, dateVal);
-      document.getElementById('stampCanvasWrap').innerHTML = '';
-      document.getElementById('stampCanvasWrap').appendChild(canvas);
+      wrap.innerHTML = '';
+      wrap.appendChild(canvas);
       document.getElementById('stampDownloadWrap').style.display = 'flex';
       document.getElementById('stampDownload').onclick = () => {
         const link = document.createElement('a');
@@ -491,7 +559,58 @@ async function openStampDialog(doc){
       URL.revokeObjectURL(url);
     };
     img.src = url;
-  }, { once:true });
+  });
+}
+
+// ---------- PDF watermark (lazy-loads pdf.js from CDN, needs internet once) ----------
+function loadPdfJs(){
+  return new Promise((resolve, reject) => {
+    if(window.pdfjsLib) return resolve(window.pdfjsLib);
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload = () => {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      resolve(window.pdfjsLib);
+    };
+    s.onerror = () => reject(new Error('bibliothèque PDF injoignable — vérifiez la connexion internet.'));
+    document.head.appendChild(s);
+  });
+}
+
+async function renderPdfStamp(doc, purpose, dateVal, wrap){
+  const pdfjsLib = await loadPdfJs();
+  const plain = await decryptBuffer(state.key, doc.iv, doc.data);
+  const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(plain) }).promise;
+  wrap.innerHTML = '';
+  for(let p = 1; p <= pdf.numPages; p++){
+    const page = await pdf.getPage(p);
+    const viewport = page.getViewport({ scale: 2 });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d');
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    drawWatermark(ctx, canvas.width, canvas.height, purpose, dateVal);
+
+    const pageWrap = document.createElement('div');
+    pageWrap.style.marginBottom = '16px';
+    const label = document.createElement('div');
+    label.className = 'hint';
+    label.textContent = `Page ${p} / ${pdf.numPages}`;
+    pageWrap.appendChild(label);
+    pageWrap.appendChild(canvas);
+    const dlBtn = document.createElement('button');
+    dlBtn.style.marginTop = '6px';
+    dlBtn.textContent = `Télécharger page ${p}`;
+    dlBtn.onclick = () => {
+      const link = document.createElement('a');
+      link.download = `${doc.label.replace(/\s+/g,'_')}_page${p}_filigrane_${dateVal}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    };
+    pageWrap.appendChild(dlBtn);
+    wrap.appendChild(pageWrap);
+  }
 }
 
 function drawWatermark(ctx, w, h, purpose, dateVal){
