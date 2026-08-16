@@ -185,6 +185,21 @@
     </div>
 
     <div class="panel">
+      <h2>Sécurité</h2>
+      <div class="hint">Changer le mot de passe re-chiffre tous les documents (nouveau sel, nouvelle clé). Pensez à ré-exporter juste après.</div>
+      <label>Nouveau mot de passe</label>
+      <input type="password" id="newPw1" placeholder="nouveau mot de passe">
+      <label>Confirmer</label>
+      <input type="password" id="newPw2" placeholder="confirmer">
+      <label>Nouvel indice (optionnel)</label>
+      <input type="text" id="newPwHint" placeholder="laisser vide pour garder l'indice actuel">
+      <div class="row">
+        <button id="btnChangePw">Changer le mot de passe</button>
+      </div>
+      <div class="status" id="pwChangeStatus"></div>
+    </div>
+
+    <div class="panel">
       <h2>Sauvegarde du coffre</h2>
       <div class="hint">Le coffre ne vit qu'en mémoire dans cette page. Exportez-le après chaque modification pour ne rien perdre — le fichier exporté reste chiffré par votre mot de passe.</div>
       <div class="row">
@@ -358,7 +373,7 @@ function renderDocs(){
   document.getElementById('docCount').textContent = state.documents.length + ' document(s)';
   document.getElementById('docCount2').textContent = state.documents.length;
   document.getElementById('emptyMsg').style.display = state.documents.length ? 'none' : 'block';
-  state.documents.forEach(doc => {
+  state.documents.forEach((doc, idx) => {
     const card = document.createElement('div');
     card.className = 'doc-card';
     card.innerHTML = `
@@ -366,8 +381,10 @@ function renderDocs(){
       <div class="label">${escapeHtml(doc.label)}</div>
       <div class="meta">ajouté le ${doc.dateAdded} · ${escapeHtml(doc.filename)}</div>
       <div class="actions">
+        <button data-act="up" data-id="${doc.id}" ${idx===0 ? 'disabled' : ''} title="Monter">&uarr;</button>
+        <button data-act="down" data-id="${doc.id}" ${idx===state.documents.length-1 ? 'disabled' : ''} title="Descendre">&darr;</button>
         <button data-act="view" data-id="${doc.id}">Voir</button>
-        <button data-act="stamp" data-id="${doc.id}">Copie filigranée</button>
+        <button data-act="stamp" data-id="${doc.id}">Filigrane</button>
         <button class="danger" data-act="del" data-id="${doc.id}">Suppr.</button>
       </div>
     `;
@@ -389,6 +406,14 @@ document.getElementById('docGrid').addEventListener('click', async (e) => {
       state.documents = state.documents.filter(d => d.id !== id);
       renderDocs();
     }
+    return;
+  }
+  if(btn.dataset.act === 'up' || btn.dataset.act === 'down'){
+    const idx = state.documents.findIndex(d => d.id === id);
+    const swapWith = btn.dataset.act === 'up' ? idx - 1 : idx + 1;
+    if(swapWith < 0 || swapWith >= state.documents.length) return;
+    [state.documents[idx], state.documents[swapWith]] = [state.documents[swapWith], state.documents[idx]];
+    renderDocs();
     return;
   }
   if(btn.dataset.act === 'view'){
@@ -512,6 +537,39 @@ function drawWatermark(ctx, w, h, purpose, dateVal){
   ctx.fillText(text, w/2, h - boxH/2);
   ctx.restore();
 }
+
+// ---------- change password ----------
+document.getElementById('btnChangePw').addEventListener('click', async () => {
+  const status = document.getElementById('pwChangeStatus');
+  const p1 = document.getElementById('newPw1').value;
+  const p2 = document.getElementById('newPw2').value;
+  const hintVal = document.getElementById('newPwHint').value.trim();
+  if(!p1){ status.textContent = 'Entrez un nouveau mot de passe.'; status.className='status err'; return; }
+  if(p1 !== p2){ status.textContent = 'Les mots de passe ne correspondent pas.'; status.className='status err'; return; }
+  status.textContent = 'Re-chiffrement en cours...'; status.className='status ok';
+  try{
+    const newSalt = crypto.getRandomValues(new Uint8Array(16));
+    const newKey = await deriveKey(p1, newSalt);
+    const reEncrypted = [];
+    for(const doc of state.documents){
+      const plain = await decryptBuffer(state.key, doc.iv, doc.data);
+      const enc = await encryptBuffer(newKey, plain);
+      reEncrypted.push({ ...doc, iv: enc.iv, data: enc.data });
+    }
+    state.documents = reEncrypted;
+    state.key = newKey;
+    state.salt = newSalt;
+    if(hintVal) state.hint = hintVal;
+    document.getElementById('newPw1').value = '';
+    document.getElementById('newPw2').value = '';
+    document.getElementById('newPwHint').value = '';
+    status.textContent = 'Mot de passe changé. Exportez le coffre maintenant, l\'ancien fichier ne fonctionnera plus avec le nouveau mot de passe.';
+    status.className = 'status ok';
+  }catch(e){
+    status.textContent = 'Erreur pendant le re-chiffrement : ' + e.message;
+    status.className = 'status err';
+  }
+});
 
 // ---------- export ----------
 document.getElementById('btnExport').addEventListener('click', () => {
