@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>COFFRE // PAPIERS IMPORTANTS</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%231b1d16'/%3E%3Crect x='16' y='28' width='32' height='26' rx='2' fill='%23a8a878' stroke='%237a7a58' stroke-width='2'/%3E%3Cpath d='M22 28v-8a10 10 0 0 1 20 0v8' fill='none' stroke='%23d9a441' stroke-width='4' stroke-linecap='round'/%3E%3Ccircle cx='32' cy='39' r='3.5' fill='%231b1d16'/%3E%3Crect x='30.5' y='39' width='3' height='8' fill='%231b1d16'/%3E%3C/svg%3E">
 <style>
   :root{
     --bg0:#1b1d16;
@@ -124,11 +125,17 @@
         Aucune donnée n'est conservée entre deux ouvertures : pensez à <b>exporter</b> le coffre (fichier .json chiffré)
         après chaque ajout, et à le <b>réimporter</b> à l'ouverture suivante.
       </div>
+      <div id="hintBox" style="display:none;border:1px solid var(--khaki-dim);background:rgba(168,168,120,.08);padding:10px 12px;font-size:12px;margin-bottom:6px;">
+        <span style="color:var(--text-dim);letter-spacing:1px;">INDICE :</span> <span id="hintText" style="color:var(--khaki);"></span>
+      </div>
       <label>Mot de passe maître</label>
       <input type="password" id="pw1" placeholder="mot de passe">
       <div id="pw2wrap">
         <label>Confirmer le mot de passe</label>
         <input type="password" id="pw2" placeholder="confirmer">
+        <label>Indice (aide-mémoire, optionnel)</label>
+        <input type="text" id="pwHint" placeholder="ex : ma passphrase habituelle + un chiffre">
+        <div class="hint">L'indice est stocké en clair dans le fichier exporté — n'y mettez jamais le mot de passe lui-même, juste de quoi vous le rappeler.</div>
       </div>
       <div class="row">
         <button class="primary" id="btnUnlock">Ouvrir / Créer</button>
@@ -204,6 +211,7 @@ const state = {
   key: null,        // CryptoKey derived from password
   salt: null,        // Uint8Array, vault-wide salt
   documents: [],      // {id, cat, label, mime, filename, dateAdded, iv(base64), data(base64 ciphertext)}
+  hint: '',           // indice de mot de passe, stocké en clair
 };
 
 // ---------- crypto helpers ----------
@@ -250,6 +258,7 @@ document.getElementById('btnUnlock').addEventListener('click', async () => {
   // fresh vault, no import loaded
   if(!state.salt){
     state.salt = crypto.getRandomValues(new Uint8Array(16));
+    state.hint = document.getElementById('pwHint').value.trim();
   }
   try{
     state.key = await deriveKey(pw1, state.salt);
@@ -274,8 +283,13 @@ document.getElementById('importFile').addEventListener('change', async (e) => {
     const parsed = JSON.parse(text);
     state.salt = new Uint8Array(unb64(parsed.salt));
     state.documents = parsed.documents || [];
+    state.hint = parsed.hint || '';
     document.getElementById('lockTitle').textContent = 'Coffre importé — entrez le mot de passe';
     document.getElementById('pw2wrap').style.display = 'none';
+    if(state.hint){
+      document.getElementById('hintText').textContent = state.hint;
+      document.getElementById('hintBox').style.display = 'block';
+    }
     setLockStatus(parsed.documents.length + ' document(s) chargés depuis le fichier. Entrez le mot de passe pour ouvrir.', false);
   }catch(err){
     setLockStatus('Fichier invalide ou corrompu.', true);
@@ -295,13 +309,15 @@ function openApp(){
 
 document.getElementById('btnLock').addEventListener('click', () => {
   if(!confirm("Verrouiller le coffre ? Pensez à avoir exporté vos modifications avant, sinon elles seront perdues.")) return;
-  state.key = null; state.salt = null; state.documents = [];
+  state.key = null; state.salt = null; state.documents = []; state.hint = '';
   document.getElementById('app').style.display = 'none';
   document.getElementById('lockscreen').style.display = 'block';
   document.getElementById('pw1').value = '';
   document.getElementById('pw2').value = '';
+  document.getElementById('pwHint').value = '';
   document.getElementById('pw2wrap').style.display = 'block';
   document.getElementById('lockTitle').textContent = 'Créer le coffre';
+  document.getElementById('hintBox').style.display = 'none';
   setLockStatus('', false);
 });
 
@@ -502,6 +518,7 @@ document.getElementById('btnExport').addEventListener('click', () => {
   const payload = {
     salt: b64(state.salt.buffer),
     documents: state.documents,
+    hint: state.hint || '',
     exportedAt: new Date().toISOString()
   };
   const blob = new Blob([JSON.stringify(payload)], {type:'application/json'});
