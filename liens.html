@@ -8,15 +8,15 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    /* papier millimétré — clair de jour, doux le soir */
-    --bg:#e9edf0;
-    --panel:#f6f8fa;
-    --panel2:#dde3e8;
-    --line:#c6cdd4;
-    --text:#26313d;
-    --muted:#67737f;
+    /* papier millimétré — bleu moyen, doux mais lisible */
+    --bg:#c9dae8;
+    --panel:#dbe7f1;
+    --panel2:#b7cddf;
+    --line:#9ab2c8;
+    --text:#1f3347;
+    --muted:#5a7186;
     --accent:#2f6690;
-    --accent-dim:#c2d6e4;
+    --accent-dim:#a8c4d8;
     --danger:#a3453f;
     --radius:10px;
   }
@@ -31,13 +31,13 @@
   /* fine grille "papier millimétré", signature du thème */
   body{
     background-image:
-      linear-gradient(rgba(47,102,144,0.07) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(47,102,144,0.07) 1px, transparent 1px);
+      linear-gradient(rgba(47,102,144,0.09) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(47,102,144,0.09) 1px, transparent 1px);
     background-size: 22px 22px;
   }
   header{
     position:sticky;top:0;z-index:10;
-    background:rgba(233,237,240,0.92);
+    background:rgba(201,218,232,0.92);
     backdrop-filter:blur(6px);
     border-bottom:1px solid var(--line);
     padding:10px 12px 10px;
@@ -96,6 +96,13 @@
     outline:none;width:auto;flex:1;
   }
   .cat-head .cat-actions{display:flex;gap:6px;align-items:center;}
+  .cat-badge{
+    flex:none;min-width:20px;height:18px;padding:0 6px;
+    display:flex;align-items:center;justify-content:center;
+    background:var(--accent-dim);color:var(--accent);
+    border-radius:999px;font-size:10.5px;font-family:'IBM Plex Mono',monospace;
+    letter-spacing:0;
+  }
   .chev{transition:transform .15s;color:var(--muted);}
   .cat.collapsed .chev{transform:rotate(-90deg);}
   .cat.collapsed .links{display:none;}
@@ -333,6 +340,7 @@ function render(){
       <svg class="chev" width="12" height="12" viewBox="0 0 12 12" style="margin-right:6px;flex:none"><path d="M3 2l5 4-5 4" stroke="currentColor" fill="none" stroke-width="1.5"/></svg>
       <input class="cat-name" value="${escapeAttr(cat.name)}">
       <div class="cat-actions">
+        <span class="cat-badge">${cat.links.length}</span>
         <button class="del-btn" data-action="del-cat" data-cat="${cat.id}" title="Supprimer la catégorie">✕</button>
       </div>
     `;
