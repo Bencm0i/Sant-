@@ -8197,5 +8197,193 @@ function ghLinkGenerate(){
 })();
 </script>
 
+<!-- ═══════════ WIDGET ALPHABET OTAN (déplaçable, masquable comme les autres widgets) ═══════════ -->
+<style>
+#natoWidget{position:fixed;bottom:24px;left:24px;z-index:960;width:300px;max-width:calc(100vw - 24px);touch-action:none;background:var(--surface);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1.5px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+#natoWidget.hidden-widget{display:none;}
+#natoWidgetHead{cursor:grab;user-select:none;}
+#natoWidgetHead.dragging{cursor:grabbing;}
+#natoWidgetBody{padding:10px 12px 12px;display:flex;flex-direction:column;gap:8px;}
+#natoWidgetBody.collapsed{display:none;}
+#natoInput{width:100%;box-sizing:border-box;font-family:'Inter',sans-serif;font-size:0.8rem;padding:7px 9px;border-radius:8px;border:1.5px solid var(--border);background:rgba(255,255,255,0.65);color:var(--text);outline:none;}
+#natoOutput{max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;}
+.nato-line{display:flex;align-items:baseline;gap:8px;font-family:'Inter',sans-serif;font-size:0.78rem;padding:3px 2px;border-bottom:1px solid rgba(255,255,255,0.35);}
+.nato-line:last-child{border-bottom:none;}
+.nato-char{flex-shrink:0;width:20px;text-align:center;font-weight:800;color:var(--text);}
+.nato-word{color:var(--muted);}
+.nato-empty-msg{font-family:'Inter',sans-serif;font-size:0.72rem;color:var(--muted);text-align:center;padding:6px 0;}
+#natoWidgetRevive{position:fixed;bottom:24px;left:0;z-index:960;width:26px;height:46px;border-radius:0 10px 10px 0;background:var(--surface);backdrop-filter:blur(16px);border:1.5px solid var(--border);border-left:none;display:none;align-items:center;justify-content:center;cursor:pointer;box-shadow:2px 2px 10px rgba(0,0,0,.2);}
+#natoWidgetRevive span{font-size:15px;}
+</style>
+<div id="natoWidget">
+  <div class="card-head" id="natoWidgetHead" title="Alphabet OTAN — glisser pour déplacer, double-clic pour masquer">
+    <span class="card-title">🔤 Alphabet OTAN</span>
+    <span class="card-action" id="natoWidgetChevron" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()" onclick="event.stopPropagation(); toggleNatoWidgetCollapse();">▾</span>
+  </div>
+  <div id="natoWidgetBody">
+    <input id="natoInput" type="text" placeholder="Tape un mot ou une phrase…" onmousedown="event.stopPropagation()" autocomplete="off">
+    <div id="natoOutput" onmousedown="event.stopPropagation()"></div>
+  </div>
+</div>
+<div id="natoWidgetRevive" title="Réafficher l'alphabet OTAN"><span>🔤</span></div>
+<script>
+(function(){
+  const wrap = document.getElementById('natoWidget');
+  const head = document.getElementById('natoWidgetHead');
+  const revive = document.getElementById('natoWidgetRevive');
+  const POS_KEY = 'natoWidgetPos';
+  const HIDDEN_KEY = 'natoWidgetHidden';
+  const COLLAPSE_KEY = 'natoWidgetCollapsed';
+  const body = document.getElementById('natoWidgetBody');
+  const chevron = document.getElementById('natoWidgetChevron');
+  const input = document.getElementById('natoInput');
+  const output = document.getElementById('natoOutput');
+
+  function clampPos(left, top){
+    const w = wrap.offsetWidth || 300;
+    const h = wrap.offsetHeight || 200;
+    const maxLeft = Math.max(0, window.innerWidth - w);
+    const maxTop = Math.max(30, window.innerHeight - h - 4);
+    return {
+      left: Math.min(Math.max(0, left), maxLeft),
+      top: Math.min(Math.max(30, top), maxTop)
+    };
+  }
+  function applyPos(left, top){
+    wrap.style.left = left + 'px';
+    wrap.style.top = top + 'px';
+    wrap.style.right = 'auto';
+    wrap.style.bottom = 'auto';
+  }
+  const savedPos = JSON.parse(localStorage.getItem(POS_KEY) || 'null');
+  if(savedPos){
+    const c = clampPos(savedPos.left, savedPos.top);
+    applyPos(c.left, c.top);
+    if(c.left !== savedPos.left || c.top !== savedPos.top){
+      localStorage.setItem(POS_KEY, JSON.stringify(c));
+    }
+  }
+  window.addEventListener('resize', () => {
+    const r = wrap.getBoundingClientRect();
+    const c = clampPos(r.left, r.top);
+    if(c.left !== r.left || c.top !== r.top){
+      applyPos(c.left, c.top);
+      localStorage.setItem(POS_KEY, JSON.stringify(c));
+    }
+  });
+
+  function setHidden(hidden){
+    wrap.classList.toggle('hidden-widget', hidden);
+    revive.style.display = hidden ? 'flex' : 'none';
+    localStorage.setItem(HIDDEN_KEY, hidden ? '1' : '0');
+  }
+  setHidden(localStorage.getItem(HIDDEN_KEY) === '1');
+
+  let dragging = false, didDrag = false, startX, startY, origLeft, origTop;
+
+  function pointerDown(clientX, clientY){
+    dragging = true; didDrag = false;
+    startX = clientX; startY = clientY;
+    const r = wrap.getBoundingClientRect();
+    origLeft = r.left; origTop = r.top;
+    head.classList.add('dragging');
+  }
+  function pointerMove(clientX, clientY){
+    if(!dragging) return;
+    const dx = clientX - startX, dy = clientY - startY;
+    if(Math.abs(dx) > 3 || Math.abs(dy) > 3) didDrag = true;
+    const left = Math.max(0, Math.min(origLeft + dx, window.innerWidth - wrap.offsetWidth));
+    const top = Math.max(30, Math.min(origTop + dy, window.innerHeight - wrap.offsetHeight - 4));
+    applyPos(left, top);
+  }
+  let clickTimer = null;
+  function pointerUp(){
+    if(!dragging) return;
+    dragging = false;
+    head.classList.remove('dragging');
+    if(!didDrag){
+      if(clickTimer){
+        clearTimeout(clickTimer);
+        clickTimer = null;
+        setHidden(true);
+      } else {
+        clickTimer = setTimeout(() => { clickTimer = null; }, 280);
+      }
+    } else {
+      const r = wrap.getBoundingClientRect();
+      localStorage.setItem(POS_KEY, JSON.stringify({left: r.left, top: r.top}));
+    }
+  }
+
+  head.addEventListener('mousedown', e => {
+    if(e.button !== 0) return;
+    pointerDown(e.clientX, e.clientY);
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', e => pointerMove(e.clientX, e.clientY));
+  document.addEventListener('mouseup', pointerUp);
+
+  head.addEventListener('touchstart', e => {
+    const t = e.touches[0];
+    pointerDown(t.clientX, t.clientY);
+  }, {passive: true});
+  document.addEventListener('touchmove', e => {
+    if(!dragging) return;
+    const t = e.touches[0];
+    pointerMove(t.clientX, t.clientY);
+    e.preventDefault();
+  }, {passive: false});
+  document.addEventListener('touchend', pointerUp);
+
+  revive.addEventListener('click', () => setHidden(false));
+
+  window.toggleNatoWidgetCollapse = function(){
+    const collapsed = body.classList.toggle('collapsed');
+    chevron.textContent = collapsed ? '▸' : '▾';
+    localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0');
+  };
+  if(localStorage.getItem(COLLAPSE_KEY) === '1'){
+    body.classList.add('collapsed');
+    chevron.textContent = '▸';
+  }
+
+  // ── table alphabet OTAN + chiffres ──
+  const NATO = {
+    'A':'Alpha','B':'Bravo','C':'Charlie','D':'Delta','E':'Echo','F':'Foxtrot','G':'Golf',
+    'H':'Hotel','I':'India','J':'Juliett','K':'Kilo','L':'Lima','M':'Mike','N':'November',
+    'O':'Oscar','P':'Papa','Q':'Quebec','R':'Romeo','S':'Sierra','T':'Tango','U':'Uniform',
+    'V':'Victor','W':'Whiskey','X':'Xray','Y':'Yankee','Z':'Zulu',
+    '0':'Zero','1':'One','2':'Two','3':'Three','4':'Four','5':'Five','6':'Six','7':'Seven','8':'Eight','9':'Nine'
+  };
+  // normalisation des accents FR (é, è, à, ç…) vers leur lettre de base
+  function stripAccents(s){
+    return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+
+  function escapeHtml(s){
+    return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function renderOutput(){
+    const raw = input.value;
+    if(!raw.trim()){
+      output.innerHTML = '<div class="nato-empty-msg">Écris un texte pour voir sa traduction OTAN</div>';
+      return;
+    }
+    const chars = stripAccents(raw).toUpperCase().split('');
+    const lines = chars.map(ch => {
+      if(ch === ' ') return null;
+      const word = NATO[ch];
+      if(!word) return `<div class="nato-line"><span class="nato-char">${escapeHtml(ch)}</span><span class="nato-word">—</span></div>`;
+      return `<div class="nato-line"><span class="nato-char">${escapeHtml(ch)}</span><span class="nato-word">${escapeHtml(word)}</span></div>`;
+    }).filter(Boolean);
+    output.innerHTML = lines.join('') || '<div class="nato-empty-msg">Écris un texte pour voir sa traduction OTAN</div>';
+  }
+
+  input.addEventListener('input', renderOutput);
+  renderOutput();
+})();
+</script>
+
 </body>
 </html>
