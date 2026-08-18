@@ -135,9 +135,12 @@
     padding:3px 0 0;font-family:inherit;line-height:1.3;
   }
   .link-open{
-    flex:none;color:var(--accent);text-decoration:none;font-size:11px;
-    font-family:'IBM Plex Mono',monospace;align-self:center;padding:4px 6px;
+    flex:none;color:var(--panel);background:var(--accent);
+    text-decoration:none;font-size:11px;font-weight:600;
+    font-family:'IBM Plex Mono',monospace;letter-spacing:.04em;
+    align-self:center;padding:7px 10px;border-radius:7px;
   }
+  .link-open:active{opacity:.75;}
   .del-btn{
     flex:none;background:none;border:none;color:var(--muted);
     font-size:16px;line-height:1;padding:4px 6px;cursor:pointer;
