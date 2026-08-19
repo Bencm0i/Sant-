@@ -8488,7 +8488,16 @@ function ghLinkGenerate(){
   }
   setHidden(localStorage.getItem(HIDDEN_KEY) === '1');
   revive.addEventListener('click', () => setHidden(false));
-  btn.addEventListener('dblclick', () => setHidden(true));
+
+  let clickTimer = null;
+  function scheduleOpen(url){
+    if(clickTimer) clearTimeout(clickTimer);
+    clickTimer = setTimeout(() => { window.open(url, '_blank'); clickTimer = null; }, 220);
+  }
+  btn.addEventListener('dblclick', e => {
+    if(clickTimer){ clearTimeout(clickTimer); clickTimer = null; }
+    setHidden(true);
+  });
 
   let dragging = false, didDrag = false, startX, startY, origLeft, origTop;
 
@@ -8512,11 +8521,11 @@ function ghLinkGenerate(){
     dragging = false;
     btn.classList.remove('dragging');
     if(!didDrag){
-      // clic simple : ouvre le lien de la zone cliquée
+      // clic simple : ouvre le lien de la zone cliquée (retardé pour laisser place à un double-clic)
       const r = wrap.getBoundingClientRect();
       const relY = clientY - r.top;
       const idx = Math.min(zones.length - 1, Math.max(0, Math.floor(relY / (r.height / zones.length))));
-      window.open(zones[idx].el.dataset.url, '_blank');
+      scheduleOpen(zones[idx].el.dataset.url);
     } else {
       const r = wrap.getBoundingClientRect();
       lsSet(SK, JSON.stringify({left: r.left, top: r.top}));
