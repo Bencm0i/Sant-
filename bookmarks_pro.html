@@ -3526,6 +3526,20 @@ function openEmojiCompact(e, idx){
   };
   footer.appendChild(customBtn);
 
+  const favBtn = document.createElement('button');
+  favBtn.className = 'emoji-picker-custom-btn';
+  favBtn.innerHTML = '🌐 Favicon du site';
+  favBtn.onclick = (ev) => {
+    ev.stopPropagation();
+    const fav = faviconUrlFor(compactLinks[idx] && compactLinks[idx].url);
+    if(!fav){ alert("Renseigne d'abord une URL pour ce lien."); return; }
+    compactLinks[idx].icon = fav;
+    saveCompactLinks();
+    renderCompactLinks();
+    picker.style.display = 'none';
+  };
+  footer.appendChild(favBtn);
+
   if(compactLinks[idx] && compactLinks[idx].icon){
     const rmBtn = document.createElement('button');
     rmBtn.className = 'emoji-picker-remove-btn';
@@ -3709,6 +3723,34 @@ function handleModalIconFile(input){
     if(target === 'sm'){ smModalIcon = dataUrl; updateSmModalIconPreview(); }
     else if(target === 'launcher'){ launcherModalIcon = dataUrl; updateLauncherModalIconPreview(); }
   }).catch(() => alert('Image invalide.'));
+}
+
+// ── Récupère l'URL du favicon d'un site à partir de son URL ──
+function faviconUrlFor(rawUrl){
+  let u = (rawUrl || '').trim();
+  if(!u) return null;
+  if(!/^https?:\/\//i.test(u)) u = 'https://' + u;
+  try{
+    const host = new URL(u).hostname;
+    if(!host) return null;
+    return 'https://www.google.com/s2/favicons?sz=128&domain=' + encodeURIComponent(host);
+  }catch(e){ return null; }
+}
+
+function smUseFavicon(){
+  const url = document.getElementById('smModalUrl').value.trim();
+  const fav = faviconUrlFor(url);
+  if(!fav){ alert("Renseigne d'abord une URL valide."); return; }
+  smModalIcon = fav;
+  updateSmModalIconPreview();
+}
+
+function launcherUseFavicon(){
+  const url = document.getElementById('launcherModalUrl').value.trim();
+  const fav = faviconUrlFor(url);
+  if(!fav){ alert("Renseigne d'abord une URL valide."); return; }
+  launcherModalIcon = fav;
+  updateLauncherModalIconPreview();
 }
 
 // ── RENDER LINKS (legacy — kept for vault import compat) ──
@@ -7586,6 +7628,7 @@ document.addEventListener('keydown', function(e){
     <div class="launcher-emoji-grid" id="smEmojiGrid"></div>
     <div class="modal-icon-row">
       <button type="button" class="modal-icon-btn" onclick="smPickCustomIcon()">🖼️ Icône personnalisée…</button>
+      <button type="button" class="modal-icon-btn" onclick="smUseFavicon()">🌐 Favicon du site</button>
       <img id="smModalIconPreview" class="modal-icon-preview" style="display:none">
       <button type="button" class="modal-icon-remove" id="smModalIconRemoveBtn" style="display:none" onclick="smRemoveCustomIcon()" title="Retirer l'icône personnalisée">✕</button>
     </div>
@@ -7609,6 +7652,7 @@ document.addEventListener('keydown', function(e){
     <div class="launcher-emoji-grid" id="launcherEmojiGrid"></div>
     <div class="modal-icon-row">
       <button type="button" class="modal-icon-btn" onclick="launcherPickCustomIcon()">🖼️ Icône personnalisée…</button>
+      <button type="button" class="modal-icon-btn" onclick="launcherUseFavicon()">🌐 Favicon du site</button>
       <img id="launcherModalIconPreview" class="modal-icon-preview" style="display:none">
       <button type="button" class="modal-icon-remove" id="launcherModalIconRemoveBtn" style="display:none" onclick="launcherRemoveCustomIcon()" title="Retirer l'icône personnalisée">✕</button>
     </div>
@@ -7627,7 +7671,7 @@ document.addEventListener('keydown', function(e){
 <input type="file" id="modalIconFileInput" accept="image/*" style="display:none" onchange="handleModalIconFile(this)">
 
 <style>
-  .modal-icon-row{display:flex;align-items:center;gap:8px;margin:2px 0 4px;}
+  .modal-icon-row{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:2px 0 4px;}
   .modal-icon-btn{flex:1;background:rgba(255,255,255,0.55);border:1.5px solid var(--border);border-radius:10px;padding:8px 10px;font-family:'Inter',sans-serif;font-size:0.72rem;font-weight:700;color:var(--text);cursor:pointer;transition:background 0.15s;}
   .modal-icon-btn:hover{background:rgba(255,255,255,0.85);}
   .modal-icon-preview{width:34px;height:34px;border-radius:9px;object-fit:cover;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,0.15);}
