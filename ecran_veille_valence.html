@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Écran de veille — Valence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* palette de base — sera interpolée en JS selon l'heure du ciel */
+    --bg-1: #0b0e16;
+    --bg-2: #10131c;
+    --accent: #d4a656;      /* or chaud — heure */
+    --accent-2: #7fa8c9;    /* bleu froid — météo */
+    --text: #eef0f4;
+    --text-dim: rgba(238,240,244,0.52);
+    --text-faint: rgba(238,240,244,0.28);
+    --hairline: rgba(238,240,244,0.10);
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+
+  html,body{
+    width:100%;height:100%;
+    overflow:hidden;
+    background:var(--bg-1);
+    font-family:'JetBrains Mono', monospace;
+    cursor:none;
+  }
+
+  #sky{
+    position:fixed; inset:0;
+    background:
+      radial-gradient(120% 90% at 50% 112%, var(--bg-2) 0%, var(--bg-1) 55%, var(--bg-1) 100%);
+    transition: background 60s linear;
+    z-index:0;
+  }
+
+  /* horizon très subtil, évoque la vallée du Rhône au loin */
+  #horizon{
+    position:fixed; left:0; right:0; bottom:0; height:38vh;
+    background:linear-gradient(to top, rgba(255,255,255,0.035), transparent);
+    z-index:0;
+    pointer-events:none;
+  }
+
+  #stage{
+    position:fixed; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    z-index:1;
+    will-change: transform;
+    transition: transform 8s ease-in-out;
+  }
+
+  #eyebrow{
+    font-size:clamp(11px,1.1vw,15px);
+    letter-spacing:0.42em;
+    text-transform:uppercase;
+    color:var(--text-faint);
+    margin-bottom:clamp(10px,2vh,22px);
+    font-weight:400;
+  }
+
+  #clock{
+    font-family:'Bricolage Grotesque', sans-serif;
+    font-weight:300;
+    font-size:clamp(90px,17vw,260px);
+    letter-spacing:-0.02em;
+    color:var(--text);
+    line-height:1;
+    display:flex;
+    align-items:flex-start;
+    font-variant-numeric: tabular-nums;
+  }
+
+  #seconds{
+    font-size:0.32em;
+    font-weight:300;
+    color:var(--accent);
+    margin-left:0.15em;
+    margin-top:0.22em;
+    opacity:0.85;
+  }
+
+  #date{
+    margin-top:clamp(14px,2.4vh,26px);
+    font-size:clamp(15px,1.5vw,22px);
+    color:var(--text-dim);
+    letter-spacing:0.02em;
+    font-weight:400;
+    text-transform:capitalize;
+  }
+
+  #divider{
+    width:1px; height:clamp(28px,5vh,56px);
+    background:var(--hairline);
+    margin:clamp(20px,3.4vh,40px) 0;
+  }
+
+  #weather{
+    display:flex; align-items:center; gap:clamp(16px,2vw,28px);
+  }
+
+  #wx-icon{
+    width:clamp(46px,4.6vw,68px);
+    height:clamp(46px,4.6vw,68px);
+    color:var(--accent-2);
+    flex-shrink:0;
+  }
+
+  #wx-main{
+    display:flex; flex-direction:column; gap:2px;
+  }
+
+  #wx-temp{
+    font-family:'Bricolage Grotesque', sans-serif;
+    font-size:clamp(30px,3.2vw,46px);
+    font-weight:400;
+    color:var(--text);
+    line-height:1;
+  }
+
+  #wx-desc{
+    font-size:clamp(12px,1.05vw,15px);
+    color:var(--text-dim);
+    letter-spacing:0.02em;
+  }
+
+  #wx-detail{
+    display:flex; flex-direction:column; gap:6px;
+    padding-left:clamp(16px,2vw,28px);
+    border-left:1px solid var(--hairline);
+    font-size:clamp(11px,1vw,14px);
+    color:var(--text-faint);
+    letter-spacing:0.03em;
+  }
+
+  #wx-detail span{ color:var(--text-dim); }
+
+  #place{
+    position:fixed; left:clamp(20px,3vw,40px); bottom:clamp(18px,3vh,32px);
+    font-size:clamp(10px,0.9vw,12px);
+    letter-spacing:0.3em; text-transform:uppercase;
+    color:var(--text-faint);
+    z-index:2;
+  }
+
+  #status{
+    position:fixed; right:clamp(20px,3vw,40px); bottom:clamp(18px,3vh,32px);
+    font-size:clamp(10px,0.85vw,12px);
+    color:var(--text-faint);
+    letter-spacing:0.08em;
+    z-index:2;
+  }
+
+  .hidden{ display:none !important; }
+</style>
+</head>
+<body>
+
+<div id="sky"></div>
+<div id="horizon"></div>
+
+<div id="stage">
+  <div id="eyebrow">Valence · Drôme</div>
+
+  <div id="clock">
+    <span id="hm">--:--</span><span id="seconds">--</span>
+  </div>
+
+  <div id="date">—</div>
+
+  <div id="divider"></div>
+
+  <div id="weather">
+    <svg id="wx-icon" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></svg>
+    <div id="wx-main">
+      <div id="wx-temp">--°</div>
+      <div id="wx-desc">Chargement…</div>
+    </div>
+    <div id="wx-detail">
+      <div>Ressenti <span id="wx-feels">--°</span></div>
+      <div>Min/Max <span id="wx-minmax">--° / --°</span></div>
+      <div>Vent <span id="wx-wind">-- km/h</span></div>
+    </div>
+  </div>
+</div>
+
+<div id="place">Écran de veille</div>
+<div id="status">—</div>
+
+<script>
+(function(){
+
+  // ---------- Config ----------
+  const LAT = 44.9333, LON = 4.8926; // Valence, Drôme
+  const REFRESH_MS = 15 * 60 * 1000; // météo toutes les 15 min
+  const API = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}` +
+    `&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m` +
+    `&daily=sunrise,sunset,temperature_2m_max,temperature_2m_min` +
+    `&timezone=Europe%2FParis`;
+
+  const el = {
+    hm: document.getElementById('hm'),
+    sec: document.getElementById('seconds'),
+    date: document.getElementById('date'),
+    icon: document.getElementById('wx-icon'),
+    temp: document.getElementById('wx-temp'),
+    desc: document.getElementById('wx-desc'),
+    feels: document.getElementById('wx-feels'),
+    minmax: document.getElementById('wx-minmax'),
+    wind: document.getElementById('wx-wind'),
+    status: document.getElementById('status'),
+    stage: document.getElementById('stage'),
+  };
+
+  const pad = n => String(n).padStart(2,'0');
+
+  // ---------- Horloge ----------
+  function tickClock(){
+    const now = new Date();
+    el.hm.textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    el.sec.textContent = pad(now.getSeconds());
+    const dateStr = now.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long' });
+    el.date.textContent = dateStr;
+  }
+  tickClock();
+  setInterval(tickClock, 1000);
+
+  // ---------- Anti burn-in : légère dérive toutes les 4 min ----------
+  function driftStage(){
+    const amp = 14; // px
+    const dx = (Math.random()*2 - 1) * amp;
+    const dy = (Math.random()*2 - 1) * (amp*0.6);
+    el.stage.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px)`;
+  }
+  driftStage();
+  setInterval(driftStage, 4 * 60 * 1000);
+
+  // ---------- Ciel ambiant (nuit / aube / jour / crépuscule) ----------
+  const SKY = {
+    night: { bg1:'#0a0c14', bg2:'#0f1220', accent:'#8fa3c9', accent2:'#5f7aa3' },
+    dawn:  { bg1:'#241a26', bg2:'#3a2436', accent:'#e7935c', accent2:'#8b6a8f' },
+    day:   { bg1:'#111a24', bg2:'#16232f', accent:'#d4a656', accent2:'#7fa8c9' },
+    dusk:  { bg1:'#1c1420', bg2:'#2c1a22', accent:'#d97757', accent2:'#a8607a' },
+  };
+
+  function hexToRgb(h){ const n=parseInt(h.slice(1),16); return [n>>16&255,n>>8&255,n&255]; }
+  function rgbToHex(r,g,b){ return '#'+[r,g,b].map(v=>Math.round(Math.max(0,Math.min(255,v))).toString(16).padStart(2,'0')).join(''); }
+  function lerpColor(hA,hB,t){
+    const a=hexToRgb(hA), b=hexToRgb(hB);
+    return rgbToHex(a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t);
+  }
+  function lerpPalette(pA,pB,t){
+    const out={};
+    for(const k of Object.keys(pA)) out[k]=lerpColor(pA[k],pB[k],t);
+    return out;
+  }
+
+  let sunrise = null, sunset = null;
+
+  function applySky(){
+    const now = new Date();
+    if(!sunrise || !sunset){
+      // repli si l'API météo n'a pas encore répondu : jour 8h-20h
+      const h = now.getHours() + now.getMinutes()/60;
+      applyPaletteByHour(h);
+      return;
+    }
+    const t = now.getTime();
+    const sr = sunrise.getTime(), ss = sunset.getTime();
+    const h90 = 90*60000, h60 = 60*60000;
+
+    // bornes des phases (en timestamps)
+    const dawnStart = sr - h90, dawnEnd = sr + h60;
+    const duskStart = ss - h60, duskEnd = ss + h90;
+
+    let palette;
+    if(t < dawnStart || t > duskEnd){
+      palette = SKY.night;
+    } else if(t >= dawnStart && t <= dawnEnd){
+      const local = t < sr ? SKY.night : SKY.day;
+      const span = t < sr ? (sr-dawnStart) : (dawnEnd-sr);
+      const pos  = t < sr ? (t-dawnStart) : (t-sr);
+      const tt = Math.max(0,Math.min(1,pos/span));
+      palette = t < sr ? lerpPalette(SKY.night, SKY.dawn, tt) : lerpPalette(SKY.dawn, SKY.day, tt);
+    } else if(t > dawnEnd && t < duskStart){
+      palette = SKY.day;
+    } else { // duskStart..duskEnd
+      const tt = Math.max(0,Math.min(1,(t-duskStart)/(duskEnd-duskStart)));
+      palette = tt < 0.5 ? lerpPalette(SKY.day, SKY.dusk, tt*2) : lerpPalette(SKY.dusk, SKY.night, (tt-0.5)*2);
+    }
+    setPalette(palette);
+  }
+
+  function applyPaletteByHour(h){
+    let palette;
+    if(h < 6 || h > 21) palette = SKY.night;
+    else if(h < 8) palette = lerpPalette(SKY.night, SKY.dawn, (h-6)/2);
+    else if(h < 9) palette = lerpPalette(SKY.dawn, SKY.day, (h-8)/1);
+    else if(h < 18) palette = SKY.day;
+    else if(h < 20) palette = lerpPalette(SKY.day, SKY.dusk, (h-18)/2);
+    else palette = lerpPalette(SKY.dusk, SKY.night, (h-20)/1);
+    setPalette(palette);
+  }
+
+  function setPalette(p){
+    const r = document.documentElement.style;
+    r.setProperty('--bg-1', p.bg1);
+    r.setProperty('--bg-2', p.bg2);
+    r.setProperty('--accent', p.accent);
+    r.setProperty('--accent-2', p.accent2);
+  }
+
+  applySky();
+  setInterval(applySky, 60 * 1000);
+
+  // ---------- Icônes météo (traits fins, sobres) ----------
+  const ICONS = {
+    sun: `<circle cx="32" cy="32" r="12"/><g stroke-linecap="round">
+      <line x1="32" y1="6" x2="32" y2="14"/><line x1="32" y1="50" x2="32" y2="58"/>
+      <line x1="6" y1="32" x2="14" y2="32"/><line x1="50" y1="32" x2="58" y2="32"/>
+      <line x1="13" y1="13" x2="18.5" y2="18.5"/><line x1="45.5" y1="45.5" x2="51" y2="51"/>
+      <line x1="51" y1="13" x2="45.5" y2="18.5"/><line x1="18.5" y1="45.5" x2="13" y2="51"/>
+      </g>`,
+    partly: `<circle cx="24" cy="26" r="9"/>
+      <path d="M18 46h26a9 9 0 0 0 1-17.9A13 13 0 0 0 20 32.5"/>`,
+    cloud: `<path d="M18 44h28a10 10 0 0 0 0-20 14 14 0 0 0-27 3A9 9 0 0 0 18 44z"/>`,
+    fog: `<path d="M14 24h30M10 32h44M14 40h30M18 48h22" stroke-linecap="round"/>`,
+    rain: `<path d="M18 34h28a10 10 0 0 0 0-20 14 14 0 0 0-27 3A9 9 0 0 0 18 34z"/>
+      <g stroke-linecap="round"><line x1="22" y1="42" x2="19" y2="50"/><line x1="32" y1="42" x2="29" y2="50"/><line x1="42" y1="42" x2="39" y2="50"/></g>`,
+    snow: `<path d="M18 32h28a10 10 0 0 0 0-20 14 14 0 0 0-27 3A9 9 0 0 0 18 32z"/>
+      <g stroke-linecap="round"><line x1="22" y1="42" x2="22" y2="52"/><line x1="17.5" y1="47" x2="26.5" y2="47"/>
+      <line x1="42" y1="42" x2="42" y2="52"/><line x1="37.5" y1="47" x2="46.5" y2="47"/></g>`,
+    storm: `<path d="M18 30h28a10 10 0 0 0 0-20 14 14 0 0 0-27 3A9 9 0 0 0 18 30z"/>
+      <path d="M34 36l-8 12h7l-5 10 13-15h-7l6-7z" fill="currentColor" stroke="none"/>`,
+  };
+
+  function iconFor(code){
+    if(code===0) return ICONS.sun;
+    if([1,2].includes(code)) return ICONS.partly;
+    if(code===3) return ICONS.cloud;
+    if([45,48].includes(code)) return ICONS.fog;
+    if([51,53,55,56,57,61,63,65,66,67,80,81,82].includes(code)) return ICONS.rain;
+    if([71,73,75,77,85,86].includes(code)) return ICONS.snow;
+    if([95,96,99].includes(code)) return ICONS.storm;
+    return ICONS.cloud;
+  }
+
+  const DESC = {
+    0:'Ciel dégagé',1:'Plutôt dégagé',2:'Partiellement nuageux',3:'Couvert',
+    45:'Brouillard',48:'Brouillard givrant',
+    51:'Bruine légère',53:'Bruine',55:'Bruine forte',56:'Bruine verglaçante',57:'Bruine verglaçante forte',
+    61:'Pluie faible',63:'Pluie',65:'Pluie forte',66:'Pluie verglaçante',67:'Pluie verglaçante forte',
+    71:'Neige faible',73:'Neige',75:'Neige forte',77:'Grains de neige',
+    80:'Averses légères',81:'Averses',82:'Averses fortes',
+    85:'Averses de neige',86:'Averses de neige fortes',
+    95:'Orage',96:'Orage, grêle',99:'Orage violent, grêle'
+  };
+
+  // ---------- Récupération météo ----------
+  async function fetchWeather(){
+    try{
+      el.status.textContent = 'Mise à jour…';
+      const res = await fetch(API);
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const data = await res.json();
+
+      const cur = data.current;
+      const daily = data.daily;
+
+      el.icon.innerHTML = iconFor(cur.weather_code);
+      el.temp.textContent = `${Math.round(cur.temperature_2m)}°`;
+      el.desc.textContent = DESC[cur.weather_code] || 'Météo actuelle';
+      el.feels.textContent = `${Math.round(cur.apparent_temperature)}°`;
+      el.minmax.textContent = `${Math.round(daily.temperature_2m_min[0])}° / ${Math.round(daily.temperature_2m_max[0])}°`;
+      el.wind.textContent = `${Math.round(cur.wind_speed_10m)} km/h`;
+
+      sunrise = new Date(daily.sunrise[0]);
+      sunset = new Date(daily.sunset[0]);
+      applySky();
+
+      const now = new Date();
+      el.status.textContent = `Actualisé ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    }catch(err){
+      el.status.textContent = 'Météo indisponible';
+      el.desc.textContent = 'Connexion indisponible';
+    }
+  }
+
+  fetchWeather();
+  setInterval(fetchWeather, REFRESH_MS);
+
+})();
+</script>
+</body>
+</html>
