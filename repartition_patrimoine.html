@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Répartition patrimoniale</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b1220'/%3E%3Ccircle cx='24' cy='38' r='13' fill='%234f8cff'/%3E%3Ccircle cx='40' cy='26' r='13' fill='%233ddc84' fill-opacity='0.85'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#0a1120; --card:#111b34; --card2:#18274a; --border:#26365e;
+    --text:#e8ecf7; --muted:#8b95b8; --accent:#5b8dee; --green:#3ddc84;
+    --red:#ff5c5c; --amber:#ffb454; --radius:12px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; padding:16px; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    font-size:15px; line-height:1.4; padding-bottom:80px;
+  }
+  h1{font-size:19px; margin:0 0 4px;}
+  .sub{color:var(--muted); font-size:12.5px; margin-bottom:16px;}
+  .total-bar{
+    background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+    padding:14px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center;
+    position:sticky; top:8px; z-index:5;
+  }
+  .total-bar .label{color:var(--muted); font-size:12px;}
+  .total-bar .amount{font-size:20px; font-weight:600;}
+  .asset-card{
+    background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+    padding:14px; margin-bottom:10px;
+  }
+  .asset-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px;}
+  .asset-name{
+    font-weight:600; font-size:15px; background:transparent; border:none; color:var(--text);
+    border-bottom:1px dashed var(--border); padding:2px 0; width:100%; max-width:220px;
+  }
+  .pct-pill{
+    background:var(--card2); border:1px solid var(--border); border-radius:20px;
+    padding:3px 10px; font-size:12.5px; font-weight:600; color:var(--accent); white-space:nowrap;
+  }
+  .del-btn{
+    background:none; border:none; color:var(--muted); font-size:16px; cursor:pointer; padding:2px 6px;
+  }
+  .row{display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap;}
+  .field{flex:1; min-width:120px;}
+  .field label{display:block; font-size:11px; color:var(--muted); margin-bottom:3px; text-transform:uppercase; letter-spacing:.03em;}
+  .field input[type=number], .field input[type=text], .field select{
+    width:100%; background:var(--card2); border:1px solid var(--border); border-radius:8px;
+    color:var(--text); padding:8px; font-size:14px;
+  }
+  .field textarea{
+    width:100%; background:var(--card2); border:1px solid var(--border); border-radius:8px;
+    color:var(--text); padding:8px; font-size:13px; resize:vertical; min-height:36px; font-family:inherit;
+  }
+  .tag{
+    display:inline-block; font-size:11px; padding:2px 8px; border-radius:10px; margin-right:4px; margin-top:2px;
+  }
+  .tag.liquide{background:rgba(61,220,132,.15); color:var(--green);}
+  .tag.semi{background:rgba(255,180,84,.15); color:var(--amber);}
+  .tag.illiquide{background:rgba(255,92,92,.15); color:var(--red);}
+  .bar-track{
+    height:8px; background:var(--card2); border-radius:4px; overflow:hidden; margin-top:6px;
+  }
+  .bar-fill{height:100%; background:var(--accent); border-radius:4px;}
+  .add-btn{
+    width:100%; padding:12px; background:var(--card2); border:1px dashed var(--border);
+    border-radius:var(--radius); color:var(--muted); font-size:14px; cursor:pointer; margin-bottom:20px;
+  }
+  h2{font-size:15px; margin:24px 0 10px; border-top:1px solid var(--border); padding-top:20px;}
+  .scenario-tabs{display:flex; gap:6px; margin-bottom:14px; overflow-x:auto; padding-bottom:2px;}
+  .scenario-tabs button{
+    flex-shrink:0; padding:8px 12px; border-radius:20px; border:1px solid var(--border);
+    background:var(--card2); color:var(--muted); font-size:13px; cursor:pointer;
+  }
+  .scenario-tabs button.active{background:var(--accent); color:#fff; border-color:var(--accent);}
+  .scenario-desc{color:var(--muted); font-size:12.5px; margin-bottom:12px;}
+  .compare-row{
+    display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border);
+  }
+  .compare-name{width:78px; font-size:13px; flex-shrink:0;}
+  .compare-bars{flex:1;}
+  .compare-track{position:relative; height:16px; background:var(--card2); border-radius:8px; overflow:hidden; margin-bottom:3px;}
+  .compare-current{position:absolute; top:0; left:0; height:100%; background:var(--accent); opacity:.55;}
+  .compare-target{position:absolute; top:0; left:0; height:100%; border-right:2px solid var(--green);}
+  .compare-nums{font-size:11px; color:var(--muted);}
+  .compare-target-input{
+    width:56px; background:var(--card2); border:1px solid var(--border); border-radius:6px;
+    color:var(--text); padding:4px; font-size:12px; text-align:center;
+  }
+  .delta{font-size:12px; font-weight:600; width:56px; text-align:right; flex-shrink:0;}
+  .delta.pos{color:var(--green);} .delta.neg{color:var(--red);}
+  .legend{display:flex; gap:14px; font-size:11.5px; color:var(--muted); margin-bottom:10px;}
+  .legend span{display:flex; align-items:center; gap:5px;}
+  .dot{width:9px; height:9px; border-radius:50%; display:inline-block;}
+  .dot.cur{background:var(--accent);} .dot.tgt{background:var(--green);}
+  .reset-btn{
+    background:none; border:1px solid var(--border); color:var(--muted); font-size:12px;
+    padding:6px 12px; border-radius:8px; cursor:pointer; margin-top:8px;
+  }
+  footer{color:var(--muted); font-size:11px; text-align:center; margin-top:24px;}
+  .json-actions{display:flex; gap:8px; margin-bottom:16px;}
+  .json-actions button{
+    flex:1; padding:10px; background:var(--card2); border:1px solid var(--border);
+    border-radius:var(--radius); color:var(--text); font-size:13px; cursor:pointer;
+  }
+  .json-actions button.export{border-color:var(--accent); color:var(--accent);}
+  #importFile{display:none;}
+</style>
+</head>
+<body>
+
+<h1>Répartition patrimoniale</h1>
+<div class="sub">Tout est éditable — montants, statuts, fiscalité, notes. Sauvegarde automatique locale (navigateur).</div>
+
+<div class="total-bar">
+  <div>
+    <div class="label">Total patrimoine</div>
+    <div class="amount" id="totalAmount">0 €</div>
+  </div>
+  <div style="text-align:right">
+    <div class="label">Poche liquide</div>
+    <div class="amount" id="liquideAmount" style="font-size:16px; color:var(--green)">0 €</div>
+  </div>
+</div>
+
+<div id="assetsList"></div>
+<button class="add-btn" onclick="addAsset()">+ Ajouter une ligne</button>
+
+<div class="json-actions">
+  <button class="export" onclick="exportJson()">⬇ Exporter JSON</button>
+  <button onclick="document.getElementById('importFile').click()">⬆ Importer JSON</button>
+  <input type="file" id="importFile" accept="application/json" onchange="importJson(this.files[0])">
+</div>
+
+<h2>Comparaison par scénario</h2>
+<div class="scenario-tabs" id="scenarioTabs"></div>
+<div class="scenario-desc" id="scenarioDesc"></div>
+<div class="legend">
+  <span><i class="dot cur"></i> Répartition actuelle</span>
+  <span><i class="dot tgt"></i> Cible du scénario (éditable)</span>
+</div>
+<div id="compareList"></div>
+<button class="reset-btn" onclick="resetScenario()">Réinitialiser les cibles de ce scénario</button>
+
+<footer>Outil local — aucune donnée envoyée. Modifiable directement dans ce fichier HTML.</footer>
+
+<script>
+const STORAGE_KEY = 'repartition_patrimoine_v1';
+
+const defaultAssets = [
+  {name:'Liquide / Cash', amount:0, liquidite:'liquide', volatilite:'faible', risque:'faible',
+   fiscalite:'Aucune fiscalité (capital déjà net d\'impôt)', notes:'Poche de sécurité / plan B'},
+  {name:'Or physique', amount:0, liquidite:'semi', volatilite:'moyenne', risque:'faible',
+   fiscalite:'Exonéré si détenu >22 ans avec facture, sinon taxe forfaitaire ou PV 36,2%', notes:''},
+  {name:'BTC', amount:0, liquidite:'liquide', volatilite:'forte', risque:'forte',
+   fiscalite:'Flat tax 30% sur la plus-value à la cession', notes:''},
+  {name:'PEA (ETF World)', amount:0, liquidite:'liquide', volatilite:'forte', risque:'moyen',
+   fiscalite:'Exonéré IR après 5 ans, prélèvements sociaux 17,2% dus', notes:''},
+  {name:'CTO (ETF World)', amount:0, liquidite:'liquide', volatilite:'forte', risque:'moyen',
+   fiscalite:'PFU 30% sur plus-values et dividendes, pas de durée minimale', notes:'Enveloppe la plus mobile / transférable'},
+  {name:'Assurance-vie', amount:0, liquidite:'semi', volatilite:'faible', risque:'faible',
+   fiscalite:'Fiscalité dégressive après 8 ans, abattement annuel 4 600€/9 200€', notes:''},
+  {name:'SCPI', amount:0, liquidite:'illiquide', volatilite:'faible', risque:'faible',
+   fiscalite:'Revenus fonciers imposés à l\'IR + PS, selon TMI', notes:''},
+  {name:'PEE', amount:0, liquidite:'illiquide', volatilite:'moyenne', risque:'moyen',
+   fiscalite:'Exonéré d\'IR si conservé 5 ans (hors CSG/CRDS)', notes:''}
+];
+
+const scenarios = {
+  defensif: {
+    label:'Défensif extrême', desc:'Priorité à la préservation du capital et à la liquidité.',
+    targets:{'Liquide / Cash':30,'Or physique':10,'BTC':0,'PEA (ETF World)':15,'CTO (ETF World)':10,'Assurance-vie':20,'SCPI':15,'PEE':0}
+  },
+  equilibre: {
+    label:'Équilibré', desc:'Compromis croissance / sécurité, diversifié sur les 3 axes (enveloppe, actif, géographie).',
+    targets:{'Liquide / Cash':15,'Or physique':5,'BTC':5,'PEA (ETF World)':25,'CTO (ETF World)':15,'Assurance-vie':15,'SCPI':20,'PEE':0}
+  },
+  offensif: {
+    label:'Offensif extrême', desc:'Maximisation du capital à horizon long, tolérance au risque et à la volatilité élevée.',
+    targets:{'Liquide / Cash':5,'Or physique':5,'BTC':10,'PEA (ETF World)':35,'CTO (ETF World)':25,'Assurance-vie':5,'SCPI':15,'PEE':0}
+  },
+  rente: {
+    label:'Rente / arrêt salarié', desc:'Priorité aux revenus réguliers et prévisibles pour vivre sans salaire.',
+    targets:{'Liquide / Cash':10,'Or physique':5,'BTC':0,'PEA (ETF World)':10,'CTO (ETF World)':10,'Assurance-vie':15,'SCPI':50,'PEE':0}
+  }
+};
+
+let state = load();
+let currentScenario = 'equilibre';
+
+function load(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      if(parsed.assets && parsed.assets.length) return parsed;
+    }
+  }catch(e){}
+  return {assets: JSON.parse(JSON.stringify(defaultAssets)), customTargets:{}};
+}
+
+function save(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function totalAmount(){
+  return state.assets.reduce((s,a)=>s+(Number(a.amount)||0),0);
+}
+
+function liquideAmount(){
+  return state.assets.filter(a=>a.liquidite==='liquide').reduce((s,a)=>s+(Number(a.amount)||0),0);
+}
+
+function fmt(n){
+  return Math.round(n).toLocaleString('fr-FR') + ' €';
+}
+
+function renderAssets(){
+  const list = document.getElementById('assetsList');
+  const total = totalAmount();
+  list.innerHTML = '';
+  state.assets.forEach((a,i)=>{
+    const pct = total>0 ? ((Number(a.amount)||0)/total*100) : 0;
+    const div = document.createElement('div');
+    div.className = 'asset-card';
+    div.innerHTML = `
+      <div class="asset-head">
+        <input class="asset-name" value="${escAttr(a.name)}" onchange="updateAsset(${i},'name',this.value)">
+        <span class="pct-pill" id="pct-${i}">${pct.toFixed(1)}%</span>
+        <button class="del-btn" onclick="deleteAsset(${i})">✕</button>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Montant (€)</label>
+          <input type="number" id="amount-${i}" value="${a.amount}" oninput="onAmountInput(${i},this.value)">
+        </div>
+        <div class="field">
+          <label>Liquidité</label>
+          <select onchange="updateAsset(${i},'liquidite',this.value)">
+            <option value="liquide" ${a.liquidite==='liquide'?'selected':''}>Liquide</option>
+            <option value="semi" ${a.liquidite==='semi'?'selected':''}>Semi-liquide</option>
+            <option value="illiquide" ${a.liquidite==='illiquide'?'selected':''}>Illiquide</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Volatilité</label>
+          <select onchange="updateAsset(${i},'volatilite',this.value)">
+            <option value="faible" ${a.volatilite==='faible'?'selected':''}>Faible</option>
+            <option value="moyenne" ${a.volatilite==='moyenne'?'selected':''}>Moyenne</option>
+            <option value="forte" ${a.volatilite==='forte'?'selected':''}>Forte</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Risque</label>
+          <select onchange="updateAsset(${i},'risque',this.value)">
+            <option value="faible" ${a.risque==='faible'?'selected':''}>Faible</option>
+            <option value="moyen" ${a.risque==='moyen'?'selected':''}>Moyen</option>
+            <option value="forte" ${a.risque==='forte'?'selected':''}>Élevé</option>
+          </select>
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:8px;">
+        <label>Fiscalité</label>
+        <input type="text" value="${escAttr(a.fiscalite)}" onchange="updateAsset(${i},'fiscalite',this.value)">
+      </div>
+      <div class="field">
+        <label>Notes</label>
+        <textarea onchange="updateAsset(${i},'notes',this.value)">${escHtml(a.notes)}</textarea>
+      </div>
+      <span class="tag ${a.liquidite}">${a.liquidite==='liquide'?'Liquide':a.liquidite==='semi'?'Semi-liquide':'Illiquide'}</span>
+      <div class="bar-track"><div class="bar-fill" id="bar-${i}" style="width:${pct}%"></div></div>
+    `;
+    list.appendChild(div);
+  });
+  document.getElementById('totalAmount').textContent = fmt(total);
+  document.getElementById('liquideAmount').textContent = fmt(liquideAmount());
+}
+
+function escAttr(s){ return String(s).replace(/"/g,'&quot;'); }
+function escHtml(s){ return String(s).replace(/</g,'&lt;'); }
+
+function updateAsset(i, field, value){
+  if(field==='amount') value = Number(value)||0;
+  state.assets[i][field] = value;
+  save();
+  renderAssets();
+  renderCompare();
+}
+
+function onAmountInput(i, value){
+  state.assets[i].amount = Number(value)||0;
+  save();
+  refreshTotalsOnly();
+}
+
+function refreshTotalsOnly(){
+  const total = totalAmount();
+  document.getElementById('totalAmount').textContent = fmt(total);
+  document.getElementById('liquideAmount').textContent = fmt(liquideAmount());
+  state.assets.forEach((a,i)=>{
+    const pct = total>0 ? ((Number(a.amount)||0)/total*100) : 0;
+    const pill = document.getElementById('pct-'+i);
+    const bar = document.getElementById('bar-'+i);
+    if(pill) pill.textContent = pct.toFixed(1)+'%';
+    if(bar) bar.style.width = pct+'%';
+  });
+  renderCompare();
+}
+
+function addAsset(){
+  state.assets.push({name:'Nouvel actif', amount:0, liquidite:'liquide', volatilite:'moyenne', risque:'moyen', fiscalite:'', notes:''});
+  save();
+  renderAssets();
+  renderCompare();
+}
+
+function deleteAsset(i){
+  state.assets.splice(i,1);
+  save();
+  renderAssets();
+  renderCompare();
+}
+
+function renderScenarioTabs(){
+  const tabs = document.getElementById('scenarioTabs');
+  tabs.innerHTML = '';
+  Object.keys(scenarios).forEach(key=>{
+    const btn = document.createElement('button');
+    btn.textContent = scenarios[key].label;
+    if(key===currentScenario) btn.classList.add('active');
+    btn.onclick = ()=>{ currentScenario = key; renderScenarioTabs(); renderCompare(); };
+    tabs.appendChild(btn);
+  });
+  document.getElementById('scenarioDesc').textContent = scenarios[currentScenario].desc;
+}
+
+function getTarget(assetName){
+  if(state.customTargets[currentScenario] && state.customTargets[currentScenario][assetName] !== undefined){
+    return state.customTargets[currentScenario][assetName];
+  }
+  return scenarios[currentScenario].targets[assetName] ?? 0;
+}
+
+function setTarget(assetName, value){
+  if(!state.customTargets[currentScenario]) state.customTargets[currentScenario] = {};
+  state.customTargets[currentScenario][assetName] = Number(value)||0;
+  save();
+  renderCompare();
+}
+
+function resetScenario(){
+  delete state.customTargets[currentScenario];
+  save();
+  renderCompare();
+}
+
+function renderCompare(){
+  const list = document.getElementById('compareList');
+  const total = totalAmount();
+  list.innerHTML = '';
+  state.assets.forEach(a=>{
+    const curPct = total>0 ? ((Number(a.amount)||0)/total*100) : 0;
+    const tgtPct = getTarget(a.name);
+    const delta = curPct - tgtPct;
+    const row = document.createElement('div');
+    row.className = 'compare-row';
+    row.innerHTML = `
+      <div class="compare-name">${escHtml(a.name)}</div>
+      <div class="compare-bars">
+        <div class="compare-track">
+          <div class="compare-current" style="width:${Math.min(curPct,100)}%"></div>
+          <div class="compare-target" style="width:${Math.min(tgtPct,100)}%"></div>
+        </div>
+        <div class="compare-nums">actuel ${curPct.toFixed(1)}% · cible
+          <input class="compare-target-input" type="number" value="${tgtPct}" onchange="setTarget('${a.name.replace(/'/g,"\\'")}', this.value)">%
+        </div>
+      </div>
+      <div class="delta ${delta<=0?'pos':'neg'}">${delta>0?'−':'+'}${Math.abs(delta).toFixed(1)}%</div>
+    `;
+    list.appendChild(row);
+  });
+}
+
+function exportJson(){
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `repartition_patrimoine_${date}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function importJson(file){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    try{
+      const parsed = JSON.parse(e.target.result);
+      if(!parsed.assets || !Array.isArray(parsed.assets)) throw new Error('format invalide');
+      state = {assets: parsed.assets, customTargets: parsed.customTargets || {}};
+      save();
+      renderAssets();
+      renderCompare();
+    }catch(err){
+      alert('Fichier JSON invalide : ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  document.getElementById('importFile').value = '';
+}
+
+renderAssets();
+renderScenarioTabs();
+renderCompare();
+</script>
+</body>
+</html>
