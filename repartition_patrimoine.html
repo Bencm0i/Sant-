@@ -84,6 +84,8 @@
   .compare-current{position:absolute; top:0; left:0; height:100%; background:var(--accent); opacity:.55;}
   .compare-target{position:absolute; top:0; left:0; height:100%; border-right:2px solid var(--green);}
   .compare-nums{font-size:11px; color:var(--muted);}
+  .compare-amount{font-size:12px; font-weight:600; margin-top:2px;}
+  .compare-amount.pos{color:var(--green);} .compare-amount.neg{color:var(--red);}
   .compare-target-input{
     width:56px; background:var(--card2); border:1px solid var(--border); border-radius:6px;
     color:var(--text); padding:4px; font-size:12px; text-align:center;
@@ -362,9 +364,12 @@ function renderCompare(){
   const total = totalAmount();
   list.innerHTML = '';
   state.assets.forEach(a=>{
-    const curPct = total>0 ? ((Number(a.amount)||0)/total*100) : 0;
+    const curAmount = Number(a.amount)||0;
+    const curPct = total>0 ? (curAmount/total*100) : 0;
     const tgtPct = getTarget(a.name);
-    const delta = curPct - tgtPct;
+    const tgtAmount = total>0 ? (total*tgtPct/100) : 0;
+    const deltaPct = curPct - tgtPct;
+    const deltaAmount = tgtAmount - curAmount;
     const row = document.createElement('div');
     row.className = 'compare-row';
     row.innerHTML = `
@@ -377,8 +382,9 @@ function renderCompare(){
         <div class="compare-nums">actuel ${curPct.toFixed(1)}% · cible
           <input class="compare-target-input" type="number" value="${tgtPct}" onchange="setTarget('${a.name.replace(/'/g,"\\'")}', this.value)">%
         </div>
+        <div class="compare-amount ${deltaAmount>=0?'pos':'neg'}">${deltaAmount>=0?'+ à ajouter : ':'− à retirer : '}${fmt(Math.abs(deltaAmount))}</div>
       </div>
-      <div class="delta ${delta<=0?'pos':'neg'}">${delta>0?'−':'+'}${Math.abs(delta).toFixed(1)}%</div>
+      <div class="delta ${deltaPct<=0?'pos':'neg'}">${deltaPct>0?'−':'+'}${Math.abs(deltaPct).toFixed(1)}%</div>
     `;
     list.appendChild(row);
   });
