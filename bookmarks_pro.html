@@ -1486,6 +1486,9 @@ body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
 /* Modal launcher */
 #launcherModal{position:fixed;inset:0;z-index:600;background:rgba(0,0,0,0.45);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;}
 #launcherModal.open{display:flex;}
+/* Modal mot de passe confidentialité */
+#pvModal{position:fixed;inset:0;z-index:620;background:rgba(0,0,0,0.45);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;}
+#pvModal.open{display:flex;}
 .launcher-modal-box{background:rgba(255,255,255,0.96);backdrop-filter:blur(24px);border:1.5px solid rgba(255,255,255,0.95);border-radius:22px;padding:24px 22px 20px;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 60px rgba(30,41,59,0.25);width:290px;}
 .launcher-modal-title{font-size:0.85rem;font-weight:800;color:var(--text);}
 .launcher-emoji-grid{display:flex;flex-wrap:wrap;gap:5px;}
@@ -2723,6 +2726,16 @@ body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
         <div style="padding:8px 16px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;">
           <span style="font-size:0.65rem;color:var(--muted);line-height:1.3;">Capture d'écran des sites en survolant une icône (envoie l'URL à un service externe)</span>
           <button id="linkPreviewToggle" class="mini-switch" onclick="toggleLinkPreviewEnabled()" title="Activer / désactiver l'aperçu au survol"><span class="mini-switch-knob"></span></button>
+        </div>
+
+        <div class="ha-sidebar-head" style="border-top:1.5px solid rgba(255,255,255,0.6);">
+          <span class="card-title">🔒 Confidentialité</span>
+        </div>
+        <div style="padding:8px 16px 16px;display:flex;flex-direction:column;gap:8px;">
+          <span id="pvHiddenCount" style="font-size:0.65rem;color:var(--muted);line-height:1.3;">0 raccourci masqué</span>
+          <button id="pvToggleBtn" class="bg-btn fond-btn" onclick="pvToggleLock()" style="display:none;justify-content:center;">🔓 Déverrouiller</button>
+          <button id="pvChangeBtn" class="bg-btn fond-btn" onclick="pvChangePassword()" style="display:none;justify-content:center;">Modifier le mot de passe</button>
+          <button id="pvRemoveBtn" class="bg-btn fond-btn" onclick="pvRemoveProtection()" style="display:none;justify-content:center;color:#b3564f;border-color:rgba(179,86,79,0.3);">Retirer la protection</button>
         </div>
 
         <div class="ha-sidebar-head" style="border-top:1.5px solid rgba(255,255,255,0.6);">
@@ -4309,11 +4322,14 @@ function initApp(){
   loadCompactLinks();
   clLoadHits();
   renderCompactLinks();
+  // confidentialité (mot de passe raccourcis masqués)
+  pvLoad();
   // launcher
   launcherLoad();
   launcherRender();
   // menu démarrer
   smLoad();
+  pvUpdateSidebarUI();
   // clock color
   applyClockColor();
   renderLinks();
@@ -4599,6 +4615,180 @@ function todoInit(){
 window.addEventListener('load', () => { initApp(); });
 
 // ══════════════════════════════════════════
+// ── CONFIDENTIALITÉ : masquage de raccourcis derrière un mot de passe ──
+// ⚠ Protection locale/visuelle (hash cyrb53 stocké dans localStorage), pas un
+// chiffrement fort : suffisant pour cacher un raccourci à un regard indiscret
+// sur cet appareil, pas pour protéger une donnée réellement sensible.
+// ══════════════════════════════════════════
+const PV_SALT = 'bkmkpro_v1_';
+
+function pvHash(str){
+  let h1 = 0xdeadbeef ^ 0, h2 = 0x41c6ce57 ^ 0;
+  for(let i=0;i<str.length;i++){
+    const ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1>>>16), 2246822507) ^ Math.imul(h2 ^ (h2>>>13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2>>>16), 2246822507) ^ Math.imul(h1 ^ (h1>>>13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1>>>0)).toString(16);
+}
+
+let pvHashStored = null;
+let pvUnlocked = false;
+let pvModalMode = null;
+let pvModalCallback = null;
+
+function pvLoad(){ pvHashStored = localStorage.getItem('dashboard_privacy_hash') || null; }
+function pvSaveHash(hash){ pvHashStored = hash; lsSet('dashboard_privacy_hash', hash); }
+function pvHasPassword(){ return !!pvHashStored; }
+function pvCheck(pwd){ return pvHashStored && pvHash(PV_SALT + pwd) === pvHashStored; }
+
+function pvOpenModal(mode, onSuccess){
+  pvModalMode = mode;
+  pvModalCallback = onSuccess;
+  const title = document.getElementById('pvModalTitle');
+  const msg   = document.getElementById('pvModalMsg');
+  const pwd1  = document.getElementById('pvModalPwd');
+  const pwd2  = document.getElementById('pvModalPwd2');
+  const err   = document.getElementById('pvModalError');
+  err.style.display = 'none';
+  pwd1.value = ''; pwd2.value = '';
+  if(mode === 'set'){
+    title.textContent = '🔒 Créer un mot de passe';
+    msg.textContent = "Ce mot de passe masque tes raccourcis privés sur cet appareil. C'est une protection visuelle locale, pas un chiffrement fort — ne l'utilise pas pour des données réellement sensibles.";
+    pwd1.placeholder = 'Nouveau mot de passe';
+    pwd2.style.display = 'block';
+  } else {
+    title.textContent = '🔒 Déverrouiller';
+    msg.textContent = 'Entre ton mot de passe pour afficher les raccourcis masqués.';
+    pwd1.placeholder = 'Mot de passe';
+    pwd2.style.display = 'none';
+  }
+  document.getElementById('pvModal').classList.add('open');
+  setTimeout(() => pwd1.focus(), 50);
+}
+function pvCloseModal(){
+  document.getElementById('pvModal').classList.remove('open');
+  pvModalCallback = null;
+}
+function pvModalConfirm(){
+  const pwd1 = document.getElementById('pvModalPwd').value;
+  const pwd2 = document.getElementById('pvModalPwd2').value;
+  const err  = document.getElementById('pvModalError');
+  if(pvModalMode === 'set'){
+    if(!pwd1 || pwd1.length < 4){ err.textContent = "Choisis un mot de passe d'au moins 4 caractères."; err.style.display = 'block'; return; }
+    if(pwd1 !== pwd2){ err.textContent = 'Les deux mots de passe ne correspondent pas.'; err.style.display = 'block'; return; }
+    pvSaveHash(pvHash(PV_SALT + pwd1));
+    pvUnlocked = true;
+    const cb = pvModalCallback;
+    document.getElementById('pvModal').classList.remove('open');
+    pvModalCallback = null;
+    pvUpdateSidebarUI();
+    if(cb) cb(true);
+  } else {
+    if(pvCheck(pwd1)){
+      pvUnlocked = true;
+      const cb = pvModalCallback;
+      document.getElementById('pvModal').classList.remove('open');
+      pvModalCallback = null;
+      pvUpdateSidebarUI();
+      if(cb) cb(true);
+    } else {
+      err.textContent = 'Mot de passe incorrect.'; err.style.display = 'block';
+    }
+  }
+}
+
+function pvUpdateSidebarUI(){
+  const countEl = document.getElementById('pvHiddenCount');
+  if(!countEl) return;
+  const hiddenCount = launcherLinks.filter(l=>l.hidden).length + smItems.filter(l=>l.hidden).length;
+  countEl.textContent = hiddenCount
+    ? hiddenCount + ' raccourci' + (hiddenCount>1?'s':'') + ' masqué' + (hiddenCount>1?'s':'') + (pvUnlocked ? ' (déverrouillé)' : ' (verrouillé)')
+    : 'Aucun raccourci masqué';
+  const toggleBtn = document.getElementById('pvToggleBtn');
+  const changeBtn = document.getElementById('pvChangeBtn');
+  const removeBtn = document.getElementById('pvRemoveBtn');
+  const show = pvHasPassword();
+  toggleBtn.style.display = show ? 'flex' : 'none';
+  changeBtn.style.display = show ? 'flex' : 'none';
+  removeBtn.style.display = show ? 'flex' : 'none';
+  toggleBtn.textContent = pvUnlocked ? '🔒 Verrouiller' : '🔓 Déverrouiller';
+}
+
+function pvReRenderAll(){
+  launcherRender();
+  smRender(document.getElementById('smSearch') ? document.getElementById('smSearch').value : '');
+  pvUpdateSidebarUI();
+}
+
+function pvToggleLock(){
+  if(pvUnlocked){
+    pvUnlocked = false;
+    pvReRenderAll();
+  } else {
+    pvOpenModal('unlock', () => pvReRenderAll());
+  }
+}
+
+function pvChangePassword(){
+  const doChange = () => pvOpenModal('set', () => pvUpdateSidebarUI());
+  if(pvUnlocked) doChange();
+  else pvOpenModal('unlock', doChange);
+}
+
+function pvRemoveProtection(){
+  const doRemove = () => {
+    if(!confirm('Retirer la protection ? Tous les raccourcis masqués redeviendront visibles et le mot de passe sera supprimé.')) return;
+    launcherLinks.forEach(l => delete l.hidden);
+    smItems.forEach(l => delete l.hidden);
+    launcherSave(); smSave();
+    localStorage.removeItem('dashboard_privacy_hash');
+    pvHashStored = null;
+    pvUnlocked = false;
+    pvReRenderAll();
+  };
+  if(pvUnlocked) doRemove();
+  else pvOpenModal('unlock', doRemove);
+}
+
+// ── toggles "protéger" dans les modales d'édition ──
+let launcherModalProtected = false;
+function launcherToggleModalProtect(){
+  if(!launcherModalProtected && !pvHasPassword()){
+    pvOpenModal('set', () => {
+      launcherModalProtected = true;
+      updateLauncherModalProtectToggleUI();
+    });
+    return;
+  }
+  launcherModalProtected = !launcherModalProtected;
+  updateLauncherModalProtectToggleUI();
+}
+function updateLauncherModalProtectToggleUI(){
+  const b = document.getElementById('launcherModalProtectToggle');
+  if(b) b.classList.toggle('on', launcherModalProtected);
+}
+
+let smModalProtected = false;
+function smToggleModalProtect(){
+  if(!smModalProtected && !pvHasPassword()){
+    pvOpenModal('set', () => {
+      smModalProtected = true;
+      updateSmModalProtectToggleUI();
+    });
+    return;
+  }
+  smModalProtected = !smModalProtected;
+  updateSmModalProtectToggleUI();
+}
+function updateSmModalProtectToggleUI(){
+  const b = document.getElementById('smModalProtectToggle');
+  if(b) b.classList.toggle('on', smModalProtected);
+}
+
+// ══════════════════════════════════════════
 // ── LAUNCHER BUREAU FLOTTANT ──
 // Drag toujours actif (style Windows).
 // Clic simple = ouvre le lien.
@@ -4639,6 +4829,7 @@ function launcherRender(){
   desktop.innerHTML = '';
 
   launcherLinks.forEach((lk, i) => {
+    if(lk.hidden && !pvUnlocked) return; // raccourci masqué (protégé par mot de passe)
     const wrap = document.createElement('div');
     wrap.className = 'lch-icon';
     wrap.style.left = (lk.x ?? 80) + 'px';
@@ -4668,6 +4859,14 @@ function launcherRender(){
 
     wrap.appendChild(btn);
     wrap.appendChild(label);
+    if(lk.hidden){
+      const lockBadge = document.createElement('span');
+      lockBadge.textContent = '🔒';
+      lockBadge.title = 'Raccourci masqué (privé)';
+      lockBadge.style.cssText = 'position:absolute;top:-2px;right:-2px;font-size:0.7rem;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.5));';
+      btn.style.position = 'relative';
+      btn.appendChild(lockBadge);
+    }
     desktop.appendChild(wrap);
 
     if(lk.url && !lk.noPreview){
@@ -4807,6 +5006,7 @@ function launcherAddToStartMenu(idx){
   const obj = { emoji: lk.emoji || '🔗', name: lk.name || 'Lien', url: lk.url || '', cat };
   if(lk.icon) obj.icon = lk.icon;
   if(lk.noPreview) obj.noPreview = true;
+  if(lk.hidden) obj.hidden = true;
   smItems.push(obj);
   smSave();
   smRenderTabs();
@@ -4922,6 +5122,7 @@ function smRender(filter){
   list.innerHTML = '';
   const q = (filter||'').trim().toLowerCase();
   smItems.forEach((it, i) => {
+    if(it.hidden && !pvUnlocked) return; // raccourci masqué (protégé par mot de passe)
     if(q && !it.name.toLowerCase().includes(q)) return;
     if(smActiveCat !== 'Tout' && (it.cat || 'Autre') !== smActiveCat) return;
     const row = document.createElement('div');
@@ -4957,7 +5158,7 @@ function smRender(filter){
 
     const name = document.createElement('div');
     name.className = 'sm-item-name';
-    name.textContent = it.name || 'Lien';
+    name.textContent = (it.hidden ? '🔒 ' : '') + (it.name || 'Lien');
 
     const catTag = document.createElement('div');
     catTag.className = 'sm-item-cat';
@@ -5004,6 +5205,7 @@ function smAddToDesktop(i){
   const obj = { emoji: it.emoji || '🔗', name: it.name || 'Lien', url: it.url || '', x: pos.x, y: pos.y };
   if(it.icon) obj.icon = it.icon;
   if(it.noPreview) obj.noPreview = true;
+  if(it.hidden) obj.hidden = true;
   launcherLinks.push(obj);
   launcherSave();
   launcherRender();
@@ -5105,6 +5307,8 @@ function smOpenAdd(){
   updateSmModalIconPreview();
   smModalNoPreview = false;
   updateSmModalPreviewToggleUI();
+  smModalProtected = false;
+  updateSmModalProtectToggleUI();
   document.getElementById('smModal').classList.add('open');
 }
 function smOpenEdit(i){
@@ -5119,6 +5323,8 @@ function smOpenEdit(i){
   updateSmModalIconPreview();
   smModalNoPreview = !!it.noPreview;
   updateSmModalPreviewToggleUI();
+  smModalProtected = !!it.hidden;
+  updateSmModalProtectToggleUI();
   document.getElementById('smModal').classList.add('open');
 }
 function smCloseModal(){ document.getElementById('smModal').classList.remove('open'); }
@@ -5131,6 +5337,7 @@ function smSaveModal(){
   const obj = {emoji, name, url, cat};
   if(smModalIcon) obj.icon = smModalIcon;
   if(smModalNoPreview) obj.noPreview = true;
+  if(smModalProtected) obj.hidden = true;
   if(smEditIdx === null){
     smItems.push(obj);
   } else {
@@ -5140,6 +5347,7 @@ function smSaveModal(){
   smCloseModal();
   smRenderTabs();
   smRender(document.getElementById('smSearch').value);
+  pvUpdateSidebarUI();
 }
 
 function launcherBuildEmojiGrid(sel){
@@ -5165,6 +5373,8 @@ function launcherOpenAdd(){
   updateLauncherModalIconPreview();
   launcherModalNoPreview = false;
   updateLauncherModalPreviewToggleUI();
+  launcherModalProtected = false;
+  updateLauncherModalProtectToggleUI();
   document.getElementById('launcherModal').classList.add('open');
 }
 function launcherOpenEdit(i){
@@ -5178,6 +5388,8 @@ function launcherOpenEdit(i){
   updateLauncherModalIconPreview();
   launcherModalNoPreview = !!lk.noPreview;
   updateLauncherModalPreviewToggleUI();
+  launcherModalProtected = !!lk.hidden;
+  updateLauncherModalProtectToggleUI();
   document.getElementById('launcherModal').classList.add('open');
 }
 function launcherCloseModal(){ document.getElementById('launcherModal').classList.remove('open'); }
@@ -5214,23 +5426,28 @@ function launcherSaveModal(){
     const obj = {emoji, name, url, x:pos.x, y:pos.y};
     if(launcherModalIcon) obj.icon = launcherModalIcon;
     if(launcherModalNoPreview) obj.noPreview = true;
+    if(launcherModalProtected) obj.hidden = true;
     launcherLinks.push(obj);
   } else {
     const lk = launcherLinks[launcherEditIdx];
     const obj = {emoji, name, url, x:lk.x, y:lk.y};
     if(launcherModalIcon) obj.icon = launcherModalIcon;
     if(launcherModalNoPreview) obj.noPreview = true;
+    if(launcherModalProtected) obj.hidden = true;
     launcherLinks[launcherEditIdx] = obj;
   }
   launcherSave();
   launcherCloseModal();
   launcherRender();
+  pvUpdateSidebarUI();
 }
 document.addEventListener('click', e => {
   const modal = document.getElementById('launcherModal');
   if(modal && modal.classList.contains('open') && e.target === modal) launcherCloseModal();
   const smModal = document.getElementById('smModal');
   if(smModal && smModal.classList.contains('open') && e.target === smModal) smCloseModal();
+  const pvModal = document.getElementById('pvModal');
+  if(pvModal && pvModal.classList.contains('open') && e.target === pvModal) pvCloseModal();
   const smPanel  = document.getElementById('smPanel');
   const smBtn    = document.getElementById('smBtn');
   if(smPanel && smPanel.classList.contains('open') && !smPanel.contains(e.target) && e.target !== smBtn && !smBtn.contains(e.target)) smClosePanel();
@@ -7636,12 +7853,30 @@ document.addEventListener('keydown', function(e){
       <span>👁 Aperçu au survol</span>
       <button id="smModalPreviewToggle" class="mini-switch" onclick="smToggleModalPreview()"><span class="mini-switch-knob"></span></button>
     </div>
+    <div class="modal-preview-row">
+      <span>🔒 Masquer (privé)</span>
+      <button id="smModalProtectToggle" class="mini-switch" onclick="smToggleModalProtect()"><span class="mini-switch-knob"></span></button>
+    </div>
     <input class="launcher-modal-input" id="smModalName" placeholder="Nom (ex: DeepL)">
     <input class="launcher-modal-input" id="smModalUrl" placeholder="https://…">
     <div class="sm-cat-select" id="smModalCatSelect"></div>
     <div class="launcher-modal-btns">
       <button class="launcher-modal-cancel" onclick="smCloseModal()">Annuler</button>
       <button class="launcher-modal-save" onclick="smSaveModal()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div id="pvModal">
+  <div class="launcher-modal-box" style="width:270px;">
+    <div class="launcher-modal-title" id="pvModalTitle">🔒 Mot de passe</div>
+    <div id="pvModalMsg" style="font-size:0.68rem;color:var(--muted);line-height:1.4;"></div>
+    <input class="launcher-modal-input" type="password" id="pvModalPwd" placeholder="Mot de passe" autocomplete="off" onkeydown="if(event.key==='Enter')pvModalConfirm();">
+    <input class="launcher-modal-input" type="password" id="pvModalPwd2" placeholder="Confirmer le mot de passe" autocomplete="off" style="display:none;" onkeydown="if(event.key==='Enter')pvModalConfirm();">
+    <div id="pvModalError" style="font-size:0.65rem;color:#b3564f;font-weight:700;display:none;"></div>
+    <div class="launcher-modal-btns">
+      <button class="launcher-modal-cancel" onclick="pvCloseModal()">Annuler</button>
+      <button class="launcher-modal-save" onclick="pvModalConfirm()">Valider</button>
     </div>
   </div>
 </div>
@@ -7659,6 +7894,10 @@ document.addEventListener('keydown', function(e){
     <div class="modal-preview-row">
       <span>👁 Aperçu au survol</span>
       <button id="launcherModalPreviewToggle" class="mini-switch" onclick="launcherToggleModalPreview()"><span class="mini-switch-knob"></span></button>
+    </div>
+    <div class="modal-preview-row">
+      <span>🔒 Masquer (privé)</span>
+      <button id="launcherModalProtectToggle" class="mini-switch" onclick="launcherToggleModalProtect()"><span class="mini-switch-knob"></span></button>
     </div>
     <input class="launcher-modal-input" id="launcherModalName" placeholder="Nom (ex: GitHub)">
     <input class="launcher-modal-input" id="launcherModalUrl" placeholder="https://…">
