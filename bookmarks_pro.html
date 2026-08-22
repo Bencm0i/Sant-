@@ -300,32 +300,55 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(255
 }
 #editorToggleBtn:hover{opacity:1;}
 
-/* ── PANNEAU DESSIN LIBRE (tableau blanc, au-dessus de tout) ── */
-#drawCanvas{
-  position:fixed !important;inset:0;z-index:9990;
-  width:100%;height:100%;
-  background:transparent !important;
-  border-top:none !important;
-  pointer-events:none;
-  touch-action:none;
-  display:block !important;
-}
-#drawCanvas.draw-active{pointer-events:auto;cursor:crosshair;}
-#drawCanvas.draw-active.draw-erasing{cursor:cell;}
+/* ── PANNEAU DESSIN LIBRE (tableau blanc, volet déroulant comme l'éditeur de texte) ── */
 #drawPanel {
   position:fixed;top:30px;left:0;right:0;z-index:9992;
   background:rgba(255,255,255,0.82);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
   border-bottom:1.5px solid rgba(61,90,115,0.25);
   box-shadow:0 4px 24px rgba(30,41,59,0.12);
+  display:flex;flex-direction:column;
   transition:transform 0.3s ease,opacity 0.3s ease;
+  height:50vh;
+  max-height:50vh;
 }
 #drawPanel.draw-hidden{
   transform:translateY(-120%);
   opacity:0;
   pointer-events:none;
 }
+.draw-tabs-bar{
+  display:flex;align-items:center;gap:0;
+  background:rgba(61,90,115,0.07);
+  border-bottom:1.5px solid rgba(61,90,115,0.18);
+  overflow-x:auto;flex-shrink:0;
+  padding:0 4px;
+}
+.draw-tabs-bar::-webkit-scrollbar{height:2px;}
+.draw-tabs-bar::-webkit-scrollbar-thumb{background:rgba(61,90,115,0.3);border-radius:2px;}
 .draw-panel-bar{
-  display:flex;align-items:center;gap:8px;padding:8px 14px;flex-wrap:wrap;
+  display:flex;align-items:center;gap:8px;padding:8px 14px;flex-wrap:wrap;flex-shrink:0;
+  border-bottom:1px solid rgba(61,90,115,0.12);
+}
+.draw-canvas-wrap{
+  position:relative;flex:1;min-height:80px;overflow:hidden;
+  background:
+    radial-gradient(rgba(61,90,115,0.14) 1px, transparent 1.4px) 0 0/22px 22px,
+    #fdfcf6;
+}
+#drawCanvas{
+  position:absolute;inset:0;
+  width:100%;height:100%;
+  cursor:crosshair;
+  touch-action:none;
+  display:block;
+  background:transparent !important;
+  border-top:none !important;
+}
+#drawCanvas.draw-erasing{cursor:cell;}
+.draw-bottom-bar {
+  display:flex;align-items:center;justify-content:space-between;
+  padding:4px 10px 5px;border-top:1px solid rgba(61,90,115,0.12);
+  flex-shrink:0;
 }
 .draw-color-swatch{
   width:22px;height:22px;border-radius:50%;border:2.5px solid transparent;
@@ -362,8 +385,6 @@ canvas{display:block;width:100%;cursor:crosshair;border-top:1.5px solid rgba(255
 }
 #drawToggleBtn:hover{opacity:1;}
 #drawToggleBtn.active{opacity:1;background:rgba(61,90,115,0.18);border-color:var(--c2);}
-body:has(#drawPanel:not(.draw-hidden)) #drawToggleBtn{ top:84px; }
-body:has(#editorPanel:not(.editor-hidden)) #drawToggleBtn{ top:calc(50vh + 78px); }
 body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
 
 /* ── TICKER BAR ── */
@@ -3089,7 +3110,8 @@ let links = Array.from({length:10},(_,i)=>({emoji:EMOJIS[i]||'🔗',name:'',url:
 function resetAll(){
   if(!confirm('⚠️ Tout effacer ? Liens, dessin, notes — cette action est irréversible.')) return;
   ['dashboard_title','dashboard_links','dashboard_notes',
-   'dashboard_canvas','dashboard_transp','dashboard_img','dashboard_compact_links'].forEach(k=>localStorage.removeItem(k));
+   'dashboard_canvas','dashboard_draw_tabs','dashboard_draw_visible',
+   'dashboard_transp','dashboard_img','dashboard_compact_links'].forEach(k=>localStorage.removeItem(k));
   links = Array.from({length:10},(_,i)=>({emoji:EMOJIS[i]||'🔗',name:'',url:'',img:''}));
   transpTexts = ['','',''];
   compactLinks = DEFAULT_COMPACT_LINKS.map(l=>({...l}));
@@ -3098,8 +3120,10 @@ function resetAll(){
   document.getElementById('page-title').value = '';
   const _naC = document.getElementById('notesArea'); if(_naC) _naC.value = '';
   [0,1,2].forEach(i=>{ const el=document.getElementById('transp'+i); if(el) el.value=''; });
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  localStorage.removeItem('dashboard_canvas');
+  drawTabs = [{ id: Date.now(), name:'Tableau 1', dataURL:'' }];
+  drawActiveId = drawTabs[0].id;
+  drawRenderTabs();
+  if(ctx && canvas) ctx.clearRect(0,0,canvas.width,canvas.height);
   localStorage.removeItem('dashboard_wallpaper_current');
   wallClearBg();
   renderCompactLinks();
@@ -3774,13 +3798,42 @@ function renderLinks(){
 // ── EMOJI PICKER ──
 document.addEventListener('click',()=>document.getElementById('emojiPicker').style.display='none');
 
-// ── TABLEAU BLANC : CANVAS PLEIN ÉCRAN, DESSIN À MAIN LEVÉE ──
-// canvas/ctx initialisés dans initCanvas() appelé depuis window.onload
+// ── TABLEAU BLANC MULTI-ONGLETS : volet déroulant, canvas confiné, comme l'éditeur de texte ──
+// canvas/ctx initialisés dans initCanvas() appelé depuis drawLoad()
 let canvas, ctx;
 let drawing=false, currentColor='#2b2b2b', currentSize=3, history=[];
 let drawEnabled=false, erasing=false;
 let drawTool='pen', shapeStart=null, shapeSnapshot=null;
 const DRAW_HISTORY_MAX = 25;
+
+let drawTabs = [];      // [{id, name, dataURL}]
+let drawActiveId = null;
+let drawSaveFlashTimer = null;
+
+function drawLoad(){
+  try{ drawTabs = JSON.parse(localStorage.getItem('dashboard_draw_tabs')||'null') || []; }catch(e){ drawTabs=[]; }
+  if(!drawTabs.length){
+    // Migration depuis l'ancien format (canvas unique plein écran)
+    const legacy = localStorage.getItem('dashboard_canvas');
+    drawTabs = [{ id: Date.now(), name:'Tableau 1', dataURL: legacy || '' }];
+  }
+  drawActiveId = drawTabs[0].id;
+  drawRenderTabs();
+  initCanvas();
+  drawLoadActive();
+
+  drawEnabled = localStorage.getItem('dashboard_draw_visible') === '1';
+  const panel = document.getElementById('drawPanel');
+  const btn = document.getElementById('drawToggleBtn');
+  if(panel) panel.classList.toggle('draw-hidden', !drawEnabled);
+  if(btn){
+    btn.classList.toggle('active', drawEnabled);
+    btn.textContent = drawEnabled ? '▲' : '✏️';
+    btn.title = drawEnabled ? 'Fermer le tableau blanc' : 'Afficher / masquer le tableau blanc';
+  }
+  if(drawEnabled) setTimeout(() => { resizeCanvas(false); drawPositionToggleBtn(); }, 60);
+  else drawPositionToggleBtn();
+}
 
 function initCanvas(){
   canvas = document.getElementById('drawCanvas');
@@ -3803,18 +3856,138 @@ function initCanvas(){
 
 function resizeCanvas(isInit){
   if(!canvas) return;
+  const wrap = document.getElementById('drawCanvasWrap');
+  if(!wrap) return;
   // Sauvegarde le dessin courant avant de redimensionner (le canvas se vide sinon)
   let prev = null;
   if(!isInit && canvas.width && canvas.height){
     try{ prev = canvas.toDataURL(); }catch(e){}
   }
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  const restore = prev || localStorage.getItem('dashboard_canvas');
+  const w = Math.max(wrap.clientWidth, 50);
+  const h = Math.max(wrap.clientHeight, 50);
+  canvas.width = w;
+  canvas.height = h;
+  const activeTab = drawTabs.find(t => t.id === drawActiveId);
+  const restore = prev || (activeTab && activeTab.dataURL);
   if(restore){
     const img = new Image();
     img.onload = () => ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     img.src = restore;
+  }
+}
+
+function drawPositionToggleBtn(){
+  const btn = document.getElementById('drawToggleBtn');
+  const panel = document.getElementById('drawPanel');
+  const editorPanel = document.getElementById('editorPanel');
+  if(!btn || !panel) return;
+  const editorOpen = editorPanel && !editorPanel.classList.contains('editor-hidden');
+  if(!panel.classList.contains('draw-hidden')){
+    btn.style.top = (30 + panel.offsetHeight) + 'px';
+  } else if(editorOpen){
+    btn.style.top = 'calc(50vh + 78px)';
+  } else {
+    btn.style.top = '30px';
+  }
+}
+
+// ── Gestion des onglets (plusieurs tableaux, comme les blocs-notes) ──
+function drawRenderTabs(){
+  const bar = document.getElementById('drawTabsBar');
+  if(!bar) return;
+  bar.innerHTML = '';
+  drawTabs.forEach(tab => {
+    const el = document.createElement('button');
+    el.className = 'editor-tab' + (tab.id === drawActiveId ? ' active' : '');
+    el.title = 'Double-clic pour renommer';
+    el.innerHTML = `<span class="editor-tab-name">${escHtml(tab.name)}</span><span class="editor-tab-close" onclick="event.stopPropagation();drawCloseTab(${tab.id})" title="Fermer">✕</span>`;
+    el.addEventListener('click', () => drawSwitchTab(tab.id));
+    el.addEventListener('dblclick', (e) => { e.stopPropagation(); drawRenameTab(tab.id); });
+    bar.appendChild(el);
+  });
+  const addBtn = document.createElement('button');
+  addBtn.className = 'editor-tab-add';
+  addBtn.textContent = '＋';
+  addBtn.title = 'Nouveau tableau';
+  addBtn.onclick = drawAddTab;
+  bar.appendChild(addBtn);
+}
+
+function drawSaveActiveSnapshot(){
+  if(!canvas) return;
+  const tab = drawTabs.find(t => t.id === drawActiveId);
+  if(tab){ try{ tab.dataURL = canvas.toDataURL(); }catch(e){} }
+}
+
+function drawSaveTabs(){
+  drawSaveActiveSnapshot();
+  lsSet('dashboard_draw_tabs', JSON.stringify(drawTabs));
+  const el = document.getElementById('drawSaved');
+  if(el){
+    el.classList.add('show');
+    clearTimeout(drawSaveFlashTimer);
+    drawSaveFlashTimer = setTimeout(() => el.classList.remove('show'), 1200);
+  }
+}
+
+function drawLoadActive(){
+  const tab = drawTabs.find(t => t.id === drawActiveId);
+  if(ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if(tab && tab.dataURL && ctx){
+    const img = new Image();
+    img.onload = () => ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    img.src = tab.dataURL;
+  }
+  history = [];
+  const cnt = document.getElementById('drawCount');
+  if(cnt && tab) cnt.textContent = tab.name;
+}
+
+function drawSwitchTab(id){
+  if(id === drawActiveId) return;
+  drawSaveActiveSnapshot();
+  drawActiveId = id;
+  drawRenderTabs();
+  drawLoadActive();
+  drawSaveTabs();
+}
+
+function drawAddTab(){
+  drawSaveActiveSnapshot();
+  const name = 'Tableau ' + (drawTabs.length + 1);
+  const newTab = { id: Date.now(), name, dataURL: '' };
+  drawTabs.push(newTab);
+  drawActiveId = newTab.id;
+  drawRenderTabs();
+  drawLoadActive();
+  drawSaveTabs();
+  setTimeout(() => drawRenameTab(newTab.id), 50);
+}
+
+function drawCloseTab(id){
+  if(drawTabs.length <= 1) return; // toujours garder au moins 1 tableau
+  const idx = drawTabs.findIndex(t => t.id === id);
+  const tab = drawTabs[idx];
+  if(!confirm('Supprimer l\'onglet "' + (tab ? tab.name : '') + '" ? Cette action est irréversible.')) return;
+  drawTabs.splice(idx, 1);
+  if(drawActiveId === id){
+    drawActiveId = drawTabs[Math.max(0, idx-1)].id;
+    drawLoadActive();
+  }
+  drawRenderTabs();
+  drawSaveTabs();
+}
+
+function drawRenameTab(id){
+  const tab = drawTabs.find(t => t.id === id);
+  if(!tab) return;
+  const newName = prompt('Nom du tableau :', tab.name);
+  if(newName !== null && newName.trim()){
+    tab.name = newName.trim();
+    drawRenderTabs();
+    drawSaveTabs();
+    const cnt = document.getElementById('drawCount');
+    if(cnt && tab.id === drawActiveId) cnt.textContent = tab.name;
   }
 }
 
@@ -3890,7 +4063,7 @@ function endDraw(){
   drawing = false;
   if(drawTool !== 'pen'){ shapeStart = null; shapeSnapshot = null; }
   ctx.beginPath();
-  saveCanvas();
+  drawSaveTabs();
 }
 
 function drawSetTool(tool){
@@ -3920,6 +4093,7 @@ function drawToggleEraser(){
   erasing = !erasing;
   const btn = document.getElementById('drawEraserBtn');
   if(btn) btn.classList.toggle('active', erasing);
+  if(canvas) canvas.classList.toggle('draw-erasing', erasing);
   if(erasing){
     drawTool = 'pen';
     document.querySelectorAll('.draw-color-swatch').forEach(s => s.classList.remove('active'));
@@ -3936,34 +4110,37 @@ function undoDraw(){
   img.onload = () => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    saveCanvas();
+    drawSaveTabs();
   };
   img.src = last;
 }
 function drawUndo(){ undoDraw(); }
 
-function clearCanvas(){
-  if(ctx) try{ ctx.clearRect(0,0,canvas ? canvas.width : 9999, canvas ? canvas.height : 9999); }catch(e){}
-  localStorage.removeItem('dashboard_canvas');
-}
 function drawClearAll(){
-  if(!confirm('Effacer tout le tableau blanc ?')) return;
+  if(!confirm('Effacer ce tableau ? Cette action est irréversible.')) return;
   history = [];
-  clearCanvas();
-}
-
-function saveCanvas(){
-  if(!canvas) return;
-  try{ lsSet('dashboard_canvas', canvas.toDataURL()); }catch(e){}
+  if(ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const tab = drawTabs.find(t => t.id === drawActiveId);
+  if(tab) tab.dataURL = '';
+  drawSaveTabs();
 }
 
 function drawPanelToggle(){
   drawEnabled = !drawEnabled;
+  lsSet('dashboard_draw_visible', drawEnabled ? '1' : '0');
   const panel = document.getElementById('drawPanel');
   const btn = document.getElementById('drawToggleBtn');
   if(panel) panel.classList.toggle('draw-hidden', !drawEnabled);
-  if(btn) btn.classList.toggle('active', drawEnabled);
-  if(canvas) canvas.classList.toggle('draw-active', drawEnabled);
+  if(btn){
+    btn.classList.toggle('active', drawEnabled);
+    btn.textContent = drawEnabled ? '▲' : '✏️';
+    btn.title = drawEnabled ? 'Fermer le tableau blanc' : 'Afficher / masquer le tableau blanc';
+  }
+  if(drawEnabled){
+    setTimeout(() => { resizeCanvas(false); drawPositionToggleBtn(); }, 320);
+  } else {
+    drawPositionToggleBtn();
+  }
 }
 function toggleDrawMode(){ drawPanelToggle(); }
 
@@ -4088,7 +4265,7 @@ async function importVault(e){
       if(data.links) { links=data.links; }
       if(data.compactLinks) { compactLinks=data.compactLinks; renderCompactLinks(); }
       if(data.notes){ const _naI = document.getElementById('notesArea'); if(_naI) _naI.value=data.notes; }
-      if(data.canvas){ lsSet('dashboard_canvas',data.canvas); const img=new Image(); img.onload=()=>ctx.drawImage(img,0,0,window.innerWidth,window.innerHeight); img.src=data.canvas; }
+      if(data.canvas){ localStorage.removeItem('dashboard_draw_tabs'); lsSet('dashboard_canvas', data.canvas); drawLoad(); }
       save();
       alert('✅ Importé avec succès !');
     }catch(err){ alert('❌ Fichier corrompu ou incompatible.'); }
@@ -4334,9 +4511,7 @@ function initApp(){
   applyClockColor();
   renderLinks();
   renderFrequentShortcuts();
-  initCanvas();
-  const cv=localStorage.getItem('dashboard_canvas');
-  if(cv){ const img=new Image(); img.onload=()=>ctx.drawImage(img,0,0,window.innerWidth,window.innerHeight); img.src=cv; }
+  drawLoad();
   // fond d'écran
   wallpaperRestore();
   wallpaperRestoreOverlay();
@@ -7128,6 +7303,7 @@ function editorLoad(){
   if(editorSplitActive){
     editorApplySplitState();
   }
+  drawPositionToggleBtn();
 }
 
 function editorPositionToggleBtn(){
@@ -7149,13 +7325,14 @@ function editorToggle(){
     panel.classList.remove('editor-hidden');
     btn.textContent = '▲';
     btn.title = 'Fermer l\'éditeur';
-    setTimeout(editorPositionToggleBtn, 320);
+    setTimeout(() => { editorPositionToggleBtn(); drawPositionToggleBtn(); }, 320);
     document.getElementById('editorArea').focus();
   } else {
     panel.classList.add('editor-hidden');
     btn.textContent = '📝';
     btn.title = 'Ouvrir l\'éditeur';
     btn.style.top = '30px';
+    drawPositionToggleBtn();
   }
 }
 
@@ -7808,9 +7985,12 @@ document.addEventListener('keydown', function(e){
 
 </script>
 
-<!-- TABLEAU BLANC : dessin à main levée par-dessus tout -->
-<canvas id="drawCanvas"></canvas>
+<!-- TABLEAU BLANC : volet déroulant multi-onglets, comme l'éditeur de texte -->
 <div id="drawPanel" class="draw-hidden">
+  <div class="draw-tabs-bar" id="drawTabsBar">
+    <!-- onglets injectés dynamiquement -->
+    <button class="editor-tab-add" onclick="drawAddTab()" title="Nouveau tableau">＋</button>
+  </div>
   <div class="draw-panel-bar">
     <div class="draw-color-swatch active" style="background:#2b2b2b" onclick="drawSetColor('#2b2b2b',this)" title="Noir"></div>
     <div class="draw-color-swatch" style="background:#b3564f" onclick="drawSetColor('#b3564f',this)" title="Rouge"></div>
@@ -7828,8 +8008,14 @@ document.addEventListener('keydown', function(e){
     <div class="draw-sep"></div>
     <button class="draw-btn" id="drawEraserBtn" onclick="drawToggleEraser()" title="Gomme">🧽</button>
     <button class="draw-btn" onclick="drawUndo()" title="Annuler">↩</button>
-    <button class="draw-btn" onclick="drawClearAll()" title="Tout effacer" style="color:#b3564f;border-color:rgba(179,86,79,0.3)">🗑</button>
-    <span class="draw-hint">Dessine n'importe où sur l'écran, par-dessus tout</span>
+    <button class="draw-btn" onclick="drawClearAll()" title="Effacer ce tableau" style="color:#b3564f;border-color:rgba(179,86,79,0.3)">🗑</button>
+  </div>
+  <div class="draw-canvas-wrap" id="drawCanvasWrap">
+    <canvas id="drawCanvas"></canvas>
+  </div>
+  <div class="draw-bottom-bar">
+    <span class="editor-count" id="drawCount">Tableau 1</span>
+    <span class="editor-saved" id="drawSaved">✓ sauvegardé</span>
   </div>
 </div>
 <button id="drawToggleBtn" onclick="drawPanelToggle()" title="Afficher / masquer le tableau blanc">✏️</button>
