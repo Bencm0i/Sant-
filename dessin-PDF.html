@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aplatisseur de plans — dessiner sur un PDF</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231B2A41'/%3E%3Cpath d='M9 23 L21 11 L25 15 L13 27 Z' fill='%23E8703A'/%3E%3Cpath d='M21 11 L25 15 L23 17 L19 13 Z' fill='%23F2C078'/%3E%3Cpath d='M9 23 L7 27 L11 25 Z' fill='%23F7F5F0'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --blue-deep:#14213D;
+    --blue-mid:#1B2A41;
+    --blue-line:#3A5273;
+    --paper:#FCFBF7;
+    --paper-dim:#EFEDE4;
+    --accent:#E8703A;
+    --accent-soft:#F2C078;
+    --ink:#1B2A41;
+    --ok:#4C7A5E;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--blue-deep);
+    background-image:
+      linear-gradient(var(--blue-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--blue-line) 1px, transparent 1px);
+    background-size:28px 28px;
+    background-position:-1px -1px;
+    font-family:'IBM Plex Sans', sans-serif;
+    color:var(--paper);
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:28px 16px 60px;
+  }
+  header{
+    width:100%;
+    max-width:980px;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap:16px;
+    margin-bottom:18px;
+    border-bottom:1px solid var(--blue-line);
+    padding-bottom:14px;
+  }
+  .title-block h1{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:22px;
+    letter-spacing:0.5px;
+    margin:0 0 4px;
+    font-weight:700;
+  }
+  .title-block p{
+    margin:0;
+    font-size:13px;
+    color:#B8C4D9;
+  }
+  .cartouche{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    border:1px solid var(--blue-line);
+    padding:8px 12px;
+    min-width:210px;
+    line-height:1.6;
+    background:rgba(255,255,255,0.02);
+  }
+  .cartouche div{display:flex; justify-content:space-between; gap:12px;}
+  .cartouche span:first-child{color:#7F91AC;}
+  .cartouche span:last-child{color:var(--accent-soft); text-align:right; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+
+  main{width:100%; max-width:980px;}
+
+  .toolbar{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:10px;
+    background:var(--blue-mid);
+    border:1px solid var(--blue-line);
+    padding:12px 14px;
+    margin-bottom:16px;
+  }
+  .toolbar .grp{display:flex; align-items:center; gap:8px; padding-right:12px; border-right:1px solid var(--blue-line);}
+  .toolbar .grp:last-child{border-right:none;}
+  label.file-btn, button{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+    background:transparent;
+    border:1px solid var(--blue-line);
+    color:var(--paper);
+    padding:8px 12px;
+    cursor:pointer;
+    transition:background .15s, border-color .15s, color .15s;
+  }
+  label.file-btn:hover, button:hover:not(:disabled){
+    border-color:var(--accent);
+    color:var(--accent-soft);
+  }
+  button:disabled{opacity:0.35; cursor:not-allowed;}
+  button.primary{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:var(--blue-deep);
+    font-weight:600;
+  }
+  button.primary:hover:not(:disabled){
+    background:var(--accent-soft);
+    border-color:var(--accent-soft);
+    color:var(--blue-deep);
+  }
+  input[type="file"]{display:none;}
+  .swatch{
+    width:20px; height:20px; border-radius:50%;
+    border:2px solid transparent; cursor:pointer;
+  }
+  .swatch.active{border-color:var(--paper);}
+  input[type="range"]{width:80px; accent-color:var(--accent);}
+  .page-nav{font-family:'IBM Plex Mono', monospace; font-size:12px; color:#B8C4D9; min-width:70px; text-align:center;}
+
+  .stage{
+    background:var(--blue-mid);
+    border:1px solid var(--blue-line);
+    padding:24px;
+    display:flex;
+    justify-content:center;
+    min-height:400px;
+  }
+  .empty-state{
+    align-self:center;
+    text-align:center;
+    color:#7F91AC;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+  }
+  .empty-state svg{margin-bottom:14px; opacity:0.6;}
+  .canvas-wrap{
+    position:relative;
+    box-shadow:0 8px 30px rgba(0,0,0,0.4);
+    background:var(--paper);
+    display:none;
+  }
+  .canvas-wrap canvas{display:block; max-width:100%; height:auto;}
+  .canvas-wrap canvas#overlay{
+    position:absolute; top:0; left:0;
+    touch-action:none;
+    cursor:crosshair;
+  }
+
+  .status{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:#7F91AC;
+    margin-top:12px;
+    min-height:16px;
+  }
+  .status.ok{color:var(--ok);}
+  .status.warn{color:var(--accent-soft);}
+
+  footer{
+    max-width:980px;
+    width:100%;
+    margin-top:26px;
+    font-size:11.5px;
+    color:#6F82A0;
+    line-height:1.6;
+    border-top:1px solid var(--blue-line);
+    padding-top:14px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title-block">
+    <h1>✎ AJOUTER UN CROQUIS &amp; APLATIR</h1>
+    <p>Importez un PDF, dessinez dessus, puis aplatissez : le tracé devient une image fixe, non modifiable.</p>
+  </div>
+  <div class="cartouche">
+    <div><span>FICHIER</span><span id="cInfoName">—</span></div>
+    <div><span>PAGE</span><span id="cInfoPage">— / —</span></div>
+    <div><span>ÉTAT</span><span id="cInfoState">en attente</span></div>
+  </div>
+</header>
+
+<main>
+  <div class="toolbar">
+    <div class="grp">
+      <label class="file-btn" for="fileInput">📂 Importer PDF</label>
+      <input type="file" id="fileInput" accept="application/pdf">
+    </div>
+    <div class="grp">
+      <span class="swatch active" data-color="#1B2A41" style="background:#1B2A41"></span>
+      <span class="swatch" data-color="#E8703A" style="background:#E8703A"></span>
+      <span class="swatch" data-color="#C43E3E" style="background:#C43E3E"></span>
+      <span class="swatch" data-color="#2E6B4F" style="background:#2E6B4F"></span>
+      <span class="swatch" data-color="#F7F5F0" style="background:#F7F5F0; border:1px solid #999;"></span>
+    </div>
+    <div class="grp">
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#B8C4D9;">ÉP.</span>
+      <input type="range" id="widthRange" min="1" max="18" value="3">
+    </div>
+    <div class="grp">
+      <button id="undoBtn" disabled>↺ Annuler</button>
+      <button id="clearBtn" disabled>🗑 Effacer page</button>
+    </div>
+    <div class="grp">
+      <button id="prevBtn" disabled>‹</button>
+      <span class="page-nav" id="pageNav">— / —</span>
+      <button id="nextBtn" disabled>›</button>
+    </div>
+    <div class="grp" style="border-right:none; margin-left:auto;">
+      <button id="flattenBtn" class="primary" disabled>⬛ Aplatir &amp; télécharger</button>
+    </div>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="empty-state" id="emptyState">
+      <svg width="56" height="56" viewBox="0 0 32 32"><rect x="1" y="1" width="30" height="30" rx="3" fill="none" stroke="#3A5273" stroke-width="1.5"/><path d="M9 23 L21 11 L25 15 L13 27 Z" fill="#3A5273"/></svg>
+      <div>Aucun PDF chargé.<br>Cliquez sur « Importer PDF » pour commencer.</div>
+    </div>
+    <div class="canvas-wrap" id="canvasWrap">
+      <canvas id="pdfCanvas"></canvas>
+      <canvas id="overlay"></canvas>
+    </div>
+  </div>
+
+  <div class="status" id="statusLine"></div>
+</main>
+
+<footer>
+  Le dessin est conservé page par page tant que vous naviguez dans le document. « Aplatir &amp; télécharger » fusionne
+  chaque page du PDF avec le croquis correspondant en une seule image par page, puis génère un nouveau PDF —
+  le tracé ne pourra plus être déplacé, modifié ni supprimé. Le fichier d'origine n'est jamais transmis à un serveur : tout se passe dans votre navigateur.
+</footer>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+const fileInput   = document.getElementById('fileInput');
+const emptyState  = document.getElementById('emptyState');
+const canvasWrap  = document.getElementById('canvasWrap');
+const pdfCanvas   = document.getElementById('pdfCanvas');
+const overlay     = document.getElementById('overlay');
+const pdfCtx      = pdfCanvas.getContext('2d');
+const ovCtx       = overlay.getContext('2d');
+
+const undoBtn     = document.getElementById('undoBtn');
+const clearBtn    = document.getElementById('clearBtn');
+const prevBtn     = document.getElementById('prevBtn');
+const nextBtn     = document.getElementById('nextBtn');
+const flattenBtn  = document.getElementById('flattenBtn');
+const pageNav     = document.getElementById('pageNav');
+const statusLine  = document.getElementById('statusLine');
+
+const cInfoName  = document.getElementById('cInfoName');
+const cInfoPage  = document.getElementById('cInfoPage');
+const cInfoState = document.getElementById('cInfoState');
+
+const RENDER_SCALE = 1.8; // résolution de travail = résolution d'export (pas de perte)
+
+let pdfDoc = null;
+let currentPage = 1;
+let numPages = 0;
+let currentColor = '#1B2A41';
+let currentWidth = 3;
+let drawing = false;
+let lastX = 0, lastY = 0;
+
+// dessins par page : { pageNum: dataURL du calque de croquis (transparent) }
+const pageDrawings = {};
+// pile d'annulation par page : { pageNum: [dataURL, dataURL, ...] }
+const undoStacks = {};
+
+function setStatus(msg, cls){
+  statusLine.textContent = msg;
+  statusLine.className = 'status' + (cls ? ' ' + cls : '');
+}
+
+// ---------- Import du PDF ----------
+fileInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  setStatus('Chargement du PDF…');
+  cInfoName.textContent = file.name;
+  cInfoState.textContent = 'chargement';
+
+  const buf = await file.arrayBuffer();
+  try{
+    pdfDoc = await pdfjsLib.getDocument({ data: buf }).promise;
+  }catch(err){
+    setStatus('Impossible de lire ce PDF : ' + err.message, 'warn');
+    cInfoState.textContent = 'erreur';
+    return;
+  }
+  numPages = pdfDoc.numPages;
+  currentPage = 1;
+  for(const k in pageDrawings) delete pageDrawings[k];
+  for(const k in undoStacks) delete undoStacks[k];
+
+  emptyState.style.display = 'none';
+  canvasWrap.style.display = 'block';
+  flattenBtn.disabled = false;
+  clearBtn.disabled = false;
+  prevBtn.disabled = false;
+  nextBtn.disabled = false;
+
+  await renderPage(currentPage);
+  cInfoState.textContent = 'prêt';
+  setStatus('PDF chargé — ' + numPages + ' page(s). Dessinez directement sur le document.', 'ok');
+});
+
+async function renderPage(num){
+  const page = await pdfDoc.getPage(num);
+  const viewport = page.getViewport({ scale: RENDER_SCALE });
+
+  pdfCanvas.width = overlay.width = viewport.width;
+  pdfCanvas.height = overlay.height = viewport.height;
+  pdfCanvas.style.width = overlay.style.width = viewport.width + 'px';
+  pdfCanvas.style.height = overlay.style.height = viewport.height + 'px';
+
+  await page.render({ canvasContext: pdfCtx, viewport }).promise;
+
+  ovCtx.clearRect(0, 0, overlay.width, overlay.height);
+  if(pageDrawings[num]){
+    const img = new Image();
+    await new Promise(res => { img.onload = res; img.src = pageDrawings[num]; });
+    ovCtx.drawImage(img, 0, 0);
+  }
+  cInfoPage.textContent = num + ' / ' + numPages;
+  pageNav.textContent = num + ' / ' + numPages;
+  updateUndoState();
+}
+
+function saveCurrentPageDrawing(){
+  pageDrawings[currentPage] = overlay.toDataURL('image/png');
+}
+
+// ---------- Dessin (souris / tactile / stylet) ----------
+function pointerPos(e){
+  const rect = overlay.getBoundingClientRect();
+  const scaleX = overlay.width / rect.width;
+  const scaleY = overlay.height / rect.height;
+  return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
+}
+
+function pushUndoSnapshot(){
+  if(!undoStacks[currentPage]) undoStacks[currentPage] = [];
+  const stack = undoStacks[currentPage];
+  stack.push(overlay.toDataURL('image/png'));
+  if(stack.length > 25) stack.shift();
+  updateUndoState();
+}
+
+function updateUndoState(){
+  const stack = undoStacks[currentPage] || [];
+  undoBtn.disabled = stack.length === 0;
+}
+
+overlay.addEventListener('pointerdown', (e) => {
+  if(!pdfDoc) return;
+  drawing = true;
+  pushUndoSnapshot();
+  const p = pointerPos(e);
+  lastX = p.x; lastY = p.y;
+  ovCtx.beginPath();
+  ovCtx.arc(p.x, p.y, currentWidth/2, 0, Math.PI*2);
+  ovCtx.fillStyle = currentColor;
+  ovCtx.fill();
+  overlay.setPointerCapture(e.pointerId);
+});
+
+overlay.addEventListener('pointermove', (e) => {
+  if(!drawing) return;
+  const p = pointerPos(e);
+  ovCtx.strokeStyle = currentColor;
+  ovCtx.lineWidth = currentWidth;
+  ovCtx.lineCap = 'round';
+  ovCtx.lineJoin = 'round';
+  ovCtx.beginPath();
+  ovCtx.moveTo(lastX, lastY);
+  ovCtx.lineTo(p.x, p.y);
+  ovCtx.stroke();
+  lastX = p.x; lastY = p.y;
+});
+
+['pointerup', 'pointerleave', 'pointercancel'].forEach(evt => {
+  overlay.addEventListener(evt, () => {
+    if(drawing){ drawing = false; saveCurrentPageDrawing(); }
+  });
+});
+
+// ---------- Outils ----------
+document.querySelectorAll('.swatch').forEach(sw => {
+  sw.addEventListener('click', () => {
+    document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+    sw.classList.add('active');
+    currentColor = sw.dataset.color;
+  });
+});
+
+document.getElementById('widthRange').addEventListener('input', (e) => {
+  currentWidth = parseInt(e.target.value, 10);
+});
+
+undoBtn.addEventListener('click', () => {
+  const stack = undoStacks[currentPage];
+  if(!stack || stack.length === 0) return;
+  const last = stack.pop();
+  const img = new Image();
+  img.onload = () => {
+    ovCtx.clearRect(0, 0, overlay.width, overlay.height);
+    ovCtx.drawImage(img, 0, 0);
+    saveCurrentPageDrawing();
+    updateUndoState();
+  };
+  img.src = last;
+});
+
+clearBtn.addEventListener('click', () => {
+  if(!pdfDoc) return;
+  pushUndoSnapshot();
+  ovCtx.clearRect(0, 0, overlay.width, overlay.height);
+  saveCurrentPageDrawing();
+});
+
+prevBtn.addEventListener('click', async () => {
+  if(!pdfDoc || currentPage <= 1) return;
+  saveCurrentPageDrawing();
+  currentPage--;
+  await renderPage(currentPage);
+});
+
+nextBtn.addEventListener('click', async () => {
+  if(!pdfDoc || currentPage >= numPages) return;
+  saveCurrentPageDrawing();
+  currentPage++;
+  await renderPage(currentPage);
+});
+
+// ---------- Aplatissement + export ----------
+flattenBtn.addEventListener('click', async () => {
+  if(!pdfDoc) return;
+  saveCurrentPageDrawing();
+  flattenBtn.disabled = true;
+  cInfoState.textContent = 'export…';
+
+  const { jsPDF } = window.jspdf;
+  let outPdf = null;
+
+  for(let n = 1; n <= numPages; n++){
+    setStatus('Aplatissement de la page ' + n + ' / ' + numPages + '…');
+    const page = await pdfDoc.getPage(n);
+    const ptViewport = page.getViewport({ scale: 1 }); // dimensions en points PDF
+    const renderViewport = page.getViewport({ scale: RENDER_SCALE });
+
+    const tmp = document.createElement('canvas');
+    tmp.width = renderViewport.width;
+    tmp.height = renderViewport.height;
+    const tmpCtx = tmp.getContext('2d');
+    await page.render({ canvasContext: tmpCtx, viewport: renderViewport }).promise;
+
+    if(pageDrawings[n]){
+      const img = new Image();
+      await new Promise(res => { img.onload = res; img.src = pageDrawings[n]; });
+      tmpCtx.drawImage(img, 0, 0, tmp.width, tmp.height);
+    }
+
+    const imgData = tmp.toDataURL('image/jpeg', 0.92);
+    const orientation = ptViewport.width > ptViewport.height ? 'l' : 'p';
+
+    if(!outPdf){
+      outPdf = new jsPDF({ unit: 'pt', orientation, format: [ptViewport.width, ptViewport.height] });
+    } else {
+      outPdf.addPage([ptViewport.width, ptViewport.height], orientation);
+    }
+    outPdf.addImage(imgData, 'JPEG', 0, 0, ptViewport.width, ptViewport.height);
+  }
+
+  const baseName = (cInfoName.textContent || 'document').replace(/\.pdf$/i, '');
+  outPdf.save(baseName + ' - aplati.pdf');
+
+  cInfoState.textContent = 'prêt';
+  flattenBtn.disabled = false;
+  setStatus('PDF aplati généré et téléchargé. Le croquis est désormais fixé dans le document.', 'ok');
+});
+</script>
+</body>
+</html>
