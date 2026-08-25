@@ -116,6 +116,11 @@
     border-color:var(--accent-soft);
     color:var(--blue-deep);
   }
+  button#modeBtn.pan{
+    background:var(--paper);
+    border-color:var(--paper);
+    color:var(--blue-deep);
+  }
   input[type="file"]{display:none;}
   .swatch{
     width:20px; height:20px; border-radius:50%;
@@ -211,6 +216,9 @@
       <input type="file" id="fileInput" accept="application/pdf">
     </div>
     <div class="grp">
+      <button id="modeBtn" disabled>✏️ Dessin</button>
+    </div>
+    <div class="grp">
       <span class="swatch active" data-color="#1B2A41" style="background:#1B2A41"></span>
       <span class="swatch" data-color="#E8703A" style="background:#E8703A"></span>
       <span class="swatch" data-color="#C43E3E" style="background:#C43E3E"></span>
@@ -250,7 +258,8 @@
 </main>
 
 <footer>
-  Le dessin est conservé page par page tant que vous naviguez dans le document. « Aplatir &amp; télécharger » fusionne
+  Sur mobile, le calque de dessin capte le doigt : utilisez le bouton <strong>✏️ Dessin / 🖐 Défilement</strong> pour
+  basculer en mode navigation avant de faire défiler la page. Le dessin est conservé page par page tant que vous naviguez dans le document. « Aplatir &amp; télécharger » fusionne
   chaque page du PDF avec le croquis correspondant en une seule image par page, puis génère un nouveau PDF —
   le tracé ne pourra plus être déplacé, modifié ni supprimé. Le fichier d'origine n'est jamais transmis à un serveur : tout se passe dans votre navigateur.
 </footer>
@@ -266,6 +275,7 @@ const overlay     = document.getElementById('overlay');
 const pdfCtx      = pdfCanvas.getContext('2d');
 const ovCtx       = overlay.getContext('2d');
 
+const modeBtn     = document.getElementById('modeBtn');
 const undoBtn     = document.getElementById('undoBtn');
 const clearBtn    = document.getElementById('clearBtn');
 const prevBtn     = document.getElementById('prevBtn');
@@ -287,6 +297,26 @@ let currentColor = '#1B2A41';
 let currentWidth = 3;
 let drawing = false;
 let lastX = 0, lastY = 0;
+let mode = 'draw'; // 'draw' ou 'pan'
+
+function setMode(m){
+  mode = m;
+  if(mode === 'pan'){
+    overlay.style.pointerEvents = 'none';
+    overlay.style.cursor = 'grab';
+    modeBtn.textContent = '🖐 Défilement';
+    modeBtn.classList.add('pan');
+    setStatus('Mode défilement : faites glisser le doigt pour naviguer sur la page.', 'ok');
+  } else {
+    overlay.style.pointerEvents = 'auto';
+    overlay.style.cursor = 'crosshair';
+    modeBtn.textContent = '✏️ Dessin';
+    modeBtn.classList.remove('pan');
+    setStatus('Mode dessin : touchez le document pour tracer.', 'ok');
+  }
+}
+
+modeBtn.addEventListener('click', () => setMode(mode === 'draw' ? 'pan' : 'draw'));
 
 // dessins par page : { pageNum: dataURL du calque de croquis (transparent) }
 const pageDrawings = {};
@@ -325,6 +355,8 @@ fileInput.addEventListener('change', async (e) => {
   clearBtn.disabled = false;
   prevBtn.disabled = false;
   nextBtn.disabled = false;
+  modeBtn.disabled = false;
+  setMode('draw');
 
   await renderPage(currentPage);
   cInfoState.textContent = 'prêt';
