@@ -107,13 +107,19 @@ html,body{
 .m-item:hover{ background:#0f2130; border-color:var(--line); }
 .m-swatch{ width:10px; height:10px; border-radius:50%; flex:none; }
 .m-info{ flex:1; min-width:0; }
-.m-info .m-val{ font-family:var(--mono); font-size:13px; font-weight:700; }
+.m-info .m-val{ font-family:var(--mono); font-size:13px; font-weight:700; display:flex; align-items:center; gap:8px; }
 .m-info .m-tag{ font-size:10.5px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.05em; }
 .m-del{
   background:none; border:none; color:var(--ink-dim); cursor:pointer; font-size:16px;
   padding:2px 6px; border-radius:4px; line-height:1;
 }
 .m-del:hover{ color:var(--warn); background:#2a1a1a; }
+.m-check{ flex:none; display:flex; align-items:center; }
+.m-check input{
+  width:16px; height:16px; accent-color:var(--accent); cursor:pointer;
+}
+.m-item.validated{ opacity:.5; }
+.m-item.validated .m-val{ text-decoration:line-through; }
 .empty-hint{ color:var(--ink-dim); font-size:12.5px; text-align:center; padding:24px 10px; line-height:1.6; }
 
 .footer-actions{ padding:12px 20px; border-top:1px solid var(--line); display:flex; gap:8px; }
@@ -318,6 +324,7 @@ canvas#c.panning{ cursor:grabbing !important; }
 
   let isPanning = false;
   let panStart = null;
+  let checkboxHitboxes = []; // zones cliquables des coches "validé" dessinées sur le canvas
 
   const colors = ['#00e0b8','#ff8a5c','#7aa7ff','#f6c945','#ff6ba6','#9b8bff'];
 
@@ -474,6 +481,15 @@ canvas#c.panning{ cursor:grabbing !important; }
   // ---------- Pointer interaction ----------
   canvas.addEventListener('pointerdown', e=>{
     if(!imgLoaded) return;
+    const r0 = canvas.getBoundingClientRect();
+    const sx0 = e.clientX - r0.left, sy0 = e.clientY - r0.top;
+    const hitIdx = checkboxHitboxes.find(h => sx0>=h.x && sx0<=h.x+h.w && sy0>=h.y && sy0<=h.y+h.h);
+    if(hitIdx){
+      measurements[hitIdx.idx].validated = !measurements[hitIdx.idx].validated;
+      renderMeasureList();
+      draw();
+      return;
+    }
     if(mode==='pan' || e.button===1){
       isPanning = true; canvas.classList.add('panning');
       panStart = { x:e.clientX, y:e.clientY, ox:view.ox, oy:view.oy };
@@ -499,6 +515,10 @@ canvas#c.panning{ cursor:grabbing !important; }
       return;
     }
     if(!imgLoaded) return;
+    const r1 = canvas.getBoundingClientRect();
+    const sx1 = e.clientX - r1.left, sy1 = e.clientY - r1.top;
+    const overCheck = checkboxHitboxes.some(h => sx1>=h.x && sx1<=h.x+h.w && sy1>=h.y && sy1<=h.y+h.h);
+    canvas.style.cursor = overCheck ? 'pointer' : '';
     hoverImagePt = getPointerImagePos(e);
     if(pendingPoint) draw();
     else if(mode) draw();
@@ -522,7 +542,8 @@ canvas#c.panning{ cursor:grabbing !important; }
     const valueUnits = calibration ? pxDist / calibration.pxPerUnit : null;
     measurements.push({
       id: nextId++, mode, p1, p2: effP2, pxDist, valueUnits,
-      color: colors[(measurements.length) % colors.length]
+      color: colors[(measurements.length) % colors.length],
+      validated: false
     });
     renderMeasureList();
   }
@@ -582,12 +603,16 @@ canvas#c.panning{ cursor:grabbing !important; }
     }
     measurements.forEach((m, idx)=>{
       const row = document.createElement('div');
-      row.className = 'm-item';
+      row.className = 'm-item' + (m.validated ? ' validated' : '');
       const unit = calibration ? calibration.unit : '';
       row.innerHTML = `
         <span class="m-swatch" style="background:${m.color}"></span>
         <div class="m-info">
-          <div class="m-val">${fmt(m.valueUnits)} ${unit}</div>
+          <div class="m-val">${fmt(m.valueUnits)} ${unit}
+            <label class="m-check" title="Valider cette cote">
+              <input type="checkbox" data-idx="${idx}" ${m.validated ? 'checked' : ''}>
+            </label>
+          </div>
           <div class="m-tag">#${idx+1} · ${tagFor(m)} · ${Math.round(m.pxDist)}px</div>
         </div>
         <button class="m-del" data-idx="${idx}">×</button>
@@ -601,6 +626,13 @@ canvas#c.panning{ cursor:grabbing !important; }
         renderMeasureList(); draw();
       });
     });
+    measureList.querySelectorAll('.m-check input').forEach(cb=>{
+      cb.addEventListener('change', (e)=>{
+        const i = parseInt(e.currentTarget.dataset.idx,10);
+        measurements[i].validated = e.currentTarget.checked;
+        renderMeasureList();
+      });
+    });
   }
 
   // ---------- Drawing ----------
@@ -608,7 +640,7 @@ canvas#c.panning{ cursor:grabbing !important; }
     const r = stage.getBoundingClientRect();
     ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
     ctx.clearRect(0,0,r.width,r.height);
-    if(!imgLoaded) return;
+    if(!imgLoaded){ checkboxHitboxes = []; return; }
 
     ctx.save();
     ctx.translate(view.ox, view.oy);
@@ -618,15 +650,16 @@ canvas#c.panning{ cursor:grabbing !important; }
     ctx.restore();
 
     // calibration line
+    checkboxHitboxes = [];
     if(calibration){
       drawDimensionLine(calibration.p1, calibration.p2, calibration.realLen+' '+calibration.unit+' (réf.)', '#f6c945', true);
     }
 
     // measurements
-    measurements.forEach(m=>{
+    measurements.forEach((m, idx)=>{
       const unit = calibration ? calibration.unit : 'px';
       const val = calibration ? fmt(m.valueUnits)+' '+unit : Math.round(m.pxDist)+'px';
-      drawDimensionLine(m.p1, m.p2, val, m.color, false);
+      drawDimensionLine(m.p1, m.p2, val, m.color, false, false, idx, m.validated);
     });
 
     // pending first point + rubber band
@@ -648,11 +681,12 @@ canvas#c.panning{ cursor:grabbing !important; }
     }
   }
 
-  function drawDimensionLine(p1img, p2img, label, color, dashed, ghost){
+  function drawDimensionLine(p1img, p2img, label, color, dashed, ghost, measIdx, validated){
     const p1 = imgToScreen(p1img), p2 = imgToScreen(p2img);
+    const dimColor = validated ? '#5c7080' : color;
     ctx.save();
-    ctx.strokeStyle = color;
-    ctx.fillStyle = color;
+    ctx.strokeStyle = dimColor;
+    ctx.fillStyle = dimColor;
     ctx.lineWidth = 2;
     if(dashed) ctx.setLineDash([6,4]);
     if(ghost) ctx.globalAlpha = 0.75;
@@ -684,14 +718,42 @@ canvas#c.panning{ cursor:grabbing !important; }
     const textW = ctx.measureText(label).width;
     const padX = 6, padY = 4;
     const lx = mx - textW/2 - padX, ly = my - px*16 - 9 - padY;
+    const labelH = 18+padY;
     ctx.fillStyle = '#0d1c28';
     ctx.globalAlpha = ghost ? 0.85 : 0.92;
-    roundRect(ctx, lx, ly, textW+padX*2, 18+padY, 5);
+    roundRect(ctx, lx, ly, textW+padX*2, labelH, 5);
     ctx.fill();
     ctx.globalAlpha = ghost ? 0.9 : 1;
-    ctx.fillStyle = color;
+    ctx.fillStyle = dimColor;
     ctx.textBaseline = 'middle';
-    ctx.fillText(label, mx - textW/2, ly + (18+padY)/2 + 1);
+    ctx.fillText(label, mx - textW/2, ly + labelH/2 + 1);
+
+    // checkbox "validé" collée à côté de l'étiquette (uniquement pour une vraie mesure, pas la calib ni le fantôme)
+    if(measIdx != null){
+      const box = 16, gap = 6;
+      const bx = lx + textW + padX*2 + gap, by = ly + labelH/2 - box/2;
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#0d1c28';
+      roundRect(ctx, bx, by, box, box, 4);
+      ctx.fill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = validated ? dimColor : '#8fa8bd';
+      roundRect(ctx, bx, by, box, box, 4);
+      ctx.stroke();
+      if(validated){
+        ctx.fillStyle = dimColor;
+        roundRect(ctx, bx+2.5, by+2.5, box-5, box-5, 2.5);
+        ctx.fill();
+        ctx.strokeStyle = '#0d1c28';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(bx+3.5, by+8.5);
+        ctx.lineTo(bx+6.8, by+11.8);
+        ctx.lineTo(bx+12.5, by+4.5);
+        ctx.stroke();
+      }
+      checkboxHitboxes.push({ x:bx-3, y:by-3, w:box+6, h:box+6, idx:measIdx });
+    }
     ctx.restore();
   }
   function roundRect(ctx,x,y,w,h,r){
