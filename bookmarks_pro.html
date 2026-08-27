@@ -2750,6 +2750,14 @@ body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
         </div>
 
         <div class="ha-sidebar-head" style="border-top:1.5px solid rgba(255,255,255,0.6);">
+          <span class="card-title">👤 Profil utilisateur</span>
+        </div>
+        <div class="vault-btn-row" style="padding:10px 16px 16px;">
+          <button class="bg-btn fond-btn userprofile-btn" id="upBtnBoulot" onclick="setUserProfile('boulot')" title="Tout afficher">💼 Boulot</button>
+          <button class="bg-btn fond-btn userprofile-btn" id="upBtnMaison" onclick="setUserProfile('maison')" title="Masque pointage, semaine et Eurécia">🏠 Maison</button>
+        </div>
+
+        <div class="ha-sidebar-head" style="border-top:1.5px solid rgba(255,255,255,0.6);">
           <span class="card-title">🔒 Confidentialité</span>
         </div>
         <div style="padding:8px 16px 16px;display:flex;flex-direction:column;gap:8px;">
@@ -2792,6 +2800,7 @@ body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
       .vault-btn-row{display:flex;gap:6px;flex-shrink:0;}
       .vault-btn{flex:1;justify-content:center;padding:7px 4px;font-size:0.62rem;letter-spacing:0.01em;white-space:nowrap;}
       .fond-btn{flex:1;justify-content:center;padding:7px 4px;font-size:0.62rem;letter-spacing:0.01em;white-space:nowrap;}
+      .userprofile-btn.active{background:linear-gradient(135deg,var(--c1),var(--c2));color:#fff;border-color:transparent;box-shadow:0 2px 8px rgba(61,90,115,0.35);}
       .mini-switch{flex-shrink:0;width:40px;height:22px;border-radius:11px;background:rgba(30,41,59,0.18);border:none;cursor:pointer;position:relative;padding:0;transition:background 0.2s;}
       .mini-switch.on{background:linear-gradient(135deg,var(--c1),var(--c2));}
       .mini-switch-knob{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.25);transition:transform 0.2s;}
@@ -8992,6 +9001,36 @@ function ghLinkGenerate(){
     const t = e.changedTouches[0];
     pointerUp(t.clientX, t.clientY);
   });
+})();
+</script>
+
+<script>
+// ── PROFIL UTILISATEUR (Boulot / Maison) ──────────────────────────────────
+(function(){
+  const UP_KEY = 'dashboard_user_profile';
+  const UP_HIDDEN_IN_MAISON = ['pointeuseWidget','weekWidget','eStopWidget'];
+
+  window.setUserProfile = function(p){
+    localStorage.setItem(UP_KEY, p);
+    applyUserProfile();
+  };
+
+  function applyUserProfile(){
+    const p = localStorage.getItem(UP_KEY) || 'boulot';
+    const hide = (p === 'maison');
+    UP_HIDDEN_IN_MAISON.forEach(id=>{
+      const el = document.getElementById(id);
+      if(!el) return;
+      if(hide) el.style.setProperty('display','none','important');
+      else el.style.removeProperty('display');
+    });
+    const btnB = document.getElementById('upBtnBoulot');
+    const btnM = document.getElementById('upBtnMaison');
+    if(btnB) btnB.classList.toggle('active', p !== 'maison');
+    if(btnM) btnM.classList.toggle('active', p === 'maison');
+  }
+
+  applyUserProfile();
 })();
 </script>
 
