@@ -151,7 +151,42 @@ canvas#c.mode-h{ cursor:col-resize; }
 canvas#c.mode-v{ cursor:row-resize; }
 canvas#c.mode-free{ cursor:crosshair; }
 canvas#c.mode-pan{ cursor:grab; }
+canvas#c.mode-comment{ cursor:crosshair; }
 canvas#c.panning{ cursor:grabbing !important; }
+
+/* ---------- Comment boxes (draggable) ---------- */
+#commentLayer{ position:absolute; inset:0; pointer-events:none; z-index:6; }
+.comment-box{
+  position:absolute; width:190px; transform:translate(-6px,-6px);
+  background:#132535ee; backdrop-filter:blur(4px); border:1px solid var(--line);
+  border-radius:9px; padding:6px 7px 7px; pointer-events:auto;
+  box-shadow:0 6px 18px #00000066; transition:opacity .15s, border-color .15s;
+}
+.comment-box.grayed{ opacity:.4; }
+.comment-box.locked{ border-color:var(--accent-dim); }
+.c-pin{
+  position:absolute; left:-5px; top:-5px; width:11px; height:11px; border-radius:50%;
+  border:2px solid #0d1c28; z-index:1;
+}
+.comment-box .c-head{ display:flex; align-items:center; gap:4px; margin-bottom:5px; cursor:move; }
+.comment-box.locked .c-head{ cursor:default; }
+.c-head .c-drag{
+  flex:1; font-size:10px; color:var(--ink-dim); font-family:var(--mono);
+  letter-spacing:.06em; text-transform:uppercase; user-select:none; white-space:nowrap; overflow:hidden;
+}
+.c-btn{
+  width:20px; height:20px; border-radius:5px; border:1px solid var(--line); background:#0f2130;
+  color:var(--ink-dim); font-size:11px; display:flex; align-items:center; justify-content:center;
+  cursor:pointer; flex:none; padding:0;
+}
+.c-btn:hover{ border-color:var(--accent-dim); color:var(--ink); }
+.c-btn.on{ background:var(--accent); color:#052620; border-color:var(--accent); }
+.comment-box textarea{
+  width:100%; resize:vertical; min-height:40px; background:#0a1620; border:1px solid var(--line);
+  border-radius:6px; color:var(--ink); font-family:var(--sans); font-size:12.5px; padding:6px 7px;
+  line-height:1.4;
+}
+.comment-box textarea:focus{ outline:none; border-color:var(--accent); }
 
 .topbar{
   position:absolute; top:16px; left:16px; right:16px; display:flex; justify-content:space-between;
@@ -251,11 +286,26 @@ canvas#c.panning{ cursor:grabbing !important; }
       </div>
     </div>
 
+    <div class="section">
+      <h2><span class="num">4</span>Commentaires</h2>
+      <button class="btn" id="commentBtn" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+        Ajouter un commentaire
+      </button>
+    </div>
+
     <div class="section" style="border-bottom:none; flex:0;">
       <h2><span class="num">#</span>Cotes relevées</h2>
     </div>
     <div id="measureList">
       <div class="empty-hint" id="emptyHint">Aucune cote pour l'instant.<br>Étalonnez d'abord, puis cliquez deux points sur l'image.</div>
+    </div>
+
+    <div class="section" style="border-bottom:none;">
+      <h2><span class="num">↯</span>Sauvegarde</h2>
+      <button class="btn primary" id="jsonSaveBtn">💾 Enregistrer (JSON)</button>
+      <button class="btn" id="jsonLoadBtn">📂 Charger un projet (JSON)</button>
+      <input type="file" id="jsonFileInput" accept="application/json,.json" style="display:none;">
     </div>
 
     <div class="footer-actions">
@@ -307,7 +357,15 @@ canvas#c.panning{ cursor:grabbing !important; }
   const calibBtn = document.getElementById('calibBtn');
   const realLenInput = document.getElementById('realLen');
   const unitSelect = document.getElementById('unit');
+  const commentBtn = document.getElementById('commentBtn');
   const modeBtns = { h: document.getElementById('modeH'), v: document.getElementById('modeV'), free: document.getElementById('modeFree'), pan: document.getElementById('modePan') };
+
+  const commentLayer = document.createElement('div');
+  commentLayer.id = 'commentLayer';
+  stage.appendChild(commentLayer);
+  let comments = []; // { id, x, y, text, color, grayed, locked }
+  let nextCommentId = 1;
+  let commentEls = {}; // id -> wrapper element
 
   let img = null;
   let imgLoaded = false;
@@ -372,10 +430,11 @@ canvas#c.panning{ cursor:grabbing !important; }
         img = im; imgLoaded = true;
         dropZone.style.display = 'none';
         calibration = null; measurements = []; pendingPoint = null;
+        clearCommentsDOM();
         renderMeasureList();
         calibStatus.className = 'calib-status';
         calibStatus.textContent = 'Non étalonné — tracez un segment sur une cote connue.';
-        [calibBtn, realLenInput, unitSelect].forEach(el=>el.disabled=false);
+        [calibBtn, realLenInput, unitSelect, commentBtn].forEach(el=>el.disabled=false);
         Object.values(modeBtns).forEach(b=>b.disabled=true); // enabled after calibration
         statusPill.innerHTML = '<b>'+img.width+'×'+img.height+'px</b>';
         hintBar.textContent = "Étape 1 — Cliquez « Tracer la cote connue », puis cliquez-glissez sur un élément dont vous connaissez la longueur réelle.";
@@ -426,16 +485,19 @@ canvas#c.panning{ cursor:grabbing !important; }
     mode = m; pendingPoint = null;
     Object.entries(modeBtns).forEach(([k,btn])=> btn.classList.toggle('active', k===m));
     calibBtn.classList.toggle('active', m==='calib');
+    commentBtn.classList.toggle('active', m==='comment');
     canvas.className = m ? 'mode-'+m : '';
     if(m==='calib') hintBar.innerHTML = "Cliquez le <b>premier point</b> de la cote connue, puis le second point.";
     else if(m==='h') hintBar.innerHTML = "Mode <b>horizontal</b> : cliquez un point, puis un second — la distance horizontale sera cotée.";
     else if(m==='v') hintBar.innerHTML = "Mode <b>vertical</b> : cliquez un point, puis un second — la distance verticale sera cotée.";
     else if(m==='free') hintBar.innerHTML = "Mode <b>libre</b> : cliquez deux points pour mesurer une distance quelconque.";
     else if(m==='pan') hintBar.innerHTML = "Glissez pour déplacer l'image. Molette pour zoomer.";
+    else if(m==='comment') hintBar.innerHTML = "Mode <b>commentaire</b> : cliquez sur la photo pour poser une note déplaçable.";
     else hintBar.textContent = "Molette pour zoomer • choisissez un mode de mesure ci-contre.";
     draw();
   }
   calibBtn.addEventListener('click', ()=> setMode(mode==='calib' ? null : 'calib'));
+  commentBtn.addEventListener('click', ()=> setMode(mode==='comment' ? null : 'comment'));
   Object.entries(modeBtns).forEach(([k,btn])=> btn.addEventListener('click', ()=> setMode(mode===k ? null : k)));
   window.addEventListener('keydown', e=>{
     if(e.key==='Escape'){ setMode(null); }
@@ -494,6 +556,16 @@ canvas#c.panning{ cursor:grabbing !important; }
       isPanning = true; canvas.classList.add('panning');
       panStart = { x:e.clientX, y:e.clientY, ox:view.ox, oy:view.oy };
       canvas.setPointerCapture(e.pointerId);
+      return;
+    }
+    if(mode==='comment'){
+      const p = getPointerImagePos(e);
+      const c = { id: nextCommentId++, x:p.x, y:p.y, text:'', color: colors[comments.length % colors.length], grayed:false, locked:false };
+      comments.push(c);
+      addCommentDOM(c);
+      const el = commentEls[c.id];
+      const ta = el && el.querySelector('textarea');
+      setTimeout(()=>{ if(ta) ta.focus(); }, 0);
       return;
     }
     if(!mode) return;
@@ -635,11 +707,210 @@ canvas#c.panning{ cursor:grabbing !important; }
     });
   }
 
+  // ---------- Comments (draggable notes) ----------
+  function clearCommentsDOM(){
+    commentLayer.innerHTML = '';
+    commentEls = {};
+    comments = [];
+    nextCommentId = 1;
+  }
+
+  function positionComment(c, wrap){
+    const s = imgToScreen({x:c.x, y:c.y});
+    wrap.style.left = s.x+'px';
+    wrap.style.top = s.y+'px';
+  }
+
+  function updateAllCommentPositions(){
+    comments.forEach(c=>{ const el = commentEls[c.id]; if(el) positionComment(c, el); });
+  }
+
+  function addCommentDOM(c){
+    const wrap = document.createElement('div');
+    wrap.className = 'comment-box' + (c.grayed ? ' grayed' : '') + (c.locked ? ' locked' : '');
+
+    const pin = document.createElement('div');
+    pin.className = 'c-pin';
+    pin.style.background = c.color;
+    wrap.appendChild(pin);
+
+    const head = document.createElement('div');
+    head.className = 'c-head';
+
+    const dragLabel = document.createElement('span');
+    dragLabel.className = 'c-drag';
+    dragLabel.textContent = '⠿ note';
+    head.appendChild(dragLabel);
+
+    const grayBtn = document.createElement('button');
+    grayBtn.type = 'button';
+    grayBtn.className = 'c-btn' + (c.grayed ? ' on' : '');
+    grayBtn.title = 'Griser / dégriser ce commentaire';
+    grayBtn.textContent = '◐';
+    head.appendChild(grayBtn);
+
+    const lockBtn = document.createElement('button');
+    lockBtn.type = 'button';
+    lockBtn.className = 'c-btn' + (c.locked ? ' on' : '');
+    lockBtn.title = 'Verrouiller / déverrouiller la position';
+    lockBtn.textContent = c.locked ? '🔒' : '🔓';
+    head.appendChild(lockBtn);
+
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'c-btn';
+    delBtn.title = 'Supprimer ce commentaire';
+    delBtn.textContent = '×';
+    head.appendChild(delBtn);
+
+    wrap.appendChild(head);
+
+    const ta = document.createElement('textarea');
+    ta.rows = 2;
+    ta.placeholder = 'Votre commentaire…';
+    ta.value = c.text || '';
+    ta.addEventListener('pointerdown', e=> e.stopPropagation());
+    ta.addEventListener('input', ()=>{ c.text = ta.value; });
+    wrap.appendChild(ta);
+
+    grayBtn.addEventListener('click', e=>{
+      e.stopPropagation();
+      c.grayed = !c.grayed;
+      wrap.classList.toggle('grayed', c.grayed);
+      grayBtn.classList.toggle('on', c.grayed);
+    });
+
+    lockBtn.addEventListener('click', e=>{
+      e.stopPropagation();
+      c.locked = !c.locked;
+      wrap.classList.toggle('locked', c.locked);
+      lockBtn.classList.toggle('on', c.locked);
+      lockBtn.textContent = c.locked ? '🔒' : '🔓';
+    });
+
+    delBtn.addEventListener('click', e=>{
+      e.stopPropagation();
+      comments = comments.filter(x=> x.id !== c.id);
+      wrap.remove();
+      delete commentEls[c.id];
+    });
+
+    head.addEventListener('pointerdown', e=>{
+      if(c.locked) return;
+      e.stopPropagation();
+      e.preventDefault();
+      const startScreen = { x:e.clientX, y:e.clientY };
+      const startImg = { x:c.x, y:c.y };
+      head.setPointerCapture(e.pointerId);
+      function onMove(ev){
+        const dx = (ev.clientX - startScreen.x) / view.scale;
+        const dy = (ev.clientY - startScreen.y) / view.scale;
+        c.x = startImg.x + dx; c.y = startImg.y + dy;
+        positionComment(c, wrap);
+      }
+      function onUp(){
+        head.releasePointerCapture(e.pointerId);
+        head.removeEventListener('pointermove', onMove);
+        head.removeEventListener('pointerup', onUp);
+      }
+      head.addEventListener('pointermove', onMove);
+      head.addEventListener('pointerup', onUp);
+    });
+
+    commentLayer.appendChild(wrap);
+    commentEls[c.id] = wrap;
+    positionComment(c, wrap);
+  }
+
+  // ---------- JSON project save / load ----------
+  function exportProject(){
+    return {
+      type: 'mesure-photo-project',
+      version: 1,
+      savedAt: new Date().toISOString(),
+      image: imgLoaded ? img.src : null,
+      calibration: calibration,
+      measurements: measurements,
+      comments: comments
+    };
+  }
+  function downloadJSON(obj, filename){
+    const blob = new Blob([JSON.stringify(obj, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=> URL.revokeObjectURL(url), 2000);
+  }
+  document.getElementById('jsonSaveBtn').addEventListener('click', ()=>{
+    if(!imgLoaded){
+      hintBar.innerHTML = '<b style="color:#ff8a5c">Chargez d\'abord une photo avant d\'enregistrer.</b>';
+      return;
+    }
+    downloadJSON(exportProject(), 'mesure-photo-' + Date.now() + '.json');
+  });
+
+  function restoreProject(data){
+    function applyRest(){
+      calibration = data.calibration || null;
+      measurements = Array.isArray(data.measurements) ? data.measurements : [];
+      nextId = measurements.reduce((m,x)=> Math.max(m,(x.id||0)+1), 1);
+      clearCommentsDOM();
+      (Array.isArray(data.comments) ? data.comments : []).forEach(c=>{
+        comments.push(c);
+        nextCommentId = Math.max(nextCommentId, (c.id||0)+1);
+        addCommentDOM(c);
+      });
+      refreshCalibStatus();
+      renderMeasureList();
+      draw();
+      hintBar.textContent = 'Projet chargé depuis le fichier JSON.';
+    }
+    if(data.image){
+      const im = new Image();
+      im.onload = function(){
+        img = im; imgLoaded = true;
+        dropZone.style.display = 'none';
+        [calibBtn, realLenInput, unitSelect, commentBtn].forEach(el=>el.disabled=false);
+        statusPill.innerHTML = '<b>'+img.width+'×'+img.height+'px</b>';
+        resizeCanvas();
+        fitToScreen();
+        applyRest();
+        if(calibration) Object.values(modeBtns).forEach(b=>b.disabled=false);
+      };
+      im.src = data.image;
+    } else {
+      if(!imgLoaded){
+        hintBar.innerHTML = '<b style="color:#ff8a5c">Ce fichier ne contient pas de photo — chargez d\'abord une image.</b>';
+        return;
+      }
+      applyRest();
+      if(calibration) Object.values(modeBtns).forEach(b=>b.disabled=false);
+    }
+  }
+  document.getElementById('jsonLoadBtn').addEventListener('click', ()=> document.getElementById('jsonFileInput').click());
+  document.getElementById('jsonFileInput').addEventListener('change', e=>{
+    const f = e.target.files[0];
+    if(!f) return;
+    const reader = new FileReader();
+    reader.onload = ev=>{
+      try{
+        const data = JSON.parse(ev.target.result);
+        restoreProject(data);
+      }catch(err){
+        hintBar.innerHTML = '<b style="color:#ff8a5c">Fichier JSON invalide ou corrompu.</b>';
+      }
+    };
+    reader.readAsText(f);
+    e.target.value = '';
+  });
+
   // ---------- Drawing ----------
   function draw(){
     const r = stage.getBoundingClientRect();
     ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
     ctx.clearRect(0,0,r.width,r.height);
+    updateAllCommentPositions();
     if(!imgLoaded){ checkboxHitboxes = []; return; }
 
     ctx.save();
