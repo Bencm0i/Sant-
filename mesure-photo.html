@@ -796,6 +796,7 @@ canvas#c.panning{ cursor:grabbing !important; }
     });
 
     head.addEventListener('pointerdown', e=>{
+      if(e.target.closest('.c-btn')) return; // let button clicks through, don't start a drag
       if(c.locked) return;
       e.stopPropagation();
       e.preventDefault();
