@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carnet de notes</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CjxyZWN0IHg9IjE2IiB5PSI2IiB3aWR0aD0iNDIiIGhlaWdodD0iNTIiIHJ4PSI0IiBmaWxsPSIjZmFmNmVjIiBzdHJva2U9IiMyYjNhNGEiIHN0cm9rZS13aWR0aD0iMiIvPgo8cmVjdCB4PSIxNiIgeT0iNiIgd2lkdGg9IjkiIGhlaWdodD0iNTIiIHJ4PSI0IiBmaWxsPSIjZTA3ODU2Ii8+CjxjaXJjbGUgY3g9IjExIiBjeT0iMTQiIHI9IjMiIGZpbGw9IiMyYjNhNGEiLz4KPGNpcmNsZSBjeD0iMTEiIGN5PSIyNiIgcj0iMyIgZmlsbD0iIzJiM2E0YSIvPgo8Y2lyY2xlIGN4PSIxMSIgY3k9IjM4IiByPSIzIiBmaWxsPSIjMmIzYTRhIi8+CjxjaXJjbGUgY3g9IjExIiBjeT0iNTAiIHI9IjMiIGZpbGw9IiMyYjNhNGEiLz4KPGxpbmUgeDE9IjMxIiB5MT0iMjAiIHgyPSI1MiIgeTI9IjIwIiBzdHJva2U9IiMyYjNhNGEiIHN0cm9rZS13aWR0aD0iMiIgb3BhY2l0eT0iMC40NSIvPgo8bGluZSB4MT0iMzEiIHkxPSIzMCIgeDI9IjUyIiB5Mj0iMzAiIHN0cm9rZT0iIzJiM2E0YSIgc3Ryb2tlLXdpZHRoPSIyIiBvcGFjaXR5PSIwLjQ1Ii8+CjxsaW5lIHgxPSIzMSIgeTE9IjQwIiB4Mj0iNTIiIHkyPSI0MCIgc3Ryb2tlPSIjMmIzYTRhIiBzdHJva2Utd2lkdGg9IjIiIG9wYWNpdHk9IjAuNDUiLz4KPGxpbmUgeDE9IjMxIiB5MT0iNTAiIHgyPSI0NiIgeTI9IjUwIiBzdHJva2U9IiMyYjNhNGEiIHN0cm9rZS13aWR0aD0iMiIgb3BhY2l0eT0iMC40NSIvPgo8L3N2Zz4K">
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#faf6ec; --paper-edge:#f0ead9; --line:rgba(43,58,74,0.10);
+  --ink:#2b3a4a; --muted:#7c8794; --border:rgba(43,58,74,0.16);
+  --shadow:0 10px 32px rgba(43,58,74,0.16);
+  --a1:#e07856; --a2:#4a9b8e; --a3:#d9a441; --a4:#8a5a8f; --a5:#6b8f5a; --a6:#4f7ea8;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  min-height:100vh; font-family:'Inter',sans-serif; color:var(--ink);
+  background:
+    radial-gradient(circle at 15% 10%, #fffefb 0%, transparent 45%),
+    linear-gradient(160deg,#efe7d4,#d8cdb4 70%);
+  padding:32px 16px 60px; display:flex; justify-content:center;
+}
+.wrap{width:100%; max-width:880px;}
+
+/* HEADER */
+header{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:18px;}
+h1{font-family:'Kalam',cursive; font-size:1.9rem; font-weight:700; color:var(--ink); display:flex; align-items:center; gap:8px;}
+h1 #mainTitle{outline:none; border-radius:6px; padding:0 4px; cursor:text; transition:background 0.15s;}
+h1 #mainTitle:hover{background:rgba(255,255,255,0.5);}
+h1 #mainTitle:focus{background:#fff; box-shadow:0 0 0 2px var(--a6);}
+h1 .sub{font-family:'Inter',sans-serif; font-size:0.68rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); background:rgba(255,255,255,0.6); border:1px solid var(--border); padding:3px 8px; border-radius:20px;}
+
+.toolbar{display:flex; gap:8px; flex-wrap:wrap;}
+.tbtn{
+  display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.75); border:1.5px solid var(--border);
+  border-radius:10px; padding:8px 12px; font-family:'Inter',sans-serif; font-size:0.74rem; font-weight:700;
+  color:var(--ink); cursor:pointer; box-shadow:0 2px 6px rgba(43,58,74,0.06); transition:all 0.15s;
+}
+.tbtn:hover{transform:translateY(-1px); box-shadow:0 5px 14px rgba(43,58,74,0.14); border-color:var(--a6);}
+.tbtn.danger:hover{border-color:var(--a1); color:var(--a1);}
+
+/* SEARCH */
+.search-wrap{position:relative; margin-bottom:14px;}
+.search-box{
+  display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.75); border:1.5px solid var(--border);
+  border-radius:10px; padding:8px 12px; box-shadow:0 2px 6px rgba(43,58,74,0.06); transition:border-color 0.15s;
+}
+.search-box:focus-within{border-color:var(--a6);}
+.search-icon{font-size:0.85rem; opacity:0.6; flex-shrink:0;}
+.search-box input{flex:1; border:none; outline:none; background:transparent; font-family:'Inter',sans-serif; font-size:0.82rem; color:var(--ink);}
+.search-box input::placeholder{color:var(--muted);}
+.search-clear{font-size:0.75rem; color:var(--muted); cursor:pointer; opacity:0; transition:opacity 0.15s; padding:2px 4px; border-radius:4px; flex-shrink:0;}
+.search-clear.show{opacity:0.6;}
+.search-clear:hover{opacity:1 !important; color:var(--a1);}
+.search-results{
+  position:absolute; top:calc(100% + 6px); left:0; right:0; background:var(--paper); border:1.5px solid var(--border);
+  border-radius:10px; box-shadow:var(--shadow); max-height:320px; overflow-y:auto; z-index:40; display:none;
+}
+.search-results.show{display:block;}
+.search-result{display:flex; flex-direction:column; gap:3px; padding:10px 14px; cursor:pointer; border-bottom:1px solid var(--line); transition:background 0.12s;}
+.search-result:last-child{border-bottom:none;}
+.search-result:hover, .search-result.sel{background:rgba(79,126,168,0.1);}
+.search-result-name{display:flex; align-items:center; gap:6px; font-family:'Kalam',cursive; font-weight:700; font-size:0.88rem; color:var(--ink);}
+.search-result-dot{width:8px; height:8px; border-radius:50%; flex-shrink:0;}
+.search-result-snippet{font-size:0.74rem; color:var(--muted); line-height:1.4; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.search-result-snippet mark{background:rgba(217,164,65,0.45); color:var(--ink); border-radius:2px; padding:0 1px;}
+.search-empty{padding:14px; text-align:center; font-size:0.76rem; color:var(--muted);}
+mark.content-hl{background:rgba(217,164,65,0.55); border-radius:2px;}
+
+/* TABS */
+.tabs-row{display:flex; align-items:flex-end; gap:4px; overflow-x:auto; padding:0 4px; scrollbar-width:thin;}
+.tabs-row::-webkit-scrollbar{height:6px;}
+.tabs-row::-webkit-scrollbar-thumb{background:rgba(43,58,74,0.2); border-radius:6px;}
+
+.tab{
+  position:relative; display:flex; align-items:center; gap:6px; max-width:180px; min-width:90px;
+  padding:9px 10px 9px 12px; border-radius:10px 10px 0 0; background:var(--paper-edge);
+  border:1.5px solid var(--border); border-bottom:none; cursor:grab; user-select:none;
+  font-family:'Kalam',cursive; font-size:0.92rem; font-weight:700; color:var(--muted);
+  transition:background 0.15s,color 0.15s; box-shadow:0 -1px 0 rgba(255,255,255,0.4) inset;
+}
+.tab.dragging{opacity:0.4;}
+.tab.drag-over{outline:2px dashed var(--a6); outline-offset:-2px;}
+.tab::before{content:'';position:absolute; top:0; left:0; right:0; height:4px; border-radius:10px 10px 0 0; background:var(--tab-color,var(--a6));}
+.tab.active{background:var(--paper); color:var(--ink); border-color:var(--border); box-shadow:0 -2px 8px rgba(43,58,74,0.08);}
+.tab-name{max-width:110px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; outline:none;}
+.tab-name[contenteditable="true"]{background:#fff; border-radius:4px; padding:0 3px; white-space:normal; cursor:text;}
+.tab-del{font-family:'Inter',sans-serif; font-size:0.85rem; line-height:1; color:var(--muted); opacity:0; transition:opacity 0.15s,color 0.15s; padding:2px; border-radius:4px;}
+.tab-edit{font-family:'Inter',sans-serif; font-size:0.78rem; line-height:1; color:var(--muted); opacity:0; transition:opacity 0.15s,color 0.15s; padding:2px; border-radius:4px; cursor:pointer;}
+.tab:hover .tab-del, .tab:hover .tab-edit, .tab.active .tab-del, .tab.active .tab-edit{opacity:0.55;}
+.tab-edit:hover{opacity:1 !important; color:var(--a6);}
+.tab-del:hover{opacity:1 !important; color:var(--a1);}
+.tab-add{
+  flex-shrink:0; width:34px; height:34px; margin-bottom:1px; border-radius:10px; border:1.5px dashed var(--border);
+  background:rgba(255,255,255,0.4); color:var(--muted); font-size:1.1rem; cursor:pointer; display:flex;
+  align-items:center; justify-content:center; transition:all 0.15s;
+}
+.tab-add:hover{color:var(--a6); border-color:var(--a6); background:rgba(255,255,255,0.7);}
+
+/* PAPER */
+.paper-card{
+  background:var(--paper); border:1.5px solid var(--border); border-radius:0 12px 12px 12px;
+  box-shadow:var(--shadow); overflow:hidden; position:relative;
+}
+.paper-spiral{
+  position:absolute; left:0; top:0; bottom:0; width:26px; display:flex; flex-direction:column;
+  justify-content:flex-start; align-items:center; gap:22px; padding-top:24px;
+  background:linear-gradient(90deg, rgba(43,58,74,0.05), transparent);
+}
+.paper-spiral span{width:9px; height:9px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #fff, var(--border) 70%); border:1.5px solid var(--border);}
+textarea#noteContent{
+  width:100%; min-height:420px; padding:22px 20px 20px 46px; border:none; outline:none; resize:vertical;
+  background:
+    repeating-linear-gradient(var(--paper), var(--paper) 30px, var(--line) 31px, var(--paper) 32px);
+  font-family:'Inter',sans-serif; font-size:0.95rem; line-height:31px; color:var(--ink); background-attachment:local;
+}
+textarea#noteContent::placeholder{color:var(--muted); font-style:italic;}
+
+footer{display:flex; justify-content:space-between; align-items:center; padding:10px 20px 10px 46px; border-top:1px solid var(--line); font-size:0.68rem; color:var(--muted); font-weight:600; flex-wrap:wrap; gap:6px;}
+.toast{
+  position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--ink); color:#fdf9ef;
+  padding:10px 18px; border-radius:10px; font-size:0.78rem; font-weight:600; opacity:0; pointer-events:none;
+  transition:opacity 0.25s, transform 0.25s; box-shadow:0 8px 24px rgba(0,0,0,0.25); z-index:50;
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+input#jsonImportInput{display:none;}
+
+@media(max-width:640px){
+  h1{font-size:1.5rem;} .tbtn span.label{display:none;}
+  textarea#noteContent{padding-left:38px; line-height:28px; background:repeating-linear-gradient(var(--paper), var(--paper) 27px, var(--line) 28px, var(--paper) 29px);}
+  footer{padding-left:38px;}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>📓 <span id="mainTitle" contenteditable="true" spellcheck="false" title="Cliquer pour renommer">Carnet de notes</span> <span class="sub" id="tabCount">0 onglets</span></h1>
+    <div class="toolbar">
+      <button class="tbtn" onclick="copyAll()">📋 <span class="label">Copier tout</span></button>
+      <button class="tbtn" onclick="exportJson()">⬇ <span class="label">Exporter JSON</span></button>
+      <button class="tbtn" onclick="document.getElementById('jsonImportInput').click()">⬆ <span class="label">Importer JSON</span></button>
+      <button class="tbtn danger" onclick="clearAll()">🗑 <span class="label">Effacer tout</span></button>
+      <input type="file" id="jsonImportInput" accept="application/json" onchange="importJson(event)">
+    </div>
+  </header>
+
+  <div class="search-wrap">
+    <div class="search-box">
+      <span class="search-icon">🔎</span>
+      <input type="text" id="searchInput" placeholder="Rechercher dans tous les onglets…" oninput="onSearchInput()" onkeydown="onSearchKeydown(event)">
+      <span class="search-clear" id="searchClear" onclick="clearSearch()">✕</span>
+    </div>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+
+  <div class="tabs-row" id="tabsRow"></div>
+
+  <div class="paper-card">
+    <div class="paper-spiral">
+      <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <textarea id="noteContent" placeholder="Écris ici…" oninput="onContentInput()"></textarea>
+    <footer>
+      <span id="statsLabel">0 caractères · 0 mots</span>
+      <span id="savedLabel">Sauvegardé automatiquement</span>
+    </footer>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'carnet_notes_v1';
+const ACTIVE_KEY  = 'carnet_notes_active_v1';
+const TITLE_KEY   = 'carnet_title_v1';
+const COLORS = ['a1','a2','a3','a4','a5','a6'];
+
+let tabs = [];
+let activeId = null;
+let dragSrcId = null;
+let saveTimer = null;
+
+function uid(){ return 't' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+function load(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    tabs = raw ? JSON.parse(raw) : [];
+  }catch(e){ tabs = []; }
+  if(!Array.isArray(tabs) || tabs.length === 0){
+    tabs = [{ id: uid(), name: 'Note 1', content: '', color: 'a1' }];
+  }
+  activeId = localStorage.getItem(ACTIVE_KEY);
+  if(!tabs.find(t => t.id === activeId)) activeId = tabs[0].id;
+}
+
+function persist(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(tabs));
+  localStorage.setItem(ACTIVE_KEY, activeId);
+}
+
+function getActive(){ return tabs.find(t => t.id === activeId); }
+
+function renderTabs(){
+  const row = document.getElementById('tabsRow');
+  row.innerHTML = '';
+  tabs.forEach(t => {
+    const el = document.createElement('div');
+    el.className = 'tab' + (t.id === activeId ? ' active' : '');
+    el.style.setProperty('--tab-color', `var(--${t.color})`);
+    el.draggable = true;
+    el.dataset.id = t.id;
+
+    const nameEl = document.createElement('span');
+    nameEl.className = 'tab-name';
+    nameEl.textContent = t.name;
+    nameEl.title = 'Cliquer pour sélectionner';
+    nameEl.addEventListener('click', () => { if(t.id !== activeId) selectTab(t.id); });
+    el.appendChild(nameEl);
+
+    const editEl = document.createElement('span');
+    editEl.className = 'tab-edit';
+    editEl.textContent = '✎';
+    editEl.title = 'Renommer cet onglet';
+    editEl.addEventListener('click', (e) => { e.stopPropagation(); startRename(nameEl, t); });
+    el.appendChild(editEl);
+
+    const delEl = document.createElement('span');
+    delEl.className = 'tab-del';
+    delEl.textContent = '✕';
+    delEl.title = 'Supprimer cet onglet';
+    delEl.addEventListener('click', (e) => { e.stopPropagation(); deleteTab(t.id); });
+    el.appendChild(delEl);
+
+    el.addEventListener('dragstart', (e) => { dragSrcId = t.id; el.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; });
+    el.addEventListener('dragend', () => { el.classList.remove('dragging'); document.querySelectorAll('.tab').forEach(x=>x.classList.remove('drag-over')); });
+    el.addEventListener('dragover', (e) => { e.preventDefault(); el.classList.add('drag-over'); });
+    el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+    el.addEventListener('drop', (e) => { e.preventDefault(); el.classList.remove('drag-over'); reorder(dragSrcId, t.id); });
+
+    row.appendChild(el);
+  });
+
+  const addBtn = document.createElement('button');
+  addBtn.className = 'tab-add';
+  addBtn.title = 'Nouvel onglet';
+  addBtn.textContent = '＋';
+  addBtn.onclick = addTab;
+  row.appendChild(addBtn);
+
+  document.getElementById('tabCount').textContent = tabs.length + (tabs.length > 1 ? ' onglets' : ' onglet');
+}
+
+function renderContent(){
+  const t = getActive();
+  document.getElementById('noteContent').value = t ? t.content : '';
+  updateStats();
+}
+
+function updateStats(){
+  const val = document.getElementById('noteContent').value;
+  const chars = val.length;
+  const words = val.trim() ? val.trim().split(/\s+/).length : 0;
+  document.getElementById('statsLabel').textContent = `${chars} caractères · ${words} mots`;
+}
+
+function selectTab(id){
+  activeId = id;
+  persist();
+  renderTabs();
+  renderContent();
+}
+
+function addTab(){
+  const color = COLORS[tabs.length % COLORS.length];
+  const t = { id: uid(), name: 'Note ' + (tabs.length + 1), content: '', color };
+  tabs.push(t);
+  activeId = t.id;
+  persist();
+  renderTabs();
+  renderContent();
+  document.getElementById('noteContent').focus();
+}
+
+function deleteTab(id){
+  if(tabs.length === 1){ showToast('Impossible de supprimer le dernier onglet'); return; }
+  const t = tabs.find(x => x.id === id);
+  if(t && t.content.trim() && !confirm(`Supprimer l'onglet "${t.name}" ? Son contenu sera perdu.`)) return;
+  const idx = tabs.findIndex(x => x.id === id);
+  tabs = tabs.filter(x => x.id !== id);
+  if(activeId === id){
+    activeId = tabs[Math.max(0, idx - 1)].id;
+  }
+  persist();
+  renderTabs();
+  renderContent();
+}
+
+function startRename(nameEl, t){
+  nameEl.contentEditable = 'true';
+  nameEl.focus();
+  document.execCommand('selectAll', false, null);
+  function finish(save){
+    nameEl.contentEditable = 'false';
+    const val = nameEl.textContent.trim();
+    if(save && val){ t.name = val; persist(); }
+    else nameEl.textContent = t.name;
+    renderTabs();
+  }
+  nameEl.onblur = () => finish(true);
+  nameEl.onkeydown = (e) => {
+    if(e.key === 'Enter'){ e.preventDefault(); nameEl.blur(); }
+    if(e.key === 'Escape'){ e.preventDefault(); finish(false); }
+  };
+}
+
+function reorder(srcId, targetId){
+  if(!srcId || srcId === targetId) return;
+  const srcIdx = tabs.findIndex(t => t.id === srcId);
+  const tgtIdx = tabs.findIndex(t => t.id === targetId);
+  if(srcIdx === -1 || tgtIdx === -1) return;
+  const [moved] = tabs.splice(srcIdx, 1);
+  tabs.splice(tgtIdx, 0, moved);
+  persist();
+  renderTabs();
+}
+
+function onContentInput(){
+  const t = getActive();
+  if(!t) return;
+  t.content = document.getElementById('noteContent').value;
+  updateStats();
+  clearTimeout(saveTimer);
+  const savedLabel = document.getElementById('savedLabel');
+  savedLabel.textContent = 'Enregistrement…';
+  saveTimer = setTimeout(() => {
+    persist();
+    savedLabel.textContent = 'Sauvegardé automatiquement';
+  }, 400);
+}
+
+// ── RECHERCHE ──────────────────────────────────────────────────────────────
+function onSearchInput(){
+  const q = document.getElementById('searchInput').value.trim();
+  document.getElementById('searchClear').classList.toggle('show', q.length > 0);
+  const resultsEl = document.getElementById('searchResults');
+  if(!q){ resultsEl.classList.remove('show'); resultsEl.innerHTML = ''; return; }
+  const ql = q.toLowerCase();
+  const matches = [];
+  tabs.forEach(t => {
+    const nameMatch = t.name.toLowerCase().includes(ql);
+    const idx = t.content.toLowerCase().indexOf(ql);
+    if(nameMatch || idx !== -1) matches.push({ tab: t, idx, nameMatch });
+  });
+
+  resultsEl.innerHTML = '';
+  if(matches.length === 0){
+    resultsEl.innerHTML = '<div class="search-empty">Aucun résultat</div>';
+    resultsEl.classList.add('show');
+    return;
+  }
+  matches.forEach(m => {
+    const div = document.createElement('div');
+    div.className = 'search-result';
+    div.dataset.tabId = m.tab.id;
+    div.dataset.idx = m.idx;
+
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'search-result-name';
+    const dot = document.createElement('span');
+    dot.className = 'search-result-dot';
+    dot.style.background = `var(--${m.tab.color})`;
+    const nameText = document.createElement('span');
+    nameText.textContent = m.tab.name;
+    nameDiv.appendChild(dot);
+    nameDiv.appendChild(nameText);
+    div.appendChild(nameDiv);
+
+    const snippetDiv = document.createElement('div');
+    snippetDiv.className = 'search-result-snippet';
+    snippetDiv.innerHTML = buildSnippet(m.tab.content, q, m.idx);
+    div.appendChild(snippetDiv);
+
+    div.addEventListener('click', () => jumpToMatch(m.tab.id, m.idx, q));
+    resultsEl.appendChild(div);
+  });
+  resultsEl.classList.add('show');
+}
+
+function escapeHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function buildSnippet(content, q, idx){
+  if(idx === -1) return '<em>correspond au titre de l\'onglet</em>';
+  const start = Math.max(0, idx - 30);
+  const end = Math.min(content.length, idx + q.length + 30);
+  const snippet = content.slice(start, end).replace(/\n/g, ' ');
+  const relIdx = idx - start;
+  const before = escapeHtml(snippet.slice(0, relIdx));
+  const match = escapeHtml(snippet.slice(relIdx, relIdx + q.length));
+  const after = escapeHtml(snippet.slice(relIdx + q.length));
+  return (start > 0 ? '…' : '') + before + '<mark>' + match + '</mark>' + after + (end < content.length ? '…' : '');
+}
+
+function jumpToMatch(tabId, idx, q){
+  selectTab(tabId);
+  document.getElementById('searchResults').classList.remove('show');
+  const ta = document.getElementById('noteContent');
+  ta.focus();
+  if(idx !== -1 && idx !== '-1'){
+    idx = parseInt(idx);
+    ta.setSelectionRange(idx, idx + q.length);
+    const lineHeight = 31;
+    const lineNum = ta.value.slice(0, idx).split('\n').length;
+    ta.scrollTop = Math.max(0, (lineNum - 3) * lineHeight);
+  }
+}
+
+function clearSearch(){
+  document.getElementById('searchInput').value = '';
+  document.getElementById('searchClear').classList.remove('show');
+  document.getElementById('searchResults').classList.remove('show');
+  document.getElementById('searchResults').innerHTML = '';
+}
+
+function onSearchKeydown(e){
+  if(e.key === 'Escape'){ clearSearch(); document.getElementById('searchInput').blur(); }
+  if(e.key === 'Enter'){
+    const first = document.querySelector('.search-result');
+    if(first) jumpToMatch(first.dataset.tabId, first.dataset.idx, document.getElementById('searchInput').value.trim());
+  }
+}
+
+document.addEventListener('click', (e) => {
+  const wrap = document.querySelector('.search-wrap');
+  if(wrap && !wrap.contains(e.target)) document.getElementById('searchResults').classList.remove('show');
+});
+
+function copyAll(){
+  const text = tabs.map(t => `— ${t.name} —\n${t.content}`).join('\n\n');
+  navigator.clipboard.writeText(text).then(
+    () => showToast('Tous les onglets copiés'),
+    () => showToast("Impossible de copier (autorisation refusée)")
+  );
+}
+
+function clearAll(){
+  if(!confirm('Effacer tous les onglets et leur contenu ? Cette action est irréversible.')) return;
+  tabs = [{ id: uid(), name: 'Note 1', content: '', color: 'a1' }];
+  activeId = tabs[0].id;
+  persist();
+  renderTabs();
+  renderContent();
+  showToast('Carnet réinitialisé');
+}
+
+function exportJson(){
+  const data = JSON.stringify({ tabs, exportedAt: new Date().toISOString() }, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const d = new Date();
+  const stamp = d.toISOString().slice(0,10);
+  a.href = url;
+  a.download = `carnet_notes_${stamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  showToast('Export JSON téléchargé');
+}
+
+function importJson(evt){
+  const file = evt.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const parsed = JSON.parse(reader.result);
+      const imported = Array.isArray(parsed) ? parsed : parsed.tabs;
+      if(!Array.isArray(imported) || imported.length === 0) throw new Error('format invalide');
+      if(!confirm(`Remplacer les ${tabs.length} onglets actuels par les ${imported.length} onglets importés ?`)) { evt.target.value=''; return; }
+      tabs = imported.map(t => ({
+        id: t.id || uid(),
+        name: t.name || 'Note',
+        content: t.content || '',
+        color: COLORS.includes(t.color) ? t.color : COLORS[Math.floor(Math.random()*COLORS.length)]
+      }));
+      activeId = tabs[0].id;
+      persist();
+      renderTabs();
+      renderContent();
+      showToast('Import JSON réussi');
+    }catch(e){
+      showToast('Fichier JSON invalide');
+    }
+    evt.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+let toastTimer = null;
+function showToast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+function loadTitle(){
+  const saved = localStorage.getItem(TITLE_KEY);
+  const titleEl = document.getElementById('mainTitle');
+  if(saved){ titleEl.textContent = saved; document.title = saved; }
+  titleEl.addEventListener('input', () => { document.title = titleEl.textContent.trim() || 'Carnet de notes'; });
+  titleEl.addEventListener('blur', () => {
+    const val = titleEl.textContent.trim();
+    if(!val){ titleEl.textContent = 'Carnet de notes'; }
+    localStorage.setItem(TITLE_KEY, titleEl.textContent.trim());
+    document.title = titleEl.textContent.trim();
+  });
+  titleEl.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter'){ e.preventDefault(); titleEl.blur(); }
+    if(e.key === 'Escape'){ e.preventDefault(); titleEl.textContent = saved || 'Carnet de notes'; titleEl.blur(); }
+  });
+}
+
+load();
+renderTabs();
+renderContent();
+loadTitle();
+</script>
+</body>
+</html>
