@@ -2449,8 +2449,11 @@ body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
       <div class="card" id="agendaWidget">
         <div class="card-head">
           <span class="card-title">📅 Agenda</span>
+          <button class="card-action" onclick="exportAgendaJSON()" title="Exporter l'agenda (JSON)">⬇</button>
+          <button class="card-action" onclick="document.getElementById('agendaImportInput').click()" title="Importer l'agenda (JSON)">⬆</button>
           <button class="card-action" onclick="agendaGoToday()" title="Aujourd'hui">⊙</button>
         </div>
+        <input type="file" id="agendaImportInput" accept=".json" style="display:none" onchange="importAgendaJSON(event)">
         <div class="agenda-nav">
           <button class="agenda-nav-btn" onclick="agendaShiftMonth(-1)">‹</button>
           <span class="agenda-month-label" id="agendaMonthLabel"></span>
@@ -6527,6 +6530,36 @@ function agendaInit(){
   agendaMonth = now.getMonth();
   agendaRender();
   if(typeof tickerRender === 'function') tickerRender();
+}
+
+// ── EXPORT / IMPORT AGENDA SEUL (sync ciblée, sans passer par le Vault complet) ──
+function exportAgendaJSON(){
+  const data = { type:'agenda', v:1, exportedAt: Date.now(), agenda: agendaEvents };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'agenda_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+}
+
+function importAgendaJSON(e){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try{
+      const data = JSON.parse(ev.target.result);
+      const incoming = data.agenda || data; // tolère aussi un JSON brut {date: [events]}
+      if(typeof incoming !== 'object' || incoming===null) throw new Error('format invalide');
+      if(!confirm('Remplacer l\'agenda actuel par celui du fichier importé ?\n(les autres réglages du tableau ne sont pas touchés)')) { e.target.value=''; return; }
+      agendaEvents = incoming;
+      agendaSave();
+      agendaRender();
+      if(agendaSelectedKey) agendaShowPanel(agendaSelectedKey);
+      alert('✅ Agenda importé avec succès !');
+    }catch(err){ alert('❌ Fichier agenda invalide : '+err.message); }
+    e.target.value='';
+  };
+  reader.readAsText(file);
 }
 
 function agendaSave(){
