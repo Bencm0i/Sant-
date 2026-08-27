@@ -79,7 +79,7 @@ input[type=file]{display:none;}
 .tab-row:hover{transform:translateX(2px);}
 .tab-spine{width:9px;flex-shrink:0;border-radius:2px 0 0 2px;}
 .tab-body{
-  flex:1;display:flex;align-items:center;gap:8px;padding:9px 10px;
+  flex:1;display:flex;flex-direction:column;padding:9px 10px;
   background:#fff;border:1.5px solid var(--line);border-left:none;border-radius:0 8px 8px 0;
   min-width:0;
 }
@@ -106,6 +106,12 @@ input[type=file]{display:none;}
   font-family:'IBM Plex Mono',monospace;font-size:0.62rem;color:#fff;background:var(--accent);
   border-radius:999px;padding:1px 6px;flex-shrink:0;
 }
+.tab-main-row{display:flex;align-items:center;gap:8px;min-width:0;}
+.tab-snippet{
+  font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--ink-soft);
+  padding:3px 0 0 22px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.tab-snippet mark{background:#f3d98a;color:var(--ink);border-radius:2px;padding:0 1px;font-weight:600;}
 .add-tab-wrap{padding:10px 12px 14px;}
 .add-tab-btn{
   width:100%;font-family:'IBM Plex Mono',monospace;font-size:0.78rem;font-weight:600;
@@ -183,6 +189,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
     <div class="col-head">
       <span class="col-label"><span class="active-dot" id="rawDot"></span><span id="rawLabel">Texte brut</span></span>
       <div class="col-tools">
+        <button onclick="insertTimestamp()" title="Insérer la date et l'heure actuelles dans le texte brut">🕒 Horodatage</button>
         <button onclick="copyRawToClipboard()" title="Copier le texte brut dans le presse-papiers">📋 Copier</button>
         <button onclick="copyRawToIA()" title="Copier vers la colonne IA">→ IA</button>
       </div>
@@ -261,9 +268,19 @@ function deleteTab(id){
 }
 
 function selectTab(id){
+  if(activeId === id) return;
   activeId = id;
-  renderTabs();
+  updateActiveRow();
   renderColumns();
+}
+
+function updateActiveRow(){
+  document.querySelectorAll('#tabsList .tab-row').forEach(row=>row.classList.remove('active'));
+  const idx = state.order.indexOf(activeId);
+  if(idx > -1){
+    const rows = document.querySelectorAll('#tabsList .tab-row');
+    if(rows[idx]) rows[idx].classList.add('active');
+  }
 }
 
 function renameTab(id, val){
@@ -305,13 +322,16 @@ function renderTabs(){
     body.className = 'tab-body';
     body.onclick = (e)=>{ if(e.target.tagName!=='INPUT') selectTab(id); };
 
+    const mainRow = document.createElement('div');
+    mainRow.className = 'tab-main-row';
+
     const dot = document.createElement('input');
     dot.type = 'color';
     dot.className = 'tab-color-dot';
     dot.value = t.color;
     dot.title = 'Couleur de l\'onglet';
     dot.oninput = (e)=> recolorTab(id, e.target.value);
-    body.appendChild(dot);
+    mainRow.appendChild(dot);
 
     const name = document.createElement('input');
     name.className = 'tab-name';
@@ -320,13 +340,13 @@ function renderTabs(){
     name.oninput = (e)=> renameTab(id, e.target.value);
     name.onclick = ()=> selectTab(id);
     name.onfocus = ()=>{ if(activeId!==id) selectTab(id); };
-    body.appendChild(name);
+    mainRow.appendChild(name);
 
     if(q && matches){
       const badge = document.createElement('span');
       badge.className = 'tab-match-badge';
       badge.textContent = '●';
-      body.appendChild(badge);
+      mainRow.appendChild(badge);
     }
 
     const del = document.createElement('button');
@@ -334,7 +354,14 @@ function renderTabs(){
     del.textContent = '✕';
     del.title = 'Supprimer';
     del.onclick = (e)=>{ e.stopPropagation(); deleteTab(id); };
-    body.appendChild(del);
+    mainRow.appendChild(del);
+
+    body.appendChild(mainRow);
+
+    if(q && matches){
+      const snippetEl = buildSnippetEl(t, q);
+      if(snippetEl) body.appendChild(snippetEl);
+    }
 
     row.appendChild(body);
     list.appendChild(row);
@@ -342,6 +369,47 @@ function renderTabs(){
 
   const countEl = document.getElementById('searchCount');
   countEl.textContent = q ? (visibleCount + ' résultat' + (visibleCount!==1?'s':'')) : '';
+}
+
+function findContext(text, q, wordsAround){
+  if(!text) return null;
+  const lower = text.toLowerCase();
+  const idx = lower.indexOf(q);
+  if(idx === -1) return null;
+
+  const before = text.slice(0, idx);
+  const match = text.slice(idx, idx + q.length);
+  const after = text.slice(idx + q.length);
+
+  const beforeWords = before.split(/\s+/).filter(Boolean);
+  const afterWords = after.split(/\s+/).filter(Boolean);
+
+  const beforeSlice = beforeWords.slice(-wordsAround);
+  const afterSlice = afterWords.slice(0, wordsAround);
+
+  return {
+    before: (beforeWords.length > wordsAround ? '… ' : '') + beforeSlice.join(' '),
+    match,
+    after: afterSlice.join(' ') + (afterWords.length > wordsAround ? ' …' : '')
+  };
+}
+
+function buildSnippetEl(t, q){
+  // Priorité : texte brut, puis texte IA, puis nom de l'onglet
+  const ctx = findContext(t.raw, q, 5) || findContext(t.ia, q, 5) || findContext(t.name, q, 5);
+  if(!ctx) return null;
+
+  const el = document.createElement('div');
+  el.className = 'tab-snippet';
+
+  if(ctx.before) el.appendChild(document.createTextNode(ctx.before + ' '));
+  const mark = document.createElement('mark');
+  mark.textContent = ctx.match;
+  el.appendChild(mark);
+  if(ctx.after) el.appendChild(document.createTextNode(' ' + ctx.after));
+
+  el.title = (ctx.before + ' ' + ctx.match + ' ' + ctx.after).trim();
+  return el;
 }
 
 function renderColumns(){
@@ -386,6 +454,32 @@ function onEdit(which){
 
 function onSearch(){
   renderTabs();
+}
+
+function insertTimestamp(){
+  if(!activeId) return;
+  const area = document.getElementById('rawArea');
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const stamp = '[' + pad(now.getDate()) + '/' + pad(now.getMonth()+1) + '/' + now.getFullYear()
+    + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + ']';
+
+  const start = area.selectionStart ?? area.value.length;
+  const end = area.selectionEnd ?? area.value.length;
+  const before = area.value.slice(0, start);
+  const after = area.value.slice(end);
+  // On ajoute un espace de séparation si nécessaire pour ne pas coller au texte existant
+  const needsSpaceBefore = before.length && !/\s$/.test(before);
+  const needsSpaceAfter = after.length && !/^\s/.test(after);
+  const insertion = (needsSpaceBefore ? ' ' : '') + stamp + (needsSpaceAfter ? ' ' : '');
+
+  area.value = before + insertion + after;
+  const caret = before.length + insertion.length;
+  area.focus();
+  area.setSelectionRange(caret, caret);
+
+  onEdit('raw');
+  flash('rawCol');
 }
 
 function copyRawToClipboard(){
