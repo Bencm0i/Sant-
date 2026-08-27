@@ -112,6 +112,29 @@ input[type=file]{display:none;}
   padding:3px 0 0 22px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 .tab-snippet mark{background:#f3d98a;color:var(--ink);border-radius:2px;padding:0 1px;font-weight:600;}
+
+/* AI LINKS + TAG BUBBLES */
+.ai-link{
+  font-family:'IBM Plex Mono',monospace;font-size:0.68rem;font-weight:600;
+  padding:5px 9px;border-radius:6px;border:1.5px solid var(--line);background:#fff;
+  color:var(--ink-soft);cursor:pointer;transition:all .15s;text-decoration:none;
+  display:inline-flex;align-items:center;gap:5px;
+}
+.ai-link:hover{border-color:var(--accent);color:var(--accent);}
+.ai-link .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.ai-link.chatgpt .dot{background:#10a37f;}
+.ai-link.claude .dot{background:#c96442;}
+.tags-bar{
+  display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px;
+  border-bottom:1.5px solid var(--line);flex-shrink:0;
+}
+.tag-bubble{
+  font-family:'IBM Plex Mono',monospace;font-size:0.72rem;font-weight:600;
+  padding:5px 12px;border-radius:999px;border:1.5px solid var(--line);
+  background:var(--paper-dim);color:var(--ink-soft);cursor:pointer;transition:all .15s;
+}
+.tag-bubble:hover{border-color:var(--accent);color:var(--accent);}
+.tag-bubble.active{background:var(--accent);border-color:var(--accent);color:#fff;}
 .add-tab-wrap{padding:10px 12px 14px;}
 .add-tab-btn{
   width:100%;font-family:'IBM Plex Mono',monospace;font-size:0.78rem;font-weight:600;
@@ -192,8 +215,11 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
         <button onclick="insertTimestamp()" title="Insérer la date et l'heure actuelles dans le texte brut">🕒 Horodatage</button>
         <button onclick="copyRawToClipboard()" title="Copier le texte brut dans le presse-papiers">📋 Copier</button>
         <button onclick="copyRawToIA()" title="Copier vers la colonne IA">→ IA</button>
+        <button class="ai-link chatgpt" onclick="sendToAI('chatgpt')" title="Copier le texte (+ tag choisi) et ouvrir ChatGPT"><span class="dot"></span>ChatGPT ↗</button>
+        <button class="ai-link claude" onclick="sendToAI('claude')" title="Copier le texte (+ tag choisi) et ouvrir Claude"><span class="dot"></span>Claude ↗</button>
       </div>
     </div>
+    <div class="tags-bar" id="tagsBar"></div>
     <textarea class="note-area" id="rawArea" placeholder="Écris ton texte brut ici…" oninput="onEdit('raw')"></textarea>
     <div class="char-count" id="rawCount">0 caractère</div>
   </div>
@@ -218,6 +244,16 @@ const PALETTE = ['#2f5d62','#b5573f','#c98a2c','#6b4a6b','#5c6b3f','#45566b','#7
 let state = { order: [], tabs: {} };
 let activeId = null;
 let saveTimer = null;
+let selectedTagKey = null;
+
+const TAGS = [
+  { key:'traduis-eng-fr', label:'#traduis-eng-fr', prompt:'Traduis ce texte de l\'anglais vers le français :' },
+  { key:'traduis-fr-eng', label:'#traduis-fr-eng', prompt:'Traduis ce texte du français vers l\'anglais :' },
+  { key:'corrige',        label:'#corrige',        prompt:'Corrige l\'orthographe et la grammaire de ce texte, sans en changer le sens :' },
+  { key:'reformule',      label:'#reformule',      prompt:'Reformule ce texte pour qu\'il soit plus clair et plus fluide :' },
+  { key:'resume',         label:'#resume',         prompt:'Résume ce texte de façon concise :' },
+  { key:'analyse-pro',    label:'#analyse-pro',    prompt:'Analyse ce texte de façon professionnelle et structurée :' }
+];
 
 function uid(){ return 't_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
@@ -456,6 +492,44 @@ function onSearch(){
   renderTabs();
 }
 
+function renderTagsBar(){
+  const bar = document.getElementById('tagsBar');
+  bar.innerHTML = '';
+  TAGS.forEach(tag=>{
+    const b = document.createElement('button');
+    b.className = 'tag-bubble' + (selectedTagKey===tag.key ? ' active' : '');
+    b.textContent = tag.label;
+    b.title = tag.prompt;
+    b.onclick = ()=> toggleTag(tag.key);
+    bar.appendChild(b);
+  });
+}
+
+function toggleTag(key){
+  selectedTagKey = (selectedTagKey === key) ? null : key;
+  renderTagsBar();
+}
+
+function sendToAI(target){
+  const raw = document.getElementById('rawArea').value;
+  if(!raw.trim()){ alert('Le texte brut est vide.'); return; }
+  const tag = TAGS.find(t=>t.key===selectedTagKey);
+  const payload = tag ? (tag.prompt + '\n\n' + raw) : raw;
+
+  const url = target === 'chatgpt' ? 'https://chatgpt.com/' : 'https://claude.ai/new';
+
+  const openAndNotify = ()=>{
+    window.open(url, '_blank', 'noopener');
+    flash('rawCol');
+  };
+
+  if(navigator.clipboard?.writeText){
+    navigator.clipboard.writeText(payload).then(openAndNotify).catch(openAndNotify);
+  }else{
+    openAndNotify();
+  }
+}
+
 function insertTimestamp(){
   if(!activeId) return;
   const area = document.getElementById('rawArea');
@@ -550,6 +624,7 @@ load();
 if(!activeId) activeId = state.order[0] || null;
 renderTabs();
 renderColumns();
+renderTagsBar();
 </script>
 </body>
 </html>
