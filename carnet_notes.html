@@ -506,8 +506,33 @@ function renderTagsBar(){
 }
 
 function toggleTag(key){
-  selectedTagKey = (selectedTagKey === key) ? null : key;
+  const tag = TAGS.find(t=>t.key===key);
+  const wasSelected = selectedTagKey === key;
+  selectedTagKey = wasSelected ? null : key;
   renderTagsBar();
+  if(!wasSelected && tag){
+    insertTagText(tag.label);
+  }
+}
+
+function insertTagText(label){
+  if(!activeId){ alert('Sélectionne ou crée un onglet d\'abord.'); return; }
+  const area = document.getElementById('rawArea');
+  const start = area.selectionStart ?? area.value.length;
+  const end = area.selectionEnd ?? area.value.length;
+  const before = area.value.slice(0, start);
+  const after = area.value.slice(end);
+  const needsSpaceBefore = before.length && !/\s$/.test(before);
+  const needsSpaceAfter = after.length && !/^\s/.test(after);
+  const insertion = (needsSpaceBefore ? ' ' : '') + label + (needsSpaceAfter ? ' ' : '');
+
+  area.value = before + insertion + after;
+  const caret = before.length + insertion.length;
+  area.focus();
+  area.setSelectionRange(caret, caret);
+
+  onEdit('raw');
+  flash('rawCol');
 }
 
 function sendToAI(target){
