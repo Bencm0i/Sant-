@@ -730,6 +730,7 @@ canvas#c.panning{ cursor:grabbing !important; }
     calibration = { p1, p2, pxDist, realLen, unit: unitSelect.value, pxPerUnit: pxDist/realLen };
     refreshCalibStatus();
     setMode('h');
+    markDirty();
     scheduleAutosave();
   }
   realLenInput.addEventListener('change', ()=>{
@@ -1021,7 +1022,7 @@ canvas#c.panning{ cursor:grabbing !important; }
     ta.placeholder = 'Votre commentaire…';
     ta.value = c.text || '';
     ta.addEventListener('pointerdown', e=> e.stopPropagation());
-    ta.addEventListener('input', ()=>{ c.text = ta.value; scheduleAutosave(); });
+    ta.addEventListener('input', ()=>{ c.text = ta.value; markDirty(); scheduleAutosave(); });
     wrap.appendChild(ta);
 
     grayBtn.addEventListener('click', e=>{
@@ -1029,6 +1030,7 @@ canvas#c.panning{ cursor:grabbing !important; }
       c.grayed = !c.grayed;
       wrap.classList.toggle('grayed', c.grayed);
       grayBtn.classList.toggle('on', c.grayed);
+      markDirty();
       scheduleAutosave();
     });
 
@@ -1038,6 +1040,7 @@ canvas#c.panning{ cursor:grabbing !important; }
       wrap.classList.toggle('locked', c.locked);
       lockBtn.classList.toggle('on', c.locked);
       lockBtn.textContent = c.locked ? '🔒' : '🔓';
+      markDirty();
       scheduleAutosave();
     });
 
@@ -1067,6 +1070,7 @@ canvas#c.panning{ cursor:grabbing !important; }
         head.releasePointerCapture(e.pointerId);
         head.removeEventListener('pointermove', onMove);
         head.removeEventListener('pointerup', onUp);
+        markDirty();
         scheduleAutosave();
       }
       head.addEventListener('pointermove', onMove);
@@ -1182,6 +1186,7 @@ canvas#c.panning{ cursor:grabbing !important; }
   const sessNext = document.getElementById('sessNext');
 
   function renderPhotoStrip(){
+    markDirty();
     scheduleAutosave();
     sessionStrip.innerHTML = '';
     if(!session.length){
@@ -1274,6 +1279,8 @@ canvas#c.panning{ cursor:grabbing !important; }
       return;
     }
     downloadJSON(exportProject(), 'mesure-photo-session-' + Date.now() + '.json');
+    sessionExportedToJson = true;
+    updateAutosaveStatus();
   });
 
   function restoreProject(data){
@@ -1326,18 +1333,29 @@ canvas#c.panning{ cursor:grabbing !important; }
   const AUTOSAVE_KEY = 'mesurePhotoAutosaveV1';
   const autosaveStatusEl = document.getElementById('autosaveStatus');
   let autosaveTimer = null;
+  let sessionExportedToJson = true; // false dès qu'une modif n'a pas encore été exportée en JSON
+
+  function markDirty(){ sessionExportedToJson = false; }
 
   function updateAutosaveStatus(err){
     if(!autosaveStatusEl) return;
     if(err){
       autosaveStatusEl.className = 'calib-status';
       autosaveStatusEl.innerHTML = '<b style="color:#ff8a5c">Sauvegarde locale impossible</b> (espace navigateur insuffisant). Exportez en JSON pour ne rien perdre.';
-    } else if(!session.length){
+      return;
+    }
+    if(!session.length){
       autosaveStatusEl.className = 'calib-status';
       autosaveStatusEl.textContent = 'Sauvegarde locale : aucune session en cours.';
-    } else {
+      return;
+    }
+    const savedLine = 'Sauvegarde locale : à jour (' + new Date().toLocaleTimeString() + ')';
+    if(sessionExportedToJson){
       autosaveStatusEl.className = 'calib-status ok';
-      autosaveStatusEl.textContent = 'Sauvegarde locale : à jour (' + new Date().toLocaleTimeString() + ')';
+      autosaveStatusEl.textContent = savedLine;
+    } else {
+      autosaveStatusEl.className = 'calib-status';
+      autosaveStatusEl.innerHTML = savedLine + '<br><b style="color:#ff8a5c">⚠ Session non exportée en JSON</b> — elle n\'existe que dans le navigateur. Cliquez « Enregistrer la session (JSON) » pour une sauvegarde durable.';
     }
   }
 
@@ -1361,7 +1379,16 @@ canvas#c.panning{ cursor:grabbing !important; }
   }
   // Filet de sécurité périodique, au cas où une modification n'aurait pas déclenché scheduleAutosave().
   setInterval(()=>{ if(session.length || activePhotoId!=null) scheduleAutosave(); }, 10000);
-  window.addEventListener('beforeunload', ()=>{ try{ persistSessionNow(); }catch(err){} });
+
+  // Alerte de fermeture/rechargement de page si la session n'a pas été exportée en JSON.
+  window.addEventListener('beforeunload', (e)=>{
+    try{ persistSessionNow(); }catch(err){}
+    if(session.length && !sessionExportedToJson){
+      e.preventDefault();
+      e.returnValue = "Cette session n'a pas été enregistrée en JSON : elle n'existe que dans la sauvegarde locale du navigateur et pourrait être perdue. Continuer ?";
+      return e.returnValue;
+    }
+  });
 
   document.getElementById('autosaveClearBtn').addEventListener('click', ()=>{
     localStorage.removeItem(AUTOSAVE_KEY);
@@ -1380,7 +1407,9 @@ canvas#c.panning{ cursor:grabbing !important; }
     const ok = confirm('Une session précédente a été trouvée dans la sauvegarde locale du navigateur'+(when?' (enregistrée le '+when+')':'')+'.\nVoulez-vous la restaurer ?');
     if(ok){
       restoreProject(data);
+      sessionExportedToJson = false; // provient de la sauvegarde locale, pas d'un fichier JSON exporté
       hintBar.textContent = 'Session restaurée depuis la sauvegarde locale du navigateur.';
+      updateAutosaveStatus();
     } else {
       updateAutosaveStatus();
     }
@@ -1395,6 +1424,8 @@ canvas#c.panning{ cursor:grabbing !important; }
       try{
         const data = JSON.parse(ev.target.result);
         restoreProject(data);
+        sessionExportedToJson = true; // le contenu vient d'un fichier JSON déjà enregistré sur le disque
+        updateAutosaveStatus();
       }catch(err){
         hintBar.innerHTML = '<b style="color:#ff8a5c">Fichier JSON invalide ou corrompu.</b>';
       }
