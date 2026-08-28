@@ -38,6 +38,7 @@ html,body{
   background:linear-gradient(180deg,#0f1e2c,#0c1720);
   border-right:1px solid var(--line);
   display:flex; flex-direction:column;
+  overflow-y:auto; overflow-x:hidden;
   z-index:5;
 }
 .brand{
@@ -99,7 +100,7 @@ html,body{
 .calib-status.ok{ border-color:var(--accent-dim); color:var(--accent); border-style:solid;}
 .calib-status .scale-val{ color:var(--ink); font-weight:700; }
 
-#measureList{ flex:1; overflow-y:auto; padding:6px 14px 14px; }
+#measureList{ flex:0 0 auto; min-height:70px; max-height:280px; overflow-y:auto; padding:6px 14px 14px; }
 .m-item{
   display:flex; align-items:center; gap:10px; padding:9px 8px; border-radius:7px;
   border:1px solid transparent; margin-bottom:4px; cursor:default;
@@ -152,7 +153,21 @@ canvas#c.mode-v{ cursor:row-resize; }
 canvas#c.mode-free{ cursor:crosshair; }
 canvas#c.mode-pan{ cursor:grab; }
 canvas#c.mode-comment{ cursor:crosshair; }
+canvas#c.mode-highlight{ cursor:crosshair; }
 canvas#c.panning{ cursor:grabbing !important; }
+
+.hl-row{ display:flex; gap:7px; margin-bottom:10px; }
+.hl-swatch{
+  width:26px; height:26px; border-radius:50%; border:2px solid var(--line);
+  cursor:pointer; flex:none; padding:0; position:relative;
+}
+.hl-swatch.active{ border-color:var(--ink); box-shadow:0 0 0 2px var(--accent); }
+.hl-size{ display:flex; gap:6px; }
+.hl-size button{
+  flex:1; padding:7px 4px; border-radius:7px; border:1px solid var(--line);
+  background:#0f2130; color:var(--ink-dim); font-family:var(--mono); font-size:11px; cursor:pointer;
+}
+.hl-size button.active{ border-color:var(--accent); color:var(--accent); background:#0c3f38; }
 
 /* ---------- Comment boxes (draggable) ---------- */
 #commentLayer{ position:absolute; inset:0; pointer-events:none; z-index:6; }
@@ -215,6 +230,56 @@ canvas#c.panning{ cursor:grabbing !important; }
 }
 .hint-bar b{ color:var(--accent); }
 
+/* ---------- Session (multi-photos) ---------- */
+#sessionStrip{
+  display:flex; flex-wrap:wrap; gap:8px; margin-top:2px;
+  max-height:150px; overflow-y:auto; overflow-x:hidden;
+  padding-right:2px; align-content:flex-start;
+}
+#sessionStrip .empty-hint{ padding:10px 2px; text-align:left; }
+.thumb{
+  position:relative; width:64px; height:64px; border-radius:8px; overflow:hidden;
+  border:2px solid var(--line); cursor:pointer; flex:none; background:#0a1620;
+}
+.thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+.thumb.active{ border-color:var(--accent); box-shadow:0 0 0 2px #00e0b833; }
+.thumb .t-idx{
+  position:absolute; top:2px; left:3px; font-family:var(--mono); font-size:9.5px;
+  color:#fff; background:#00000090; padding:0 4px; border-radius:4px;
+}
+.thumb .t-badges{
+  position:absolute; bottom:2px; right:3px; display:flex; gap:3px;
+}
+.thumb .t-badge{
+  font-family:var(--mono); font-size:9px; font-weight:700; color:#052620;
+  background:var(--accent); border-radius:4px; padding:0 4px; line-height:14px;
+}
+.thumb .t-badge.c{ background:#f6c945; }
+.thumb .t-del{
+  position:absolute; top:2px; right:2px; width:16px; height:16px; border-radius:4px;
+  border:none; background:#0d1c28cc; color:#e8f1f8; font-size:11px; line-height:1;
+  display:flex; align-items:center; justify-content:center; cursor:pointer; opacity:0;
+  transition:opacity .12s;
+}
+.thumb:hover .t-del{ opacity:1; }
+.thumb .t-add{
+  width:64px; height:64px; border-radius:8px; border:1.5px dashed var(--line);
+  background:#0a1620; color:var(--ink-dim); font-size:22px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+.thumb.t-add-wrap:hover, .t-add:hover{ border-color:var(--accent-dim); color:var(--accent); }
+.session-nav{
+  display:flex; align-items:center; gap:8px; margin-top:12px;
+}
+.session-nav button{
+  width:30px; height:30px; border-radius:7px; border:1px solid var(--line); background:#0f2130;
+  color:var(--ink); cursor:pointer; font-size:14px; flex:none;
+}
+.session-nav button:hover:not(:disabled){ border-color:var(--accent-dim); }
+.session-nav button:disabled{ opacity:.3; cursor:not-allowed; }
+.session-nav .s-count{
+  flex:1; text-align:center; font-family:var(--mono); font-size:12px; color:var(--ink-dim);
+}
 #fileInput{ display:none; }
 .kbd{
   display:inline-block; padding:1px 6px; border-radius:4px; border:1px solid var(--line);
@@ -238,16 +303,24 @@ canvas#c.panning{ cursor:grabbing !important; }
     <div class="brand">
       <div class="eyebrow">Atelier de cotation</div>
       <h1>Mesure Photo</h1>
-      <p>Étalonnez une cote connue sur l'image, puis relevez le reste à l'échelle — horizontal, vertical ou libre.</p>
+      <p>Accumulez plusieurs photos dans une session, étalonnez et cotez chacune, puis enregistrez tout en un seul fichier JSON.</p>
     </div>
 
     <div class="section">
-      <h2><span class="num">1</span>Image</h2>
+      <h2><span class="num">1</span>Session de travail</h2>
       <button class="btn primary" id="loadBtn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 9l5-5 5 5M12 4v13"/></svg>
-        Charger une photo
+        Ajouter une ou plusieurs photos
       </button>
-      <input type="file" id="fileInput" accept="image/*">
+      <input type="file" id="fileInput" accept="image/*" multiple>
+      <div id="sessionStrip">
+        <div class="empty-hint" id="sessionEmptyHint">Aucune photo dans la session.<br>Chargez, glissez, ou collez (Ctrl+V) une ou plusieurs images.</div>
+      </div>
+      <div class="session-nav" id="sessionNav" style="display:none;">
+        <button id="sessPrev" title="Photo précédente">‹</button>
+        <span class="s-count" id="sessCount">1 / 1</span>
+        <button id="sessNext" title="Photo suivante">›</button>
+      </div>
     </div>
 
     <div class="section">
@@ -294,17 +367,41 @@ canvas#c.panning{ cursor:grabbing !important; }
       </button>
     </div>
 
+    <div class="section">
+      <h2><span class="num">5</span>Surligneur (à checker)</h2>
+      <button class="btn" id="highlightBtn" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l6-6 4 4-6 6-4-4z"/><path d="M4 20l3.5-1 6.5-6.5-2-2L5.5 17 4 20z"/></svg>
+        Surligner une zone
+      </button>
+      <div class="hl-row" id="hlColors">
+        <button class="hl-swatch active" data-color="#f6c945" style="background:#f6c945" title="Jaune"></button>
+        <button class="hl-swatch" data-color="#6cff9e" style="background:#6cff9e" title="Vert"></button>
+        <button class="hl-swatch" data-color="#ff6ba6" style="background:#ff6ba6" title="Rose"></button>
+        <button class="hl-swatch" data-color="#7aa7ff" style="background:#7aa7ff" title="Bleu"></button>
+        <button class="hl-swatch" data-color="#ff8a5c" style="background:#ff8a5c" title="Orange"></button>
+      </div>
+      <div class="hl-size" id="hlSizes" style="margin-bottom:8px;">
+        <button data-frac="0.004">Fin</button>
+        <button class="active" data-frac="0.009">Moyen</button>
+        <button data-frac="0.016">Épais</button>
+      </div>
+      <div class="mode-row">
+        <button class="btn" id="hlUndoBtn">↩ Annuler trait</button>
+        <button class="btn" id="hlClearBtn">🗑 Effacer tout</button>
+      </div>
+    </div>
+
     <div class="section" style="border-bottom:none; flex:0;">
       <h2><span class="num">#</span>Cotes relevées</h2>
     </div>
     <div id="measureList">
-      <div class="empty-hint" id="emptyHint">Aucune cote pour l'instant.<br>Étalonnez d'abord, puis cliquez deux points sur l'image.</div>
+      <div class="empty-hint" id="emptyHint">Aucune cote pour l'instant.<br>Étalonnez d'abord, puis cliquez deux points sur l'image.<br><span style="color:var(--ink-dim)">Astuce : un bouton <b style="color:#ff8a5c">×</b> apparaît directement sur chaque cote tracée pour la supprimer.</span></div>
     </div>
 
     <div class="section" style="border-bottom:none;">
       <h2><span class="num">↯</span>Sauvegarde</h2>
-      <button class="btn primary" id="jsonSaveBtn">💾 Enregistrer (JSON)</button>
-      <button class="btn" id="jsonLoadBtn">📂 Charger un projet (JSON)</button>
+      <button class="btn primary" id="jsonSaveBtn">💾 Enregistrer la session (JSON)</button>
+      <button class="btn" id="jsonLoadBtn">📂 Charger une session (JSON)</button>
       <input type="file" id="jsonFileInput" accept="application/json,.json" style="display:none;">
     </div>
 
@@ -360,6 +457,36 @@ canvas#c.panning{ cursor:grabbing !important; }
   const commentBtn = document.getElementById('commentBtn');
   const modeBtns = { h: document.getElementById('modeH'), v: document.getElementById('modeV'), free: document.getElementById('modeFree'), pan: document.getElementById('modePan') };
 
+  const highlightBtn = document.getElementById('highlightBtn');
+  const hlColors = document.getElementById('hlColors');
+  const hlSizes = document.getElementById('hlSizes');
+  const hlUndoBtn = document.getElementById('hlUndoBtn');
+  const hlClearBtn = document.getElementById('hlClearBtn');
+  let highlights = []; // { id, color, width(image px), points:[{x,y},...] }
+  let activeStroke = null;
+  let nextHighlightId = 1;
+  let highlightColor = '#f6c945';
+  let highlightSizeFrac = 0.009;
+  function highlightWidthPx(){ return imgLoaded ? Math.max(3, img.width*highlightSizeFrac) : 20; }
+  hlColors.querySelectorAll('.hl-swatch').forEach(sw=>{
+    sw.addEventListener('click', ()=>{
+      highlightColor = sw.dataset.color;
+      hlColors.querySelectorAll('.hl-swatch').forEach(s=>s.classList.toggle('active', s===sw));
+    });
+  });
+  hlSizes.querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      highlightSizeFrac = parseFloat(b.dataset.frac);
+      hlSizes.querySelectorAll('button').forEach(x=>x.classList.toggle('active', x===b));
+    });
+  });
+  hlUndoBtn.addEventListener('click', ()=>{
+    if(highlights.length){ highlights.pop(); draw(); renderPhotoStrip(); }
+  });
+  hlClearBtn.addEventListener('click', ()=>{
+    if(highlights.length){ highlights = []; draw(); renderPhotoStrip(); }
+  });
+
   const commentLayer = document.createElement('div');
   commentLayer.id = 'commentLayer';
   stage.appendChild(commentLayer);
@@ -369,6 +496,12 @@ canvas#c.panning{ cursor:grabbing !important; }
 
   let img = null;
   let imgLoaded = false;
+
+  // ---------- Session (multi-photos) ----------
+  // session[i] = { id, name, image(dataURL), calibration, measurements, comments }
+  let session = [];
+  let activePhotoId = null;
+  let nextPhotoId = 1;
 
   // view transform: screen = imagePoint * scale + offset
   let view = { scale: 1, ox: 0, oy: 0 };
@@ -382,7 +515,7 @@ canvas#c.panning{ cursor:grabbing !important; }
 
   let isPanning = false;
   let panStart = null;
-  let checkboxHitboxes = []; // zones cliquables des coches "validé" dessinées sur le canvas
+  let checkboxHitboxes = []; // zones cliquables sur les cotes dessinées : case "validé" et bouton "supprimer"
 
   const colors = ['#00e0b8','#ff8a5c','#7aa7ff','#f6c945','#ff6ba6','#9b8bff'];
 
@@ -420,41 +553,47 @@ canvas#c.panning{ cursor:grabbing !important; }
     return screenToImg({x:sx, y:sy});
   }
 
-  // ---------- File loading ----------
-  function loadFile(file){
-    if(!file || !file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = function(ev){
-      const im = new Image();
-      im.onload = function(){
-        img = im; imgLoaded = true;
-        dropZone.style.display = 'none';
-        calibration = null; measurements = []; pendingPoint = null;
-        clearCommentsDOM();
-        renderMeasureList();
-        calibStatus.className = 'calib-status';
-        calibStatus.textContent = 'Non étalonné — tracez un segment sur une cote connue.';
-        [calibBtn, realLenInput, unitSelect, commentBtn].forEach(el=>el.disabled=false);
-        Object.values(modeBtns).forEach(b=>b.disabled=true); // enabled after calibration
-        statusPill.innerHTML = '<b>'+img.width+'×'+img.height+'px</b>';
-        hintBar.textContent = "Étape 1 — Cliquez « Tracer la cote connue », puis cliquez-glissez sur un élément dont vous connaissez la longueur réelle.";
-        resizeCanvas();
-        fitToScreen();
-      };
-      im.src = ev.target.result;
-    };
-    reader.readAsDataURL(file);
+  // ---------- File loading (adds photo(s) to the session) ----------
+  function readAsDataURL(file){
+    return new Promise((resolve, reject)=>{
+      const reader = new FileReader();
+      reader.onload = ev=> resolve(ev.target.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   }
+  async function addFilesToSession(files){
+    const list = Array.from(files || []).filter(f=> f && f.type && f.type.startsWith('image/'));
+    if(!list.length) return;
+    let firstNewId = null;
+    for(const file of list){
+      const dataURL = await readAsDataURL(file);
+      const entry = {
+        id: nextPhotoId++,
+        name: file.name || ('Photo '+session.length+1),
+        image: dataURL,
+        calibration: null,
+        measurements: [],
+        comments: [],
+        highlights: []
+      };
+      session.push(entry);
+      if(firstNewId===null) firstNewId = entry.id;
+    }
+    renderPhotoStrip();
+    switchToPhoto(firstNewId);
+  }
+  function loadFile(file){ addFilesToSession(file ? [file] : []); }
   document.getElementById('loadBtn').addEventListener('click', ()=>fileInput.click());
   document.getElementById('dzBtn').addEventListener('click', ()=>fileInput.click());
   dropZone.addEventListener('click', (e)=>{ if(e.target.id==='dzBtn') return; fileInput.click(); });
-  fileInput.addEventListener('change', e=> loadFile(e.target.files[0]) );
+  fileInput.addEventListener('change', e=>{ addFilesToSession(e.target.files); fileInput.value=''; });
   ['dragenter','dragover'].forEach(ev=> dropZone.addEventListener(ev, e=>{ e.preventDefault(); dropZone.classList.add('drag'); }));
   ['dragleave','drop'].forEach(ev=> dropZone.addEventListener(ev, e=>{ e.preventDefault(); dropZone.classList.remove('drag'); }));
-  dropZone.addEventListener('drop', e=>{ if(e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
+  dropZone.addEventListener('drop', e=>{ addFilesToSession(e.dataTransfer.files); });
   // allow drop anywhere on stage
   ['dragenter','dragover'].forEach(ev=> stage.addEventListener(ev, e=> e.preventDefault()));
-  stage.addEventListener('drop', e=>{ e.preventDefault(); if(e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
+  stage.addEventListener('drop', e=>{ e.preventDefault(); addFilesToSession(e.dataTransfer.files); });
 
   // ---------- Paste from clipboard ----------
   const pasteToast = document.getElementById('pasteToast');
@@ -486,6 +625,7 @@ canvas#c.panning{ cursor:grabbing !important; }
     Object.entries(modeBtns).forEach(([k,btn])=> btn.classList.toggle('active', k===m));
     calibBtn.classList.toggle('active', m==='calib');
     commentBtn.classList.toggle('active', m==='comment');
+    highlightBtn.classList.toggle('active', m==='highlight');
     canvas.className = m ? 'mode-'+m : '';
     if(m==='calib') hintBar.innerHTML = "Cliquez le <b>premier point</b> de la cote connue, puis le second point.";
     else if(m==='h') hintBar.innerHTML = "Mode <b>horizontal</b> : cliquez un point, puis un second — la distance horizontale sera cotée.";
@@ -493,11 +633,13 @@ canvas#c.panning{ cursor:grabbing !important; }
     else if(m==='free') hintBar.innerHTML = "Mode <b>libre</b> : cliquez deux points pour mesurer une distance quelconque.";
     else if(m==='pan') hintBar.innerHTML = "Glissez pour déplacer l'image. Molette pour zoomer.";
     else if(m==='comment') hintBar.innerHTML = "Mode <b>commentaire</b> : cliquez sur la photo pour poser une note déplaçable.";
+    else if(m==='highlight') hintBar.innerHTML = "Mode <b>surligneur</b> : maintenez le clic et tracez pour marquer une zone à checker.";
     else hintBar.textContent = "Molette pour zoomer • choisissez un mode de mesure ci-contre.";
     draw();
   }
   calibBtn.addEventListener('click', ()=> setMode(mode==='calib' ? null : 'calib'));
   commentBtn.addEventListener('click', ()=> setMode(mode==='comment' ? null : 'comment'));
+  highlightBtn.addEventListener('click', ()=> setMode(mode==='highlight' ? null : 'highlight'));
   Object.entries(modeBtns).forEach(([k,btn])=> btn.addEventListener('click', ()=> setMode(mode===k ? null : k)));
   window.addEventListener('keydown', e=>{
     if(e.key==='Escape'){ setMode(null); }
@@ -545,9 +687,15 @@ canvas#c.panning{ cursor:grabbing !important; }
     if(!imgLoaded) return;
     const r0 = canvas.getBoundingClientRect();
     const sx0 = e.clientX - r0.left, sy0 = e.clientY - r0.top;
-    const hitIdx = checkboxHitboxes.find(h => sx0>=h.x && sx0<=h.x+h.w && sy0>=h.y && sy0<=h.y+h.h);
-    if(hitIdx){
-      measurements[hitIdx.idx].validated = !measurements[hitIdx.idx].validated;
+    const hit = checkboxHitboxes.find(h => sx0>=h.x && sx0<=h.x+h.w && sy0>=h.y && sy0<=h.y+h.h);
+    if(hit && hit.type==='del'){
+      measurements.splice(hit.idx, 1);
+      renderMeasureList();
+      draw();
+      return;
+    }
+    if(hit && hit.type==='check'){
+      measurements[hit.idx].validated = !measurements[hit.idx].validated;
       renderMeasureList();
       draw();
       return;
@@ -558,11 +706,20 @@ canvas#c.panning{ cursor:grabbing !important; }
       canvas.setPointerCapture(e.pointerId);
       return;
     }
+    if(mode==='highlight'){
+      const p = getPointerImagePos(e);
+      activeStroke = { id: nextHighlightId++, color: highlightColor, width: highlightWidthPx(), points:[p] };
+      highlights.push(activeStroke);
+      canvas.setPointerCapture(e.pointerId);
+      draw();
+      return;
+    }
     if(mode==='comment'){
       const p = getPointerImagePos(e);
       const c = { id: nextCommentId++, x:p.x, y:p.y, text:'', color: colors[comments.length % colors.length], grayed:false, locked:false };
       comments.push(c);
       addCommentDOM(c);
+      if(typeof renderPhotoStrip==='function' && session.length) renderPhotoStrip();
       const el = commentEls[c.id];
       const ta = el && el.querySelector('textarea');
       setTimeout(()=>{ if(ta) ta.focus(); }, 0);
@@ -587,6 +744,12 @@ canvas#c.panning{ cursor:grabbing !important; }
       return;
     }
     if(!imgLoaded) return;
+    if(activeStroke){
+      const p = getPointerImagePos(e);
+      activeStroke.points.push(p);
+      draw();
+      return;
+    }
     const r1 = canvas.getBoundingClientRect();
     const sx1 = e.clientX - r1.left, sy1 = e.clientY - r1.top;
     const overCheck = checkboxHitboxes.some(h => sx1>=h.x && sx1<=h.x+h.w && sy1>=h.y && sy1<=h.y+h.h);
@@ -598,6 +761,11 @@ canvas#c.panning{ cursor:grabbing !important; }
 
   canvas.addEventListener('pointerup', e=>{
     if(isPanning){ isPanning=false; canvas.classList.remove('panning'); }
+    if(activeStroke){
+      canvas.releasePointerCapture(e.pointerId);
+      activeStroke = null;
+      renderPhotoStrip();
+    }
   });
   canvas.addEventListener('pointerleave', ()=>{ hoverImagePt=null; if(!isPanning) draw(); });
 
@@ -668,6 +836,7 @@ canvas#c.panning{ cursor:grabbing !important; }
     return m.mode==='h' ? 'Horizontale' : m.mode==='v' ? 'Verticale' : 'Libre';
   }
   function renderMeasureList(){
+    if(typeof renderPhotoStrip==='function' && session.length) renderPhotoStrip();
     measureList.innerHTML = '';
     if(!measurements.length){
       measureList.appendChild(emptyHint);
@@ -793,6 +962,7 @@ canvas#c.panning{ cursor:grabbing !important; }
       comments = comments.filter(x=> x.id !== c.id);
       wrap.remove();
       delete commentEls[c.id];
+      if(typeof renderPhotoStrip==='function' && session.length) renderPhotoStrip();
     });
 
     head.addEventListener('pointerdown', e=>{
@@ -823,16 +993,185 @@ canvas#c.panning{ cursor:grabbing !important; }
     positionComment(c, wrap);
   }
 
-  // ---------- JSON project save / load ----------
+  // ---------- Session switching ----------
+  function snapshotCurrentToSession(){
+    if(activePhotoId==null) return;
+    const entry = session.find(p=>p.id===activePhotoId);
+    if(!entry) return;
+    entry.calibration = calibration ? {...calibration} : null;
+    entry.measurements = measurements.map(m=>({...m}));
+    entry.comments = comments.map(c=>({ id:c.id, x:c.x, y:c.y, text:c.text, color:c.color, grayed:c.grayed, locked:c.locked }));
+    entry.highlights = highlights.map(h=>({ id:h.id, color:h.color, width:h.width, points:h.points.map(p=>({x:p.x,y:p.y})) }));
+  }
+
+  function loadSessionEntryIntoView(entry, cb){
+    const im = new Image();
+    im.onload = function(){
+      img = im; imgLoaded = true;
+      pendingPoint = null; hoverImagePt = null;
+      dropZone.style.display = 'none';
+      calibration = entry.calibration ? {...entry.calibration} : null;
+      measurements = Array.isArray(entry.measurements) ? entry.measurements.map(m=>({...m})) : [];
+      nextId = measurements.reduce((m,x)=> Math.max(m,(x.id||0)+1), 1);
+      clearCommentsDOM();
+      (Array.isArray(entry.comments) ? entry.comments : []).forEach(c=>{
+        const cc = {...c};
+        comments.push(cc);
+        nextCommentId = Math.max(nextCommentId, (cc.id||0)+1);
+        addCommentDOM(cc);
+      });
+      activeStroke = null;
+      highlights = Array.isArray(entry.highlights) ? entry.highlights.map(h=>({ ...h, points:(h.points||[]).map(p=>({...p})) })) : [];
+      nextHighlightId = highlights.reduce((m,x)=> Math.max(m,(x.id||0)+1), 1);
+      [calibBtn, realLenInput, unitSelect, commentBtn, highlightBtn].forEach(el=>el.disabled=false);
+      Object.values(modeBtns).forEach(b=>b.disabled = !calibration);
+      statusPill.innerHTML = '<b>'+img.width+'×'+img.height+'px</b>';
+      if(calibration){ realLenInput.value = calibration.realLen; unitSelect.value = calibration.unit; }
+      else { realLenInput.value = ''; }
+      refreshCalibStatus();
+      renderMeasureList();
+      setMode(null);
+      resizeCanvas();
+      fitToScreen();
+      renderPhotoStrip();
+      if(cb) cb();
+    };
+    im.src = entry.image;
+  }
+
+  function switchToPhoto(id){
+    if(id===activePhotoId){ renderPhotoStrip(); return; }
+    snapshotCurrentToSession();
+    const entry = session.find(p=>p.id===id);
+    if(!entry) return;
+    activePhotoId = id;
+    loadSessionEntryIntoView(entry, ()=>{
+      const idx = session.findIndex(p=>p.id===id);
+      hintBar.textContent = "Photo "+(idx+1)+"/"+session.length+" — "+(entry.calibration ? "reprenez vos cotes ou passez à la suivante." : "étalonnez d'abord cette photo.");
+    });
+  }
+
+  function deletePhoto(id){
+    const idx = session.findIndex(p=>p.id===id);
+    if(idx<0) return;
+    const wasActive = id===activePhotoId;
+    session.splice(idx,1);
+    if(!session.length){
+      activePhotoId = null; img = null; imgLoaded = false;
+      calibration = null; measurements = []; pendingPoint = null;
+      clearCommentsDOM();
+      highlights = []; activeStroke = null;
+      dropZone.style.display = 'flex';
+      statusPill.textContent = 'Aucune image chargée';
+      calibStatus.className = 'calib-status';
+      calibStatus.textContent = "Non étalonné — chargez une photo puis tracez un segment sur une cote connue.";
+      [calibBtn, realLenInput, unitSelect, commentBtn, highlightBtn].forEach(el=>el.disabled=true);
+      Object.values(modeBtns).forEach(b=>b.disabled=true);
+      renderMeasureList();
+      setMode(null);
+      draw();
+      renderPhotoStrip();
+      return;
+    }
+    if(wasActive){
+      const nextEntry = session[Math.min(idx, session.length-1)];
+      activePhotoId = null; // force full reload, nothing to snapshot back into a removed entry
+      switchToPhoto(nextEntry.id);
+    } else {
+      renderPhotoStrip();
+    }
+  }
+
+  function goToOffset(delta){
+    if(!session.length || activePhotoId==null) return;
+    const idx = session.findIndex(p=>p.id===activePhotoId);
+    const newIdx = Math.max(0, Math.min(session.length-1, idx+delta));
+    if(newIdx!==idx) switchToPhoto(session[newIdx].id);
+  }
+
+  const sessionStrip = document.getElementById('sessionStrip');
+  const sessionEmptyHint = document.getElementById('sessionEmptyHint');
+  const sessionNav = document.getElementById('sessionNav');
+  const sessCount = document.getElementById('sessCount');
+  const sessPrev = document.getElementById('sessPrev');
+  const sessNext = document.getElementById('sessNext');
+
+  function renderPhotoStrip(){
+    sessionStrip.innerHTML = '';
+    if(!session.length){
+      sessionStrip.appendChild(sessionEmptyHint);
+      sessionNav.style.display = 'none';
+      return;
+    }
+    session.forEach((p, idx)=>{
+      const t = document.createElement('div');
+      t.className = 'thumb' + (p.id===activePhotoId ? ' active' : '');
+      t.title = p.name;
+      const nMeas = p.id===activePhotoId ? measurements.length : (p.measurements||[]).length;
+      const nCom = p.id===activePhotoId ? comments.length : (p.comments||[]).length;
+      const nHl = p.id===activePhotoId ? highlights.length : (p.highlights||[]).length;
+      t.innerHTML = `
+        <img src="${p.image}" alt="">
+        <span class="t-idx">${idx+1}</span>
+        <div class="t-badges">
+          ${nMeas ? `<span class="t-badge" title="${nMeas} cote(s)">📏${nMeas}</span>` : ''}
+          ${nCom ? `<span class="t-badge c" title="${nCom} commentaire(s)">💬${nCom}</span>` : ''}
+          ${nHl ? `<span class="t-badge" style="background:#f6c945" title="${nHl} surlignage(s)">🖍${nHl}</span>` : ''}
+        </div>
+        <button type="button" class="t-del" title="Retirer de la session">×</button>
+      `;
+      t.addEventListener('click', (e)=>{
+        if(e.target.closest('.t-del')) return;
+        switchToPhoto(p.id);
+      });
+      t.querySelector('.t-del').addEventListener('click', (e)=>{
+        e.stopPropagation();
+        deletePhoto(p.id);
+      });
+      sessionStrip.appendChild(t);
+    });
+    const addWrap = document.createElement('button');
+    addWrap.type = 'button';
+    addWrap.className = 't-add';
+    addWrap.title = 'Ajouter une photo à la session';
+    addWrap.textContent = '+';
+    addWrap.addEventListener('click', ()=> fileInput.click());
+    sessionStrip.appendChild(addWrap);
+
+    sessionNav.style.display = 'flex';
+    const activeIdx = session.findIndex(p=>p.id===activePhotoId);
+    sessCount.textContent = (activeIdx+1) + ' / ' + session.length;
+    sessPrev.disabled = activeIdx<=0;
+    sessNext.disabled = activeIdx<0 || activeIdx>=session.length-1;
+  }
+  sessPrev.addEventListener('click', ()=> goToOffset(-1));
+  sessNext.addEventListener('click', ()=> goToOffset(1));
+
+  // Quick keyboard navigation between photos: [ and ] (or arrow keys with Alt)
+  window.addEventListener('keydown', e=>{
+    const tag = (document.activeElement && document.activeElement.tagName) || '';
+    if(tag==='TEXTAREA' || tag==='INPUT' || tag==='SELECT') return;
+    if(e.key===']' || (e.altKey && e.key==='ArrowRight')){ e.preventDefault(); goToOffset(1); }
+    if(e.key==='[' || (e.altKey && e.key==='ArrowLeft')){ e.preventDefault(); goToOffset(-1); }
+  });
+
+  // ---------- JSON project save / load (whole session, one file) ----------
   function exportProject(){
+    snapshotCurrentToSession();
     return {
-      type: 'mesure-photo-project',
-      version: 1,
+      type: 'mesure-photo-session',
+      version: 2,
       savedAt: new Date().toISOString(),
-      image: imgLoaded ? img.src : null,
-      calibration: calibration,
-      measurements: measurements,
-      comments: comments
+      activePhotoId: activePhotoId,
+      photos: session.map(p=>({
+        id: p.id,
+        name: p.name,
+        image: p.image,
+        calibration: p.calibration,
+        measurements: p.measurements,
+        comments: p.comments,
+        highlights: p.highlights
+      }))
     };
   }
   function downloadJSON(obj, filename){
@@ -844,50 +1183,58 @@ canvas#c.panning{ cursor:grabbing !important; }
     setTimeout(()=> URL.revokeObjectURL(url), 2000);
   }
   document.getElementById('jsonSaveBtn').addEventListener('click', ()=>{
-    if(!imgLoaded){
-      hintBar.innerHTML = '<b style="color:#ff8a5c">Chargez d\'abord une photo avant d\'enregistrer.</b>';
+    if(!session.length){
+      hintBar.innerHTML = '<b style="color:#ff8a5c">Chargez d\'abord au moins une photo avant d\'enregistrer.</b>';
       return;
     }
-    downloadJSON(exportProject(), 'mesure-photo-' + Date.now() + '.json');
+    downloadJSON(exportProject(), 'mesure-photo-session-' + Date.now() + '.json');
   });
 
   function restoreProject(data){
-    function applyRest(){
-      calibration = data.calibration || null;
-      measurements = Array.isArray(data.measurements) ? data.measurements : [];
-      nextId = measurements.reduce((m,x)=> Math.max(m,(x.id||0)+1), 1);
-      clearCommentsDOM();
-      (Array.isArray(data.comments) ? data.comments : []).forEach(c=>{
-        comments.push(c);
-        nextCommentId = Math.max(nextCommentId, (c.id||0)+1);
-        addCommentDOM(c);
-      });
-      refreshCalibStatus();
-      renderMeasureList();
-      draw();
-      hintBar.textContent = 'Projet chargé depuis le fichier JSON.';
-    }
-    if(data.image){
-      const im = new Image();
-      im.onload = function(){
-        img = im; imgLoaded = true;
-        dropZone.style.display = 'none';
-        [calibBtn, realLenInput, unitSelect, commentBtn].forEach(el=>el.disabled=false);
-        statusPill.innerHTML = '<b>'+img.width+'×'+img.height+'px</b>';
-        resizeCanvas();
-        fitToScreen();
-        applyRest();
-        if(calibration) Object.values(modeBtns).forEach(b=>b.disabled=false);
-      };
-      im.src = data.image;
-    } else {
-      if(!imgLoaded){
-        hintBar.innerHTML = '<b style="color:#ff8a5c">Ce fichier ne contient pas de photo — chargez d\'abord une image.</b>';
+    // New format: a whole session with several photos in one file.
+    if(data && data.type==='mesure-photo-session' && Array.isArray(data.photos)){
+      if(!data.photos.length){
+        hintBar.innerHTML = '<b style="color:#ff8a5c">Ce fichier de session ne contient aucune photo.</b>';
         return;
       }
-      applyRest();
-      if(calibration) Object.values(modeBtns).forEach(b=>b.disabled=false);
+      session = data.photos.map(p=>({
+        id: nextPhotoId++,
+        name: p.name || 'Photo',
+        image: p.image,
+        calibration: p.calibration || null,
+        measurements: Array.isArray(p.measurements) ? p.measurements : [],
+        comments: Array.isArray(p.comments) ? p.comments : [],
+        highlights: Array.isArray(p.highlights) ? p.highlights : []
+      }));
+      activePhotoId = null;
+      const wanted = session[0]; // (activePhotoId from file doesn't map to new ids, always start on first)
+      renderPhotoStrip();
+      switchToPhoto(wanted.id);
+      hintBar.textContent = 'Session chargée : ' + session.length + ' photo(s) depuis le fichier JSON.';
+      return;
     }
+    // Backward compatibility: old single-photo project files.
+    if(data && data.type==='mesure-photo-project'){
+      if(!data.image){
+        hintBar.innerHTML = '<b style="color:#ff8a5c">Ce fichier ne contient pas de photo.</b>';
+        return;
+      }
+      const entry = {
+        id: nextPhotoId++,
+        name: 'Photo importée',
+        image: data.image,
+        calibration: data.calibration || null,
+        measurements: Array.isArray(data.measurements) ? data.measurements : [],
+        comments: Array.isArray(data.comments) ? data.comments : [],
+        highlights: Array.isArray(data.highlights) ? data.highlights : []
+      };
+      session.push(entry);
+      renderPhotoStrip();
+      switchToPhoto(entry.id);
+      hintBar.textContent = 'Photo importée depuis un ancien fichier de projet, ajoutée à la session.';
+      return;
+    }
+    hintBar.innerHTML = '<b style="color:#ff8a5c">Format de fichier JSON non reconnu.</b>';
   }
   document.getElementById('jsonLoadBtn').addEventListener('click', ()=> document.getElementById('jsonFileInput').click());
   document.getElementById('jsonFileInput').addEventListener('change', e=>{
@@ -921,6 +1268,8 @@ canvas#c.panning{ cursor:grabbing !important; }
     ctx.drawImage(img, 0, 0);
     ctx.restore();
 
+    drawHighlights();
+
     // calibration line
     checkboxHitboxes = [];
     if(calibration){
@@ -951,6 +1300,35 @@ canvas#c.panning{ cursor:grabbing !important; }
       }
       ctx.restore();
     }
+  }
+
+  function drawHighlights(){
+    if(!highlights.length) return;
+    ctx.save();
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    highlights.forEach(strokeHighlight);
+    ctx.restore();
+  }
+  function strokeHighlight(h){
+    if(!h.points || !h.points.length) return;
+    ctx.globalAlpha = 0.42;
+    ctx.strokeStyle = h.color;
+    ctx.lineWidth = Math.max(2, h.width * view.scale);
+    ctx.beginPath();
+    const p0 = imgToScreen(h.points[0]);
+    if(h.points.length===1){
+      ctx.moveTo(p0.x, p0.y);
+      ctx.lineTo(p0.x+0.01, p0.y+0.01);
+    } else {
+      ctx.moveTo(p0.x, p0.y);
+      for(let i=1;i<h.points.length;i++){
+        const p = imgToScreen(h.points[i]);
+        ctx.lineTo(p.x, p.y);
+      }
+    }
+    ctx.stroke();
   }
 
   function drawDimensionLine(p1img, p2img, label, color, dashed, ghost, measIdx, validated){
@@ -1000,7 +1378,7 @@ canvas#c.panning{ cursor:grabbing !important; }
     ctx.textBaseline = 'middle';
     ctx.fillText(label, mx - textW/2, ly + labelH/2 + 1);
 
-    // checkbox "validé" collée à côté de l'étiquette (uniquement pour une vraie mesure, pas la calib ni le fantôme)
+    // checkbox "validé" + bouton "supprimer" collés à côté de l'étiquette (uniquement pour une vraie mesure, pas la calib ni le fantôme)
     if(measIdx != null){
       const box = 16, gap = 6;
       const bx = lx + textW + padX*2 + gap, by = ly + labelH/2 - box/2;
@@ -1024,7 +1402,25 @@ canvas#c.panning{ cursor:grabbing !important; }
         ctx.lineTo(bx+12.5, by+4.5);
         ctx.stroke();
       }
-      checkboxHitboxes.push({ x:bx-3, y:by-3, w:box+6, h:box+6, idx:measIdx });
+      checkboxHitboxes.push({ x:bx-3, y:by-3, w:box+6, h:box+6, idx:measIdx, type:'check' });
+
+      // bouton supprimer (×) juste à côté de la case
+      const dbx = bx + box + gap, dby = by;
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#3a1418';
+      roundRect(ctx, dbx, dby, box, box, 4);
+      ctx.fill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = '#ff8a5c';
+      roundRect(ctx, dbx, dby, box, box, 4);
+      ctx.stroke();
+      ctx.strokeStyle = '#ff8a5c';
+      ctx.lineWidth = 1.7;
+      ctx.beginPath();
+      ctx.moveTo(dbx+4.5, dby+4.5); ctx.lineTo(dbx+box-4.5, dby+box-4.5);
+      ctx.moveTo(dbx+box-4.5, dby+4.5); ctx.lineTo(dbx+4.5, dby+box-4.5);
+      ctx.stroke();
+      checkboxHitboxes.push({ x:dbx-3, y:dby-3, w:box+6, h:box+6, idx:measIdx, type:'del' });
     }
     ctx.restore();
   }
