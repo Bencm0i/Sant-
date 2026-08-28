@@ -154,6 +154,7 @@ canvas#c.mode-free{ cursor:crosshair; }
 canvas#c.mode-pan{ cursor:grab; }
 canvas#c.mode-comment{ cursor:crosshair; }
 canvas#c.mode-highlight{ cursor:crosshair; }
+canvas#c.mode-erase{ cursor:cell; }
 canvas#c.panning{ cursor:grabbing !important; }
 
 .hl-row{ display:flex; gap:7px; margin-bottom:10px; }
@@ -385,6 +386,15 @@ canvas#c.panning{ cursor:grabbing !important; }
         <button class="active" data-frac="0.009">Moyen</button>
         <button data-frac="0.016">Épais</button>
       </div>
+      <button class="btn" id="eraserBtn" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 20H8l-5-5a2 2 0 010-2.8L13 3.4a2 2 0 012.8 0l5.6 5.6a2 2 0 010 2.8L14 19"/></svg>
+        Gomme (effacer un surlignage)
+      </button>
+      <div class="hl-size" id="eraserSizes" style="margin-bottom:8px;">
+        <button data-frac="0.015">Fin</button>
+        <button class="active" data-frac="0.03">Moyen</button>
+        <button data-frac="0.05">Épais</button>
+      </div>
       <div class="mode-row">
         <button class="btn" id="hlUndoBtn">↩ Annuler trait</button>
         <button class="btn" id="hlClearBtn">🗑 Effacer tout</button>
@@ -403,6 +413,8 @@ canvas#c.panning{ cursor:grabbing !important; }
       <button class="btn primary" id="jsonSaveBtn">💾 Enregistrer la session (JSON)</button>
       <button class="btn" id="jsonLoadBtn">📂 Charger une session (JSON)</button>
       <input type="file" id="jsonFileInput" accept="application/json,.json" style="display:none;">
+      <div class="calib-status" id="autosaveStatus" style="margin-top:10px;">Sauvegarde locale : —</div>
+      <button class="btn" id="autosaveClearBtn" style="margin-top:8px;">🧹 Effacer la sauvegarde locale</button>
     </div>
 
     <div class="footer-actions">
@@ -486,6 +498,54 @@ canvas#c.panning{ cursor:grabbing !important; }
   hlClearBtn.addEventListener('click', ()=>{
     if(highlights.length){ highlights = []; draw(); renderPhotoStrip(); }
   });
+
+  // ---------- Gomme (efface tout ou partie d'un surlignage) ----------
+  const eraserBtn = document.getElementById('eraserBtn');
+  const eraserSizes = document.getElementById('eraserSizes');
+  let eraserSizeFrac = 0.03;
+  let isErasing = false;
+  function eraserRadiusPx(){ return imgLoaded ? Math.max(6, img.width*eraserSizeFrac) : 30; }
+  eraserSizes.querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      eraserSizeFrac = parseFloat(b.dataset.frac);
+      eraserSizes.querySelectorAll('button').forEach(x=>x.classList.toggle('active', x===b));
+    });
+  });
+  eraserBtn.addEventListener('click', ()=> setMode(mode==='erase' ? null : 'erase'));
+  // Retire les points de surlignage situés dans le rayon de la gomme autour de p (coord image),
+  // en re-découpant les traits existants en plusieurs segments si besoin. Renvoie true si qqch a changé.
+  function eraseAt(p){
+    if(!highlights.length) return false;
+    const r2 = eraserRadiusPx() * eraserRadiusPx();
+    let changed = false;
+    const result = [];
+    highlights.forEach(h=>{
+      const pts = h.points || [];
+      if(pts.length <= 1){
+        const pt = pts[0];
+        if(pt){
+          const dx = pt.x-p.x, dy = pt.y-p.y;
+          if(dx*dx+dy*dy <= r2){ changed = true; return; }
+        }
+        result.push(h);
+        return;
+      }
+      let seg = [];
+      pts.forEach(pt=>{
+        const dx = pt.x-p.x, dy = pt.y-p.y;
+        if(dx*dx+dy*dy <= r2){
+          changed = true;
+          if(seg.length>1) result.push({ id: nextHighlightId++, color:h.color, width:h.width, points:seg });
+          seg = [];
+        } else {
+          seg.push(pt);
+        }
+      });
+      if(seg.length>1) result.push({ id: nextHighlightId++, color:h.color, width:h.width, points:seg });
+    });
+    if(changed) highlights = result;
+    return changed;
+  }
 
   const commentLayer = document.createElement('div');
   commentLayer.id = 'commentLayer';
@@ -626,6 +686,7 @@ canvas#c.panning{ cursor:grabbing !important; }
     calibBtn.classList.toggle('active', m==='calib');
     commentBtn.classList.toggle('active', m==='comment');
     highlightBtn.classList.toggle('active', m==='highlight');
+    eraserBtn.classList.toggle('active', m==='erase');
     canvas.className = m ? 'mode-'+m : '';
     if(m==='calib') hintBar.innerHTML = "Cliquez le <b>premier point</b> de la cote connue, puis le second point.";
     else if(m==='h') hintBar.innerHTML = "Mode <b>horizontal</b> : cliquez un point, puis un second — la distance horizontale sera cotée.";
@@ -634,6 +695,7 @@ canvas#c.panning{ cursor:grabbing !important; }
     else if(m==='pan') hintBar.innerHTML = "Glissez pour déplacer l'image. Molette pour zoomer.";
     else if(m==='comment') hintBar.innerHTML = "Mode <b>commentaire</b> : cliquez sur la photo pour poser une note déplaçable.";
     else if(m==='highlight') hintBar.innerHTML = "Mode <b>surligneur</b> : maintenez le clic et tracez pour marquer une zone à checker.";
+    else if(m==='erase') hintBar.innerHTML = "Mode <b>gomme</b> : maintenez le clic et passez sur un surlignage pour l'effacer (entièrement ou en partie).";
     else hintBar.textContent = "Molette pour zoomer • choisissez un mode de mesure ci-contre.";
     draw();
   }
@@ -668,6 +730,7 @@ canvas#c.panning{ cursor:grabbing !important; }
     calibration = { p1, p2, pxDist, realLen, unit: unitSelect.value, pxPerUnit: pxDist/realLen };
     refreshCalibStatus();
     setMode('h');
+    scheduleAutosave();
   }
   realLenInput.addEventListener('change', ()=>{
     if(calibration && calibration.p1 && calibration.p2){
@@ -714,6 +777,13 @@ canvas#c.panning{ cursor:grabbing !important; }
       draw();
       return;
     }
+    if(mode==='erase'){
+      isErasing = true;
+      canvas.setPointerCapture(e.pointerId);
+      eraseAt(getPointerImagePos(e));
+      draw();
+      return;
+    }
     if(mode==='comment'){
       const p = getPointerImagePos(e);
       const c = { id: nextCommentId++, x:p.x, y:p.y, text:'', color: colors[comments.length % colors.length], grayed:false, locked:false };
@@ -750,6 +820,12 @@ canvas#c.panning{ cursor:grabbing !important; }
       draw();
       return;
     }
+    if(isErasing){
+      eraseAt(getPointerImagePos(e));
+      hoverImagePt = getPointerImagePos(e);
+      draw();
+      return;
+    }
     const r1 = canvas.getBoundingClientRect();
     const sx1 = e.clientX - r1.left, sy1 = e.clientY - r1.top;
     const overCheck = checkboxHitboxes.some(h => sx1>=h.x && sx1<=h.x+h.w && sy1>=h.y && sy1<=h.y+h.h);
@@ -766,8 +842,14 @@ canvas#c.panning{ cursor:grabbing !important; }
       activeStroke = null;
       renderPhotoStrip();
     }
+    if(isErasing){
+      isErasing = false;
+      canvas.releasePointerCapture(e.pointerId);
+      draw();
+      renderPhotoStrip();
+    }
   });
-  canvas.addEventListener('pointerleave', ()=>{ hoverImagePt=null; if(!isPanning) draw(); });
+  canvas.addEventListener('pointerleave', ()=>{ hoverImagePt=null; isErasing=false; if(!isPanning) draw(); });
 
   function finalizeSecondPoint(p2){
     const p1 = pendingPoint;
@@ -939,7 +1021,7 @@ canvas#c.panning{ cursor:grabbing !important; }
     ta.placeholder = 'Votre commentaire…';
     ta.value = c.text || '';
     ta.addEventListener('pointerdown', e=> e.stopPropagation());
-    ta.addEventListener('input', ()=>{ c.text = ta.value; });
+    ta.addEventListener('input', ()=>{ c.text = ta.value; scheduleAutosave(); });
     wrap.appendChild(ta);
 
     grayBtn.addEventListener('click', e=>{
@@ -947,6 +1029,7 @@ canvas#c.panning{ cursor:grabbing !important; }
       c.grayed = !c.grayed;
       wrap.classList.toggle('grayed', c.grayed);
       grayBtn.classList.toggle('on', c.grayed);
+      scheduleAutosave();
     });
 
     lockBtn.addEventListener('click', e=>{
@@ -955,6 +1038,7 @@ canvas#c.panning{ cursor:grabbing !important; }
       wrap.classList.toggle('locked', c.locked);
       lockBtn.classList.toggle('on', c.locked);
       lockBtn.textContent = c.locked ? '🔒' : '🔓';
+      scheduleAutosave();
     });
 
     delBtn.addEventListener('click', e=>{
@@ -983,6 +1067,7 @@ canvas#c.panning{ cursor:grabbing !important; }
         head.releasePointerCapture(e.pointerId);
         head.removeEventListener('pointermove', onMove);
         head.removeEventListener('pointerup', onUp);
+        scheduleAutosave();
       }
       head.addEventListener('pointermove', onMove);
       head.addEventListener('pointerup', onUp);
@@ -1023,7 +1108,7 @@ canvas#c.panning{ cursor:grabbing !important; }
       activeStroke = null;
       highlights = Array.isArray(entry.highlights) ? entry.highlights.map(h=>({ ...h, points:(h.points||[]).map(p=>({...p})) })) : [];
       nextHighlightId = highlights.reduce((m,x)=> Math.max(m,(x.id||0)+1), 1);
-      [calibBtn, realLenInput, unitSelect, commentBtn, highlightBtn].forEach(el=>el.disabled=false);
+      [calibBtn, realLenInput, unitSelect, commentBtn, highlightBtn, eraserBtn].forEach(el=>el.disabled=false);
       Object.values(modeBtns).forEach(b=>b.disabled = !calibration);
       statusPill.innerHTML = '<b>'+img.width+'×'+img.height+'px</b>';
       if(calibration){ realLenInput.value = calibration.realLen; unitSelect.value = calibration.unit; }
@@ -1065,7 +1150,7 @@ canvas#c.panning{ cursor:grabbing !important; }
       statusPill.textContent = 'Aucune image chargée';
       calibStatus.className = 'calib-status';
       calibStatus.textContent = "Non étalonné — chargez une photo puis tracez un segment sur une cote connue.";
-      [calibBtn, realLenInput, unitSelect, commentBtn, highlightBtn].forEach(el=>el.disabled=true);
+      [calibBtn, realLenInput, unitSelect, commentBtn, highlightBtn, eraserBtn].forEach(el=>el.disabled=true);
       Object.values(modeBtns).forEach(b=>b.disabled=true);
       renderMeasureList();
       setMode(null);
@@ -1097,6 +1182,7 @@ canvas#c.panning{ cursor:grabbing !important; }
   const sessNext = document.getElementById('sessNext');
 
   function renderPhotoStrip(){
+    scheduleAutosave();
     sessionStrip.innerHTML = '';
     if(!session.length){
       sessionStrip.appendChild(sessionEmptyHint);
@@ -1236,6 +1322,70 @@ canvas#c.panning{ cursor:grabbing !important; }
     }
     hintBar.innerHTML = '<b style="color:#ff8a5c">Format de fichier JSON non reconnu.</b>';
   }
+  // ---------- Sauvegarde locale automatique (localStorage) ----------
+  const AUTOSAVE_KEY = 'mesurePhotoAutosaveV1';
+  const autosaveStatusEl = document.getElementById('autosaveStatus');
+  let autosaveTimer = null;
+
+  function updateAutosaveStatus(err){
+    if(!autosaveStatusEl) return;
+    if(err){
+      autosaveStatusEl.className = 'calib-status';
+      autosaveStatusEl.innerHTML = '<b style="color:#ff8a5c">Sauvegarde locale impossible</b> (espace navigateur insuffisant). Exportez en JSON pour ne rien perdre.';
+    } else if(!session.length){
+      autosaveStatusEl.className = 'calib-status';
+      autosaveStatusEl.textContent = 'Sauvegarde locale : aucune session en cours.';
+    } else {
+      autosaveStatusEl.className = 'calib-status ok';
+      autosaveStatusEl.textContent = 'Sauvegarde locale : à jour (' + new Date().toLocaleTimeString() + ')';
+    }
+  }
+
+  function persistSessionNow(){
+    try{
+      if(!session.length){
+        localStorage.removeItem(AUTOSAVE_KEY);
+        updateAutosaveStatus();
+        return;
+      }
+      const data = exportProject();
+      localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(data));
+      updateAutosaveStatus();
+    }catch(err){
+      updateAutosaveStatus(err);
+    }
+  }
+  function scheduleAutosave(){
+    clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(persistSessionNow, 700);
+  }
+  // Filet de sécurité périodique, au cas où une modification n'aurait pas déclenché scheduleAutosave().
+  setInterval(()=>{ if(session.length || activePhotoId!=null) scheduleAutosave(); }, 10000);
+  window.addEventListener('beforeunload', ()=>{ try{ persistSessionNow(); }catch(err){} });
+
+  document.getElementById('autosaveClearBtn').addEventListener('click', ()=>{
+    localStorage.removeItem(AUTOSAVE_KEY);
+    autosaveStatusEl.className = 'calib-status';
+    autosaveStatusEl.textContent = 'Sauvegarde locale : effacée.';
+  });
+
+  function tryRestoreAutosave(){
+    let raw;
+    try{ raw = localStorage.getItem(AUTOSAVE_KEY); }catch(err){ return; }
+    if(!raw) return;
+    let data;
+    try{ data = JSON.parse(raw); }catch(err){ return; }
+    if(!data || !Array.isArray(data.photos) || !data.photos.length) return;
+    const when = data.savedAt ? new Date(data.savedAt).toLocaleString() : '';
+    const ok = confirm('Une session précédente a été trouvée dans la sauvegarde locale du navigateur'+(when?' (enregistrée le '+when+')':'')+'.\nVoulez-vous la restaurer ?');
+    if(ok){
+      restoreProject(data);
+      hintBar.textContent = 'Session restaurée depuis la sauvegarde locale du navigateur.';
+    } else {
+      updateAutosaveStatus();
+    }
+  }
+
   document.getElementById('jsonLoadBtn').addEventListener('click', ()=> document.getElementById('jsonFileInput').click());
   document.getElementById('jsonFileInput').addEventListener('change', e=>{
     const f = e.target.files[0];
@@ -1298,6 +1448,19 @@ canvas#c.panning{ cursor:grabbing !important; }
         const label = calibration && mode!=='calib' ? fmt(pxDist/calibration.pxPerUnit)+' '+calibration.unit : Math.round(pxDist)+'px';
         drawDimensionLine(pendingPoint, p2, label, color, false, true);
       }
+      ctx.restore();
+    }
+
+    if(mode==='erase' && hoverImagePt){
+      const c = imgToScreen(hoverImagePt);
+      const rad = eraserRadiusPx() * view.scale;
+      ctx.save();
+      ctx.strokeStyle = '#ff8a5c';
+      ctx.setLineDash([4,3]);
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, rad, 0, Math.PI*2);
+      ctx.stroke();
       ctx.restore();
     }
   }
@@ -1435,6 +1598,7 @@ canvas#c.panning{ cursor:grabbing !important; }
   }
 
   resizeCanvas();
+  tryRestoreAutosave();
 })();
 </script>
 </body>
