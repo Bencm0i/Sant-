@@ -495,6 +495,7 @@ canvas#c:focus-visible{ outline:none; }
         <div><span class="kbd">Ctrl</span>+<span class="kbd">Z</span> Annuler la dernière cote</div>
         <div><span class="kbd">+</span> / <span class="kbd">−</span> Zoom</div>
         <div><span class="kbd">0</span> Ajuster à la fenêtre</div>
+        <div><span class="kbd">Ctrl</span>+<span class="kbd">←</span>/<span class="kbd">→</span> Photo précédente / suivante (toujours actif)</div>
         <div><span class="kbd">[</span> / <span class="kbd">]</span> Photo précédente / suivante</div>
         <div><span class="kbd">Ctrl</span>+<span class="kbd">V</span> Coller une image</div>
       </div>
@@ -1417,8 +1418,17 @@ canvas#c:focus-visible{ outline:none; }
   sessPrev.addEventListener('click', ()=> goToOffset(-1));
   sessNext.addEventListener('click', ()=> goToOffset(1));
 
-  // Quick keyboard navigation between photos: [ and ] (or arrow keys with Alt)
+  // Quick keyboard navigation between photos.
+  // Ctrl/Cmd+←/→ : fonctionne TOUJOURS, même en train de taper dans un commentaire, le champ
+  // "longueur réelle", etc. — placé avant le test isTypingTarget pour ne jamais être bloqué.
+  // [ / ] et Alt+←/→ restent des alias pratiques, mais désactivés pendant la saisie de texte
+  // (sinon [ et ] s'insèreraient dans le champ au lieu de changer de photo).
   window.addEventListener('keydown', e=>{
+    if((e.ctrlKey||e.metaKey) && (e.key==='ArrowRight' || e.key==='ArrowLeft')){
+      e.preventDefault();
+      goToOffset(e.key==='ArrowRight' ? 1 : -1);
+      return;
+    }
     const tag = (document.activeElement && document.activeElement.tagName) || '';
     if(tag==='TEXTAREA' || tag==='INPUT' || tag==='SELECT') return;
     if(e.key===']' || (e.altKey && e.key==='ArrowRight')){ e.preventDefault(); goToOffset(1); }
