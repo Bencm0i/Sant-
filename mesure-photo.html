@@ -374,6 +374,7 @@ canvas#c:focus-visible{ outline:none; }
         </div>
       </div>
       <div class="calib-status" id="calibStatus">Non étalonné — chargez une photo puis tracez un segment sur une cote connue.</div>
+      <button class="btn" id="calibApplyAllBtn" disabled title="Copier cette échelle vers toutes les autres photos de la session" style="margin-top:8px;">⇉ Appliquer à toutes les photos</button>
     </div>
 
     <div class="section">
@@ -441,6 +442,7 @@ canvas#c:focus-visible{ outline:none; }
       <button class="btn primary" id="jsonSaveBtn">💾 Enregistrer la session (JSON)</button>
       <button class="btn" id="jsonLoadBtn">📂 Charger une session (JSON)</button>
       <input type="file" id="jsonFileInput" accept="application/json,.json" style="display:none;">
+      <button class="btn" id="exportPngBtn" disabled title="Exporter la photo active avec ses cotes en PNG">🖼 Exporter cette photo (PNG)</button>
       <div class="calib-status" id="autosaveStatus" style="margin-top:10px;">Sauvegarde locale : —</div>
       <button class="btn" id="autosaveClearBtn" style="margin-top:8px;">🧹 Effacer la sauvegarde locale</button>
     </div>
@@ -516,8 +518,10 @@ canvas#c:focus-visible{ outline:none; }
   const emptyHint = document.getElementById('emptyHint');
 
   const calibBtn = document.getElementById('calibBtn');
+  const calibApplyAllBtn = document.getElementById('calibApplyAllBtn');
   const realLenInput = document.getElementById('realLen');
   const unitSelect = document.getElementById('unit');
+  const exportPngBtn = document.getElementById('exportPngBtn');
   const commentBtn = document.getElementById('commentBtn');
   const modeBtns = { h: document.getElementById('modeH'), v: document.getElementById('modeV'), free: document.getElementById('modeFree'), pan: document.getElementById('modePan') };
 
@@ -545,12 +549,12 @@ canvas#c:focus-visible{ outline:none; }
     });
   });
   hlUndoBtn.addEventListener('click', ()=>{
-    if(highlights.length){ highlights.pop(); draw(); renderPhotoStrip(); }
+    if(highlights.length){ highlights.pop(); draw(); renderPhotoStrip(); markDirty(); scheduleAutosave(); }
   });
   hlClearBtn.addEventListener('click', ()=>{
     if(!highlights.length) return;
     if(!confirm('Effacer tous les surlignages de cette photo ? Cette action est irréversible.')) return;
-    highlights = []; draw(); renderPhotoStrip();
+    highlights = []; draw(); renderPhotoStrip(); markDirty(); scheduleAutosave();
   });
 
   // ---------- Gomme (efface tout ou partie d'un surlignage) ----------
@@ -695,6 +699,8 @@ canvas#c:focus-visible{ outline:none; }
       if(firstNewId===null) firstNewId = entry.id;
     }
     renderPhotoStrip();
+    markDirty();
+    scheduleAutosave();
     switchToPhoto(firstNewId);
   }
   function loadFile(file){ addFilesToSession(file ? [file] : []); }
@@ -775,7 +781,7 @@ canvas#c:focus-visible{ outline:none; }
     // Annuler (Ctrl/Cmd+Z)
     if((e.ctrlKey||e.metaKey) && !e.shiftKey && e.key.toLowerCase()==='z'){
       e.preventDefault();
-      if(measurements.length){ measurements.pop(); renderMeasureList(); draw(); }
+      if(measurements.length){ measurements.pop(); renderMeasureList(); draw(); markDirty(); scheduleAutosave(); }
       return;
     }
     // Zoom
@@ -817,9 +823,11 @@ canvas#c:focus-visible{ outline:none; }
       calibStatus.className = 'calib-status ok';
       calibStatus.innerHTML = 'Échelle : <span class="scale-val">'+calibration.pxPerUnit.toFixed(3)+' px / '+calibration.unit+'</span><br>('+calibration.realLen+' '+calibration.unit+' = '+calibration.pxDist.toFixed(1)+' px à l\'écran image)';
       Object.values(modeBtns).forEach(b=>b.disabled=false);
+      calibApplyAllBtn.disabled = false;
     } else {
       calibStatus.className = 'calib-status';
       calibStatus.textContent = 'Non étalonné — tracez un segment sur une cote connue.';
+      calibApplyAllBtn.disabled = true;
     }
   }
   function tryFinalizeCalibration(p1, p2){
@@ -843,10 +851,28 @@ canvas#c:focus-visible{ outline:none; }
       refreshCalibStatus();
       renderMeasureList();
       draw();
+      markDirty();
+      scheduleAutosave();
     }
   });
   unitSelect.addEventListener('change', ()=>{
-    if(calibration){ calibration.unit = unitSelect.value; refreshCalibStatus(); renderMeasureList(); draw(); }
+    if(calibration){ calibration.unit = unitSelect.value; refreshCalibStatus(); renderMeasureList(); draw(); markDirty(); scheduleAutosave(); }
+  });
+
+  calibApplyAllBtn.addEventListener('click', ()=>{
+    if(!calibration || !session.length) return;
+    snapshotCurrentToSession(); // s'assure que l'entrée active reflète bien la calibration courante
+    const others = session.filter(p=>p.id!==activePhotoId);
+    if(!others.length){
+      hintBar.innerHTML = '<b style="color:#ff8a5c">Aucune autre photo dans la session.</b>';
+      return;
+    }
+    if(!confirm('Appliquer cette échelle ('+calibration.realLen+' '+calibration.unit+') aux '+others.length+' autre(s) photo(s) de la session ? Une calibration existante sur ces photos sera écrasée.')) return;
+    others.forEach(p=>{ p.calibration = {...calibration}; });
+    markDirty();
+    scheduleAutosave();
+    renderPhotoStrip();
+    hintBar.textContent = 'Échelle appliquée à '+others.length+' autre(s) photo(s) de la session.';
   });
 
   // ---------- Pointer interaction ----------
@@ -859,12 +885,16 @@ canvas#c:focus-visible{ outline:none; }
       measurements.splice(hit.idx, 1);
       renderMeasureList();
       draw();
+      markDirty();
+      scheduleAutosave();
       return;
     }
     if(hit && hit.type==='check'){
       measurements[hit.idx].validated = !measurements[hit.idx].validated;
       renderMeasureList();
       draw();
+      markDirty();
+      scheduleAutosave();
       return;
     }
     if(mode==='pan' || e.button===1){
@@ -894,6 +924,8 @@ canvas#c:focus-visible{ outline:none; }
       comments.push(c);
       addCommentDOM(c);
       if(typeof renderPhotoStrip==='function' && session.length) renderPhotoStrip();
+      markDirty();
+      scheduleAutosave();
       const el = commentEls[c.id];
       const ta = el && el.querySelector('textarea');
       setTimeout(()=>{ if(ta) ta.focus(); }, 0);
@@ -945,12 +977,16 @@ canvas#c:focus-visible{ outline:none; }
       canvas.releasePointerCapture(e.pointerId);
       activeStroke = null;
       renderPhotoStrip();
+      markDirty();
+      scheduleAutosave();
     }
     if(isErasing){
       isErasing = false;
       canvas.releasePointerCapture(e.pointerId);
       draw();
       renderPhotoStrip();
+      markDirty();
+      scheduleAutosave();
     }
   });
   canvas.addEventListener('pointerleave', ()=>{ hoverImagePt=null; isErasing=false; if(!isPanning) draw(); });
@@ -972,6 +1008,8 @@ canvas#c:focus-visible{ outline:none; }
       validated: false
     });
     renderMeasureList();
+    markDirty();
+    scheduleAutosave();
   }
 
   // wheel zoom (zoom to cursor)
@@ -1019,12 +1057,12 @@ canvas#c:focus-visible{ outline:none; }
 
   // ---------- Measurement list ----------
   document.getElementById('undoBtn').addEventListener('click', ()=>{
-    if(measurements.length){ measurements.pop(); renderMeasureList(); draw(); }
+    if(measurements.length){ measurements.pop(); renderMeasureList(); draw(); markDirty(); scheduleAutosave(); }
   });
   document.getElementById('clearBtn').addEventListener('click', ()=>{
     if(!measurements.length) return;
     if(!confirm('Supprimer les '+measurements.length+' cote(s) relevée(s) sur cette photo ? Cette action est irréversible.')) return;
-    measurements = []; renderMeasureList(); draw();
+    measurements = []; renderMeasureList(); draw(); markDirty(); scheduleAutosave();
   });
 
   function fmt(v){
@@ -1064,6 +1102,7 @@ canvas#c:focus-visible{ outline:none; }
         const i = parseInt(e.currentTarget.dataset.idx,10);
         measurements.splice(i,1);
         renderMeasureList(); draw();
+        markDirty(); scheduleAutosave();
       });
     });
     measureList.querySelectorAll('.m-check input').forEach(cb=>{
@@ -1071,6 +1110,7 @@ canvas#c:focus-visible{ outline:none; }
         const i = parseInt(e.currentTarget.dataset.idx,10);
         measurements[i].validated = e.currentTarget.checked;
         renderMeasureList();
+        markDirty(); scheduleAutosave();
       });
     });
   }
@@ -1166,6 +1206,8 @@ canvas#c:focus-visible{ outline:none; }
       wrap.remove();
       delete commentEls[c.id];
       if(typeof renderPhotoStrip==='function' && session.length) renderPhotoStrip();
+      markDirty();
+      scheduleAutosave();
     });
 
     head.addEventListener('pointerdown', e=>{
@@ -1228,8 +1270,9 @@ canvas#c:focus-visible{ outline:none; }
       activeStroke = null;
       highlights = Array.isArray(entry.highlights) ? entry.highlights.map(h=>({ ...h, points:(h.points||[]).map(p=>({...p})) })) : [];
       nextHighlightId = highlights.reduce((m,x)=> Math.max(m,(x.id||0)+1), 1);
-      [calibBtn, realLenInput, unitSelect, commentBtn, highlightBtn, eraserBtn].forEach(el=>el.disabled=false);
+      [calibBtn, realLenInput, unitSelect, commentBtn, highlightBtn, eraserBtn, exportPngBtn].forEach(el=>el.disabled=false);
       Object.values(modeBtns).forEach(b=>b.disabled = !calibration);
+      calibApplyAllBtn.disabled = !calibration;
       statusPill.innerHTML = '<b>'+img.width+'×'+img.height+'px</b>';
       if(calibration){ realLenInput.value = calibration.realLen; unitSelect.value = calibration.unit; }
       else { realLenInput.value = ''; }
@@ -1261,6 +1304,8 @@ canvas#c:focus-visible{ outline:none; }
     if(idx<0) return;
     const wasActive = id===activePhotoId;
     session.splice(idx,1);
+    markDirty();
+    scheduleAutosave();
     if(!session.length){
       activePhotoId = null; img = null; imgLoaded = false;
       calibration = null; measurements = []; pendingPoint = null;
@@ -1270,8 +1315,9 @@ canvas#c:focus-visible{ outline:none; }
       statusPill.textContent = 'Aucune image chargée';
       calibStatus.className = 'calib-status';
       calibStatus.textContent = "Non étalonné — chargez une photo puis tracez un segment sur une cote connue.";
-      [calibBtn, realLenInput, unitSelect, commentBtn, highlightBtn, eraserBtn].forEach(el=>el.disabled=true);
+      [calibBtn, realLenInput, unitSelect, commentBtn, highlightBtn, eraserBtn, exportPngBtn].forEach(el=>el.disabled=true);
       Object.values(modeBtns).forEach(b=>b.disabled=true);
+      calibApplyAllBtn.disabled = true;
       renderMeasureList();
       setMode(null);
       draw();
@@ -1302,8 +1348,10 @@ canvas#c:focus-visible{ outline:none; }
   const sessNext = document.getElementById('sessNext');
 
   function renderPhotoStrip(){
-    markDirty();
-    scheduleAutosave();
+    // NB: pas de markDirty()/scheduleAutosave() ici — ce n'est qu'un rendu d'affichage,
+    // appelé aussi lors d'un simple changement de photo. Chaque vraie mutation
+    // (ajout/suppression photo, cote, commentaire, surlignage, calibration) marque
+    // elle-même la session comme "dirty" à sa propre source.
     sessionStrip.innerHTML = '';
     if(!session.length){
       sessionStrip.appendChild(sessionEmptyHint);
@@ -1313,7 +1361,7 @@ canvas#c:focus-visible{ outline:none; }
     session.forEach((p, idx)=>{
       const t = document.createElement('div');
       t.className = 'thumb' + (p.id===activePhotoId ? ' active' : '');
-      t.title = p.name;
+      t.title = p.name + ' (double-clic pour renommer)';
       const nMeas = p.id===activePhotoId ? measurements.length : (p.measurements||[]).length;
       const nCom = p.id===activePhotoId ? comments.length : (p.comments||[]).length;
       const nHl = p.id===activePhotoId ? highlights.length : (p.highlights||[]).length;
@@ -1330,6 +1378,17 @@ canvas#c:focus-visible{ outline:none; }
       t.addEventListener('click', (e)=>{
         if(e.target.closest('.t-del')) return;
         switchToPhoto(p.id);
+      });
+      t.addEventListener('dblclick', (e)=>{
+        if(e.target.closest('.t-del')) return;
+        e.stopPropagation();
+        const newName = prompt('Nouveau nom pour cette photo :', p.name);
+        if(newName && newName.trim()){
+          p.name = newName.trim();
+          renderPhotoStrip();
+          markDirty();
+          scheduleAutosave();
+        }
       });
       t.querySelector('.t-del').addEventListener('click', (e)=>{
         e.stopPropagation();
@@ -1443,6 +1502,8 @@ canvas#c:focus-visible{ outline:none; }
       };
       session.push(entry);
       renderPhotoStrip();
+      markDirty();
+      scheduleAutosave();
       switchToPhoto(entry.id);
       hintBar.textContent = 'Photo importée depuis un ancien fichier de projet, ajoutée à la session.';
       return;
@@ -1491,6 +1552,9 @@ canvas#c:focus-visible{ outline:none; }
       updateAutosaveStatus();
     }catch(err){
       updateAutosaveStatus(err);
+      // Écriture en pleine résolution refusée (quota dépassé) : on retente en arrière-plan
+      // avec des images réduites, sans bloquer ni retarder le flux normal de l'appli.
+      persistSessionDownscaledFallback();
     }
   }
   function scheduleAutosave(){
@@ -1751,6 +1815,199 @@ canvas#c:focus-visible{ outline:none; }
     ctx.arcTo(x,y+h,x,y,r);
     ctx.arcTo(x,y,x+w,y,r);
     ctx.closePath();
+  }
+
+  // ---------- Export PNG annoté (image + cotes + surlignages + commentaires, résolution native) ----------
+  function drawDimensionLineOn(ectx, p1, p2, label, color, dashed, s){
+    ectx.save();
+    ectx.strokeStyle = color;
+    ectx.fillStyle = color;
+    ectx.lineWidth = Math.max(1.5, 2*s);
+    if(dashed) ectx.setLineDash([6*s,4*s]);
+    ectx.beginPath(); ectx.moveTo(p1.x,p1.y); ectx.lineTo(p2.x,p2.y); ectx.stroke();
+
+    const dx = p2.x-p1.x, dy = p2.y-p1.y, len = Math.hypot(dx,dy) || 1;
+    const ux = dx/len, uy = dy/len, px = -uy, py = ux, tick = 7*s;
+    ectx.setLineDash([]);
+    [p1,p2].forEach(p=>{
+      ectx.beginPath();
+      ectx.moveTo(p.x - px*tick, p.y - py*tick);
+      ectx.lineTo(p.x + px*tick, p.y + py*tick);
+      ectx.stroke();
+    });
+    ectx.beginPath(); ectx.arc(p1.x,p1.y,3.5*s,0,Math.PI*2); ectx.fill();
+    ectx.beginPath(); ectx.arc(p2.x,p2.y,3.5*s,0,Math.PI*2); ectx.fill();
+
+    const mx = (p1.x+p2.x)/2, my = (p1.y+p2.y)/2;
+    const fontSize = Math.max(11, Math.round(13*s));
+    ectx.font = '700 '+fontSize+'px "SFMono-Regular",Consolas,monospace';
+    const textW = ectx.measureText(label).width;
+    const padX = 6*s, padY = 4*s;
+    const lx = mx - textW/2 - padX, ly = my - px*16*s - 9*s - padY;
+    const labelH = fontSize + padY*2 + 2*s;
+    ectx.fillStyle = '#0d1c28';
+    ectx.globalAlpha = 0.92;
+    roundRect(ectx, lx, ly, textW+padX*2, labelH, 5*s);
+    ectx.fill();
+    ectx.globalAlpha = 1;
+    ectx.fillStyle = color;
+    ectx.textBaseline = 'middle';
+    ectx.fillText(label, mx - textW/2, ly + labelH/2 + 1);
+    ectx.restore();
+  }
+
+  function drawHighlightsOn(ectx){
+    if(!highlights.length) return;
+    ectx.save();
+    ectx.globalCompositeOperation = 'multiply';
+    ectx.lineCap = 'round';
+    ectx.lineJoin = 'round';
+    highlights.forEach(h=>{
+      if(!h.points || !h.points.length) return;
+      ectx.globalAlpha = 0.42;
+      ectx.strokeStyle = h.color;
+      ectx.lineWidth = Math.max(2, h.width); // déjà en pixels image, pas besoin de re-scaler
+      ectx.beginPath();
+      const p0 = h.points[0];
+      if(h.points.length===1){ ectx.moveTo(p0.x,p0.y); ectx.lineTo(p0.x+0.01,p0.y+0.01); }
+      else {
+        ectx.moveTo(p0.x,p0.y);
+        for(let i=1;i<h.points.length;i++){ const p=h.points[i]; ectx.lineTo(p.x,p.y); }
+      }
+      ectx.stroke();
+    });
+    ectx.restore();
+  }
+
+  function wrapTextForExport(ectx, text, maxWidth){
+    const words = (text||'').split(/\s+/).filter(Boolean);
+    const lines = [];
+    let line = '';
+    words.forEach(w=>{
+      const test = line ? line+' '+w : w;
+      if(ectx.measureText(test).width > maxWidth && line){ lines.push(line); line = w; }
+      else line = test;
+    });
+    if(line) lines.push(line);
+    return lines.length ? lines : [''];
+  }
+
+  function drawCommentsOn(ectx, s){
+    comments.forEach(c=>{
+      if(!c.text || !c.text.trim()) return; // les notes vides n'apportent rien à l'export
+      const boxW = 190*s, padX = 7*s, padY = 6*s;
+      const fontSize = Math.max(10, Math.round(12.5*s));
+      ectx.font = '400 '+fontSize+'px "Inter","Segoe UI",system-ui,sans-serif';
+      const lines = wrapTextForExport(ectx, c.text, boxW-padX*2);
+      const lineH = fontSize*1.35;
+      const boxH = padY*2 + lines.length*lineH;
+      const bx = c.x, by = c.y;
+      ectx.save();
+      ectx.globalAlpha = c.grayed ? 0.45 : 0.95;
+      ectx.fillStyle = '#132535';
+      roundRect(ectx, bx, by, boxW, boxH, 9*s);
+      ectx.fill();
+      ectx.lineWidth = Math.max(1, s);
+      ectx.strokeStyle = '#22405a';
+      roundRect(ectx, bx, by, boxW, boxH, 9*s);
+      ectx.stroke();
+      ectx.fillStyle = c.color;
+      ectx.beginPath(); ectx.arc(bx, by, 5.5*s, 0, Math.PI*2); ectx.fill();
+      ectx.lineWidth = Math.max(1, 1.5*s);
+      ectx.strokeStyle = '#0d1c28';
+      ectx.stroke();
+      ectx.globalAlpha = 1;
+      ectx.fillStyle = '#e8f1f8';
+      ectx.textBaseline = 'top';
+      lines.forEach((ln,i)=> ectx.fillText(ln, bx+padX, by+padY+i*lineH));
+      ectx.restore();
+    });
+  }
+
+  function exportAnnotatedImage(){
+    if(!imgLoaded){
+      hintBar.innerHTML = '<b style="color:#ff8a5c">Chargez d\'abord une photo.</b>';
+      return;
+    }
+    const ec = document.createElement('canvas');
+    ec.width = img.width;
+    ec.height = img.height;
+    const ectx = ec.getContext('2d');
+    ectx.drawImage(img, 0, 0);
+    // Échelle des traits/texte : proportionnelle à la résolution réelle de la photo
+    // (sinon des lignes de 2px et un texte de 12px seraient illisibles sur une image de 4000px de large).
+    const s = Math.max(0.6, Math.min(6, img.width/1400));
+
+    drawHighlightsOn(ectx);
+    if(calibration){
+      drawDimensionLineOn(ectx, calibration.p1, calibration.p2, calibration.realLen+' '+calibration.unit+' (réf.)', '#f6c945', true, s);
+    }
+    measurements.forEach(m=>{
+      const unit = calibration ? calibration.unit : 'px';
+      const val = calibration ? fmt(m.valueUnits)+' '+unit : Math.round(m.pxDist)+'px';
+      const col = m.validated ? '#5c7080' : m.color;
+      drawDimensionLineOn(ectx, m.p1, m.p2, val, col, false, s);
+    });
+    drawCommentsOn(ectx, s);
+
+    ec.toBlob(blob=>{
+      if(!blob){
+        hintBar.innerHTML = '<b style="color:#ff8a5c">Échec de l\'export PNG.</b>';
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const entry = session.find(p=>p.id===activePhotoId);
+      const baseName = ((entry && entry.name) || 'photo').replace(/\.[a-zA-Z0-9]+$/, '').replace(/[^a-zA-Z0-9_-]+/g, '_') || 'photo';
+      a.href = url; a.download = 'mesure-photo-' + baseName + '-' + Date.now() + '.png';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(()=> URL.revokeObjectURL(url), 2000);
+    }, 'image/png');
+  }
+  exportPngBtn.addEventListener('click', exportAnnotatedImage);
+
+  // ---------- Repli asynchrone de la sauvegarde locale si le quota du navigateur est dépassé ----------
+  // (ne remplace pas persistSessionNow() dans le chemin critique de beforeunload — celui-ci reste
+  // synchrone et en pleine résolution ; ce repli n'agit qu'en arrière-plan, après un échec.)
+  const autosaveImageCache = new Map(); // photoId -> { src, small }
+  function downscaleDataURL(dataURL, maxDim){
+    return new Promise(resolve=>{
+      const im = new Image();
+      im.onload = ()=>{
+        let w = im.naturalWidth, h = im.naturalHeight;
+        if(Math.max(w,h) > maxDim){
+          const f = maxDim / Math.max(w,h);
+          w = Math.round(w*f); h = Math.round(h*f);
+        }
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(im, 0, 0, w, h);
+        try{ resolve(c.toDataURL('image/jpeg', 0.72)); }
+        catch(e){ resolve(null); }
+      };
+      im.onerror = ()=> resolve(null);
+      im.src = dataURL;
+    });
+  }
+  async function persistSessionDownscaledFallback(){
+    try{
+      const proj = exportProject();
+      const AUTOSAVE_MAX_DIM = 1600;
+      const photos = [];
+      for(const p of proj.photos){
+        let cached = autosaveImageCache.get(p.id);
+        if(!cached || cached.src !== p.image){
+          const small = await downscaleDataURL(p.image, AUTOSAVE_MAX_DIM);
+          cached = { src: p.image, small: small || p.image };
+          autosaveImageCache.set(p.id, cached);
+        }
+        photos.push({ ...p, image: cached.small });
+      }
+      localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({ ...proj, photos, downscaledForAutosave:true }));
+      updateAutosaveStatus();
+    }catch(err){
+      updateAutosaveStatus(err);
+    }
   }
 
   resizeCanvas();
