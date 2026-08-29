@@ -222,6 +222,7 @@ canvas#c.panning{ cursor:grabbing !important; }
   display:flex; align-items:center; justify-content:center;
 }
 .zbtn:hover{ border-color:var(--accent-dim); }
+.zbtn.active{ background:#0c3f38; border-color:var(--accent); color:var(--accent); }
 
 .hint-bar{
   position:absolute; bottom:16px; left:50%; transform:translateX(-50%);
@@ -295,6 +296,33 @@ canvas#c.panning{ cursor:grabbing !important; }
 .paste-toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
 ::-webkit-scrollbar{ width:8px; }
 ::-webkit-scrollbar-thumb{ background:var(--line); border-radius:4px; }
+
+/* ---------- Panneau des raccourcis clavier ---------- */
+.shortcuts-panel{
+  position:absolute; top:60px; right:16px; z-index:11;
+  background:#0d1c28f2; backdrop-filter:blur(6px); border:1px solid var(--line);
+  border-radius:12px; padding:14px 16px; width:300px;
+  box-shadow:0 10px 30px #00000066;
+}
+.shortcuts-panel .sp-head{
+  display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;
+  font-size:13px;
+}
+.shortcuts-panel .sp-grid{
+  display:grid; grid-template-columns:1fr; gap:8px; font-size:12.5px; color:var(--ink-dim);
+}
+.shortcuts-panel .sp-grid .kbd{ margin-right:4px; }
+
+/* ---------- Accessibilité clavier : focus visible ---------- */
+.btn:focus-visible, .zbtn:focus-visible, .c-btn:focus-visible,
+.field input:focus-visible, .field select:focus-visible,
+.hl-swatch:focus-visible, .hl-size button:focus-visible,
+.thumb:focus-visible, .m-check input:focus-visible,
+.session-nav button:focus-visible, .dz-btn:focus-visible,
+.t-add:focus-visible, .m-del:focus-visible{
+  outline:2px solid var(--accent); outline-offset:2px;
+}
+canvas#c:focus-visible{ outline:none; }
 </style>
 </head>
 <body>
@@ -304,7 +332,7 @@ canvas#c.panning{ cursor:grabbing !important; }
     <div class="brand">
       <div class="eyebrow">Atelier de cotation</div>
       <h1>Mesure Photo</h1>
-      <p>Accumulez plusieurs photos dans une session, étalonnez et cotez chacune, puis enregistrez tout en un seul fichier JSON.</p>
+      <p>Accumulez plusieurs photos dans une session, étalonnez et cotez chacune, puis enregistrez tout en un seul fichier JSON.<br>Astuce : appuyez sur <span class="kbd">?</span> pour voir tous les raccourcis clavier.</p>
     </div>
 
     <div class="section">
@@ -326,9 +354,9 @@ canvas#c.panning{ cursor:grabbing !important; }
 
     <div class="section">
       <h2><span class="num">2</span>Étalonnage</h2>
-      <button class="btn" id="calibBtn" disabled>
+      <button class="btn" id="calibBtn" disabled title="Tracer la cote connue (C)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20L20 4M15 4h5v5M9 20H4v-5"/></svg>
-        Tracer la cote connue
+        Tracer la cote connue<span class="kbd" style="margin-left:auto;">C</span>
       </button>
       <div class="row2">
         <div class="field">
@@ -351,28 +379,28 @@ canvas#c.panning{ cursor:grabbing !important; }
     <div class="section">
       <h2><span class="num">3</span>Mode de mesure</h2>
       <div class="mode-row" style="margin-bottom:8px;">
-        <button class="btn" data-mode="h" id="modeH" disabled>⟷ Horiz.</button>
-        <button class="btn" data-mode="v" id="modeV" disabled>↕ Vert.</button>
+        <button class="btn" data-mode="h" id="modeH" disabled title="Mesure horizontale (H)">⟷ Horiz. <span class="kbd" style="margin-left:4px;">H</span></button>
+        <button class="btn" data-mode="v" id="modeV" disabled title="Mesure verticale (V)">↕ Vert. <span class="kbd" style="margin-left:4px;">V</span></button>
       </div>
       <div class="mode-row" style="margin-bottom:8px;">
-        <button class="btn" data-mode="free" id="modeFree" disabled>⤢ Libre</button>
-        <button class="btn" data-mode="pan" id="modePan" disabled>✋ Pan</button>
+        <button class="btn" data-mode="free" id="modeFree" disabled title="Mesure libre (L)">⤢ Libre <span class="kbd" style="margin-left:4px;">L</span></button>
+        <button class="btn" data-mode="pan" id="modePan" disabled title="Déplacer la vue — maintenez aussi Espace (P)">✋ Pan <span class="kbd" style="margin-left:4px;">P</span></button>
       </div>
     </div>
 
     <div class="section">
       <h2><span class="num">4</span>Commentaires</h2>
-      <button class="btn" id="commentBtn" disabled>
+      <button class="btn" id="commentBtn" disabled title="Ajouter un commentaire (M)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
-        Ajouter un commentaire
+        Ajouter un commentaire<span class="kbd" style="margin-left:auto;">M</span>
       </button>
     </div>
 
     <div class="section">
       <h2><span class="num">5</span>Surligneur (à checker)</h2>
-      <button class="btn" id="highlightBtn" disabled>
+      <button class="btn" id="highlightBtn" disabled title="Surligner une zone (S)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l6-6 4 4-6 6-4-4z"/><path d="M4 20l3.5-1 6.5-6.5-2-2L5.5 17 4 20z"/></svg>
-        Surligner une zone
+        Surligner une zone<span class="kbd" style="margin-left:auto;">S</span>
       </button>
       <div class="hl-row" id="hlColors">
         <button class="hl-swatch active" data-color="#f6c945" style="background:#f6c945" title="Jaune"></button>
@@ -386,9 +414,9 @@ canvas#c.panning{ cursor:grabbing !important; }
         <button class="active" data-frac="0.009">Moyen</button>
         <button data-frac="0.016">Épais</button>
       </div>
-      <button class="btn" id="eraserBtn" disabled>
+      <button class="btn" id="eraserBtn" disabled title="Gomme — effacer un surlignage (G)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 20H8l-5-5a2 2 0 010-2.8L13 3.4a2 2 0 012.8 0l5.6 5.6a2 2 0 010 2.8L14 19"/></svg>
-        Gomme (effacer un surlignage)
+        Gomme (effacer un surlignage)<span class="kbd" style="margin-left:auto;">G</span>
       </button>
       <div class="hl-size" id="eraserSizes" style="margin-bottom:8px;">
         <button data-frac="0.015">Fin</button>
@@ -436,15 +464,39 @@ canvas#c.panning{ cursor:grabbing !important; }
     <div class="topbar">
       <div class="pill" id="statusPill">Aucune image chargée</div>
       <div class="zoom-controls">
-        <button class="zbtn" id="zoomOut" title="Zoom arrière">−</button>
+        <button class="zbtn" id="zoomOut" title="Zoom arrière (-)">−</button>
         <div class="pill" id="zoomLabel" style="min-width:56px; justify-content:center;">100%</div>
-        <button class="zbtn" id="zoomIn" title="Zoom avant">+</button>
-        <button class="zbtn" id="zoomFit" title="Ajuster à la fenêtre">⤢</button>
+        <button class="zbtn" id="zoomIn" title="Zoom avant (+)">+</button>
+        <button class="zbtn" id="zoomFit" title="Ajuster à la fenêtre (0)">⤢</button>
+        <button class="zbtn" id="helpBtn" title="Raccourcis clavier (?)">?</button>
       </div>
     </div>
 
     <div class="hint-bar" id="hintBar">Chargez une photo, glissez-la, ou collez une capture d'écran (Ctrl+V) pour commencer.</div>
     <div class="paste-toast" id="pasteToast">📋 Image collée</div>
+
+    <div id="shortcutsPanel" class="shortcuts-panel" hidden>
+      <div class="sp-head">
+        <b>Raccourcis clavier</b>
+        <button type="button" class="c-btn" id="shortcutsClose" title="Fermer">✕</button>
+      </div>
+      <div class="sp-grid">
+        <div><span class="kbd">H</span> Horizontale</div>
+        <div><span class="kbd">V</span> Verticale</div>
+        <div><span class="kbd">L</span> Libre</div>
+        <div><span class="kbd">P</span> / maintenir <span class="kbd">Espace</span> Pan</div>
+        <div><span class="kbd">C</span> Étalonnage</div>
+        <div><span class="kbd">M</span> Commentaire</div>
+        <div><span class="kbd">S</span> Surligneur</div>
+        <div><span class="kbd">G</span> Gomme</div>
+        <div><span class="kbd">Échap</span> Désélectionner</div>
+        <div><span class="kbd">Ctrl</span>+<span class="kbd">Z</span> Annuler la dernière cote</div>
+        <div><span class="kbd">+</span> / <span class="kbd">−</span> Zoom</div>
+        <div><span class="kbd">0</span> Ajuster à la fenêtre</div>
+        <div><span class="kbd">[</span> / <span class="kbd">]</span> Photo précédente / suivante</div>
+        <div><span class="kbd">Ctrl</span>+<span class="kbd">V</span> Coller une image</div>
+      </div>
+    </div>
   </div>
 
 </div>
@@ -496,7 +548,9 @@ canvas#c.panning{ cursor:grabbing !important; }
     if(highlights.length){ highlights.pop(); draw(); renderPhotoStrip(); }
   });
   hlClearBtn.addEventListener('click', ()=>{
-    if(highlights.length){ highlights = []; draw(); renderPhotoStrip(); }
+    if(!highlights.length) return;
+    if(!confirm('Effacer tous les surlignages de cette photo ? Cette action est irréversible.')) return;
+    highlights = []; draw(); renderPhotoStrip();
   });
 
   // ---------- Gomme (efface tout ou partie d'un surlignage) ----------
@@ -688,24 +742,73 @@ canvas#c.panning{ cursor:grabbing !important; }
     highlightBtn.classList.toggle('active', m==='highlight');
     eraserBtn.classList.toggle('active', m==='erase');
     canvas.className = m ? 'mode-'+m : '';
-    if(m==='calib') hintBar.innerHTML = "Cliquez le <b>premier point</b> de la cote connue, puis le second point.";
-    else if(m==='h') hintBar.innerHTML = "Mode <b>horizontal</b> : cliquez un point, puis un second — la distance horizontale sera cotée.";
-    else if(m==='v') hintBar.innerHTML = "Mode <b>vertical</b> : cliquez un point, puis un second — la distance verticale sera cotée.";
-    else if(m==='free') hintBar.innerHTML = "Mode <b>libre</b> : cliquez deux points pour mesurer une distance quelconque.";
-    else if(m==='pan') hintBar.innerHTML = "Glissez pour déplacer l'image. Molette pour zoomer.";
+    if(m==='calib') hintBar.innerHTML = "Cliquez le <b>premier point</b> de la cote connue, puis le second point. <span class='kbd'>Échap</span> pour annuler.";
+    else if(m==='h') hintBar.innerHTML = "Mode <b>horizontal</b> : cliquez un point, puis un second — la distance horizontale sera cotée. <span class='kbd'>V</span> vertical • <span class='kbd'>L</span> libre";
+    else if(m==='v') hintBar.innerHTML = "Mode <b>vertical</b> : cliquez un point, puis un second — la distance verticale sera cotée. <span class='kbd'>H</span> horizontal • <span class='kbd'>L</span> libre";
+    else if(m==='free') hintBar.innerHTML = "Mode <b>libre</b> : cliquez deux points pour mesurer une distance quelconque. <span class='kbd'>H</span> horizontal • <span class='kbd'>V</span> vertical";
+    else if(m==='pan') hintBar.innerHTML = "Glissez pour déplacer l'image. Molette pour zoomer. (Astuce : maintenez <span class='kbd'>Espace</span> pour un pan temporaire depuis n'importe quel mode)";
     else if(m==='comment') hintBar.innerHTML = "Mode <b>commentaire</b> : cliquez sur la photo pour poser une note déplaçable.";
     else if(m==='highlight') hintBar.innerHTML = "Mode <b>surligneur</b> : maintenez le clic et tracez pour marquer une zone à checker.";
     else if(m==='erase') hintBar.innerHTML = "Mode <b>gomme</b> : maintenez le clic et passez sur un surlignage pour l'effacer (entièrement ou en partie).";
-    else hintBar.textContent = "Molette pour zoomer • choisissez un mode de mesure ci-contre.";
+    else hintBar.innerHTML = "Molette pour zoomer • choisissez un mode de mesure ci-contre, ou appuyez sur <span class='kbd'>?</span> pour voir tous les raccourcis.";
     draw();
   }
   calibBtn.addEventListener('click', ()=> setMode(mode==='calib' ? null : 'calib'));
   commentBtn.addEventListener('click', ()=> setMode(mode==='comment' ? null : 'comment'));
   highlightBtn.addEventListener('click', ()=> setMode(mode==='highlight' ? null : 'highlight'));
   Object.entries(modeBtns).forEach(([k,btn])=> btn.addEventListener('click', ()=> setMode(mode===k ? null : k)));
+
+  // ---------- Raccourcis clavier ----------
+  // Lettre -> mode. Ignorés si le focus est dans un champ de saisie, ou si le bouton correspondant est désactivé.
+  const keyToMode = { h:'h', v:'v', l:'free', p:'pan', c:'calib', m:'comment', s:'highlight', g:'erase' };
+  const modeButtonEl = { h:modeBtns.h, v:modeBtns.v, free:modeBtns.free, pan:modeBtns.pan, calib:calibBtn, comment:commentBtn, highlight:highlightBtn, erase:eraserBtn };
+  let spaceHeldPrevMode = null; // mode restauré au relâchement de la barre d'espace (pan temporaire)
+  function isTypingTarget(){
+    const tag = (document.activeElement && document.activeElement.tagName) || '';
+    return tag==='TEXTAREA' || tag==='INPUT' || tag==='SELECT';
+  }
   window.addEventListener('keydown', e=>{
-    if(e.key==='Escape'){ setMode(null); }
-    if(e.key===' '){ if(imgLoaded && mode!=='pan'){ e.preventDefault(); } }
+    if(e.key==='Escape'){ setMode(null); toggleShortcuts(false); return; }
+    if(isTypingTarget()) return;
+    if(e.key==='?'){ e.preventDefault(); toggleShortcuts(); return; }
+
+    // Annuler (Ctrl/Cmd+Z)
+    if((e.ctrlKey||e.metaKey) && !e.shiftKey && e.key.toLowerCase()==='z'){
+      e.preventDefault();
+      if(measurements.length){ measurements.pop(); renderMeasureList(); draw(); }
+      return;
+    }
+    // Zoom
+    if(e.key==='+' || e.key==='='){ e.preventDefault(); zoomBy(1.25); return; }
+    if(e.key==='-'){ e.preventDefault(); zoomBy(0.8); return; }
+    if(e.key==='0'){ e.preventDefault(); fitToScreen(); return; }
+
+    // Pan temporaire tant que la barre d'espace est maintenue (comme un logiciel de retouche photo)
+    if(e.key===' '){
+      if(imgLoaded && mode!=='pan'){
+        e.preventDefault();
+        if(spaceHeldPrevMode===null) spaceHeldPrevMode = mode;
+        setMode('pan');
+      }
+      return;
+    }
+
+    // Raccourcis de mode
+    const targetMode = keyToMode[e.key.toLowerCase()];
+    if(targetMode){
+      const btn = modeButtonEl[targetMode];
+      if(btn && !btn.disabled){ e.preventDefault(); setMode(mode===targetMode ? null : targetMode); }
+    }
+  });
+  window.addEventListener('keyup', e=>{
+    if(e.key===' ' && spaceHeldPrevMode!==null){
+      setMode(spaceHeldPrevMode);
+      spaceHeldPrevMode = null;
+    }
+  });
+  // Si la fenêtre perd le focus pendant que l'espace est maintenu, on restaure quand même le mode précédent
+  window.addEventListener('blur', ()=>{
+    if(spaceHeldPrevMode!==null){ setMode(spaceHeldPrevMode); spaceHeldPrevMode = null; }
   });
 
   // ---------- Calibration UI ----------
@@ -892,6 +995,17 @@ canvas#c.panning{ cursor:grabbing !important; }
   document.getElementById('zoomIn').addEventListener('click', ()=> zoomBy(1.25));
   document.getElementById('zoomOut').addEventListener('click', ()=> zoomBy(0.8));
   document.getElementById('zoomFit').addEventListener('click', fitToScreen);
+
+  // ---------- Panneau des raccourcis clavier ----------
+  const shortcutsPanel = document.getElementById('shortcutsPanel');
+  const helpBtn = document.getElementById('helpBtn');
+  function toggleShortcuts(show){
+    const willShow = show !== undefined ? show : shortcutsPanel.hidden;
+    shortcutsPanel.hidden = !willShow;
+    helpBtn.classList.toggle('active', willShow);
+  }
+  helpBtn.addEventListener('click', ()=> toggleShortcuts());
+  document.getElementById('shortcutsClose').addEventListener('click', ()=> toggleShortcuts(false));
   function zoomBy(f){
     if(!imgLoaded) return;
     const r = stage.getBoundingClientRect();
@@ -908,6 +1022,8 @@ canvas#c.panning{ cursor:grabbing !important; }
     if(measurements.length){ measurements.pop(); renderMeasureList(); draw(); }
   });
   document.getElementById('clearBtn').addEventListener('click', ()=>{
+    if(!measurements.length) return;
+    if(!confirm('Supprimer les '+measurements.length+' cote(s) relevée(s) sur cette photo ? Cette action est irréversible.')) return;
     measurements = []; renderMeasureList(); draw();
   });
 
@@ -1217,6 +1333,10 @@ canvas#c.panning{ cursor:grabbing !important; }
       });
       t.querySelector('.t-del').addEventListener('click', (e)=>{
         e.stopPropagation();
+        const nMeasP = p.id===activePhotoId ? measurements.length : (p.measurements||[]).length;
+        const nComP = p.id===activePhotoId ? comments.length : (p.comments||[]).length;
+        const nHlP = p.id===activePhotoId ? highlights.length : (p.highlights||[]).length;
+        if((nMeasP+nComP+nHlP)>0 && !confirm('Cette photo contient des cotes, commentaires ou surlignages. La retirer de la session ? Cette action est irréversible.')) return;
         deletePhoto(p.id);
       });
       sessionStrip.appendChild(t);
@@ -1391,6 +1511,7 @@ canvas#c.panning{ cursor:grabbing !important; }
   });
 
   document.getElementById('autosaveClearBtn').addEventListener('click', ()=>{
+    if(!confirm('Effacer la sauvegarde locale du navigateur ? Vous ne pourrez plus restaurer cette session automatiquement.')) return;
     localStorage.removeItem(AUTOSAVE_KEY);
     autosaveStatusEl.className = 'calib-status';
     autosaveStatusEl.textContent = 'Sauvegarde locale : effacée.';
@@ -1419,6 +1540,10 @@ canvas#c.panning{ cursor:grabbing !important; }
   document.getElementById('jsonFileInput').addEventListener('change', e=>{
     const f = e.target.files[0];
     if(!f) return;
+    if(session.length && !confirm('Charger ce fichier remplacera la session en cours ('+session.length+' photo(s)). Pensez à l\'enregistrer avant si besoin. Continuer ?')){
+      e.target.value = '';
+      return;
+    }
     const reader = new FileReader();
     reader.onload = ev=>{
       try{
