@@ -264,17 +264,16 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
 .note-preview input[type=checkbox]{margin-right:6px;accent-color:var(--accent);}
 .note-preview blockquote{border-left:3px solid var(--accent);padding:2px 14px;margin:0 0 0.85em;color:var(--ink-soft);font-style:italic;}
 .note-preview code{font-family:'IBM Plex Mono',monospace;background:var(--paper-dim);border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:0.85em;}
-.note-preview pre{position:relative;background:var(--paper-dim);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow-x:auto;margin:0 0 0.85em;}
+.note-preview pre{background:var(--paper-dim);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow-x:auto;margin:0 0 0.85em;}
 .note-preview pre code{border:none;background:transparent;padding:0;}
-.code-copy-btn{
-  position:absolute;top:6px;right:6px;opacity:0;
-  font-family:'Inter',sans-serif;font-size:0.68rem;font-weight:600;letter-spacing:0.02em;
-  padding:4px 8px;border-radius:6px;border:1.5px solid var(--line);background:#fff;
-  color:var(--ink-soft);cursor:pointer;transition:all .15s;
+.inline-copy-btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  margin-left:3px;padding:1px 5px;font-size:0.68rem;line-height:1.4;
+  border-radius:5px;border:1.5px solid var(--line);background:#fff;
+  color:var(--ink-soft);cursor:pointer;vertical-align:middle;transition:all .15s;
 }
-.note-preview pre:hover .code-copy-btn{opacity:1;}
-.code-copy-btn:hover{border-color:var(--accent);color:var(--accent);}
-.code-copy-btn.copied{border-color:var(--accent);color:#fff;background:var(--accent);opacity:1;}
+.inline-copy-btn:hover{border-color:var(--accent);color:var(--accent);}
+.inline-copy-btn.copied{border-color:var(--accent);color:#fff;background:var(--accent);}
 .note-preview hr{border:none;border-top:1.5px solid var(--line);margin:1em 0;}
 .note-preview a{color:var(--accent);text-decoration:underline;text-decoration-color:rgba(47,93,98,0.35);}
 .note-preview a:hover{text-decoration-color:var(--accent);}
@@ -1055,23 +1054,29 @@ function renderMarkdown(text){
   return html;
 }
 
-function addCodeCopyButtons(container){
-  container.querySelectorAll('pre').forEach(pre=>{
-    const code = pre.querySelector('code');
-    if(!code) return;
+function addInlineCopyButtons(container){
+  container.querySelectorAll('code').forEach(code=>{
+    if(code.closest('pre')) return; // bloc de code multi-lignes, pas concerné
+    const next = code.nextSibling;
+    if(next && next.nodeType===1 && next.classList && next.classList.contains('inline-copy-btn')) return; // déjà fait
     const btn = document.createElement('button');
-    btn.className = 'code-copy-btn';
+    btn.className = 'inline-copy-btn';
     btn.type = 'button';
-    btn.textContent = '📋 Copier';
+    btn.title = 'Copier';
+    btn.textContent = '📋';
     btn.addEventListener('click', (e)=>{
+      e.preventDefault();
       e.stopPropagation();
       copyTextToClipboard(code.textContent).then(()=>{
-        btn.textContent = '✓ Copié';
+        btn.textContent = '✓';
         btn.classList.add('copied');
-        setTimeout(()=>{ btn.textContent = '📋 Copier'; btn.classList.remove('copied'); }, 1400);
-      }).catch(()=>{ btn.textContent = '⚠ Échec'; setTimeout(()=>{ btn.textContent = '📋 Copier'; }, 1400); });
+        setTimeout(()=>{ btn.textContent = '📋'; btn.classList.remove('copied'); }, 1200);
+      }).catch(()=>{
+        btn.textContent = '⚠';
+        setTimeout(()=>{ btn.textContent = '📋'; }, 1200);
+      });
     });
-    pre.appendChild(btn);
+    code.insertAdjacentElement('afterend', btn);
   });
 }
 
@@ -1084,7 +1089,7 @@ function renderPreviewState(which){
     area.style.display = 'none';
     prev.style.display = 'block';
     prev.innerHTML = renderMarkdown(area.value);
-    addCodeCopyButtons(prev);
+    addInlineCopyButtons(prev);
     if(btn) btn.textContent = '✎ Éditer';
   } else {
     area.style.display = '';
