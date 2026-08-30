@@ -63,6 +63,15 @@ h1 .spine{width:9px;height:22px;border-radius:2px;background:var(--accent);displ
 .btn.primary:hover{opacity:0.9;color:#fff;}
 input[type=file]{display:none;}
 
+.link-hint{
+  font-size:0.72rem; color:var(--ink-soft); padding:6px 16px; border-bottom:1.5px solid var(--line);
+  display:flex; align-items:center; gap:4px; flex-wrap:wrap; flex-shrink:0; font-family:'Inter',sans-serif;
+}
+.link-hint code{
+  background:var(--paper-dim); border:1px solid var(--line); border-radius:4px; padding:1px 5px;
+  font-family:'IBM Plex Mono',monospace; font-weight:600; color:var(--accent);
+}
+
 /* LAYOUT */
 .layout{flex:1;display:flex;min-height:0;overflow:hidden;}
 
@@ -199,6 +208,8 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
     <button class="btn primary" onclick="exportJSON()">⬇ Exporter JSON</button>
   </div>
 </header>
+
+<div class="link-hint">🔗 Écris <code>[[Nom de l'onglet]]</code> puis <strong>Ctrl+clic</strong> (⌘+clic sur Mac) dessus pour y accéder</div>
 
 <div class="layout">
   <div class="tabs-col">
@@ -675,6 +686,46 @@ function importJSON(e){
   };
   reader.readAsText(file);
 }
+
+// ── LIENS ENTRE ONGLETS ──────────────────────────────────────────────────────
+// Syntaxe : [[Nom de l'onglet]]  →  Ctrl+clic (⌘+clic sur Mac) pour y accéder
+function findTabIdByName(name){
+  const nl = name.trim().toLowerCase();
+  return state.order.find(id => (state.tabs[id].name || '').trim().toLowerCase() === nl) || null;
+}
+
+function linkNameAt(text, pos){
+  const re = /\[\[([^\[\]]+)\]\]/g;
+  let m;
+  while((m = re.exec(text))){
+    if(pos >= m.index && pos <= m.index + m[0].length) return m[1].trim();
+  }
+  return null;
+}
+
+function handleNoteLinkClick(e){
+  if(!(e.ctrlKey || e.metaKey)) return;
+  const area = e.target;
+  const name = linkNameAt(area.value, area.selectionStart);
+  if(!name) return;
+  const targetId = findTabIdByName(name);
+  const colId = area.id === 'iaArea' ? 'iaCol' : 'rawCol';
+  if(targetId){
+    if(targetId !== activeId) selectTab(targetId);
+    flash(colId);
+  } else if(confirm(`L'onglet "${name}" n'existe pas encore. Le créer ?`)){
+    const id = uid();
+    const color = PALETTE[state.order.length % PALETTE.length];
+    state.tabs[id] = { name, color, raw:'', ia:'' };
+    state.order.push(id);
+    activeId = id;
+    persist();
+    renderTabs();
+    renderColumns();
+  }
+}
+document.getElementById('rawArea').addEventListener('click', handleNoteLinkClick);
+document.getElementById('iaArea').addEventListener('click', handleNoteLinkClick);
 
 // INIT
 load();
