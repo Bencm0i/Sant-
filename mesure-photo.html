@@ -533,6 +533,7 @@ canvas#c:focus-visible{ outline:none; }
         <div><span class="kbd">M</span> Commentaire</div>
         <div><span class="kbd">S</span> Surligneur</div>
         <div><span class="kbd">G</span> Gomme</div>
+        <div><span class="kbd">Tab</span> Masquer/afficher toutes les cotes</div>
         <div><span class="kbd">Échap</span> Désélectionner</div>
         <div><span class="kbd">Ctrl</span>+<span class="kbd">Z</span> Annuler la dernière cote</div>
         <div><span class="kbd">+</span> / <span class="kbd">−</span> Zoom</div>
@@ -823,6 +824,12 @@ canvas#c:focus-visible{ outline:none; }
   const keyToMode = { h:'h', v:'v', l:'free', p:'pan', c:'calib', m:'comment', s:'highlight', g:'erase' };
   const modeButtonEl = { h:modeBtns.h, v:modeBtns.v, free:modeBtns.free, pan:modeBtns.pan, calib:calibBtn, comment:commentBtn, highlight:highlightBtn, erase:eraserBtn };
   let spaceHeldPrevMode = null; // mode restauré au relâchement de la barre d'espace (pan temporaire)
+  let annotationsHidden = false; // Tab : masque cotes/réf/surlignages/commentaires pour voir la photo "propre"
+  function setAnnotationsHidden(v){
+    annotationsHidden = v;
+    commentLayer.style.visibility = v ? 'hidden' : '';
+    draw();
+  }
   function isTypingTarget(){
     const tag = (document.activeElement && document.activeElement.tagName) || '';
     return tag==='TEXTAREA' || tag==='INPUT' || tag==='SELECT';
@@ -831,6 +838,9 @@ canvas#c:focus-visible{ outline:none; }
     if(e.key==='Escape'){ setMode(null); toggleShortcuts(false); return; }
     if(isTypingTarget()) return;
     if(e.key==='?'){ e.preventDefault(); toggleShortcuts(); return; }
+
+    // Masquer/afficher toutes les cotes (main gauche, Tab)
+    if(e.key==='Tab'){ e.preventDefault(); setAnnotationsHidden(!annotationsHidden); return; }
 
     // Annuler (Ctrl/Cmd+Z)
     if((e.ctrlKey||e.metaKey) && !e.shiftKey && e.key.toLowerCase()==='z'){
@@ -1820,20 +1830,22 @@ canvas#c:focus-visible{ outline:none; }
     ctx.drawImage(img, 0, 0);
     ctx.restore();
 
-    drawHighlights();
-
-    // calibration line
     checkboxHitboxes = [];
-    if(calibration){
-      drawDimensionLine(calibration.p1, calibration.p2, calibration.realLen+' '+calibration.unit+' (réf.)', '#f6c945', true);
-    }
+    if(!annotationsHidden){
+      drawHighlights();
 
-    // measurements
-    measurements.forEach((m, idx)=>{
-      const unit = calibration ? calibration.unit : 'px';
-      const val = calibration ? fmt(m.valueUnits)+' '+unit : Math.round(m.pxDist)+'px';
-      drawDimensionLine(m.p1, m.p2, val, m.color, false, false, idx, m.validated);
-    });
+      // calibration line
+      if(calibration){
+        drawDimensionLine(calibration.p1, calibration.p2, calibration.realLen+' '+calibration.unit+' (réf.)', '#f6c945', true);
+      }
+
+      // measurements
+      measurements.forEach((m, idx)=>{
+        const unit = calibration ? calibration.unit : 'px';
+        const val = calibration ? fmt(m.valueUnits)+' '+unit : Math.round(m.pxDist)+'px';
+        drawDimensionLine(m.p1, m.p2, val, m.color, false, false, idx, m.validated);
+      });
+    }
 
     // pending first point + rubber band
     if(pendingPoint){
