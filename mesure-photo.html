@@ -350,6 +350,17 @@ canvas#c.panning{ cursor:grabbing !important; }
   outline:2px solid var(--accent); outline-offset:2px;
 }
 canvas#c:focus-visible{ outline:none; }
+
+/* ---------- Menus accordéon ---------- */
+.section h2{ cursor:pointer; user-select:none; }
+.section h2:hover{ color:var(--ink); }
+.section h2 .chevron{ margin-left:auto; font-size:10px; color:var(--ink-dim); transition:transform .15s ease; }
+.section .acc-body{ overflow:hidden; }
+.section.collapsed .acc-body{ display:none; }
+
+/* ---------- Réarrangement des photos par glisser-déposer ---------- */
+.thumb.dragging{ opacity:.35; }
+.thumb.drag-over{ outline:2px dashed var(--accent); outline-offset:2px; }
 </style>
 </head>
 <body>
@@ -442,6 +453,10 @@ canvas#c:focus-visible{ outline:none; }
         <button class="active" data-frac="0.009">Moyen</button>
         <button data-frac="0.016">Épais</button>
       </div>
+      <button class="btn" id="hlConstrainBtn" title="Contraindre le surlignage à l'horizontale (ou maintenez Maj en traçant)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M7 8l-4 4 4 4M17 8l4 4-4 4"/></svg>
+        Surligner horizontalement<span class="kbd" style="margin-left:auto;">Maj</span>
+      </button>
       <button class="btn" id="eraserBtn" disabled title="Gomme — effacer un surlignage (G)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 20H8l-5-5a2 2 0 010-2.8L13 3.4a2 2 0 012.8 0l5.6 5.6a2 2 0 010 2.8L14 19"/></svg>
         Gomme (effacer un surlignage)<span class="kbd" style="margin-left:auto;">G</span>
@@ -466,7 +481,7 @@ canvas#c:focus-visible{ outline:none; }
 
     <div class="section" style="border-bottom:none;">
       <h2><span class="num">↯</span>Sauvegarde</h2>
-      <button class="btn primary" id="jsonSaveBtn">💾 Enregistrer la session (JSON)</button>
+      <button class="btn primary" id="jsonSaveBtn" title="Enregistrer la session (Ctrl+S)">💾 Enregistrer la session (JSON)<span class="kbd" style="margin-left:auto;">Ctrl+S</span></button>
       <button class="btn" id="jsonLoadBtn">📂 Charger une session (JSON)</button>
       <input type="file" id="jsonFileInput" accept="application/json,.json" style="display:none;">
       <button class="btn" id="exportPngBtn" disabled title="Exporter la photo active avec ses cotes en PNG">🖼 Exporter cette photo (PNG)</button>
@@ -525,6 +540,9 @@ canvas#c:focus-visible{ outline:none; }
         <div><span class="kbd">Ctrl</span>+<span class="kbd">←</span>/<span class="kbd">→</span> Photo précédente / suivante (toujours actif)</div>
         <div><span class="kbd">[</span> / <span class="kbd">]</span> Photo précédente / suivante</div>
         <div><span class="kbd">Ctrl</span>+<span class="kbd">V</span> Coller une image</div>
+        <div><span class="kbd">Ctrl</span>+<span class="kbd">S</span> Enregistrer la session (JSON)</div>
+        <div><span class="kbd">Maj</span> (en traçant) Surlignage contraint à l'horizontale</div>
+        <div>Glissez une miniature pour réordonner les photos</div>
       </div>
     </div>
   </div>
@@ -575,6 +593,12 @@ canvas#c:focus-visible{ outline:none; }
       highlightSizeFrac = parseFloat(b.dataset.frac);
       hlSizes.querySelectorAll('button').forEach(x=>x.classList.toggle('active', x===b));
     });
+  });
+  const hlConstrainBtn = document.getElementById('hlConstrainBtn');
+  let highlightConstrainH = false; // contraint le trait de surlignage en cours à rester sur la même ligne horizontale
+  hlConstrainBtn.addEventListener('click', ()=>{
+    highlightConstrainH = !highlightConstrainH;
+    hlConstrainBtn.classList.toggle('active', highlightConstrainH);
   });
   hlUndoBtn.addEventListener('click', ()=>{
     if(highlights.length){ highlights.pop(); draw(); renderPhotoStrip(); markDirty(); scheduleAutosave(); }
@@ -649,6 +673,7 @@ canvas#c:focus-visible{ outline:none; }
   let session = [];
   let activePhotoId = null;
   let nextPhotoId = 1;
+  let dragSrcIndex = null; // index de la miniature en cours de glissement, pour le réarrangement des photos
 
   // view transform: screen = imagePoint * scale + offset
   let view = { scale: 1, ox: 0, oy: 0 };
@@ -783,7 +808,7 @@ canvas#c:focus-visible{ outline:none; }
     else if(m==='free') hintBar.innerHTML = "Mode <b>libre</b> : cliquez deux points pour mesurer une distance quelconque. <span class='kbd'>H</span> horizontal • <span class='kbd'>V</span> vertical";
     else if(m==='pan') hintBar.innerHTML = "Glissez pour déplacer l'image. Molette pour zoomer. (Astuce : maintenez <span class='kbd'>Espace</span> pour un pan temporaire depuis n'importe quel mode)";
     else if(m==='comment') hintBar.innerHTML = "Mode <b>commentaire</b> : cliquez sur la photo pour poser une note déplaçable.";
-    else if(m==='highlight') hintBar.innerHTML = "Mode <b>surligneur</b> : maintenez le clic et tracez pour marquer une zone à checker.";
+    else if(m==='highlight') hintBar.innerHTML = "Mode <b>surligneur</b> : maintenez le clic et tracez pour marquer une zone à checker. Maintenez <span class='kbd'>Maj</span> (ou activez « Surligner horizontalement ») pour contraindre le trait à l'horizontale.";
     else if(m==='erase') hintBar.innerHTML = "Mode <b>gomme</b> : maintenez le clic et passez sur un surlignage pour l'effacer (entièrement ou en partie).";
     else hintBar.innerHTML = "Molette pour zoomer • choisissez un mode de mesure ci-contre, ou appuyez sur <span class='kbd'>?</span> pour voir tous les raccourcis.";
     draw();
@@ -811,6 +836,12 @@ canvas#c:focus-visible{ outline:none; }
     if((e.ctrlKey||e.metaKey) && !e.shiftKey && e.key.toLowerCase()==='z'){
       e.preventDefault();
       if(measurements.length){ measurements.pop(); renderMeasureList(); draw(); markDirty(); scheduleAutosave(); }
+      return;
+    }
+    // Enregistrer la session (Ctrl/Cmd+S) — remplace le comportement natif "Enregistrer la page"
+    if((e.ctrlKey||e.metaKey) && !e.shiftKey && e.key.toLowerCase()==='s'){
+      e.preventDefault();
+      saveSessionJson();
       return;
     }
     // Zoom
@@ -981,6 +1012,9 @@ canvas#c:focus-visible{ outline:none; }
     if(!imgLoaded) return;
     if(activeStroke){
       const p = getPointerImagePos(e);
+      if((highlightConstrainH || e.shiftKey) && activeStroke.points.length){
+        p.y = activeStroke.points[0].y; // verrouille le trait sur la ligne horizontale du point de départ
+      }
       activeStroke.points.push(p);
       draw();
       return;
@@ -1483,6 +1517,36 @@ canvas#c:focus-visible{ outline:none; }
         </div>
         <button type="button" class="t-del" title="Retirer de la session">×</button>
       `;
+      t.draggable = true;
+      t.addEventListener('dragstart', (e)=>{
+        dragSrcIndex = idx;
+        t.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        try{ e.dataTransfer.setData('text/plain', String(idx)); }catch(err){}
+      });
+      t.addEventListener('dragend', ()=>{
+        t.classList.remove('dragging');
+        dragSrcIndex = null;
+        sessionStrip.querySelectorAll('.thumb.drag-over').forEach(el=> el.classList.remove('drag-over'));
+      });
+      t.addEventListener('dragover', (e)=>{
+        if(dragSrcIndex===null) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        t.classList.add('drag-over');
+      });
+      t.addEventListener('dragleave', ()=> t.classList.remove('drag-over'));
+      t.addEventListener('drop', (e)=>{
+        e.preventDefault();
+        t.classList.remove('drag-over');
+        if(dragSrcIndex===null || dragSrcIndex===idx) return;
+        const moved = session.splice(dragSrcIndex, 1)[0];
+        session.splice(idx, 0, moved);
+        dragSrcIndex = null;
+        renderPhotoStrip();
+        markDirty();
+        scheduleAutosave();
+      });
       t.addEventListener('click', (e)=>{
         if(e.target.closest('.t-del')) return;
         switchToPhoto(p.id);
@@ -1569,7 +1633,7 @@ canvas#c:focus-visible{ outline:none; }
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(()=> URL.revokeObjectURL(url), 2000);
   }
-  document.getElementById('jsonSaveBtn').addEventListener('click', ()=>{
+  function saveSessionJson(){
     if(!session.length){
       hintBar.innerHTML = '<b style="color:#ff8a5c">Chargez d\'abord au moins une photo avant d\'enregistrer.</b>';
       return;
@@ -1577,7 +1641,8 @@ canvas#c:focus-visible{ outline:none; }
     downloadJSON(exportProject(), 'mesure-photo-session-' + Date.now() + '.json');
     sessionExportedToJson = true;
     updateAutosaveStatus();
-  });
+  }
+  document.getElementById('jsonSaveBtn').addEventListener('click', saveSessionJson);
 
   function restoreProject(data){
     // New format: a whole session with several photos in one file.
@@ -2170,6 +2235,23 @@ canvas#c:focus-visible{ outline:none; }
       updateAutosaveStatus(err);
     }
   }
+
+  // ---------- Menus accordéon (sections repliables de la barre latérale) ----------
+  document.querySelectorAll('#sidebar .section').forEach(sec=>{
+    const h2 = sec.querySelector('h2');
+    if(!h2) return;
+    const rest = Array.from(sec.children).filter(el=> el!==h2);
+    if(!rest.length) return; // rien à replier (ex: en-tête "Cotes relevées" seul, dont le contenu est hors de .section)
+    const body = document.createElement('div');
+    body.className = 'acc-body';
+    rest.forEach(el=> body.appendChild(el));
+    sec.appendChild(body);
+    const chevron = document.createElement('span');
+    chevron.className = 'chevron';
+    chevron.textContent = '▾';
+    h2.appendChild(chevron);
+    h2.addEventListener('click', ()=> sec.classList.toggle('collapsed'));
+  });
 
   resizeCanvas();
   tryRestoreAutosave();
