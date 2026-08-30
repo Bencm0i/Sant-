@@ -47,11 +47,18 @@ h1 .spine{width:9px;height:22px;border-radius:2px;background:var(--accent);displ
 .search-wrap{position:relative;flex:1;min-width:200px;max-width:420px;}
 .search-wrap input{
   width:100%;font-family:'IBM Plex Mono',monospace;font-size:0.85rem;
-  padding:9px 14px 9px 34px;border:1.5px solid var(--line);border-radius:999px;
+  padding:9px 30px 9px 34px;border:1.5px solid var(--line);border-radius:999px;
   background:#fff;color:var(--ink);
 }
 .search-wrap input::placeholder{color:#a39a89;}
 .search-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);opacity:0.45;font-size:0.85rem;pointer-events:none;}
+.search-clear{
+  position:absolute;right:8px;top:50%;transform:translateY(-50%);
+  width:20px;height:20px;border-radius:50%;border:none;background:var(--paper-dim);
+  color:var(--ink-soft);font-size:0.7rem;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .15s;padding:0;
+}
+.search-clear:hover{background:var(--accent);color:#fff;}
 .search-count{font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:var(--ink-soft);white-space:nowrap;}
 .header-actions{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;}
 .btn{
@@ -72,6 +79,18 @@ input[type=file]{display:none;}
   background:var(--paper-dim); border:1px solid var(--line); border-radius:4px; padding:1px 5px;
   font-family:'IBM Plex Mono',monospace; font-weight:600; color:var(--accent);
 }
+
+.breadcrumb-bar{
+  padding:7px 16px;border-bottom:1.5px solid var(--line);flex-shrink:0;
+  font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:var(--ink-soft);
+  display:flex;align-items:center;gap:6px;
+}
+.breadcrumb-link{
+  font-family:'IBM Plex Mono',monospace;font-size:0.72rem;font-weight:700;
+  color:var(--accent);background:transparent;border:none;cursor:pointer;padding:0;
+  text-decoration:underline;text-decoration-color:rgba(47,93,98,0.35);
+}
+.breadcrumb-link:hover{text-decoration-color:var(--accent);}
 
 /* LAYOUT */
 .layout{flex:1;display:flex;min-height:0;overflow:hidden;}
@@ -95,6 +114,9 @@ input[type=file]{display:none;}
 }
 .tab-row.active .tab-body{background:#fff;border-color:var(--accent);box-shadow:var(--shadow);}
 .tab-row.dimmed{opacity:0.32;}
+.tab-row.child .tab-body{border-left:2px dashed var(--line);}
+.tab-row.child .tab-spine{width:6px;}
+.tab-row.child .tab-name{font-size:0.79rem;}
 .tab-color-dot{
   width:14px;height:14px;border-radius:50%;flex-shrink:0;cursor:pointer;
   border:1.5px solid rgba(43,38,32,0.2);padding:0;appearance:none;-webkit-appearance:none;
@@ -250,6 +272,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
   <div class="search-wrap">
     <span class="search-icon">⌕</span>
     <input type="text" id="searchInput" placeholder="Rechercher dans tous les onglets…" oninput="onSearch()">
+    <button class="search-clear" id="searchClear" onclick="clearSearch()" title="Vider la recherche" style="display:none;">✕</button>
   </div>
   <span class="search-count" id="searchCount"></span>
   <span class="save-status" id="saveStatus"></span>
@@ -261,7 +284,8 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
   </div>
 </header>
 
-<div class="link-hint">🔗 Écris <code>[[Nom de l'onglet]]</code> puis <strong>Ctrl+clic</strong> (⌘+clic sur Mac) dessus pour y accéder · <strong>Ctrl+B</strong> gras, <strong>Ctrl+I</strong> italique, <strong>Tab</strong> indente · 👁 <strong>Aperçu</strong> pour le rendu markdown</div>
+<div class="link-hint">🔗 Écris <code>[[Nom de l'onglet]]</code> puis <strong>Ctrl+clic</strong> (⌘+clic sur Mac) dessus pour y accéder (crée un sous-onglet s'il n'existe pas) · <strong>Ctrl+B</strong> gras, <strong>Ctrl+I</strong> italique, <strong>Tab</strong> indente · 👁 <strong>Aperçu</strong> pour le rendu markdown</div>
+<div class="breadcrumb-bar" id="breadcrumbBar" style="display:none;">↳ sous-onglet de <button class="breadcrumb-link" id="breadcrumbBtn" onclick="goToParent()" title="Retourner à l'onglet parent"></button></div>
 
 <div class="layout">
   <div class="tabs-col">
@@ -356,7 +380,7 @@ function load(){
   }
   // Premier lancement : un onglet d'exemple
   const id = uid();
-  state = { order:[id], tabs:{ [id]: { name:'Notes', color:PALETTE[0], raw:'', ia:'' } } };
+  state = { order:[id], tabs:{ [id]: { name:'Notes', color:PALETTE[0], raw:'', ia:'', parentId:null } } };
 }
 
 function persist(){
@@ -380,7 +404,7 @@ function toggleSidebar(){
 function addTab(){
   const id = uid();
   const color = PALETTE[state.order.length % PALETTE.length];
-  state.tabs[id] = { name:'Nouvel onglet', color, raw:'', ia:'' };
+  state.tabs[id] = { name:'Nouvel onglet', color, raw:'', ia:'', parentId:null };
   state.order.push(id);
   activeId = id;
   persist();
@@ -392,12 +416,24 @@ function addTab(){
   }, 30);
 }
 
+function getDescendantIds(id){
+  const result = [];
+  const children = state.order.filter(x => state.tabs[x] && state.tabs[x].parentId === id);
+  children.forEach(c=>{ result.push(c); result.push(...getDescendantIds(c)); });
+  return result;
+}
+
 function deleteTab(id){
   const t = state.tabs[id];
-  if(!confirm('Supprimer l\'onglet "'+(t?.name||'')+'" et son contenu ?')) return;
-  state.order = state.order.filter(x=>x!==id);
-  delete state.tabs[id];
-  if(activeId === id) activeId = state.order[0] || null;
+  const descendants = getDescendantIds(id);
+  const msg = descendants.length
+    ? 'Supprimer l\'onglet "'+(t?.name||'')+'" et ses '+descendants.length+' sous-onglet(s) ?'
+    : 'Supprimer l\'onglet "'+(t?.name||'')+'" et son contenu ?';
+  if(!confirm(msg)) return;
+  const toDelete = [id, ...descendants];
+  toDelete.forEach(x=>{ delete state.tabs[x]; });
+  state.order = state.order.filter(x=>!toDelete.includes(x));
+  if(toDelete.includes(activeId)) activeId = state.order[0] || null;
   persist();
   renderTabs();
   renderColumns();
@@ -412,16 +448,58 @@ function selectTab(id){
 
 function updateActiveRow(){
   document.querySelectorAll('#tabsList .tab-row').forEach(row=>row.classList.remove('active'));
-  const idx = state.order.indexOf(activeId);
+  const order = computeDisplayOrder();
+  const idx = order.findIndex(o=>o.id===activeId);
   if(idx > -1){
     const rows = document.querySelectorAll('#tabsList .tab-row');
     if(rows[idx]) rows[idx].classList.add('active');
   }
+  updateBreadcrumb();
 }
 
 function renameTab(id, val){
   state.tabs[id].name = val;
   persist();
+  const active = state.tabs[activeId];
+  if(active && active.parentId === id) updateBreadcrumb();
+}
+
+// ── HIÉRARCHIE DES ONGLETS (sous-onglets créés via [[liens]]) ──────────────
+function computeDisplayOrder(){
+  const childrenMap = {};
+  state.order.forEach(id=>{
+    const t = state.tabs[id];
+    if(!t) return;
+    const p = (t.parentId && state.tabs[t.parentId]) ? t.parentId : null;
+    if(!childrenMap[p]) childrenMap[p] = [];
+    childrenMap[p].push(id);
+  });
+  const result = [];
+  (function walk(parentKey, depth){
+    (childrenMap[parentKey] || []).forEach(id=>{
+      result.push({ id, depth });
+      walk(id, depth + 1);
+    });
+  })(null, 0);
+  return result;
+}
+
+function goToParent(){
+  const t = state.tabs[activeId];
+  if(t && t.parentId && state.tabs[t.parentId]) selectTab(t.parentId);
+}
+
+function updateBreadcrumb(){
+  const bar = document.getElementById('breadcrumbBar');
+  const btn = document.getElementById('breadcrumbBtn');
+  if(!bar || !btn) return;
+  const t = state.tabs[activeId];
+  if(t && t.parentId && state.tabs[t.parentId]){
+    bar.style.display = 'flex';
+    btn.textContent = state.tabs[t.parentId].name || 'Sans titre';
+  } else {
+    bar.style.display = 'none';
+  }
 }
 
 function recolorTab(id, val){
@@ -439,7 +517,7 @@ function renderTabs(){
     return;
   }
   let visibleCount = 0;
-  state.order.forEach(id=>{
+  computeDisplayOrder().forEach(({id, depth})=>{
     const t = state.tabs[id];
     const hay = (t.name+' '+t.raw+' '+t.ia).toLowerCase();
     const matches = q && hay.includes(q);
@@ -447,7 +525,8 @@ function renderTabs(){
     if(matches) visibleCount++;
 
     const row = document.createElement('div');
-    row.className = 'tab-row' + (id===activeId ? ' active' : '') + (dim ? ' dimmed' : '');
+    row.className = 'tab-row' + (depth>0 ? ' child' : '') + (id===activeId ? ' active' : '') + (dim ? ' dimmed' : '');
+    if(depth>0) row.style.marginLeft = (depth*18) + 'px';
 
     const spine = document.createElement('div');
     spine.className = 'tab-spine';
@@ -564,6 +643,7 @@ function renderColumns(){
     document.getElementById('iaCount').textContent = '0 caractère';
     renderPreviewState('raw');
     renderPreviewState('ia');
+    updateBreadcrumb();
     return;
   }
   rawArea.disabled = false; iaArea.disabled = false;
@@ -574,6 +654,7 @@ function renderColumns(){
   updateCounts();
   renderPreviewState('raw');
   renderPreviewState('ia');
+  updateBreadcrumb();
 }
 
 function updateCounts(){
@@ -593,6 +674,16 @@ function onEdit(which){
 }
 
 function onSearch(){
+  const q = document.getElementById('searchInput').value;
+  document.getElementById('searchClear').style.display = q ? 'flex' : 'none';
+  renderTabs();
+}
+
+function clearSearch(){
+  const input = document.getElementById('searchInput');
+  input.value = '';
+  document.getElementById('searchClear').style.display = 'none';
+  input.focus();
   renderTabs();
 }
 
@@ -837,10 +928,10 @@ function handlePreviewLinkClick(e){
   const targetId = findTabIdByName(name);
   if(targetId){
     selectTab(targetId);
-  } else if(confirm(`L'onglet "${name}" n'existe pas encore. Le créer ?`)){
+  } else if(confirm(`L'onglet "${name}" n'existe pas encore. Le créer comme sous-onglet ?`)){
     const id = uid();
     const color = PALETTE[state.order.length % PALETTE.length];
-    state.tabs[id] = { name, color, raw:'', ia:'' };
+    state.tabs[id] = { name, color, raw:'', ia:'', parentId: activeId };
     state.order.push(id);
     activeId = id;
     persist();
@@ -956,10 +1047,10 @@ function handleNoteLinkClick(e){
   if(targetId){
     if(targetId !== activeId) selectTab(targetId);
     flash(colId);
-  } else if(confirm(`L'onglet "${name}" n'existe pas encore. Le créer ?`)){
+  } else if(confirm(`L'onglet "${name}" n'existe pas encore. Le créer comme sous-onglet ?`)){
     const id = uid();
     const color = PALETTE[state.order.length % PALETTE.length];
-    state.tabs[id] = { name, color, raw:'', ia:'' };
+    state.tabs[id] = { name, color, raw:'', ia:'', parentId: activeId };
     state.order.push(id);
     activeId = id;
     persist();
