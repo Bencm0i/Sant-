@@ -7,6 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CiAgPHJlY3QgeD0iOCIgeT0iNiIgd2lkdGg9IjQ0IiBoZWlnaHQ9IjUyIiByeD0iMyIgZmlsbD0iI2Y3ZjVmMCIgc3Ryb2tlPSIjMmIyNjIwIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8cmVjdCB4PSI4IiB5PSIxNCIgd2lkdGg9IjEyIiBoZWlnaHQ9IjgiIGZpbGw9IiMyZjVkNjIiLz4KICA8cmVjdCB4PSI4IiB5PSIyOCIgd2lkdGg9IjEyIiBoZWlnaHQ9IjgiIGZpbGw9IiNiNTU3M2YiLz4KICA8cmVjdCB4PSI4IiB5PSI0MiIgd2lkdGg9IjEyIiBoZWlnaHQ9IjgiIGZpbGw9IiNjOThhMmMiLz4KICA8bGluZSB4MT0iMjgiIHkxPSIxOCIgeDI9IjQ4IiB5Mj0iMTgiIHN0cm9rZT0iIzJiMjYyMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIG9wYWNpdHk9IjAuNSIvPgogIDxsaW5lIHgxPSIyOCIgeTE9IjI2IiB4Mj0iNDgiIHkyPSIyNiIgc3Ryb2tlPSIjMmIyNjIwIiBzdHJva2Utd2lkdGg9IjEuNSIgb3BhY2l0eT0iMC41Ii8+CiAgPGxpbmUgeDE9IjI4IiB5MT0iMzQiIHgyPSI0OCIgeTI9IjM0IiBzdHJva2U9IiMyYjI2MjAiIHN0cm9rZS13aWR0aD0iMS41IiBvcGFjaXR5PSIwLjUiLz4KPC9zdmc+Cg==">
 <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CiAgPHJlY3QgeD0iOCIgeT0iNiIgd2lkdGg9IjQ0IiBoZWlnaHQ9IjUyIiByeD0iMyIgZmlsbD0iI2Y3ZjVmMCIgc3Ryb2tlPSIjMmIyNjIwIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8cmVjdCB4PSI4IiB5PSIxNCIgd2lkdGg9IjEyIiBoZWlnaHQ9IjgiIGZpbGw9IiMyZjVkNjIiLz4KICA8cmVjdCB4PSI4IiB5PSIyOCIgd2lkdGg9IjEyIiBoZWlnaHQ9IjgiIGZpbGw9IiNiNTU3M2YiLz4KICA8cmVjdCB4PSI4IiB5PSI0MiIgd2lkdGg9IjEyIiBoZWlnaHQ9IjgiIGZpbGw9IiNjOThhMmMiLz4KPC9zdmc+Cg==">
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
 :root{
   --paper:#f7f5f0;
@@ -181,6 +182,55 @@ textarea.note-area::placeholder{color:#b0a695;}
 }
 mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
 
+/* MARKDOWN TOOLBAR */
+.md-toolbar{display:flex;gap:4px;padding:6px 16px;border-bottom:1.5px solid var(--line);flex-shrink:0;flex-wrap:wrap;}
+.md-btn{
+  font-family:'IBM Plex Mono',monospace;font-size:0.78rem;font-weight:700;
+  width:28px;height:26px;display:inline-flex;align-items:center;justify-content:center;
+  border-radius:6px;border:1.5px solid var(--line);background:#fff;
+  color:var(--ink-soft);cursor:pointer;transition:all .15s;
+}
+.md-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+/* MARKDOWN PREVIEW */
+.note-preview{
+  flex:1;width:100%;overflow-y:auto;padding:18px 20px;
+  color:var(--ink);font-family:'Inter',sans-serif;font-size:0.92rem;line-height:1.68;
+}
+.note-preview h1,.note-preview h2,.note-preview h3{font-family:'Lora',serif;font-weight:700;line-height:1.3;margin:0.7em 0 0.35em;}
+.note-preview h1:first-child,.note-preview h2:first-child,.note-preview h3:first-child{margin-top:0;}
+.note-preview h1{font-size:1.5rem;}
+.note-preview h2{font-size:1.22rem;}
+.note-preview h3{font-size:1.05rem;}
+.note-preview p{margin:0 0 0.85em;}
+.note-preview strong{font-weight:700;}
+.note-preview em{font-style:italic;}
+.note-preview ul,.note-preview ol{margin:0 0 0.85em;padding-left:1.4em;}
+.note-preview li{margin:0.2em 0;}
+.note-preview li:has(>input[type=checkbox]){list-style:none;margin-left:-1.4em;}
+.note-preview input[type=checkbox]{margin-right:6px;accent-color:var(--accent);}
+.note-preview blockquote{border-left:3px solid var(--accent);padding:2px 14px;margin:0 0 0.85em;color:var(--ink-soft);font-style:italic;}
+.note-preview code{font-family:'IBM Plex Mono',monospace;background:var(--paper-dim);border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:0.85em;}
+.note-preview pre{background:var(--paper-dim);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow-x:auto;margin:0 0 0.85em;}
+.note-preview pre code{border:none;background:transparent;padding:0;}
+.note-preview hr{border:none;border-top:1.5px solid var(--line);margin:1em 0;}
+.note-preview a{color:var(--accent);text-decoration:underline;text-decoration-color:rgba(47,93,98,0.35);}
+.note-preview a:hover{text-decoration-color:var(--accent);}
+.note-preview table{border-collapse:collapse;margin:0 0 0.85em;width:100%;font-size:0.88rem;}
+.note-preview th,.note-preview td{border:1px solid var(--line);padding:6px 10px;text-align:left;}
+.note-preview th{background:var(--paper-dim);font-family:'Lora',serif;}
+.note-preview .wikilink{
+  background:var(--paper-dim);border:1px solid var(--line);border-radius:5px;padding:0 5px;
+  font-family:'IBM Plex Mono',monospace;font-size:0.85em;font-weight:600;
+  color:var(--accent);cursor:pointer;text-decoration:none;
+}
+.note-preview .wikilink:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
+.note-preview .wikilink.missing{color:#a3402f;border-style:dashed;}
+
+/* SAVE STATUS + SIDEBAR COLLAPSE */
+.save-status{font-family:'IBM Plex Mono',monospace;font-size:0.68rem;color:var(--ink-soft);white-space:nowrap;min-width:84px;}
+.tabs-col.collapsed{display:none;}
+
 .no-selection{
   flex:1;display:flex;align-items:center;justify-content:center;
   font-family:'Lora',serif;font-style:italic;color:var(--ink-soft);font-size:0.95rem;padding:20px;text-align:center;
@@ -202,14 +252,16 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
     <input type="text" id="searchInput" placeholder="Rechercher dans tous les onglets…" oninput="onSearch()">
   </div>
   <span class="search-count" id="searchCount"></span>
+  <span class="save-status" id="saveStatus"></span>
   <div class="header-actions">
+    <button class="btn" onclick="toggleSidebar()" title="Afficher/masquer la liste des onglets">☰ Onglets</button>
     <button class="btn" onclick="document.getElementById('importInput').click()">⬆ Importer JSON</button>
     <input type="file" id="importInput" accept=".json" onchange="importJSON(event)">
     <button class="btn primary" onclick="exportJSON()">⬇ Exporter JSON</button>
   </div>
 </header>
 
-<div class="link-hint">🔗 Écris <code>[[Nom de l'onglet]]</code> puis <strong>Ctrl+clic</strong> (⌘+clic sur Mac) dessus pour y accéder</div>
+<div class="link-hint">🔗 Écris <code>[[Nom de l'onglet]]</code> puis <strong>Ctrl+clic</strong> (⌘+clic sur Mac) dessus pour y accéder · <strong>Ctrl+B</strong> gras, <strong>Ctrl+I</strong> italique, <strong>Tab</strong> indente · 👁 <strong>Aperçu</strong> pour le rendu markdown</div>
 
 <div class="layout">
   <div class="tabs-col">
@@ -223,6 +275,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
     <div class="col-head">
       <span class="col-label"><span class="active-dot" id="rawDot"></span><span id="rawLabel">Texte brut</span></span>
       <div class="col-tools">
+        <button id="rawPreviewBtn" onclick="togglePreview('raw')" title="Basculer entre édition et aperçu markdown">👁 Aperçu</button>
         <button onclick="insertTimestamp()" title="Insérer la date et l'heure actuelles dans le texte brut">🕒 Horodatage</button>
         <button onclick="copyRawToClipboard()" title="Copier le texte brut dans le presse-papiers">📋 Copier</button>
         <button onclick="copyRawToIA()" title="Copier vers la colonne IA">→ IA</button>
@@ -231,7 +284,18 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
       </div>
     </div>
     <div class="tags-bar" id="tagsBar"></div>
-    <textarea class="note-area" id="rawArea" placeholder="Écris ton texte brut ici…" oninput="onEdit('raw')"></textarea>
+    <div class="md-toolbar">
+      <button class="md-btn" onclick="mdWrap('rawArea','**','**','gras')" title="Gras (Ctrl+B)"><b>B</b></button>
+      <button class="md-btn" onclick="mdWrap('rawArea','*','*','italique')" title="Italique (Ctrl+I)"><i>I</i></button>
+      <button class="md-btn" onclick="mdPrefix('rawArea','## ')" title="Titre">H</button>
+      <button class="md-btn" onclick="mdPrefix('rawArea','- ')" title="Liste à puces">•</button>
+      <button class="md-btn" onclick="mdPrefix('rawArea','- [ ] ')" title="Case à cocher">☑</button>
+      <button class="md-btn" onclick="mdPrefix('rawArea','> ')" title="Citation">❝</button>
+      <button class="md-btn" onclick="mdWrap('rawArea','\`','\`','code')" title="Code">{ }</button>
+      <button class="md-btn" onclick="mdLink('rawArea')" title="Lien">🔗</button>
+    </div>
+    <textarea class="note-area" id="rawArea" placeholder="Écris ton texte brut ici… (markdown supporté)" oninput="onEdit('raw')"></textarea>
+    <div class="note-preview" id="rawPreview" style="display:none;"></div>
     <div class="char-count" id="rawCount">0 caractère</div>
   </div>
 
@@ -239,11 +303,23 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
     <div class="col-head">
       <span class="col-label"><span class="active-dot" id="iaDot"></span>Retravaillé (IA)</span>
       <div class="col-tools">
+        <button id="iaPreviewBtn" onclick="togglePreview('ia')" title="Basculer entre édition et aperçu markdown">👁 Aperçu</button>
         <button onclick="copyIAToClipboard()" title="Copier le texte IA dans le presse-papiers">📋 Copier</button>
         <button onclick="copyIAToRaw()" title="Copier vers la colonne texte brut">← Brut</button>
       </div>
     </div>
-    <textarea class="note-area" id="iaArea" placeholder="Colle ici le texte retravaillé par une IA…" oninput="onEdit('ia')"></textarea>
+    <div class="md-toolbar">
+      <button class="md-btn" onclick="mdWrap('iaArea','**','**','gras')" title="Gras (Ctrl+B)"><b>B</b></button>
+      <button class="md-btn" onclick="mdWrap('iaArea','*','*','italique')" title="Italique (Ctrl+I)"><i>I</i></button>
+      <button class="md-btn" onclick="mdPrefix('iaArea','## ')" title="Titre">H</button>
+      <button class="md-btn" onclick="mdPrefix('iaArea','- ')" title="Liste à puces">•</button>
+      <button class="md-btn" onclick="mdPrefix('iaArea','- [ ] ')" title="Case à cocher">☑</button>
+      <button class="md-btn" onclick="mdPrefix('iaArea','> ')" title="Citation">❝</button>
+      <button class="md-btn" onclick="mdWrap('iaArea','\`','\`','code')" title="Code">{ }</button>
+      <button class="md-btn" onclick="mdLink('iaArea')" title="Lien">🔗</button>
+    </div>
+    <textarea class="note-area" id="iaArea" placeholder="Colle ici le texte retravaillé par une IA… (markdown supporté)" oninput="onEdit('ia')"></textarea>
+    <div class="note-preview" id="iaPreview" style="display:none;"></div>
     <div class="char-count" id="iaCount">0 caractère</div>
   </div>
 </div>
@@ -256,6 +332,8 @@ let state = { order: [], tabs: {} };
 let activeId = null;
 let saveTimer = null;
 let selectedTagKey = null;
+let rawPreviewOn = false;
+let iaPreviewOn = false;
 
 const TAGS = [
   { key:'traduis-eng-fr', label:'#traduis-eng-fr', prompt:'Traduis ce texte de l\'anglais vers le français :' },
@@ -283,9 +361,20 @@ function load(){
 
 function persist(){
   clearTimeout(saveTimer);
+  const status = document.getElementById('saveStatus');
+  if(status) status.textContent = '● modifications…';
   saveTimer = setTimeout(()=>{
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    if(status){
+      status.textContent = '✓ enregistré';
+      clearTimeout(status._fadeTimer);
+      status._fadeTimer = setTimeout(()=>{ status.textContent = ''; }, 1500);
+    }
   }, 250);
+}
+
+function toggleSidebar(){
+  document.querySelector('.tabs-col').classList.toggle('collapsed');
 }
 
 function addTab(){
@@ -473,6 +562,8 @@ function renderColumns(){
     iaDot.style.background = 'transparent';
     document.getElementById('rawCount').textContent = '0 caractère';
     document.getElementById('iaCount').textContent = '0 caractère';
+    renderPreviewState('raw');
+    renderPreviewState('ia');
     return;
   }
   rawArea.disabled = false; iaArea.disabled = false;
@@ -481,6 +572,8 @@ function renderColumns(){
   rawDot.style.background = t.color;
   iaDot.style.background = t.color;
   updateCounts();
+  renderPreviewState('raw');
+  renderPreviewState('ia');
 }
 
 function updateCounts(){
@@ -639,6 +732,7 @@ function copyRawToIA(){
   document.getElementById('iaArea').value = t.ia;
   updateCounts();
   persist();
+  renderPreviewState('ia');
   flash('iaCol');
 }
 function copyIAToRaw(){
@@ -648,6 +742,7 @@ function copyIAToRaw(){
   document.getElementById('rawArea').value = t.raw;
   updateCounts();
   persist();
+  renderPreviewState('raw');
   flash('rawCol');
 }
 function flash(colId){
@@ -686,6 +781,154 @@ function importJSON(e){
   };
   reader.readAsText(file);
 }
+
+// ── APERÇU MARKDOWN ───────────────────────────────────────────────────────────
+function escapeHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderMarkdown(text){
+  if(!text || !text.trim()){
+    return '<p style="opacity:.55;font-style:italic;">Rien à prévisualiser…</p>';
+  }
+  // Protège temporairement les [[liens]] pour que le parseur markdown ne les touche pas
+  const links = [];
+  const withTokens = text.replace(/\[\[([^\[\]]+)\]\]/g, (m, name)=>{
+    links.push(name.trim());
+    return '§§WIKILINK' + (links.length - 1) + '§§';
+  });
+  let html = marked.parse(withTokens, { breaks:true, gfm:true });
+  html = html.replace(/§§WIKILINK(\d+)§§/g, (m, i)=>{
+    const name = links[Number(i)];
+    const exists = !!findTabIdByName(name);
+    return '<a href="#" class="wikilink' + (exists?'':' missing') + '" data-wikilink="' + escapeHtml(name) + '">' + escapeHtml(name) + '</a>';
+  });
+  return html;
+}
+
+function renderPreviewState(which){
+  const area = document.getElementById(which==='raw' ? 'rawArea' : 'iaArea');
+  const prev = document.getElementById(which==='raw' ? 'rawPreview' : 'iaPreview');
+  const btn = document.getElementById(which==='raw' ? 'rawPreviewBtn' : 'iaPreviewBtn');
+  const on = which==='raw' ? rawPreviewOn : iaPreviewOn;
+  if(on){
+    area.style.display = 'none';
+    prev.style.display = 'block';
+    prev.innerHTML = renderMarkdown(area.value);
+    if(btn) btn.textContent = '✎ Éditer';
+  } else {
+    area.style.display = '';
+    prev.style.display = 'none';
+    if(btn) btn.textContent = '👁 Aperçu';
+  }
+}
+
+function togglePreview(which){
+  if(which==='raw') rawPreviewOn = !rawPreviewOn;
+  else iaPreviewOn = !iaPreviewOn;
+  renderPreviewState(which);
+}
+
+function handlePreviewLinkClick(e){
+  const link = e.target.closest('.wikilink');
+  if(!link) return;
+  e.preventDefault();
+  const name = link.dataset.wikilink;
+  const targetId = findTabIdByName(name);
+  if(targetId){
+    selectTab(targetId);
+  } else if(confirm(`L'onglet "${name}" n'existe pas encore. Le créer ?`)){
+    const id = uid();
+    const color = PALETTE[state.order.length % PALETTE.length];
+    state.tabs[id] = { name, color, raw:'', ia:'' };
+    state.order.push(id);
+    activeId = id;
+    persist();
+    renderTabs();
+    renderColumns();
+  }
+}
+document.getElementById('rawPreview').addEventListener('click', handlePreviewLinkClick);
+document.getElementById('iaPreview').addEventListener('click', handlePreviewLinkClick);
+
+// ── BARRE D'OUTILS MARKDOWN ─────────────────────────────────────────────────
+function mdWrap(areaId, before, after, placeholder){
+  const area = document.getElementById(areaId);
+  if(!activeId) return;
+  const start = area.selectionStart, end = area.selectionEnd;
+  const selected = area.value.slice(start, end);
+  const text = selected || placeholder;
+  area.value = area.value.slice(0, start) + before + text + after + area.value.slice(end);
+  const newStart = start + before.length;
+  area.focus();
+  area.setSelectionRange(newStart, newStart + text.length);
+  onEdit(areaId==='rawArea' ? 'raw' : 'ia');
+  flash(areaId==='rawArea' ? 'rawCol' : 'iaCol');
+}
+
+function mdPrefix(areaId, prefix){
+  const area = document.getElementById(areaId);
+  if(!activeId) return;
+  const value = area.value;
+  const start = area.selectionStart, end = area.selectionEnd;
+  let lineStart = value.lastIndexOf('\n', start - 1) + 1;
+  let lineEnd = value.indexOf('\n', end);
+  if(lineEnd === -1) lineEnd = value.length;
+  const block = value.slice(lineStart, lineEnd);
+  const lines = block.split('\n').map(l => l.startsWith(prefix) ? l.slice(prefix.length) : prefix + l);
+  const newBlock = lines.join('\n');
+  area.value = value.slice(0, lineStart) + newBlock + value.slice(lineEnd);
+  area.focus();
+  area.setSelectionRange(lineStart, lineStart + newBlock.length);
+  onEdit(areaId==='rawArea' ? 'raw' : 'ia');
+  flash(areaId==='rawArea' ? 'rawCol' : 'iaCol');
+}
+
+function mdLink(areaId){
+  const area = document.getElementById(areaId);
+  if(!activeId) return;
+  const start = area.selectionStart, end = area.selectionEnd;
+  const selected = area.value.slice(start, end) || 'texte du lien';
+  const insertion = '[' + selected + '](url)';
+  area.value = area.value.slice(0, start) + insertion + area.value.slice(end);
+  const urlStart = start + selected.length + 3;
+  area.focus();
+  area.setSelectionRange(urlStart, urlStart + 3);
+  onEdit(areaId==='rawArea' ? 'raw' : 'ia');
+  flash(areaId==='rawArea' ? 'rawCol' : 'iaCol');
+}
+
+function handleAreaKeydown(e){
+  const areaId = e.target.id;
+  const which = areaId==='rawArea' ? 'raw' : 'ia';
+  if((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase()==='b'){
+    e.preventDefault(); mdWrap(areaId, '**', '**', 'gras'); return;
+  }
+  if((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase()==='i'){
+    e.preventDefault(); mdWrap(areaId, '*', '*', 'italique'); return;
+  }
+  if(e.key === 'Tab'){
+    e.preventDefault();
+    const area = e.target;
+    const value = area.value;
+    const start = area.selectionStart, end = area.selectionEnd;
+    if(e.shiftKey){
+      let lineStart = value.lastIndexOf('\n', start - 1) + 1;
+      const removeCount = value.slice(lineStart, lineStart + 2) === '  ' ? 2 : (value[lineStart] === ' ' ? 1 : 0);
+      if(removeCount > 0){
+        area.value = value.slice(0, lineStart) + value.slice(lineStart + removeCount);
+        area.setSelectionRange(Math.max(start - removeCount, lineStart), Math.max(end - removeCount, lineStart));
+        onEdit(which);
+      }
+    } else {
+      area.value = value.slice(0, start) + '  ' + value.slice(end);
+      area.setSelectionRange(start + 2, start + 2);
+      onEdit(which);
+    }
+  }
+}
+document.getElementById('rawArea').addEventListener('keydown', handleAreaKeydown);
+document.getElementById('iaArea').addEventListener('keydown', handleAreaKeydown);
 
 // ── LIENS ENTRE ONGLETS ──────────────────────────────────────────────────────
 // Syntaxe : [[Nom de l'onglet]]  →  Ctrl+clic (⌘+clic sur Mac) pour y accéder
