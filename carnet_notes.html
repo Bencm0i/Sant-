@@ -108,6 +108,18 @@ input[type=file]{display:none;}
 .help-panel-note{font-size:0.78rem;color:var(--ink-soft);font-style:italic;margin-bottom:16px;}
 .help-panel-inner .btn{width:100%;justify-content:center;}
 
+.history-panel-inner{max-width:440px;max-height:78vh;display:flex;flex-direction:column;}
+.history-list{overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+.history-item{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:9px 12px;border:1.5px solid var(--line);border-radius:8px;background:var(--paper-dim);
+}
+.history-item-info{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.history-item-date{font-family:'IBM Plex Mono',monospace;font-size:0.78rem;font-weight:600;color:var(--ink);}
+.history-item-meta{font-family:'Inter',sans-serif;font-size:0.72rem;color:var(--ink-soft);}
+.history-item button{flex-shrink:0;font-size:0.72rem;padding:6px 11px;}
+.history-empty{font-family:'Inter',sans-serif;font-size:0.85rem;color:var(--ink-soft);margin-bottom:14px;line-height:1.5;}
+
 .breadcrumb-bar{
   padding:7px 16px;border-bottom:1.5px solid var(--line);flex-shrink:0;
   font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:var(--ink-soft);
@@ -227,7 +239,9 @@ textarea.note-area{
   flex:1;width:100%;border:none;outline:none;resize:none;
   font-family:'IBM Plex Mono',monospace;font-size:0.86rem;line-height:1.65;
   padding:18px 20px;color:var(--ink);background:transparent;
+  transition:background .15s;
 }
+textarea.note-area:focus{background:#fffceb;box-shadow:inset 0 0 0 2px var(--accent);}
 textarea.note-area::placeholder{color:#b0a695;}
 .char-count{
   padding:6px 16px;font-family:'IBM Plex Mono',monospace;font-size:0.65rem;
@@ -318,6 +332,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
   <div class="header-actions">
     <button class="btn" onclick="toggleSidebar()" title="Afficher/masquer la liste des onglets (Alt+S)">☰ Onglets</button>
     <button class="btn" onclick="toggleHelp()" title="Raccourcis clavier (touche ?)">⌨</button>
+    <button class="btn" onclick="toggleHistory()" title="Historique des sauvegardes automatiques">🕘 Historique</button>
     <button class="btn" onclick="document.getElementById('importInput').click()">⬆ Importer JSON</button>
     <input type="file" id="importInput" accept=".json" onchange="importJSON(event)">
     <button class="btn primary" onclick="exportJSON()">⬇ Exporter JSON</button>
@@ -345,6 +360,15 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
     </ul>
     <p class="help-panel-note">Glisse-dépose un onglet dans la liste pour le réordonner ou le rattacher à un autre.</p>
     <button class="btn primary" onclick="toggleHelp()">Fermer</button>
+  </div>
+</div>
+
+<div class="help-panel" id="historyPanel" style="display:none;">
+  <div class="help-panel-inner history-panel-inner">
+    <h2>Historique des sauvegardes</h2>
+    <p class="help-panel-note" style="margin-bottom:12px;">Une version est enregistrée automatiquement pendant que tu travailles (et systématiquement avant une suppression ou un import). Tout reste en local sur cet appareil.</p>
+    <div class="history-list" id="historyList"></div>
+    <button class="btn primary" onclick="toggleHistory()">Fermer</button>
   </div>
 </div>
 
@@ -453,6 +477,7 @@ function persist(){
   if(status) status.textContent = '● modifications…';
   saveTimer = setTimeout(()=>{
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    snapshotHistory('auto');
     if(status){
       status.textContent = '✓ enregistré';
       clearTimeout(status._fadeTimer);
@@ -460,6 +485,92 @@ function persist(){
     }
   }, 250);
 }
+
+// ── HISTORIQUE DES VERSIONS ───────────────────────────────────────────────
+const HISTORY_KEY = 'carnet_notes_history';
+const HISTORY_MAX = 25;
+const HISTORY_MIN_GAP_MS = 3 * 60 * 1000; // au moins 3 min entre deux snapshots automatiques
+
+function loadHistory(){
+  try{
+    const raw = localStorage.getItem(HISTORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  }catch(e){ return []; }
+}
+
+function saveHistoryList(list){
+  try{
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
+  }catch(e){
+    // Quota localStorage dépassé : on réduit l'historique et on retente
+    try{ localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(-8))); }catch(e2){}
+  }
+}
+
+function snapshotHistory(reason, force){
+  const list = loadHistory();
+  const last = list[list.length - 1];
+  if(!force && last && (Date.now() - last.ts) < HISTORY_MIN_GAP_MS) return;
+  list.push({ ts: Date.now(), reason: reason || 'auto', state: JSON.parse(JSON.stringify(state)) });
+  while(list.length > HISTORY_MAX) list.shift();
+  saveHistoryList(list);
+}
+
+function formatHistoryDate(ts){
+  const d = new Date(ts);
+  return d.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit', year:'numeric'}) + ' à ' + d.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+}
+
+function toggleHistory(){
+  const p = document.getElementById('historyPanel');
+  const opening = p.style.display !== 'flex';
+  p.style.display = opening ? 'flex' : 'none';
+  if(opening) renderHistoryList();
+}
+document.getElementById('historyPanel').addEventListener('click', (e)=>{
+  if(e.target.id === 'historyPanel') toggleHistory();
+});
+
+function renderHistoryList(){
+  const list = loadHistory().slice().reverse();
+  const el = document.getElementById('historyList');
+  if(!list.length){
+    el.innerHTML = '<p class="history-empty">Aucune sauvegarde antérieure pour l\'instant. Reviens un peu plus tard, le temps qu\'une première version se constitue.</p>';
+    return;
+  }
+  el.innerHTML = list.map(snap=>{
+    const tabCount = snap.state && snap.state.order ? snap.state.order.length : 0;
+    return '<div class="history-item">'
+      + '<div class="history-item-info">'
+      + '<span class="history-item-date">' + formatHistoryDate(snap.ts) + '</span>'
+      + '<span class="history-item-meta">' + tabCount + ' onglet' + (tabCount!==1?'s':'') + ' · ' + snap.reason + '</span>'
+      + '</div>'
+      + '<button class="btn" onclick="restoreHistorySnapshot(' + snap.ts + ')">Restaurer</button>'
+      + '</div>';
+  }).join('');
+}
+
+function restoreHistorySnapshot(ts){
+  const list = loadHistory();
+  const snap = list.find(s => s.ts === ts);
+  if(!snap) return;
+  if(!confirm('Restaurer la version du ' + formatHistoryDate(ts) + ' ? Le contenu actuel sera remplacé (une version de sécurité sera quand même gardée).')) return;
+  snapshotHistory('avant restauration', true);
+  state = JSON.parse(JSON.stringify(snap.state));
+  activeId = state.order[0] || null;
+  persist();
+  renderTabs();
+  renderColumns();
+  renderTagsBar();
+  toggleHistory();
+}
+
+window.addEventListener('beforeunload', ()=>{
+  if(saveTimer){
+    clearTimeout(saveTimer);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+});
 
 function toggleSidebar(){
   const col = document.querySelector('.tabs-col');
@@ -502,6 +613,7 @@ function deleteTab(id){
     ? 'Supprimer l\'onglet "'+(t?.name||'')+'" et ses '+descendants.length+' sous-onglet(s) ?'
     : 'Supprimer l\'onglet "'+(t?.name||'')+'" et son contenu ?';
   if(!confirm(msg)) return;
+  snapshotHistory('avant suppression d\'un onglet', true);
   const toDelete = [id, ...descendants];
   toDelete.forEach(x=>{ delete state.tabs[x]; });
   state.order = state.order.filter(x=>!toDelete.includes(x));
@@ -1019,6 +1131,7 @@ function importJSON(e){
       const incoming = data.state || data;
       if(!incoming || !incoming.order || !incoming.tabs) throw new Error('format invalide');
       if(!confirm('Remplacer le carnet actuel par celui du fichier importé ?')){ e.target.value=''; return; }
+      snapshotHistory('avant import JSON', true);
       state = incoming;
       activeId = state.order[0] || null;
       persist();
