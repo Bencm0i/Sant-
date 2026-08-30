@@ -336,6 +336,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
       <li><code>Alt+F</code><span>Aller à la recherche</span></li>
       <li><code>Alt+P</code><span>Aperçu du texte brut</span></li>
       <li><code>Alt+I</code><span>Aperçu du texte IA</span></li>
+      <li><code>Alt+E</code><span>Basculer Aperçu/Édition (colonne active)</span></li>
       <li><code>Ctrl+B</code><span>Gras</span></li>
       <li><code>Ctrl+I</code><span>Italique</span></li>
       <li><code>Tab</code> / <code>Shift+Tab</code><span>Indenter / désindenter</span></li>
@@ -1271,6 +1272,11 @@ document.addEventListener('keydown', (e)=>{
   else if(k === 'f'){ e.preventDefault(); const s=document.getElementById('searchInput'); s.focus(); s.select(); }
   else if(k === 'p'){ e.preventDefault(); togglePreview('raw'); }
   else if(k === 'i'){ e.preventDefault(); togglePreview('ia'); }
+  else if(k === 'e'){
+    e.preventDefault();
+    const inIaCol = !!(e.target.closest && e.target.closest('#iaCol'));
+    togglePreview(inIaCol ? 'ia' : 'raw');
+  }
 });
 
 // INIT
