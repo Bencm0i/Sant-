@@ -79,6 +79,34 @@ input[type=file]{display:none;}
   background:var(--paper-dim); border:1px solid var(--line); border-radius:4px; padding:1px 5px;
   font-family:'IBM Plex Mono',monospace; font-weight:600; color:var(--accent);
 }
+.link-hint-btn{
+  background:transparent;border:none;color:var(--accent);font-weight:700;cursor:pointer;
+  text-decoration:underline;text-decoration-color:rgba(47,93,98,0.35);
+  font-family:inherit;font-size:inherit;padding:0;
+}
+.link-hint-btn:hover{text-decoration-color:var(--accent);}
+
+.help-panel{
+  position:fixed;inset:0;background:rgba(43,38,32,0.4);z-index:50;
+  display:flex;align-items:center;justify-content:center;padding:20px;
+}
+.help-panel-inner{
+  background:var(--paper);border:1.5px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:24px 28px;max-width:380px;width:100%;
+}
+.help-panel-inner h2{font-family:'Lora',serif;font-weight:700;font-size:1.15rem;margin-bottom:14px;}
+.help-panel-inner ul{list-style:none;display:flex;flex-direction:column;gap:9px;margin-bottom:14px;}
+.help-panel-inner li{
+  font-family:'Inter',sans-serif;font-size:0.85rem;color:var(--ink-soft);
+  display:flex;align-items:center;gap:10px;
+}
+.help-panel-inner li code{
+  background:var(--paper-dim);border:1px solid var(--line);border-radius:4px;padding:2px 7px;
+  font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--accent);font-size:0.78rem;
+  white-space:nowrap;
+}
+.help-panel-note{font-size:0.78rem;color:var(--ink-soft);font-style:italic;margin-bottom:16px;}
+.help-panel-inner .btn{width:100%;justify-content:center;}
 
 .breadcrumb-bar{
   padding:7px 16px;border-bottom:1.5px solid var(--line);flex-shrink:0;
@@ -117,6 +145,9 @@ input[type=file]{display:none;}
 .tab-row.child .tab-body{border-left:2px dashed var(--line);}
 .tab-row.child .tab-spine{width:6px;}
 .tab-row.child .tab-name{font-size:0.79rem;}
+.tab-row.dragging{opacity:0.35;}
+.tab-row.drag-over-top .tab-body{box-shadow:inset 0 2px 0 0 var(--accent);}
+.tab-row.drag-over-bottom .tab-body{box-shadow:inset 0 -2px 0 0 var(--accent);}
 .tab-color-dot{
   width:14px;height:14px;border-radius:50%;flex-shrink:0;cursor:pointer;
   border:1.5px solid rgba(43,38,32,0.2);padding:0;appearance:none;-webkit-appearance:none;
@@ -277,15 +308,36 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
   <span class="search-count" id="searchCount"></span>
   <span class="save-status" id="saveStatus"></span>
   <div class="header-actions">
-    <button class="btn" onclick="toggleSidebar()" title="Afficher/masquer la liste des onglets">☰ Onglets</button>
+    <button class="btn" onclick="toggleSidebar()" title="Afficher/masquer la liste des onglets (Alt+S)">☰ Onglets</button>
+    <button class="btn" onclick="toggleHelp()" title="Raccourcis clavier (touche ?)">⌨</button>
     <button class="btn" onclick="document.getElementById('importInput').click()">⬆ Importer JSON</button>
     <input type="file" id="importInput" accept=".json" onchange="importJSON(event)">
     <button class="btn primary" onclick="exportJSON()">⬇ Exporter JSON</button>
   </div>
 </header>
 
-<div class="link-hint">🔗 Écris <code>[[Nom de l'onglet]]</code> puis <strong>Ctrl+clic</strong> (⌘+clic sur Mac) dessus pour y accéder (crée un sous-onglet s'il n'existe pas) · <strong>Ctrl+B</strong> gras, <strong>Ctrl+I</strong> italique, <strong>Tab</strong> indente · 👁 <strong>Aperçu</strong> pour le rendu markdown</div>
+<div class="link-hint">🔗 <code>[[Nom]]</code> + <strong>Ctrl+clic</strong> pour lier/créer un sous-onglet · 👁 <strong>Aperçu</strong> pour le rendu markdown · appuie sur <button class="link-hint-btn" onclick="toggleHelp()">⌨ ? pour tous les raccourcis</button></div>
 <div class="breadcrumb-bar" id="breadcrumbBar" style="display:none;">↳ sous-onglet de <button class="breadcrumb-link" id="breadcrumbBtn" onclick="goToParent()" title="Retourner à l'onglet parent"></button></div>
+
+<div class="help-panel" id="helpPanel" style="display:none;">
+  <div class="help-panel-inner">
+    <h2>Raccourcis clavier</h2>
+    <ul>
+      <li><code>Alt+N</code><span>Nouvel onglet</span></li>
+      <li><code>Alt+S</code><span>Afficher/masquer les onglets</span></li>
+      <li><code>Alt+F</code><span>Aller à la recherche</span></li>
+      <li><code>Alt+P</code><span>Aperçu du texte brut</span></li>
+      <li><code>Alt+I</code><span>Aperçu du texte IA</span></li>
+      <li><code>Ctrl+B</code><span>Gras</span></li>
+      <li><code>Ctrl+I</code><span>Italique</span></li>
+      <li><code>Tab</code> / <code>Shift+Tab</code><span>Indenter / désindenter</span></li>
+      <li><code>Ctrl+clic</code><span>Suivre/créer un <code>[[lien]]</code></span></li>
+      <li><code>?</code><span>Afficher cette aide</span></li>
+    </ul>
+    <p class="help-panel-note">Glisse-dépose un onglet dans la liste pour le réordonner ou le rattacher à un autre.</p>
+    <button class="btn primary" onclick="toggleHelp()">Fermer</button>
+  </div>
+</div>
 
 <div class="layout">
   <div class="tabs-col">
@@ -302,6 +354,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
         <button id="rawPreviewBtn" onclick="togglePreview('raw')" title="Basculer entre édition et aperçu markdown">👁 Aperçu</button>
         <button onclick="insertTimestamp()" title="Insérer la date et l'heure actuelles dans le texte brut">🕒 Horodatage</button>
         <button onclick="copyRawToClipboard()" title="Copier le texte brut dans le presse-papiers">📋 Copier</button>
+        <button onclick="exportTabAsMarkdown('raw')" title="Télécharger ce texte en fichier .md">⬇ .md</button>
         <button onclick="copyRawToIA()" title="Copier vers la colonne IA">→ IA</button>
         <button class="ai-link chatgpt" onclick="sendToAI('chatgpt')" title="Copier le texte (+ tag choisi) et ouvrir ChatGPT"><span class="dot"></span>ChatGPT ↗</button>
         <button class="ai-link claude" onclick="sendToAI('claude')" title="Copier le texte (+ tag choisi) et ouvrir Claude"><span class="dot"></span>Claude ↗</button>
@@ -329,6 +382,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
       <div class="col-tools">
         <button id="iaPreviewBtn" onclick="togglePreview('ia')" title="Basculer entre édition et aperçu markdown">👁 Aperçu</button>
         <button onclick="copyIAToClipboard()" title="Copier le texte IA dans le presse-papiers">📋 Copier</button>
+        <button onclick="exportTabAsMarkdown('ia')" title="Télécharger ce texte en fichier .md">⬇ .md</button>
         <button onclick="copyIAToRaw()" title="Copier vers la colonne texte brut">← Brut</button>
       </div>
     </div>
@@ -350,6 +404,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
 
 <script>
 const STORAGE_KEY = 'carnet_notes_data';
+const SIDEBAR_KEY = 'carnet_notes_sidebar_collapsed';
 const PALETTE = ['#2f5d62','#b5573f','#c98a2c','#6b4a6b','#5c6b3f','#45566b','#7a3b46','#3d5a73'];
 
 let state = { order: [], tabs: {} };
@@ -398,7 +453,15 @@ function persist(){
 }
 
 function toggleSidebar(){
-  document.querySelector('.tabs-col').classList.toggle('collapsed');
+  const col = document.querySelector('.tabs-col');
+  col.classList.toggle('collapsed');
+  localStorage.setItem(SIDEBAR_KEY, col.classList.contains('collapsed') ? '1' : '0');
+}
+
+function applySavedSidebarState(){
+  if(localStorage.getItem(SIDEBAR_KEY) === '1'){
+    document.querySelector('.tabs-col').classList.add('collapsed');
+  }
 }
 
 function addTab(){
@@ -508,6 +571,53 @@ function recolorTab(id, val){
   renderTabs();
 }
 
+function getSearchVisibility(q){
+  const matches = new Set();
+  if(q){
+    state.order.forEach(id=>{
+      const t = state.tabs[id];
+      if(!t) return;
+      const hay = (t.name+' '+t.raw+' '+t.ia).toLowerCase();
+      if(hay.includes(q)) matches.add(id);
+    });
+  }
+  const visible = new Set(matches);
+  matches.forEach(id=>{
+    let cur = state.tabs[id];
+    while(cur && cur.parentId && state.tabs[cur.parentId]){
+      visible.add(cur.parentId);
+      cur = state.tabs[cur.parentId];
+    }
+  });
+  return { matches, visible };
+}
+
+function isDescendantOrSelf(candidateId, ancestorId){
+  let cur = candidateId;
+  while(cur){
+    if(cur === ancestorId) return true;
+    cur = state.tabs[cur] ? state.tabs[cur].parentId : null;
+  }
+  return false;
+}
+
+function reorderTab(dragId, targetId, before){
+  if(!dragId || dragId === targetId || !state.tabs[dragId] || !state.tabs[targetId]) return;
+  const targetTab = state.tabs[targetId];
+  const newParent = targetTab.parentId && state.tabs[targetTab.parentId] ? targetTab.parentId : null;
+  if(newParent && isDescendantOrSelf(newParent, dragId)) return;
+  if(newParent === dragId) return;
+  state.tabs[dragId].parentId = newParent;
+  state.order = state.order.filter(x=>x!==dragId);
+  const idx = state.order.indexOf(targetId);
+  state.order.splice(before ? idx : idx+1, 0, dragId);
+  persist();
+  renderTabs();
+  updateActiveRow();
+}
+
+let draggedTabId = null;
+
 function renderTabs(){
   const list = document.getElementById('tabsList');
   const q = document.getElementById('searchInput').value.trim().toLowerCase();
@@ -516,17 +626,35 @@ function renderTabs(){
     list.innerHTML = '<div class="empty-tabs">Aucun onglet.<br>Crée-en un pour commencer.</div>';
     return;
   }
+  const { matches, visible } = getSearchVisibility(q);
   let visibleCount = 0;
   computeDisplayOrder().forEach(({id, depth})=>{
     const t = state.tabs[id];
-    const hay = (t.name+' '+t.raw+' '+t.ia).toLowerCase();
-    const matches = q && hay.includes(q);
-    const dim = q && !matches;
-    if(matches) visibleCount++;
+    const isMatch = matches.has(id);
+    const dim = q && !visible.has(id);
+    if(isMatch) visibleCount++;
 
     const row = document.createElement('div');
     row.className = 'tab-row' + (depth>0 ? ' child' : '') + (id===activeId ? ' active' : '') + (dim ? ' dimmed' : '');
     if(depth>0) row.style.marginLeft = (depth*18) + 'px';
+    row.draggable = true;
+    row.ondragstart = (e)=>{ draggedTabId = id; e.dataTransfer.effectAllowed = 'move'; setTimeout(()=>row.classList.add('dragging'),0); };
+    row.ondragend = ()=>{ row.classList.remove('dragging'); document.querySelectorAll('.drag-over-top,.drag-over-bottom').forEach(r=>r.classList.remove('drag-over-top','drag-over-bottom')); draggedTabId = null; };
+    row.ondragover = (e)=>{
+      if(!draggedTabId || draggedTabId===id) return;
+      e.preventDefault();
+      const rect = row.getBoundingClientRect();
+      const before = (e.clientY - rect.top) < rect.height/2;
+      document.querySelectorAll('.drag-over-top,.drag-over-bottom').forEach(r=>r.classList.remove('drag-over-top','drag-over-bottom'));
+      row.classList.add(before ? 'drag-over-top' : 'drag-over-bottom');
+    };
+    row.ondrop = (e)=>{
+      e.preventDefault();
+      if(!draggedTabId || draggedTabId===id) return;
+      const rect = row.getBoundingClientRect();
+      const before = (e.clientY - rect.top) < rect.height/2;
+      reorderTab(draggedTabId, id, before);
+    };
 
     const spine = document.createElement('div');
     spine.className = 'tab-spine';
@@ -557,7 +685,7 @@ function renderTabs(){
     name.onfocus = ()=>{ if(activeId!==id) selectTab(id); };
     mainRow.appendChild(name);
 
-    if(q && matches){
+    if(q && isMatch){
       const badge = document.createElement('span');
       badge.className = 'tab-match-badge';
       badge.textContent = '●';
@@ -573,7 +701,7 @@ function renderTabs(){
 
     body.appendChild(mainRow);
 
-    if(q && matches){
+    if(q && isMatch){
       const snippetEl = buildSnippetEl(t, q);
       if(snippetEl) body.appendChild(snippetEl);
     }
@@ -639,8 +767,8 @@ function renderColumns(){
     rawArea.disabled = true; iaArea.disabled = true;
     rawDot.style.background = 'transparent';
     iaDot.style.background = 'transparent';
-    document.getElementById('rawCount').textContent = '0 caractère';
-    document.getElementById('iaCount').textContent = '0 caractère';
+    document.getElementById('rawCount').textContent = '0 caractère · 0 mot';
+    document.getElementById('iaCount').textContent = '0 caractère · 0 mot';
     renderPreviewState('raw');
     renderPreviewState('ia');
     updateBreadcrumb();
@@ -657,11 +785,18 @@ function renderColumns(){
   updateBreadcrumb();
 }
 
+function countWords(text){
+  const trimmed = text.trim();
+  return trimmed ? trimmed.split(/\s+/).length : 0;
+}
+
 function updateCounts(){
   const rawArea = document.getElementById('rawArea');
   const iaArea = document.getElementById('iaArea');
-  document.getElementById('rawCount').textContent = rawArea.value.length + ' caractère' + (rawArea.value.length!==1?'s':'');
-  document.getElementById('iaCount').textContent = iaArea.value.length + ' caractère' + (iaArea.value.length!==1?'s':'');
+  const rawWords = countWords(rawArea.value);
+  const iaWords = countWords(iaArea.value);
+  document.getElementById('rawCount').textContent = rawArea.value.length + ' caractère' + (rawArea.value.length!==1?'s':'') + ' · ' + rawWords + ' mot' + (rawWords!==1?'s':'');
+  document.getElementById('iaCount').textContent = iaArea.value.length + ' caractère' + (iaArea.value.length!==1?'s':'') + ' · ' + iaWords + ' mot' + (iaWords!==1?'s':'');
 }
 
 function onEdit(which){
@@ -849,6 +984,20 @@ function exportJSON(){
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'carnet_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+}
+
+function exportTabAsMarkdown(which){
+  if(!activeId) return;
+  const t = state.tabs[activeId];
+  const content = which==='raw' ? t.raw : t.ia;
+  if(!content || !content.trim()){ alert('Rien à exporter : ce texte est vide.'); return; }
+  const safeName = (t.name || 'note').trim().replace(/[\\/:*?"<>|]/g, '-') || 'note';
+  const filename = safeName + (which==='ia' ? ' (IA)' : '') + '.md';
+  const blob = new Blob([content], {type:'text/markdown'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
   a.click();
 }
 
@@ -1061,9 +1210,38 @@ function handleNoteLinkClick(e){
 document.getElementById('rawArea').addEventListener('click', handleNoteLinkClick);
 document.getElementById('iaArea').addEventListener('click', handleNoteLinkClick);
 
+// ── AIDE / RACCOURCIS CLAVIER ────────────────────────────────────────────────
+function toggleHelp(){
+  const p = document.getElementById('helpPanel');
+  p.style.display = (p.style.display === 'flex') ? 'none' : 'flex';
+}
+document.getElementById('helpPanel').addEventListener('click', (e)=>{
+  if(e.target.id === 'helpPanel') toggleHelp();
+});
+document.getElementById('searchInput').addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape'){ clearSearch(); e.target.blur(); }
+});
+document.addEventListener('keydown', (e)=>{
+  const tag = (e.target.tagName || '').toLowerCase();
+  const typing = tag === 'input' || tag === 'textarea';
+  const helpOpen = document.getElementById('helpPanel').style.display === 'flex';
+
+  if(e.key === 'Escape' && helpOpen){ toggleHelp(); return; }
+  if(e.key === '?' && !typing){ e.preventDefault(); toggleHelp(); return; }
+
+  if(!e.altKey) return;
+  const k = e.key.toLowerCase();
+  if(k === 'n'){ e.preventDefault(); addTab(); }
+  else if(k === 's'){ e.preventDefault(); toggleSidebar(); }
+  else if(k === 'f'){ e.preventDefault(); const s=document.getElementById('searchInput'); s.focus(); s.select(); }
+  else if(k === 'p'){ e.preventDefault(); togglePreview('raw'); }
+  else if(k === 'i'){ e.preventDefault(); togglePreview('ia'); }
+});
+
 // INIT
 load();
 if(!activeId) activeId = state.order[0] || null;
+applySavedSidebarState();
 renderTabs();
 renderColumns();
 renderTagsBar();
