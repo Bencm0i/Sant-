@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REIT DCA · Suivi</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%230d1117'/%3E%3Cpath d='M6 26V13l10-7 10 7v13' fill='none' stroke='%2300ff9d' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M13 26v-8h6v8' fill='%2300ff9d'/%3E%3Ccircle cx='16' cy='9' r='1.6' fill='%2300ff9d'/%3E%3C/svg%3E">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Syne:wght@600;700;800&family=DM+Mono:wght@400;500&display=swap');
+
+  :root{
+    --bg:#0a0d0a;
+    --bg2:#0f130f;
+    --panel:#12160f;
+    --border:#1f2a1c;
+    --green:#00ff9d;
+    --green-dim:#0a8f5e;
+    --amber:#ffb454;
+    --red:#ff5c5c;
+    --text:#d7e5d0;
+    --text-dim:#7a8a72;
+    --mono:'JetBrains Mono', 'DM Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:var(--mono); padding:24px 16px 60px; min-height:100vh;
+    background-image:
+      linear-gradient(rgba(0,255,157,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,157,0.02) 1px, transparent 1px);
+    background-size:24px 24px;
+  }
+  .wrap{max-width:1100px; margin:0 auto;}
+  h1{
+    font-family:'Syne', sans-serif; font-weight:800; font-size:1.9rem;
+    letter-spacing:-0.02em; color:#fff; margin:0 0 4px;
+  }
+  h1 span{color:var(--green);}
+  .subtitle{color:var(--text-dim); font-size:0.82rem; margin-bottom:24px;}
+
+  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-bottom:24px;}
+  .kpi{
+    background:var(--panel); border:1px solid var(--border); border-radius:8px;
+    padding:14px 16px;
+  }
+  .kpi .label{font-size:0.68rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:6px;}
+  .kpi .value{font-size:1.4rem; font-weight:700; color:var(--green);}
+  .kpi .value.amber{color:var(--amber);}
+  .kpi .sub{font-size:0.7rem; color:var(--text-dim); margin-top:3px;}
+
+  .panel{
+    background:var(--panel); border:1px solid var(--border); border-radius:10px;
+    padding:18px 18px 20px; margin-bottom:20px;
+  }
+  .panel h2{
+    font-family:'Syne', sans-serif; font-size:1rem; font-weight:700; color:#fff;
+    margin:0 0 14px; display:flex; align-items:center; justify-content:space-between;
+  }
+  .panel h2 small{font-family:var(--mono); font-weight:400; color:var(--text-dim); font-size:0.72rem;}
+
+  .dca-settings{display:flex; flex-wrap:wrap; gap:16px;}
+  .field{display:flex; flex-direction:column; gap:5px;}
+  .field label{font-size:0.68rem; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.05em;}
+  input, select{
+    background:#0a0d0a; border:1px solid var(--border); color:var(--text);
+    font-family:var(--mono); font-size:0.85rem; padding:7px 9px; border-radius:5px;
+    outline:none; transition:border-color .15s;
+  }
+  input:focus, select:focus{border-color:var(--green-dim);}
+  input[type="number"]{width:110px;}
+  input.wide{width:170px;}
+
+  table{width:100%; border-collapse:collapse; font-size:0.82rem;}
+  th{
+    text-align:left; color:var(--text-dim); font-weight:500; font-size:0.68rem;
+    text-transform:uppercase; letter-spacing:0.05em; padding:6px 8px;
+    border-bottom:1px solid var(--border);
+  }
+  td{padding:7px 8px; border-bottom:1px solid #171c14; vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  td input{width:100%; min-width:60px; padding:5px 7px; font-size:0.8rem;}
+  td.name{color:#fff; font-weight:600;}
+  td.ticker{color:var(--text-dim); font-size:0.75rem;}
+  .pct-input{width:60px !important;}
+  .alloc-bar{
+    height:5px; border-radius:3px; background:#171c14; overflow:hidden; margin-top:4px; width:100%;
+  }
+  .alloc-bar-fill{height:100%; background:var(--green-dim);}
+
+  .alloc-total{
+    margin-top:12px; font-size:0.78rem; padding:8px 12px; border-radius:6px;
+    display:inline-block; border:1px solid var(--border);
+  }
+  .alloc-total.ok{color:var(--green); border-color:var(--green-dim);}
+  .alloc-total.warn{color:var(--red); border-color:#5c1f1f;}
+
+  .btn{
+    background:transparent; border:1px solid var(--green-dim); color:var(--green);
+    font-family:var(--mono); font-size:0.78rem; padding:8px 14px; border-radius:6px;
+    cursor:pointer; transition:all .15s; font-weight:500;
+  }
+  .btn:hover{background:rgba(0,255,157,0.08); border-color:var(--green);}
+  .btn.ghost{border-color:var(--border); color:var(--text-dim);}
+  .btn.ghost:hover{border-color:var(--text-dim); color:var(--text);}
+  .btn.danger{border-color:#5c1f1f; color:var(--red);}
+  .btn.danger:hover{background:rgba(255,92,92,0.08);}
+  .btn.small{padding:4px 9px; font-size:0.7rem;}
+
+  .row-actions{display:flex; gap:8px; margin-top:14px;}
+
+  .log-table td, .log-table th{font-size:0.78rem;}
+  .empty{color:var(--text-dim); font-size:0.78rem; font-style:italic; padding:10px 0;}
+
+  .yield-tag{
+    font-size:0.7rem; padding:2px 7px; border-radius:10px; border:1px solid var(--border);
+  }
+  .yield-tag.good{color:var(--green); border-color:var(--green-dim);}
+  .yield-tag.mid{color:var(--amber); border-color:#5c4a1f;}
+  .yield-tag.low{color:var(--text-dim);}
+
+  footer{text-align:center; color:var(--text-dim); font-size:0.7rem; margin-top:30px;}
+
+  @media(max-width:700px){
+    table, thead, tbody, th, td, tr{display:block;}
+    thead{display:none;}
+    tr{border:1px solid var(--border); border-radius:8px; margin-bottom:10px; padding:8px;}
+    td{border:none; display:flex; justify-content:space-between; align-items:center; padding:5px 4px;}
+    td:before{content:attr(data-label); color:var(--text-dim); font-size:0.68rem; text-transform:uppercase; margin-right:10px;}
+    td input{text-align:right; max-width:120px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>REIT <span>DCA</span> · Suivi</h1>
+  <div class="subtitle">Portefeuille foncières européennes — objectif revenu passif par dividendes</div>
+
+  <div class="grid" id="kpiGrid"></div>
+
+  <div class="panel">
+    <h2>Plan DCA <small>montant, durée, dates</small></h2>
+    <div class="dca-settings">
+      <div class="field">
+        <label>Montant mensuel (€)</label>
+        <input type="number" id="dcaAmount" value="300" min="0" step="10">
+      </div>
+      <div class="field">
+        <label>Durée (mois)</label>
+        <input type="number" id="dcaDuration" value="9" min="1" max="60">
+      </div>
+      <div class="field">
+        <label>Date de début</label>
+        <input type="date" id="dcaStart">
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button class="btn" onclick="addMonthlyInvestment()">+ Enregistrer versement du mois</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Allocation cible <small>répartis par ligne, doit totaliser 100%</small></h2>
+    <table id="allocTable">
+      <thead>
+        <tr>
+          <th style="width:26%">Foncière</th>
+          <th style="width:12%">Ticker</th>
+          <th style="width:12%">Alloc %</th>
+          <th style="width:14%">Cours (€/unité)</th>
+          <th style="width:12%">Div/an (€/u)</th>
+          <th style="width:10%">Parts</th>
+          <th style="width:14%">Investi (€)</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="allocBody"></tbody>
+    </table>
+    <div class="row-actions">
+      <button class="btn ghost small" onclick="addLine()">+ Ajouter une foncière</button>
+    </div>
+    <div id="allocTotal" class="alloc-total">100%</div>
+  </div>
+
+  <div class="panel">
+    <h2>Dividendes reçus <small>enregistrement manuel des paiements</small></h2>
+    <div class="dca-settings" style="margin-bottom:14px;">
+      <div class="field">
+        <label>Foncière</label>
+        <select id="divLine"></select>
+      </div>
+      <div class="field">
+        <label>Date</label>
+        <input type="date" id="divDate">
+      </div>
+      <div class="field">
+        <label>Montant net (€)</label>
+        <input type="number" id="divAmount" step="0.01" min="0">
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button class="btn" onclick="addDividend()">+ Ajouter dividende</button>
+      </div>
+    </div>
+    <table class="log-table">
+      <thead><tr><th>Date</th><th>Foncière</th><th>Montant net</th><th></th></tr></thead>
+      <tbody id="divBody"></tbody>
+    </table>
+    <div id="divEmpty" class="empty">Aucun dividende enregistré.</div>
+  </div>
+
+  <div class="panel">
+    <h2>Historique des versements <small>journal DCA</small></h2>
+    <table class="log-table">
+      <thead><tr><th>Date</th><th>Foncière</th><th>Montant</th><th>Cours</th><th>Parts achetées</th><th></th></tr></thead>
+      <tbody id="investBody"></tbody>
+    </table>
+    <div id="investEmpty" class="empty">Aucun versement enregistré.</div>
+  </div>
+
+  <footer>reit_dca_suivi · local, aucune donnée envoyée — stockage navigateur uniquement</footer>
+</div>
+
+<script>
+const STORAGE_KEY = 'reit_dca_state_v1';
+
+// Cours et dividendes préchargés (approx. fin août 2026) — à ajuster à la main au fil de l'eau
+const DEFAULT_LINES = [
+  {id:'covivio', name:'Covivio', ticker:'COV', alloc:25, price:53.4, divPerUnit:3.75, units:0, invested:0},
+  {id:'gecina', name:'Gecina', ticker:'GFC', alloc:20, price:72.55, divPerUnit:5.26, units:0, invested:0},
+  {id:'vonovia', name:'Vonovia', ticker:'VNA', alloc:20, price:20.06, divPerUnit:1.25, units:0, invested:0},
+  {id:'klepierre', name:'Klépierre', ticker:'LI', alloc:20, price:36.36, divPerUnit:1.9, units:0, invested:0},
+  {id:'segro', name:'Segro', ticker:'SGRO', alloc:15, price:10.2, divPerUnit:0.37, units:0, invested:0},
+];
+
+let state = loadState();
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  return {
+    lines: JSON.parse(JSON.stringify(DEFAULT_LINES)),
+    dividends: [],
+    investments: [],
+    dcaAmount: 300,
+    dcaDuration: 9,
+    dcaStart: new Date().toISOString().slice(0,10),
+  };
+}
+function saveState(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function uid(){ return Math.random().toString(36).slice(2,9); }
+function fmt(n){ return (Math.round(n*100)/100).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtInt(n){ return Math.round(n).toLocaleString('fr-FR'); }
+
+function totalAlloc(){
+  return state.lines.reduce((s,l)=>s+Number(l.alloc||0),0);
+}
+
+function renderAll(){
+  document.getElementById('dcaAmount').value = state.dcaAmount;
+  document.getElementById('dcaDuration').value = state.dcaDuration;
+  document.getElementById('dcaStart').value = state.dcaStart;
+
+  renderAllocTable();
+  renderDivSelect();
+  renderDivTable();
+  renderInvestTable();
+  renderKpis();
+  saveState();
+}
+
+function renderAllocTable(){
+  const body = document.getElementById('allocBody');
+  body.innerHTML = '';
+  state.lines.forEach((l, idx)=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="name" data-label="Foncière"><input class="wide" value="${l.name}" onchange="updateLine(${idx},'name',this.value)"></td>
+      <td class="ticker" data-label="Ticker"><input style="width:70px" value="${l.ticker}" onchange="updateLine(${idx},'ticker',this.value)"></td>
+      <td data-label="Alloc %">
+        <input class="pct-input" type="number" min="0" max="100" value="${l.alloc}" onchange="updateLine(${idx},'alloc',this.value)">
+        <div class="alloc-bar"><div class="alloc-bar-fill" style="width:${Math.min(100,l.alloc)}%"></div></div>
+      </td>
+      <td data-label="Cours"><input type="number" step="0.01" value="${l.price}" onchange="updateLine(${idx},'price',this.value)"></td>
+      <td data-label="Div/an/u"><input type="number" step="0.01" value="${l.divPerUnit}" onchange="updateLine(${idx},'divPerUnit',this.value)"></td>
+      <td data-label="Parts">${fmt(l.units)}</td>
+      <td data-label="Investi">${fmt(l.invested)} €</td>
+      <td><button class="btn danger small" onclick="removeLine(${idx})">✕</button></td>
+    `;
+    body.appendChild(tr);
+  });
+
+  const total = totalAlloc();
+  const totalEl = document.getElementById('allocTotal');
+  totalEl.textContent = `Total allocation : ${total}%` + (total===100 ? ' ✓' : total>100 ? ' — dépasse 100%' : ' — reste ' + (100-total) + '% à répartir');
+  totalEl.className = 'alloc-total ' + (total===100 ? 'ok' : 'warn');
+}
+
+function updateLine(idx, field, value){
+  const l = state.lines[idx];
+  if(['alloc','price','divPerUnit'].includes(field)){
+    l[field] = Number(value)||0;
+  } else {
+    l[field] = value;
+  }
+  renderAll();
+}
+
+function addLine(){
+  state.lines.push({id:uid(), name:'Nouvelle foncière', ticker:'---', alloc:0, price:10, divPerUnit:0.5, units:0, invested:0});
+  renderAll();
+}
+function removeLine(idx){
+  if(!confirm('Supprimer cette ligne ? (les parts/investissements associés seront perdus)')) return;
+  state.lines.splice(idx,1);
+  renderAll();
+}
+
+function addMonthlyInvestment(){
+  const amount = Number(document.getElementById('dcaAmount').value)||0;
+  const total = totalAlloc();
+  if(total <= 0){ alert("Renseigne une allocation avant d'enregistrer un versement."); return; }
+  const date = new Date().toISOString().slice(0,10);
+  state.dcaAmount = amount;
+  state.dcaDuration = Number(document.getElementById('dcaDuration').value)||12;
+  state.dcaStart = document.getElementById('dcaStart').value || state.dcaStart;
+
+  state.lines.forEach(l=>{
+    const share = amount * (Number(l.alloc||0)/total);
+    if(share <= 0) return;
+    const units = l.price>0 ? share/l.price : 0;
+    l.invested += share;
+    l.units += units;
+    state.investments.push({id:uid(), date, lineId:l.id, name:l.name, amount:share, price:l.price, units});
+  });
+  renderAll();
+}
+
+function removeInvestment(id){
+  const inv = state.investments.find(i=>i.id===id);
+  if(!inv) return;
+  const l = state.lines.find(x=>x.id===inv.lineId);
+  if(l){ l.invested -= inv.amount; l.units -= inv.units; }
+  state.investments = state.investments.filter(i=>i.id!==id);
+  renderAll();
+}
+
+function renderInvestTable(){
+  const body = document.getElementById('investBody');
+  const empty = document.getElementById('investEmpty');
+  body.innerHTML = '';
+  const sorted = [...state.investments].sort((a,b)=> b.date.localeCompare(a.date));
+  if(sorted.length===0){ empty.style.display='block'; } else { empty.style.display='none'; }
+  sorted.forEach(inv=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td data-label="Date">${inv.date}</td>
+      <td data-label="Foncière">${inv.name}</td>
+      <td data-label="Montant">${fmt(inv.amount)} €</td>
+      <td data-label="Cours">${fmt(inv.price)} €</td>
+      <td data-label="Parts">${fmt(inv.units)}</td>
+      <td><button class="btn danger small" onclick="removeInvestment('${inv.id}')">✕</button></td>
+    `;
+    body.appendChild(tr);
+  });
+}
+
+function renderDivSelect(){
+  const sel = document.getElementById('divLine');
+  const current = sel.value;
+  sel.innerHTML = state.lines.map(l=>`<option value="${l.id}">${l.name}</option>`).join('');
+  if(current) sel.value = current;
+}
+
+function addDividend(){
+  const lineId = document.getElementById('divLine').value;
+  const date = document.getElementById('divDate').value || new Date().toISOString().slice(0,10);
+  const amount = Number(document.getElementById('divAmount').value)||0;
+  if(!lineId || amount<=0){ alert('Renseigne une foncière et un montant.'); return; }
+  const l = state.lines.find(x=>x.id===lineId);
+  state.dividends.push({id:uid(), date, lineId, name:l?l.name:'—', amount});
+  document.getElementById('divAmount').value = '';
+  renderAll();
+}
+
+function removeDividend(id){
+  state.dividends = state.dividends.filter(d=>d.id!==id);
+  renderAll();
+}
+
+function renderDivTable(){
+  const body = document.getElementById('divBody');
+  const empty = document.getElementById('divEmpty');
+  body.innerHTML = '';
+  const sorted = [...state.dividends].sort((a,b)=> b.date.localeCompare(a.date));
+  if(sorted.length===0){ empty.style.display='block'; } else { empty.style.display='none'; }
+  sorted.forEach(d=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td data-label="Date">${d.date}</td>
+      <td data-label="Foncière">${d.name}</td>
+      <td data-label="Montant">${fmt(d.amount)} €</td>
+      <td><button class="btn danger small" onclick="removeDividend('${d.id}')">✕</button></td>
+    `;
+    body.appendChild(tr);
+  });
+}
+
+function renderKpis(){
+  const totalInvested = state.lines.reduce((s,l)=>s+l.invested,0);
+  const totalDividends = state.dividends.reduce((s,d)=>s+d.amount,0);
+  const totalValue = state.lines.reduce((s,l)=>s+l.units*l.price,0);
+  const yoc = totalInvested>0 ? (totalDividends/totalInvested*100) : 0;
+
+  // projected annual dividend income at current allocation/prices (gross, before flat tax)
+  const projectedAnnualGross = state.lines.reduce((s,l)=> s+ l.units*l.divPerUnit, 0);
+  const projectedAnnualNet = projectedAnnualGross * 0.7; // PFU 30%
+
+  const monthsElapsed = state.investments.length>0
+    ? new Set(state.investments.map(i=>i.date.slice(0,7))).size
+    : 0;
+  const remaining = Math.max(0, (state.dcaDuration||0) - monthsElapsed);
+
+  const grid = document.getElementById('kpiGrid');
+  grid.innerHTML = `
+    <div class="kpi">
+      <div class="label">Investi total</div>
+      <div class="value">${fmt(totalInvested)} €</div>
+      <div class="sub">${monthsElapsed} versement(s) effectué(s)</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Valeur portefeuille (cours actuels)</div>
+      <div class="value">${fmt(totalValue)} €</div>
+      <div class="sub">${totalValue-totalInvested>=0?'+':''}${fmt(totalValue-totalInvested)} € vs investi</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Dividendes reçus (net)</div>
+      <div class="value amber">${fmt(totalDividends)} €</div>
+      <div class="sub">rendement sur coût : ${fmt(yoc)}%</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Revenu annuel projeté</div>
+      <div class="value">${fmt(projectedAnnualNet)} €</div>
+      <div class="sub">net est. après PFU 30% (${fmt(projectedAnnualGross)} € brut)</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Plan DCA</div>
+      <div class="value ${remaining===0?'':'amber'}">${remaining} mois restants</div>
+      <div class="sub">sur ${state.dcaDuration} mois prévus</div>
+    </div>
+  `;
+}
+
+// init
+if(!state.dcaStart) state.dcaStart = new Date().toISOString().slice(0,10);
+document.getElementById('divDate').value = new Date().toISOString().slice(0,10);
+renderAll();
+</script>
+</body>
+</html>
