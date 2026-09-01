@@ -35,6 +35,7 @@
     font-size: 13px;
     display: flex;
     overflow: hidden;
+    -webkit-text-size-adjust: 100%;
   }
   
   body::before {
@@ -83,6 +84,7 @@
     flex: 1;
     overflow-y: auto;
     padding-right: 10px;
+    -webkit-overflow-scrolling: touch;
   }
   .left-scroll::-webkit-scrollbar {
     width: 6px;
@@ -310,6 +312,59 @@
 
   /* FOOTER */
   .footer { text-align: center; font-size: 9px; color: var(--text3); margin-top: 10px; letter-spacing: 0.08em; border-top: 1px solid var(--border); padding-top: 8px; flex-shrink: 0; }
+
+  /* ══════════════════ SMARTPHONE (compat mobile) ══════════════════ */
+  @media (max-width: 768px) {
+    html, body { height: auto; min-height: 100%; }
+    body {
+      flex-direction: column;
+      overflow: visible;
+      font-size: 14px;
+    }
+
+    .split-container { flex-direction: column; height: auto; }
+
+    .split-left {
+      border-right: none;
+      border-bottom: 2px solid var(--border);
+      padding: 14px;
+      overflow: visible;
+    }
+    .left-scroll {
+      overflow-y: visible;
+      padding-right: 0;
+    }
+
+    /* Espace client Red by SFR : toujours visible mais sous la config, hauteur confortable au doigt */
+    .split-right {
+      padding: 14px;
+      min-height: 480px;
+      height: 70vh;
+    }
+
+    .header { flex-wrap: wrap; gap: 8px; }
+    .header-date { text-align: left; }
+
+    /* Champs de saisie : on empile label + input pour éviter l'écrasement en largeur */
+    .row { flex-wrap: wrap; }
+    .row label { min-width: 100%; margin-bottom: 2px; }
+    .row input[type=number], .row .num-input { font-size: 16px; } /* évite le zoom auto iOS sur focus */
+
+    .consumption-row { flex-wrap: nowrap; }
+    .consumption-row label { min-width: 100%; }
+    .arrow-btn { width: 40px; height: 40px; font-size: 18px; } /* cible tactile plus grande */
+
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .equiv-cols { grid-template-columns: 1fr; gap: 18px; }
+
+    .days-left-value { font-size: 24px; }
+  }
+
+  @media (max-width: 420px) {
+    .kpi-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .kpi { padding: 10px; }
+    .header-title { font-size: 16px; }
+  }
 </style>
 </head>
 <body>
@@ -339,19 +394,19 @@
         <div class="panel-title">// Configuration</div>
         <div class="row">
           <label>Forfait total (Go)</label>
-          <input type="number" id="total" min="1" max="1000" value="300" step="1" class="num-input">
+          <input type="number" id="total" min="1" max="1000" value="300" step="1" class="num-input" inputmode="numeric">
           <span class="num-suffix">Go</span>
         </div>
         <div class="row consumption-row">
           <label style="min-width: 140px;">Consommé (Go)</label>
           <button class="arrow-btn" id="used-down" title="Diminuer de 0.1 Go">↓</button>
-          <input type="number" id="used" min="0" max="1000" value="60" step="0.1" class="num-input" title="Saisir directement au clavier">
+          <input type="number" id="used" min="0" max="1000" value="60" step="0.1" class="num-input" title="Saisir directement au clavier" inputmode="decimal">
           <button class="arrow-btn" id="used-up" title="Augmenter de 0.1 Go">↑</button>
           <span class="num-suffix">Go</span>
         </div>
         <div class="row">
           <label>Jour du mois (aujourd'hui)</label>
-          <input type="number" id="today" min="1" max="31" value="7" step="1" class="num-input">
+          <input type="number" id="today" min="1" max="31" value="7" step="1" class="num-input" inputmode="numeric">
           <button class="arrow-btn" id="today-reset" title="Revenir à aujourd'hui" style="font-size:12px;letter-spacing:0">↺</button>
         </div>
       </div>
