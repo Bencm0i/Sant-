@@ -3076,7 +3076,14 @@ let dashboardVersion = parseInt(localStorage.getItem(VERSION_KEY) || '0', 10) ||
 
 // Point d'écriture unique pour localStorage (centralise toutes les sauvegardes).
 function lsSet(key, value){
-  localStorage.setItem(key, value);
+  try{
+    localStorage.setItem(key, value);
+    return true;
+  }catch(e){
+    console.error('lsSet a échoué pour la clé', key, e);
+    alert("Stockage local plein (quota dépassé) : l'ajout/modification n'a pas pu être enregistré.\n\nCause probable : trop d'icônes personnalisées stockées en base64. Supprime quelques icônes personnalisées (remplace-les par un emoji) pour libérer de la place, puis réessaie.");
+    return false;
+  }
 }
 
 // Incrémente la version et la persiste — appelé uniquement lors de l'export d'un fichier.
@@ -5009,7 +5016,7 @@ function launcherLoad(){
   try{ launcherLinks = JSON.parse(localStorage.getItem('dashboard_launcher')||'null') || DEFAULT_LAUNCHER.map(l=>({...l})); }
   catch(e){ launcherLinks = DEFAULT_LAUNCHER.map(l=>({...l})); }
 }
-function launcherSave(){ lsSet('dashboard_launcher', JSON.stringify(launcherLinks)); }
+function launcherSave(){ return lsSet('dashboard_launcher', JSON.stringify(launcherLinks)); }
 
 function launcherRender(){
   const desktop = document.getElementById('launcherDesktop');
@@ -5195,7 +5202,7 @@ function launcherAddToStartMenu(idx){
   if(lk.noPreview) obj.noPreview = true;
   if(lk.hidden) obj.hidden = true;
   smItems.push(obj);
-  smSave();
+  if(!smSave()){ smItems.pop(); return; }
   smRenderTabs();
   smRender(document.getElementById('smSearch') ? document.getElementById('smSearch').value : '');
   launcherFlashStartMenuBtn();
@@ -5238,7 +5245,7 @@ function smLoad(){
   smItems.forEach(it => { if(!it.cat) it.cat = 'Autre'; });
   smCatLoad();
 }
-function smSave(){ lsSet('dashboard_startmenu', JSON.stringify(smItems)); }
+function smSave(){ return lsSet('dashboard_startmenu', JSON.stringify(smItems)); }
 
 function smCatLoad(){
   try{ smCategories = JSON.parse(localStorage.getItem('dashboard_startmenu_cats')||'null') || DEFAULT_SM_CATEGORIES.slice(); }
@@ -5394,7 +5401,7 @@ function smAddToDesktop(i){
   if(it.noPreview) obj.noPreview = true;
   if(it.hidden) obj.hidden = true;
   launcherLinks.push(obj);
-  launcherSave();
+  if(!launcherSave()){ launcherLinks.pop(); return; }
   launcherRender();
   smFlashDesktopBtn();
 }
@@ -5525,12 +5532,13 @@ function smSaveModal(){
   if(smModalIcon) obj.icon = smModalIcon;
   if(smModalNoPreview) obj.noPreview = true;
   if(smModalProtected) obj.hidden = true;
+  const prevItems = smItems.slice();
   if(smEditIdx === null){
     smItems.push(obj);
   } else {
     smItems[smEditIdx] = obj;
   }
-  smSave();
+  if(!smSave()){ smItems = prevItems; return; } // échec d'enregistrement : on annule et on laisse la modale ouverte
   smCloseModal();
   smRenderTabs();
   smRender(document.getElementById('smSearch').value);
@@ -5608,6 +5616,7 @@ function launcherSaveModal(){
   const name  = document.getElementById('launcherModalName').value.trim() || 'Lien';
   const emoji = launcherSelEmoji();
   if(url && !url.startsWith('http')) url = 'https://' + url;
+  const prevLinks = launcherLinks.slice();
   if(launcherEditIdx === null){
     const pos = launcherNextFreePos();
     const obj = {emoji, name, url, x:pos.x, y:pos.y};
@@ -5623,7 +5632,7 @@ function launcherSaveModal(){
     if(launcherModalProtected) obj.hidden = true;
     launcherLinks[launcherEditIdx] = obj;
   }
-  launcherSave();
+  if(!launcherSave()){ launcherLinks = prevLinks; return; } // échec d'enregistrement : on annule et on laisse la modale ouverte
   launcherCloseModal();
   launcherRender();
   pvUpdateSidebarUI();
