@@ -3081,9 +3081,90 @@ function lsSet(key, value){
     return true;
   }catch(e){
     console.error('lsSet a échoué pour la clé', key, e);
-    alert("Stockage local plein (quota dépassé) : l'ajout/modification n'a pas pu être enregistré.\n\nCause probable : trop d'icônes personnalisées stockées en base64. Supprime quelques icônes personnalisées (remplace-les par un emoji) pour libérer de la place, puis réessaie.");
+    alert("Stockage local plein (quota dépassé) : l'ajout/modification n'a pas pu être enregistré.\n\nSupprime quelques icônes personnalisées (remplace-les par un emoji) pour libérer de la place, puis réessaie.");
     return false;
   }
+}
+
+// ── ICÔNES PERSONNALISÉES (IndexedDB : même principe que le fond d'écran — quota bien plus
+// large que le localStorage, donc plus jamais de "stockage plein" à cause des icônes) ──
+const ICON_DB_NAME = 'dashboard_icons';
+const ICON_STORE = 'icons';
+const iconCache = new Map(); // iconId -> dataURL, cache mémoire pour un rendu synchrone
+
+function iconOpenDB(){
+  return new Promise((resolve, reject)=>{
+    const req = indexedDB.open(ICON_DB_NAME, 1);
+    req.onupgradeneeded = (e)=>{
+      const db = e.target.result;
+      if(!db.objectStoreNames.contains(ICON_STORE)) db.createObjectStore(ICON_STORE, { keyPath: 'id' });
+    };
+    req.onsuccess = ()=>resolve(req.result);
+    req.onerror = ()=>reject(req.error);
+  });
+}
+function iconPut(id, dataUrl){
+  return iconOpenDB().then(db=>new Promise((resolve,reject)=>{
+    const tx = db.transaction(ICON_STORE,'readwrite');
+    tx.objectStore(ICON_STORE).put({id, dataUrl});
+    tx.oncomplete = ()=>resolve();
+    tx.onerror = ()=>reject(tx.error);
+  }));
+}
+function iconGet(id){
+  return iconOpenDB().then(db=>new Promise((resolve,reject)=>{
+    const tx = db.transaction(ICON_STORE,'readonly');
+    const req = tx.objectStore(ICON_STORE).get(id);
+    req.onsuccess = ()=>resolve(req.result ? req.result.dataUrl : null);
+    req.onerror = ()=>reject(req.error);
+  }));
+}
+function iconDelete(id){
+  return iconOpenDB().then(db=>new Promise((resolve,reject)=>{
+    const tx = db.transaction(ICON_STORE,'readwrite');
+    tx.objectStore(ICON_STORE).delete(id);
+    tx.oncomplete = ()=>resolve();
+    tx.onerror = ()=>reject(tx.error);
+  }));
+}
+function iconNewId(){ return 'ic_' + Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+
+// Stocke un dataURL d'icône dans IndexedDB, met en cache, renvoie son id.
+async function iconStore(dataUrl){
+  const id = iconNewId();
+  await iconPut(id, dataUrl);
+  iconCache.set(id, dataUrl);
+  return id;
+}
+
+// Retire le champ `icon` (base64) de la version sérialisée dans localStorage quand la vraie
+// donnée vit déjà dans IndexedDB (iconId présent) — seul l'id (quelques octets) est persisté ici.
+function stripIconForStorage(obj){
+  if(obj && obj.iconId && typeof obj.icon === 'string' && obj.icon.startsWith('data:')){
+    const { icon, ...rest } = obj;
+    return rest;
+  }
+  return obj;
+}
+
+// Au chargement : migre les anciennes icônes base64 (encore dans le localStorage) vers
+// IndexedDB, et recharge en mémoire celles déjà migrées lors d'une session précédente
+// (dont seul l'iconId a été persisté). `saveFn`/`renderFn` sont rappelées si besoin.
+async function hydrateIconsAndMigrate(items, saveFn, renderFn){
+  let needsSave = false, needsRender = false;
+  for(const it of items){
+    if(!it) continue;
+    if(it.icon && typeof it.icon === 'string' && it.icon.startsWith('data:') && !it.iconId){
+      try{ it.iconId = await iconStore(it.icon); needsSave = true; }catch(e){}
+    } else if(it.iconId && !it.icon){
+      try{
+        const dataUrl = iconCache.has(it.iconId) ? iconCache.get(it.iconId) : await iconGet(it.iconId);
+        if(dataUrl){ it.icon = dataUrl; iconCache.set(it.iconId, dataUrl); needsRender = true; }
+      }catch(e){}
+    }
+  }
+  if(needsSave && saveFn) saveFn();
+  if(needsRender && renderFn) renderFn();
 }
 
 // Incrémente la version et la persiste — appelé uniquement lors de l'export d'un fichier.
@@ -3417,7 +3498,7 @@ function loadCompactLinks(){
 }
 
 function saveCompactLinks(){
-  lsSet('dashboard_compact_links', JSON.stringify(compactLinks));
+  lsSet('dashboard_compact_links', JSON.stringify(compactLinks.map(stripIconForStorage)));
 }
 
 function addCompactLink(){
@@ -3565,7 +3646,7 @@ function openEmojiCompact(e, idx){
   EMOJIS.forEach(em => {
     const btn = document.createElement('button');
     btn.textContent = em;
-    btn.onclick = () => { compactLinks[idx].emoji = em; delete compactLinks[idx].icon; saveCompactLinks(); renderCompactLinks(); picker.style.display = 'none'; };
+    btn.onclick = () => { compactLinks[idx].emoji = em; if(compactLinks[idx].iconId) iconDelete(compactLinks[idx].iconId).catch(()=>{}); delete compactLinks[idx].icon; delete compactLinks[idx].iconId; saveCompactLinks(); renderCompactLinks(); picker.style.display = 'none'; };
     picker.appendChild(btn);
   });
 
@@ -3589,7 +3670,9 @@ function openEmojiCompact(e, idx){
     ev.stopPropagation();
     const fav = faviconUrlFor(compactLinks[idx] && compactLinks[idx].url);
     if(!fav){ alert("Renseigne d'abord une URL pour ce lien."); return; }
+    if(compactLinks[idx].iconId) iconDelete(compactLinks[idx].iconId).catch(()=>{});
     compactLinks[idx].icon = fav;
+    delete compactLinks[idx].iconId;
     saveCompactLinks();
     renderCompactLinks();
     picker.style.display = 'none';
@@ -3602,7 +3685,9 @@ function openEmojiCompact(e, idx){
     rmBtn.textContent = "✕ Retirer l'icône personnalisée";
     rmBtn.onclick = (ev) => {
       ev.stopPropagation();
+      if(compactLinks[idx].iconId) iconDelete(compactLinks[idx].iconId).catch(()=>{});
       delete compactLinks[idx].icon;
+      delete compactLinks[idx].iconId;
       saveCompactLinks();
       renderCompactLinks();
       picker.style.display = 'none';
@@ -3724,9 +3809,10 @@ function handleCustomIconFile(input){
   input.value = '';
   if(!file || customIconTargetIdx === null) return;
   const idx = customIconTargetIdx;
-  resizeIconFile(file, 64).then(dataUrl => {
+  resizeIconFile(file, 64).then(async dataUrl => {
     if(compactLinks[idx]){
       compactLinks[idx].icon = dataUrl;
+      compactLinks[idx].iconId = await iconStore(dataUrl);
       saveCompactLinks();
       renderCompactLinks();
     }
@@ -4518,13 +4604,16 @@ function initApp(){
   loadCompactLinks();
   clLoadHits();
   renderCompactLinks();
+  hydrateIconsAndMigrate(compactLinks, saveCompactLinks, renderCompactLinks);
   // confidentialité (mot de passe raccourcis masqués)
   pvLoad();
   // launcher
   launcherLoad();
   launcherRender();
+  hydrateIconsAndMigrate(launcherLinks, launcherSave, launcherRender);
   // menu démarrer
   smLoad();
+  hydrateIconsAndMigrate(smItems, smSave, () => smRender(document.getElementById('smSearch') ? document.getElementById('smSearch').value : ''));
   pvUpdateSidebarUI();
   // clock color
   applyClockColor();
@@ -5016,7 +5105,7 @@ function launcherLoad(){
   try{ launcherLinks = JSON.parse(localStorage.getItem('dashboard_launcher')||'null') || DEFAULT_LAUNCHER.map(l=>({...l})); }
   catch(e){ launcherLinks = DEFAULT_LAUNCHER.map(l=>({...l})); }
 }
-function launcherSave(){ return lsSet('dashboard_launcher', JSON.stringify(launcherLinks)); }
+function launcherSave(){ return lsSet('dashboard_launcher', JSON.stringify(launcherLinks.map(stripIconForStorage))); }
 
 function launcherRender(){
   const desktop = document.getElementById('launcherDesktop');
@@ -5199,6 +5288,7 @@ function launcherAddToStartMenu(idx){
   const cat = (smActiveCat && smActiveCat !== 'Tout') ? smActiveCat : (smCategories[0] || 'Autre');
   const obj = { emoji: lk.emoji || '🔗', name: lk.name || 'Lien', url: lk.url || '', cat };
   if(lk.icon) obj.icon = lk.icon;
+  if(lk.iconId) obj.iconId = lk.iconId;
   if(lk.noPreview) obj.noPreview = true;
   if(lk.hidden) obj.hidden = true;
   smItems.push(obj);
@@ -5245,7 +5335,7 @@ function smLoad(){
   smItems.forEach(it => { if(!it.cat) it.cat = 'Autre'; });
   smCatLoad();
 }
-function smSave(){ return lsSet('dashboard_startmenu', JSON.stringify(smItems)); }
+function smSave(){ return lsSet('dashboard_startmenu', JSON.stringify(smItems.map(stripIconForStorage))); }
 
 function smCatLoad(){
   try{ smCategories = JSON.parse(localStorage.getItem('dashboard_startmenu_cats')||'null') || DEFAULT_SM_CATEGORIES.slice(); }
@@ -5398,6 +5488,7 @@ function smAddToDesktop(i){
   const pos = _lchNextFreeSpot();
   const obj = { emoji: it.emoji || '🔗', name: it.name || 'Lien', url: it.url || '', x: pos.x, y: pos.y };
   if(it.icon) obj.icon = it.icon;
+  if(it.iconId) obj.iconId = it.iconId;
   if(it.noPreview) obj.noPreview = true;
   if(it.hidden) obj.hidden = true;
   launcherLinks.push(obj);
@@ -5522,14 +5613,18 @@ function smOpenEdit(i){
   document.getElementById('smModal').classList.add('open');
 }
 function smCloseModal(){ document.getElementById('smModal').classList.remove('open'); }
-function smSaveModal(){
+async function smSaveModal(){
   let url = document.getElementById('smModalUrl').value.trim();
   const name  = document.getElementById('smModalName').value.trim() || 'Lien';
   const emoji = smSelEmoji();
   const cat   = smModalCat || 'Autre';
   if(url && !/^https?:\/\//i.test(url)) url = 'https://' + url;
   const obj = {emoji, name, url, cat};
-  if(smModalIcon) obj.icon = smModalIcon;
+  if(smModalIcon){
+    obj.icon = smModalIcon;
+    const prev = (smEditIdx !== null) ? smItems[smEditIdx] : null;
+    obj.iconId = (prev && prev.icon === smModalIcon && prev.iconId) ? prev.iconId : await iconStore(smModalIcon);
+  }
   if(smModalNoPreview) obj.noPreview = true;
   if(smModalProtected) obj.hidden = true;
   const prevItems = smItems.slice();
@@ -5611,23 +5706,28 @@ function launcherNextFreePos(){
   while(cx < bounds.maxX && cols[cx] !== undefined) cx += stepX;
   return {x: Math.min(cx, bounds.maxX), y: topY};
 }
-function launcherSaveModal(){
+async function launcherSaveModal(){
   let url  = document.getElementById('launcherModalUrl').value.trim();
   const name  = document.getElementById('launcherModalName').value.trim() || 'Lien';
   const emoji = launcherSelEmoji();
   if(url && !url.startsWith('http')) url = 'https://' + url;
   const prevLinks = launcherLinks.slice();
+  let iconId = null;
+  if(launcherModalIcon){
+    const prev = (launcherEditIdx !== null) ? launcherLinks[launcherEditIdx] : null;
+    iconId = (prev && prev.icon === launcherModalIcon && prev.iconId) ? prev.iconId : await iconStore(launcherModalIcon);
+  }
   if(launcherEditIdx === null){
     const pos = launcherNextFreePos();
     const obj = {emoji, name, url, x:pos.x, y:pos.y};
-    if(launcherModalIcon) obj.icon = launcherModalIcon;
+    if(launcherModalIcon){ obj.icon = launcherModalIcon; obj.iconId = iconId; }
     if(launcherModalNoPreview) obj.noPreview = true;
     if(launcherModalProtected) obj.hidden = true;
     launcherLinks.push(obj);
   } else {
     const lk = launcherLinks[launcherEditIdx];
     const obj = {emoji, name, url, x:lk.x, y:lk.y};
-    if(launcherModalIcon) obj.icon = launcherModalIcon;
+    if(launcherModalIcon){ obj.icon = launcherModalIcon; obj.iconId = iconId; }
     if(launcherModalNoPreview) obj.noPreview = true;
     if(launcherModalProtected) obj.hidden = true;
     launcherLinks[launcherEditIdx] = obj;
