@@ -302,6 +302,34 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
 .note-preview .wikilink:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
 .note-preview .wikilink.missing{color:#a3402f;border-style:dashed;}
 
+/* ACCORDÉON HORODATAGE */
+.accordion-toolbar{display:flex;gap:8px;margin-bottom:10px;}
+.accordion-toggle-all{
+  font-family:'IBM Plex Mono',monospace;font-size:0.7rem;font-weight:600;
+  padding:5px 10px;border-radius:6px;border:1.5px solid var(--line);background:#fff;
+  color:var(--ink-soft);cursor:pointer;transition:all .15s;
+}
+.accordion-toggle-all:hover{border-color:var(--accent);color:var(--accent);}
+.accordion-preamble{
+  margin:0 0 12px;padding:10px 14px;border-radius:8px;background:var(--paper-dim);
+  border:1.5px dashed var(--line);font-size:0.88rem;color:var(--ink-soft);
+}
+.accordion-item{
+  border:1.5px solid var(--line);border-radius:8px;margin-bottom:8px;overflow:hidden;background:#fff;
+}
+.accordion-item summary{
+  cursor:pointer;padding:9px 14px;font-family:'IBM Plex Mono',monospace;font-weight:700;
+  font-size:0.8rem;color:var(--accent);background:var(--paper-dim);list-style:none;
+  display:flex;align-items:center;gap:8px;user-select:none;
+}
+.accordion-item summary::-webkit-details-marker{display:none;}
+.accordion-item summary::before{content:'▸';display:inline-block;transition:transform .15s;flex-shrink:0;}
+.accordion-item[open] summary::before{transform:rotate(90deg);}
+.accordion-item summary:hover{color:var(--ink);}
+.accordion-body{padding:14px 16px;border-top:1.5px solid var(--line);}
+.accordion-body > *:last-child{margin-bottom:0;}
+.accordion-empty{font-family:'Lora',serif;font-style:italic;color:var(--ink-soft);font-size:0.9rem;}
+
 /* SAVE STATUS + SIDEBAR COLLAPSE */
 .save-status{font-family:'IBM Plex Mono',monospace;font-size:0.68rem;color:var(--ink-soft);white-space:nowrap;min-width:84px;}
 .tabs-col.collapsed{display:none;}
@@ -385,6 +413,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
       <span class="col-label"><span class="active-dot" id="rawDot"></span><span id="rawLabel">Texte brut</span></span>
       <div class="col-tools">
         <button id="rawPreviewBtn" onclick="togglePreview('raw')" title="Basculer entre édition et aperçu markdown">👁 Aperçu</button>
+        <button id="rawAccordionBtn" onclick="toggleAccordion('raw')" title="Regrouper le texte en accordéon, une section par horodatage">📑 Accordéon</button>
         <button onclick="insertTimestamp()" title="Insérer la date et l'heure actuelles dans le texte brut">🕒 Horodatage</button>
         <button onclick="copyRawToClipboard()" title="Copier le texte brut dans le presse-papiers">📋 Copier</button>
         <button onclick="exportTabAsMarkdown('raw')" title="Télécharger ce texte en fichier .md">⬇ .md</button>
@@ -406,6 +435,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
     </div>
     <textarea class="note-area" id="rawArea" placeholder="Écris ton texte brut ici… (markdown supporté)" oninput="onEdit('raw')"></textarea>
     <div class="note-preview" id="rawPreview" style="display:none;"></div>
+    <div class="note-preview" id="rawAccordionView" style="display:none;"></div>
     <div class="char-count" id="rawCount">0 caractère</div>
   </div>
 
@@ -414,6 +444,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
       <span class="col-label"><span class="active-dot" id="iaDot"></span>Retravaillé (IA)</span>
       <div class="col-tools">
         <button id="iaPreviewBtn" onclick="togglePreview('ia')" title="Basculer entre édition et aperçu markdown">👁 Aperçu</button>
+        <button id="iaAccordionBtn" onclick="toggleAccordion('ia')" title="Regrouper le texte en accordéon, une section par horodatage">📑 Accordéon</button>
         <button onclick="copyIAToClipboard()" title="Copier le texte IA dans le presse-papiers">📋 Copier</button>
         <button onclick="exportTabAsMarkdown('ia')" title="Télécharger ce texte en fichier .md">⬇ .md</button>
         <button onclick="copyIAToRaw()" title="Copier vers la colonne texte brut">← Brut</button>
@@ -431,6 +462,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
     </div>
     <textarea class="note-area" id="iaArea" placeholder="Colle ici le texte retravaillé par une IA… (markdown supporté)" oninput="onEdit('ia')"></textarea>
     <div class="note-preview" id="iaPreview" style="display:none;"></div>
+    <div class="note-preview" id="iaAccordionView" style="display:none;"></div>
     <div class="char-count" id="iaCount">0 caractère</div>
   </div>
 </div>
@@ -444,8 +476,8 @@ let state = { order: [], tabs: {} };
 let activeId = null;
 let saveTimer = null;
 let selectedTagKey = null;
-let rawPreviewOn = false;
-let iaPreviewOn = false;
+let rawViewMode = 'edit'; // 'edit' | 'preview' | 'accordion'
+let iaViewMode = 'edit';
 
 const TAGS = [
   { key:'traduis-eng-fr', label:'#traduis-eng-fr', prompt:'Traduis ce texte de l\'anglais vers le français :' },
@@ -890,8 +922,8 @@ function renderColumns(){
     iaDot.style.background = 'transparent';
     document.getElementById('rawCount').textContent = '0 caractère · 0 mot';
     document.getElementById('iaCount').textContent = '0 caractère · 0 mot';
-    renderPreviewState('raw');
-    renderPreviewState('ia');
+    renderViewState('raw');
+    renderViewState('ia');
     updateBreadcrumb();
     return;
   }
@@ -901,8 +933,8 @@ function renderColumns(){
   rawDot.style.background = t.color;
   iaDot.style.background = t.color;
   updateCounts();
-  renderPreviewState('raw');
-  renderPreviewState('ia');
+  renderViewState('raw');
+  renderViewState('ia');
   updateBreadcrumb();
 }
 
@@ -1079,7 +1111,7 @@ function copyRawToIA(){
   document.getElementById('iaArea').value = t.ia;
   updateCounts();
   persist();
-  renderPreviewState('ia');
+  renderViewState('ia');
   flash('iaCol');
 }
 function copyIAToRaw(){
@@ -1089,7 +1121,7 @@ function copyIAToRaw(){
   document.getElementById('rawArea').value = t.raw;
   updateCounts();
   persist();
-  renderPreviewState('raw');
+  renderViewState('raw');
   flash('rawCol');
 }
 function flash(colId){
@@ -1194,28 +1226,97 @@ function addInlineCopyButtons(container){
   });
 }
 
-function renderPreviewState(which){
+// ── DÉCOUPAGE PAR HORODATAGE (pour l'accordéon) ──────────────────────────────
+// Repère les horodatages au format inséré par insertTimestamp() : [JJ/MM/AAAA HH:MM]
+const TIMESTAMP_RE = /\[(\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2})\]/g;
+
+function parseTimestampSections(text){
+  const re = new RegExp(TIMESTAMP_RE.source, 'g');
+  const matches = [...text.matchAll(re)];
+  if(!matches.length) return null;
+  const preamble = text.slice(0, matches[0].index).trim();
+  const sections = matches.map((m, i)=>{
+    const start = m.index + m[0].length;
+    const end = i + 1 < matches.length ? matches[i + 1].index : text.length;
+    return { stamp: m[1], content: text.slice(start, end).trim() };
+  });
+  return { preamble, sections };
+}
+
+function renderAccordion(text){
+  if(!text || !text.trim()){
+    return '<p class="accordion-empty">Rien à afficher…</p>';
+  }
+  const parsed = parseTimestampSections(text);
+  if(!parsed){
+    return '<p class="accordion-empty">Aucun horodatage <code>[JJ/MM/AAAA HH:MM]</code> trouvé dans ce texte.<br>Utilise le bouton 🕒 Horodatage pour en insérer, puis reviens ici.</p>';
+  }
+  let html = '';
+  if(parsed.preamble){
+    html += '<div class="accordion-preamble">' + renderMarkdown(parsed.preamble) + '</div>';
+  }
+  html += '<div class="accordion-toolbar">'
+    + '<button type="button" class="accordion-toggle-all" data-accordion-action="open">Tout déplier</button>'
+    + '<button type="button" class="accordion-toggle-all" data-accordion-action="close">Tout replier</button>'
+    + '</div>';
+  parsed.sections.forEach((sec, idx)=>{
+    const isLast = idx === parsed.sections.length - 1;
+    html += '<details class="accordion-item"' + (isLast ? ' open' : '') + '>'
+      + '<summary>🕒 ' + escapeHtml(sec.stamp) + '</summary>'
+      + '<div class="accordion-body">' + renderMarkdown(sec.content) + '</div>'
+      + '</details>';
+  });
+  return html;
+}
+
+function handleAccordionToolbarClick(e){
+  const btn = e.target.closest('[data-accordion-action]');
+  if(!btn) return;
+  const container = btn.closest('.note-preview');
+  const open = btn.dataset.accordionAction === 'open';
+  container.querySelectorAll('.accordion-item').forEach(d => { d.open = open; });
+}
+document.getElementById('rawAccordionView').addEventListener('click', handleAccordionToolbarClick);
+document.getElementById('iaAccordionView').addEventListener('click', handleAccordionToolbarClick);
+
+// ── ÉTAT D'AFFICHAGE : édition / aperçu / accordéon ──────────────────────────
+function renderViewState(which){
   const area = document.getElementById(which==='raw' ? 'rawArea' : 'iaArea');
   const prev = document.getElementById(which==='raw' ? 'rawPreview' : 'iaPreview');
-  const btn = document.getElementById(which==='raw' ? 'rawPreviewBtn' : 'iaPreviewBtn');
-  const on = which==='raw' ? rawPreviewOn : iaPreviewOn;
-  if(on){
-    area.style.display = 'none';
-    prev.style.display = 'block';
+  const acc = document.getElementById(which==='raw' ? 'rawAccordionView' : 'iaAccordionView');
+  const previewBtn = document.getElementById(which==='raw' ? 'rawPreviewBtn' : 'iaPreviewBtn');
+  const accordionBtn = document.getElementById(which==='raw' ? 'rawAccordionBtn' : 'iaAccordionBtn');
+  const mode = which==='raw' ? rawViewMode : iaViewMode;
+
+  area.style.display = mode === 'edit' ? '' : 'none';
+  prev.style.display = mode === 'preview' ? 'block' : 'none';
+  acc.style.display = mode === 'accordion' ? 'block' : 'none';
+
+  if(mode === 'preview'){
     prev.innerHTML = renderMarkdown(area.value);
     addInlineCopyButtons(prev);
-    if(btn) btn.textContent = '✎ Éditer';
-  } else {
-    area.style.display = '';
-    prev.style.display = 'none';
-    if(btn) btn.textContent = '👁 Aperçu';
   }
+  if(mode === 'accordion'){
+    acc.innerHTML = renderAccordion(area.value);
+    addInlineCopyButtons(acc);
+  }
+
+  if(previewBtn) previewBtn.textContent = mode === 'preview' ? '✎ Éditer' : '👁 Aperçu';
+  if(accordionBtn) accordionBtn.textContent = mode === 'accordion' ? '✎ Éditer' : '📑 Accordéon';
 }
 
 function togglePreview(which){
-  if(which==='raw') rawPreviewOn = !rawPreviewOn;
-  else iaPreviewOn = !iaPreviewOn;
-  renderPreviewState(which);
+  const cur = which==='raw' ? rawViewMode : iaViewMode;
+  const next = cur === 'preview' ? 'edit' : 'preview';
+  if(which==='raw') rawViewMode = next; else iaViewMode = next;
+  renderViewState(which);
+}
+
+function toggleAccordion(which){
+  const cur = which==='raw' ? rawViewMode : iaViewMode;
+  const next = cur === 'accordion' ? 'edit' : 'accordion';
+  if(which==='raw') rawViewMode = next; else iaViewMode = next;
+  renderViewState(which);
 }
 
 function handlePreviewLinkClick(e){
@@ -1239,6 +1340,8 @@ function handlePreviewLinkClick(e){
 }
 document.getElementById('rawPreview').addEventListener('click', handlePreviewLinkClick);
 document.getElementById('iaPreview').addEventListener('click', handlePreviewLinkClick);
+document.getElementById('rawAccordionView').addEventListener('click', handlePreviewLinkClick);
+document.getElementById('iaAccordionView').addEventListener('click', handlePreviewLinkClick);
 
 // ── BARRE D'OUTILS MARKDOWN ─────────────────────────────────────────────────
 function mdWrap(areaId, before, after, placeholder){
