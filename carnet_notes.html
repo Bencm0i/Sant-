@@ -177,6 +177,10 @@ input[type=file]{display:none;}
 }
 .tab-row:hover .tab-del{opacity:0.55;}
 .tab-del:hover{opacity:1 !important;color:#a3402f;}
+.tab-task-dot{
+  width:7px;height:7px;border-radius:50%;background:#b5573f;flex-shrink:0;
+  border:1.5px solid #fff;box-shadow:0 0 0 1px rgba(43,38,32,0.15);
+}
 .tab-match-badge{
   font-family:'IBM Plex Mono',monospace;font-size:0.62rem;color:#fff;background:var(--accent);
   border-radius:999px;padding:1px 6px;flex-shrink:0;
@@ -210,6 +214,19 @@ input[type=file]{display:none;}
 }
 .tag-bubble:hover{border-color:var(--accent);color:var(--accent);}
 .tag-bubble.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+.tag-bubble.filtering{box-shadow:0 0 0 2px var(--accent) inset;font-weight:700;}
+.tag-filter-banner{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:7px 11px;margin:8px 10px 2px;border-radius:8px;
+  background:#fff;border:1.5px solid var(--accent);
+  font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--ink);
+}
+.tag-filter-banner span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tag-filter-banner button{
+  background:transparent;border:none;color:var(--accent);cursor:pointer;
+  font-weight:700;font-size:0.78rem;flex-shrink:0;padding:0 0 0 6px;
+}
+.tag-filter-banner button:hover{opacity:0.7;}
 .add-tab-wrap{padding:10px 12px 14px;}
 .add-tab-btn{
   width:100%;font-family:'IBM Plex Mono',monospace;font-size:0.78rem;font-weight:600;
@@ -277,6 +294,17 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
 .note-preview li:has(>input[type=checkbox]){list-style:none;margin-left:-1.4em;}
 .note-preview input[type=checkbox]{margin-right:6px;accent-color:var(--accent);cursor:pointer;width:14px;height:14px;vertical-align:middle;}
 .note-preview li:has(>input[type=checkbox]:checked){opacity:0.6;text-decoration:line-through;}
+.task-counter{
+  display:flex;align-items:center;gap:9px;margin:0 0 8px;
+  font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:var(--ink-soft);
+}
+.task-counter-label{font-weight:700;color:var(--ink);white-space:nowrap;}
+.task-counter-bar{
+  flex:1;max-width:180px;height:6px;border-radius:999px;
+  background:var(--paper-dim);border:1px solid var(--line);overflow:hidden;
+}
+.task-counter-fill{height:100%;background:var(--accent);border-radius:999px;transition:width .2s ease;}
+.task-counter-fill.done{background:#5c6b3f;}
 .note-preview blockquote{border-left:3px solid var(--accent);padding:2px 14px;margin:0 0 0.85em;color:var(--ink-soft);font-style:italic;}
 .note-preview code{font-family:'IBM Plex Mono',monospace;background:var(--paper-dim);border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:0.85em;}
 .note-preview pre{background:var(--paper-dim);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow-x:auto;margin:0 0 0.85em;}
@@ -427,6 +455,10 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
 
 <div class="layout">
   <div class="tabs-col">
+    <div class="tag-filter-banner" id="tagFilterBanner" style="display:none;">
+      <span id="tagFilterBannerText"></span>
+      <button onclick="clearTagFilter()" title="Retirer le filtre">✕</button>
+    </div>
     <div class="tabs-list" id="tabsList"></div>
     <div class="add-tab-wrap">
       <button class="add-tab-btn" onclick="addTab()">＋ Nouvel onglet</button>
@@ -501,6 +533,7 @@ let state = { order: [], tabs: {} };
 let activeId = null;
 let saveTimer = null;
 let selectedTagKey = null;
+let activeTagFilter = null;
 let rawViewMode = 'edit'; // 'edit' | 'preview' | 'accordion'
 let iaViewMode = 'edit';
 const MOBILE_COL_KEY = 'carnet_notes_mobile_col';
@@ -843,13 +876,18 @@ function renderTabs(){
   const list = document.getElementById('tabsList');
   const q = document.getElementById('searchInput').value.trim().toLowerCase();
   list.innerHTML = '';
+  renderTagFilterBanner();
   if(state.order.length === 0){
     list.innerHTML = '<div class="empty-tabs">Aucun onglet.<br>Crée-en un pour commencer.</div>';
     return;
   }
   const { matches, visible } = getSearchVisibility(q);
+  const tagFilterVisibility = activeTagFilter ? getTagVisibility(activeTagFilter) : null;
   let visibleCount = 0;
+  let renderedCount = 0;
   computeDisplayOrder().forEach(({id, depth})=>{
+    if(tagFilterVisibility && !tagFilterVisibility.visible.has(id)) return;
+    renderedCount++;
     const t = state.tabs[id];
     const isMatch = matches.has(id);
     const dim = q && !visible.has(id);
@@ -918,6 +956,14 @@ function renderTabs(){
       mainRow.appendChild(badge);
     }
 
+    const taskStats = getTabTaskStats(t);
+    if(taskStats.total > 0 && taskStats.done < taskStats.total){
+      const dot = document.createElement('span');
+      dot.className = 'tab-task-dot';
+      dot.title = (taskStats.total - taskStats.done) + ' tâche(s) non cochée(s) sur ' + taskStats.total;
+      mainRow.appendChild(dot);
+    }
+
     const del = document.createElement('button');
     del.className = 'tab-del';
     del.textContent = '✕';
@@ -936,8 +982,35 @@ function renderTabs(){
     list.appendChild(row);
   });
 
+  if(tagFilterVisibility && renderedCount === 0){
+    const tag = TAGS.find(t=>t.key===activeTagFilter);
+    const msg = document.createElement('div');
+    msg.className = 'empty-tabs';
+    msg.textContent = 'Aucun onglet ne contient ' + (tag ? tag.label : 'ce tag') + ' pour le moment.';
+    list.appendChild(msg);
+  }
+
   const countEl = document.getElementById('searchCount');
   countEl.textContent = q ? (visibleCount + ' résultat' + (visibleCount!==1?'s':'')) : '';
+}
+
+// ── COMPTAGE DES TÂCHES (cases à cocher) ─────────────────────────────────────
+function countTasks(text){
+  if(!text) return { total:0, done:0 };
+  let total = 0, done = 0;
+  const re = new RegExp(CHECKBOX_RE.source, 'gm');
+  let m;
+  while((m = re.exec(text))){
+    total++;
+    if(m[2].toLowerCase() === 'x') done++;
+  }
+  return { total, done };
+}
+
+function getTabTaskStats(t){
+  const raw = countTasks(t.raw);
+  const ia = countTasks(t.ia);
+  return { total: raw.total + ia.total, done: raw.done + ia.done };
 }
 
 function findContext(text, q, wordsAround){
@@ -1083,12 +1156,18 @@ function renderTagsBar(){
   bar.innerHTML = '';
   TAGS.forEach(tag=>{
     const b = document.createElement('button');
-    b.className = 'tag-bubble' + (selectedTagKey===tag.key ? ' active' : '');
+    b.className = 'tag-bubble'
+      + (selectedTagKey===tag.key ? ' active' : '')
+      + (activeTagFilter===tag.key ? ' filtering' : '');
     b.textContent = tag.label;
-    b.title = tag.prompt;
-    b.onclick = ()=> toggleTag(tag.key);
+    b.title = 'Clique pour filtrer les onglets qui contiennent ' + tag.label + ' · Ctrl+clic (⌘+clic) pour l\'insérer et le préparer pour l\'IA : ' + tag.prompt;
+    b.onclick = (e)=>{
+      if(e.ctrlKey || e.metaKey) toggleTag(tag.key);
+      else toggleTagFilter(tag.key);
+    };
     bar.appendChild(b);
   });
+  renderTagFilterBanner();
 }
 
 function toggleTag(key){
@@ -1099,6 +1178,53 @@ function toggleTag(key){
   if(!wasSelected && tag){
     insertTagText(tag.label);
   }
+}
+
+// ── FILTRE DES ONGLETS PAR TAG ───────────────────────────────────────────────
+function toggleTagFilter(key){
+  activeTagFilter = (activeTagFilter === key) ? null : key;
+  renderTagsBar();
+  renderTabs();
+}
+
+function clearTagFilter(){
+  if(!activeTagFilter) return;
+  activeTagFilter = null;
+  renderTagsBar();
+  renderTabs();
+}
+
+function renderTagFilterBanner(){
+  const banner = document.getElementById('tagFilterBanner');
+  const text = document.getElementById('tagFilterBannerText');
+  if(!banner || !text) return;
+  const tag = activeTagFilter ? TAGS.find(t=>t.key===activeTagFilter) : null;
+  if(!tag){ banner.style.display = 'none'; return; }
+  banner.style.display = 'flex';
+  text.textContent = 'Filtré : ' + tag.label;
+}
+
+function getTagVisibility(tagKey){
+  const matches = new Set();
+  const tag = TAGS.find(t=>t.key===tagKey);
+  if(tag){
+    const needle = tag.label.toLowerCase();
+    state.order.forEach(id=>{
+      const t = state.tabs[id];
+      if(!t) return;
+      const hay = ((t.name||'')+' '+(t.raw||'')+' '+(t.ia||'')).toLowerCase();
+      if(hay.includes(needle)) matches.add(id);
+    });
+  }
+  const visible = new Set(matches);
+  matches.forEach(id=>{
+    let cur = state.tabs[id];
+    while(cur && cur.parentId && state.tabs[cur.parentId]){
+      visible.add(cur.parentId);
+      cur = state.tabs[cur.parentId];
+    }
+  });
+  return { matches, visible };
 }
 
 function insertTagText(label){
@@ -1330,6 +1456,40 @@ function toggleCheckboxAt(which, index){
   area.value = newValue;
   onEdit(which);
   renderViewState(which);
+  renderTabs();
+}
+
+// ── COMPTEUR DE TÂCHES + BARRE DE PROGRESSION (aperçu markdown) ──────────────
+// Pour chaque liste contenant des cases à cocher, insère juste au-dessus un
+// résumé "x/y fait" avec une barre de progression.
+function addTaskCounters(container){
+  const lists = container.querySelectorAll('ul, ol');
+  lists.forEach(list=>{
+    const boxes = Array.from(list.children)
+      .filter(li=>li.tagName==='LI')
+      .map(li=>li.querySelector(':scope > input[type="checkbox"]'))
+      .filter(Boolean);
+    if(!boxes.length) return;
+    const total = boxes.length;
+    const done = boxes.filter(b=>b.checked).length;
+    const pct = total ? Math.round((done/total)*100) : 0;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'task-counter';
+    const label = document.createElement('span');
+    label.className = 'task-counter-label';
+    label.textContent = done + '/' + total + ' fait';
+    const bar = document.createElement('div');
+    bar.className = 'task-counter-bar';
+    const fill = document.createElement('div');
+    fill.className = 'task-counter-fill' + (done===total ? ' done' : '');
+    fill.style.width = pct + '%';
+    bar.appendChild(fill);
+    wrap.appendChild(label);
+    wrap.appendChild(bar);
+
+    list.parentNode.insertBefore(wrap, list);
+  });
 }
 
 function addInlineCopyButtons(container){
@@ -1428,11 +1588,13 @@ function renderViewState(which){
     prev.innerHTML = renderMarkdown(area.value);
     addInlineCopyButtons(prev);
     wireCheckboxes(prev, which);
+    addTaskCounters(prev);
   }
   if(mode === 'accordion'){
     acc.innerHTML = renderAccordion(area.value);
     addInlineCopyButtons(acc);
     wireCheckboxes(acc, which);
+    addTaskCounters(acc);
   }
 
   if(previewBtn) previewBtn.textContent = mode === 'preview' ? '✎ Éditer' : '👁 Aperçu';
