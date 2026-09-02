@@ -177,14 +177,22 @@ input[type=file]{display:none;}
 }
 .tab-row:hover .tab-del{opacity:0.55;}
 .tab-del:hover{opacity:1 !important;color:#a3402f;}
-.tab-task-dot{
-  width:7px;height:7px;border-radius:50%;background:#b5573f;flex-shrink:0;
-  border:1.5px solid #fff;box-shadow:0 0 0 1px rgba(43,38,32,0.15);
-}
 .tab-match-badge{
   font-family:'IBM Plex Mono',monospace;font-size:0.62rem;color:#fff;background:var(--accent);
   border-radius:999px;padding:1px 6px;flex-shrink:0;
 }
+.tab-task-badge{
+  font-family:'IBM Plex Mono',monospace;font-size:0.62rem;color:var(--ink-soft);
+  background:var(--paper-dim);border:1.5px solid var(--line);border-radius:999px;
+  padding:1px 6px;flex-shrink:0;
+}
+.tab-task-badge.done{color:#4a7a4a;border-color:#4a7a4a;}
+.tab-dup{
+  background:transparent;border:none;cursor:pointer;opacity:0;font-size:0.8rem;
+  color:var(--ink-soft);flex-shrink:0;padding:2px 4px;transition:opacity .12s;
+}
+.tab-row:hover .tab-dup{opacity:0.55;}
+.tab-dup:hover{opacity:1 !important;color:var(--accent);}
 .tab-main-row{display:flex;align-items:center;gap:8px;min-width:0;}
 .tab-snippet{
   font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--ink-soft);
@@ -214,19 +222,6 @@ input[type=file]{display:none;}
 }
 .tag-bubble:hover{border-color:var(--accent);color:var(--accent);}
 .tag-bubble.active{background:var(--accent);border-color:var(--accent);color:#fff;}
-.tag-bubble.filtering{box-shadow:0 0 0 2px var(--accent) inset;font-weight:700;}
-.tag-filter-banner{
-  display:flex;align-items:center;justify-content:space-between;gap:8px;
-  padding:7px 11px;margin:8px 10px 2px;border-radius:8px;
-  background:#fff;border:1.5px solid var(--accent);
-  font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--ink);
-}
-.tag-filter-banner span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.tag-filter-banner button{
-  background:transparent;border:none;color:var(--accent);cursor:pointer;
-  font-weight:700;font-size:0.78rem;flex-shrink:0;padding:0 0 0 6px;
-}
-.tag-filter-banner button:hover{opacity:0.7;}
 .add-tab-wrap{padding:10px 12px 14px;}
 .add-tab-btn{
   width:100%;font-family:'IBM Plex Mono',monospace;font-size:0.78rem;font-weight:600;
@@ -236,17 +231,44 @@ input[type=file]{display:none;}
 .add-tab-btn:hover{border-color:var(--accent);color:var(--accent);border-style:solid;}
 .empty-tabs{padding:24px 16px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:0.75rem;color:var(--ink-soft);}
 
+/* FILTRE PAR TAG DE CONTENU (#hashtags trouvés dans les notes) */
+.content-tags-bar{
+  display:flex;flex-wrap:wrap;gap:5px;padding:10px 12px;
+  border-bottom:1.5px solid var(--line);flex-shrink:0;
+}
+.content-tag-chip{
+  font-family:'IBM Plex Mono',monospace;font-size:0.66rem;font-weight:600;
+  padding:3px 9px;border-radius:999px;border:1.5px solid var(--line);
+  background:#fff;color:var(--ink-soft);cursor:pointer;transition:all .15s;
+}
+.content-tag-chip:hover{border-color:var(--accent);color:var(--accent);}
+.content-tag-chip.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+
+/* RECHERCHE / REMPLACEMENT DANS LE TEXTE */
+.find-bar{
+  display:flex;align-items:center;gap:6px;padding:8px 16px;flex-wrap:wrap;
+  border-bottom:1.5px solid var(--line);background:var(--paper-dim);flex-shrink:0;
+}
+.find-bar input{
+  font-family:'IBM Plex Mono',monospace;font-size:0.76rem;
+  padding:5px 9px;border-radius:6px;border:1.5px solid var(--line);
+  background:#fff;color:var(--ink);outline:none;min-width:120px;flex:1;
+}
+.find-bar input:focus{border-color:var(--accent);}
+.find-bar button{
+  font-family:'IBM Plex Mono',monospace;font-size:0.68rem;font-weight:600;
+  padding:5px 8px;border-radius:6px;border:1.5px solid var(--line);background:#fff;
+  color:var(--ink-soft);cursor:pointer;transition:all .15s;flex-shrink:0;
+}
+.find-bar button:hover{border-color:var(--accent);color:var(--accent);}
+.find-count{
+  font-family:'IBM Plex Mono',monospace;font-size:0.66rem;color:var(--ink-soft);
+  flex-shrink:0;min-width:70px;
+}
+
 /* TEXT COLUMNS */
 .text-col{flex:1;display:flex;flex-direction:column;min-width:0;border-right:1.5px solid var(--line);}
 .text-col:last-child{border-right:none;}
-#rawCol{
-  background:
-    repeating-linear-gradient(to right, rgba(47,93,98,0.16) 0, rgba(47,93,98,0.16) 1px, transparent 1px, transparent 50px),
-    repeating-linear-gradient(to bottom, rgba(47,93,98,0.16) 0, rgba(47,93,98,0.16) 1px, transparent 1px, transparent 50px),
-    repeating-linear-gradient(to right, rgba(47,93,98,0.09) 0, rgba(47,93,98,0.09) 1px, transparent 1px, transparent 10px),
-    repeating-linear-gradient(to bottom, rgba(47,93,98,0.09) 0, rgba(47,93,98,0.09) 1px, transparent 1px, transparent 10px),
-    var(--paper);
-}
 .col-head{
   display:flex;align-items:center;justify-content:space-between;gap:10px;
   padding:11px 16px;border-bottom:1.5px solid var(--line);flex-shrink:0;
@@ -266,7 +288,7 @@ textarea.note-area{
   padding:18px 20px;color:var(--ink);background:transparent;
   transition:background .15s;
 }
-textarea.note-area:focus{background:rgba(255,252,235,0.55);box-shadow:inset 0 0 0 2px var(--accent);}
+textarea.note-area:focus{background:#fffceb;box-shadow:inset 0 0 0 2px var(--accent);}
 textarea.note-area::placeholder{color:#b0a695;}
 .char-count{
   padding:6px 16px;font-family:'IBM Plex Mono',monospace;font-size:0.65rem;
@@ -302,17 +324,6 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
 .note-preview li:has(>input[type=checkbox]){list-style:none;margin-left:-1.4em;}
 .note-preview input[type=checkbox]{margin-right:6px;accent-color:var(--accent);cursor:pointer;width:14px;height:14px;vertical-align:middle;}
 .note-preview li:has(>input[type=checkbox]:checked){opacity:0.6;text-decoration:line-through;}
-.task-counter{
-  display:flex;align-items:center;gap:9px;margin:0 0 8px;
-  font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:var(--ink-soft);
-}
-.task-counter-label{font-weight:700;color:var(--ink);white-space:nowrap;}
-.task-counter-bar{
-  flex:1;max-width:180px;height:6px;border-radius:999px;
-  background:var(--paper-dim);border:1px solid var(--line);overflow:hidden;
-}
-.task-counter-fill{height:100%;background:var(--accent);border-radius:999px;transition:width .2s ease;}
-.task-counter-fill.done{background:#5c6b3f;}
 .note-preview blockquote{border-left:3px solid var(--accent);padding:2px 14px;margin:0 0 0.85em;color:var(--ink-soft);font-style:italic;}
 .note-preview code{font-family:'IBM Plex Mono',monospace;background:var(--paper-dim);border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:0.85em;}
 .note-preview pre{background:var(--paper-dim);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow-x:auto;margin:0 0 0.85em;}
@@ -443,6 +454,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
       <li><code>Alt+E</code><span>Basculer Aperçu/Édition (colonne active)</span></li>
       <li><code>Ctrl+B</code><span>Gras</span></li>
       <li><code>Ctrl+I</code><span>Italique</span></li>
+      <li><code>Ctrl+F</code><span>Rechercher / remplacer dans la colonne active</span></li>
       <li><code>Tab</code> / <code>Shift+Tab</code><span>Indenter / désindenter</span></li>
       <li><code>Ctrl+clic</code><span>Suivre/créer un <code>[[lien]]</code></span></li>
       <li><code>?</code><span>Afficher cette aide</span></li>
@@ -463,10 +475,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
 
 <div class="layout">
   <div class="tabs-col">
-    <div class="tag-filter-banner" id="tagFilterBanner" style="display:none;">
-      <span id="tagFilterBannerText"></span>
-      <button onclick="clearTagFilter()" title="Retirer le filtre">✕</button>
-    </div>
+    <div class="content-tags-bar" id="contentTagsBar" style="display:none;"></div>
     <div class="tabs-list" id="tabsList"></div>
     <div class="add-tab-wrap">
       <button class="add-tab-btn" onclick="addTab()">＋ Nouvel onglet</button>
@@ -477,6 +486,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
     <div class="col-head">
       <span class="col-label"><span class="active-dot" id="rawDot"></span><span id="rawLabel">Texte brut</span></span>
       <div class="col-tools">
+        <button id="rawFindBtn" onclick="toggleFindBar('raw')" title="Rechercher / remplacer dans ce texte">🔍 Chercher</button>
         <button id="rawPreviewBtn" onclick="togglePreview('raw')" title="Basculer entre édition et aperçu markdown">👁 Aperçu</button>
         <button id="rawAccordionBtn" onclick="toggleAccordion('raw')" title="Regrouper le texte en accordéon, une section par horodatage">📑 Accordéon</button>
         <button onclick="insertTimestamp()" title="Insérer la date et l'heure actuelles dans le texte brut">🕒 Horodatage</button>
@@ -486,6 +496,16 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
         <button class="ai-link chatgpt" onclick="sendToAI('chatgpt')" title="Copier le texte (+ tag choisi) et ouvrir ChatGPT"><span class="dot"></span>ChatGPT ↗</button>
         <button class="ai-link claude" onclick="sendToAI('claude')" title="Copier le texte (+ tag choisi) et ouvrir Claude"><span class="dot"></span>Claude ↗</button>
       </div>
+    </div>
+    <div class="find-bar" id="rawFindBar" style="display:none;">
+      <input type="text" id="rawFindInput" placeholder="Rechercher…" oninput="findInArea('raw')" onkeydown="findBarKeydown(event,'raw')">
+      <span class="find-count" id="rawFindCount"></span>
+      <button onclick="findPrev('raw')" title="Occurrence précédente">↑</button>
+      <button onclick="findNext('raw')" title="Occurrence suivante">↓</button>
+      <input type="text" id="rawReplaceInput" placeholder="Remplacer par…" onkeydown="findBarKeydown(event,'raw')">
+      <button onclick="replaceOne('raw')">Remplacer</button>
+      <button onclick="replaceAll('raw')">Tout remplacer</button>
+      <button onclick="closeFindBar('raw')" title="Fermer">✕</button>
     </div>
     <div class="tags-bar" id="tagsBar"></div>
     <div class="md-toolbar">
@@ -508,12 +528,23 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
     <div class="col-head">
       <span class="col-label"><span class="active-dot" id="iaDot"></span>Retravaillé (IA)</span>
       <div class="col-tools">
+        <button id="iaFindBtn" onclick="toggleFindBar('ia')" title="Rechercher / remplacer dans ce texte">🔍 Chercher</button>
         <button id="iaPreviewBtn" onclick="togglePreview('ia')" title="Basculer entre édition et aperçu markdown">👁 Aperçu</button>
         <button id="iaAccordionBtn" onclick="toggleAccordion('ia')" title="Regrouper le texte en accordéon, une section par horodatage">📑 Accordéon</button>
         <button onclick="copyIAToClipboard()" title="Copier le texte IA dans le presse-papiers">📋 Copier</button>
         <button onclick="exportTabAsMarkdown('ia')" title="Télécharger ce texte en fichier .md">⬇ .md</button>
         <button onclick="copyIAToRaw()" title="Copier vers la colonne texte brut">← Brut</button>
       </div>
+    </div>
+    <div class="find-bar" id="iaFindBar" style="display:none;">
+      <input type="text" id="iaFindInput" placeholder="Rechercher…" oninput="findInArea('ia')" onkeydown="findBarKeydown(event,'ia')">
+      <span class="find-count" id="iaFindCount"></span>
+      <button onclick="findPrev('ia')" title="Occurrence précédente">↑</button>
+      <button onclick="findNext('ia')" title="Occurrence suivante">↓</button>
+      <input type="text" id="iaReplaceInput" placeholder="Remplacer par…" onkeydown="findBarKeydown(event,'ia')">
+      <button onclick="replaceOne('ia')">Remplacer</button>
+      <button onclick="replaceAll('ia')">Tout remplacer</button>
+      <button onclick="closeFindBar('ia')" title="Fermer">✕</button>
     </div>
     <div class="md-toolbar">
       <button class="md-btn" onclick="mdWrap('iaArea','**','**','gras')" title="Gras (Ctrl+B)"><b>B</b></button>
@@ -541,7 +572,6 @@ let state = { order: [], tabs: {} };
 let activeId = null;
 let saveTimer = null;
 let selectedTagKey = null;
-let activeTagFilter = null;
 let rawViewMode = 'edit'; // 'edit' | 'preview' | 'accordion'
 let iaViewMode = 'edit';
 const MOBILE_COL_KEY = 'carnet_notes_mobile_col';
@@ -764,6 +794,19 @@ function deleteTab(id){
   renderColumns();
 }
 
+function duplicateTab(id){
+  const src = state.tabs[id];
+  if(!src) return;
+  const newId = uid();
+  state.tabs[newId] = { name: (src.name || 'Sans titre') + ' (copie)', color: src.color, raw: src.raw || '', ia: src.ia || '', parentId: src.parentId || null };
+  const idx = state.order.indexOf(id);
+  state.order.splice(idx + 1, 0, newId);
+  activeId = newId;
+  persist();
+  renderTabs();
+  renderColumns();
+}
+
 function selectTab(id){
   if(activeId === id) return;
   activeId = id;
@@ -833,6 +876,49 @@ function recolorTab(id, val){
   renderTabs();
 }
 
+// ── FILTRE PAR TAG DE CONTENU (#hashtags détectés dans les notes) ──────────
+let contentTagFilter = null;
+const CONTENT_TAG_RE = /#[a-zA-Z0-9À-ÿ_-]+/g;
+
+function extractContentTags(){
+  const set = new Set();
+  state.order.forEach(id=>{
+    const t = state.tabs[id];
+    if(!t) return;
+    const hay = (t.raw||'') + ' ' + (t.ia||'');
+    const found = hay.match(CONTENT_TAG_RE);
+    if(found) found.forEach(tag=> set.add(tag));
+  });
+  return [...set].sort((a,b)=> a.localeCompare(b, 'fr'));
+}
+
+function renderContentTagsBar(){
+  const bar = document.getElementById('contentTagsBar');
+  if(!bar) return;
+  const tags = extractContentTags();
+  if(!tags.length){
+    bar.style.display = 'none';
+    bar.innerHTML = '';
+    if(contentTagFilter) contentTagFilter = null;
+    return;
+  }
+  bar.style.display = 'flex';
+  bar.innerHTML = '';
+  tags.forEach(tag=>{
+    const chip = document.createElement('button');
+    chip.className = 'content-tag-chip' + (contentTagFilter===tag ? ' active' : '');
+    chip.textContent = tag;
+    chip.title = 'Filtrer les onglets contenant ' + tag;
+    chip.onclick = ()=> toggleContentTagFilter(tag);
+    bar.appendChild(chip);
+  });
+}
+
+function toggleContentTagFilter(tag){
+  contentTagFilter = (contentTagFilter === tag) ? null : tag;
+  renderTabs();
+}
+
 function getSearchVisibility(q){
   const matches = new Set();
   if(q){
@@ -883,22 +969,38 @@ let draggedTabId = null;
 function renderTabs(){
   const list = document.getElementById('tabsList');
   const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  renderContentTagsBar();
   list.innerHTML = '';
-  renderTagFilterBanner();
   if(state.order.length === 0){
     list.innerHTML = '<div class="empty-tabs">Aucun onglet.<br>Crée-en un pour commencer.</div>';
     return;
   }
-  const { matches, visible } = getSearchVisibility(q);
-  const tagFilterVisibility = activeTagFilter ? getTagVisibility(activeTagFilter) : null;
+  const searchRes = q ? getSearchVisibility(q) : null;
+  const tagRes = contentTagFilter ? getSearchVisibility(contentTagFilter.toLowerCase()) : null;
+  let matches, visible;
+  if(searchRes && tagRes){
+    matches = new Set([...searchRes.matches].filter(id=>tagRes.matches.has(id)));
+    visible = new Set(matches);
+    matches.forEach(id=>{
+      let cur = state.tabs[id];
+      while(cur && cur.parentId && state.tabs[cur.parentId]){
+        visible.add(cur.parentId);
+        cur = state.tabs[cur.parentId];
+      }
+    });
+  } else if(searchRes){
+    matches = searchRes.matches; visible = searchRes.visible;
+  } else if(tagRes){
+    matches = tagRes.matches; visible = tagRes.visible;
+  } else {
+    matches = new Set(); visible = new Set();
+  }
+  const anyFilter = !!(q || contentTagFilter);
   let visibleCount = 0;
-  let renderedCount = 0;
   computeDisplayOrder().forEach(({id, depth})=>{
-    if(tagFilterVisibility && !tagFilterVisibility.visible.has(id)) return;
-    renderedCount++;
     const t = state.tabs[id];
     const isMatch = matches.has(id);
-    const dim = q && !visible.has(id);
+    const dim = anyFilter && !visible.has(id);
     if(isMatch) visibleCount++;
 
     const row = document.createElement('div');
@@ -957,20 +1059,28 @@ function renderTabs(){
     name.onfocus = ()=>{ if(activeId!==id) selectTab(id); };
     mainRow.appendChild(name);
 
-    if(q && isMatch){
+    if(anyFilter && isMatch){
       const badge = document.createElement('span');
       badge.className = 'tab-match-badge';
       badge.textContent = '●';
       mainRow.appendChild(badge);
     }
 
-    const taskStats = getTabTaskStats(t);
-    if(taskStats.total > 0 && taskStats.done < taskStats.total){
-      const dot = document.createElement('span');
-      dot.className = 'tab-task-dot';
-      dot.title = (taskStats.total - taskStats.done) + ' tâche(s) non cochée(s) sur ' + taskStats.total;
-      mainRow.appendChild(dot);
+    const tasks = countTasks((t.raw||'') + '\n' + (t.ia||''));
+    if(tasks.total){
+      const taskBadge = document.createElement('span');
+      taskBadge.className = 'tab-task-badge' + (tasks.done===tasks.total ? ' done' : '');
+      taskBadge.textContent = tasks.done + '/' + tasks.total;
+      taskBadge.title = tasks.done + ' tâche' + (tasks.done!==1?'s':'') + ' cochée' + (tasks.done!==1?'s':'') + ' sur ' + tasks.total;
+      mainRow.appendChild(taskBadge);
     }
+
+    const dup = document.createElement('button');
+    dup.className = 'tab-dup';
+    dup.textContent = '⎘';
+    dup.title = 'Dupliquer cet onglet';
+    dup.onclick = (e)=>{ e.stopPropagation(); duplicateTab(id); };
+    mainRow.appendChild(dup);
 
     const del = document.createElement('button');
     del.className = 'tab-del';
@@ -990,35 +1100,8 @@ function renderTabs(){
     list.appendChild(row);
   });
 
-  if(tagFilterVisibility && renderedCount === 0){
-    const tag = TAGS.find(t=>t.key===activeTagFilter);
-    const msg = document.createElement('div');
-    msg.className = 'empty-tabs';
-    msg.textContent = 'Aucun onglet ne contient ' + (tag ? tag.label : 'ce tag') + ' pour le moment.';
-    list.appendChild(msg);
-  }
-
   const countEl = document.getElementById('searchCount');
-  countEl.textContent = q ? (visibleCount + ' résultat' + (visibleCount!==1?'s':'')) : '';
-}
-
-// ── COMPTAGE DES TÂCHES (cases à cocher) ─────────────────────────────────────
-function countTasks(text){
-  if(!text) return { total:0, done:0 };
-  let total = 0, done = 0;
-  const re = new RegExp(CHECKBOX_RE.source, 'gm');
-  let m;
-  while((m = re.exec(text))){
-    total++;
-    if(m[2].toLowerCase() === 'x') done++;
-  }
-  return { total, done };
-}
-
-function getTabTaskStats(t){
-  const raw = countTasks(t.raw);
-  const ia = countTasks(t.ia);
-  return { total: raw.total + ia.total, done: raw.done + ia.done };
+  countEl.textContent = anyFilter ? (visibleCount + ' résultat' + (visibleCount!==1?'s':'')) : '';
 }
 
 function findContext(text, q, wordsAround){
@@ -1097,6 +1180,8 @@ function renderColumns(){
   const iaArea = document.getElementById('iaArea');
   const rawDot = document.getElementById('rawDot');
   const iaDot = document.getElementById('iaDot');
+  closeFindBar('raw');
+  closeFindBar('ia');
 
   const t = state.tabs[activeId];
   if(!t){
@@ -1127,13 +1212,23 @@ function countWords(text){
   return trimmed ? trimmed.split(/\s+/).length : 0;
 }
 
+function countTasks(text){
+  if(!text) return { done:0, total:0 };
+  const matches = text.match(CHECKBOX_RE) || [];
+  let done = 0;
+  matches.forEach(m=>{ if(/\[[xX]\]/.test(m)) done++; });
+  return { done, total: matches.length };
+}
+
 function updateCounts(){
   const rawArea = document.getElementById('rawArea');
   const iaArea = document.getElementById('iaArea');
   const rawWords = countWords(rawArea.value);
   const iaWords = countWords(iaArea.value);
-  document.getElementById('rawCount').textContent = rawArea.value.length + ' caractère' + (rawArea.value.length!==1?'s':'') + ' · ' + rawWords + ' mot' + (rawWords!==1?'s':'');
-  document.getElementById('iaCount').textContent = iaArea.value.length + ' caractère' + (iaArea.value.length!==1?'s':'') + ' · ' + iaWords + ' mot' + (iaWords!==1?'s':'');
+  const rawTasks = countTasks(rawArea.value);
+  const iaTasks = countTasks(iaArea.value);
+  document.getElementById('rawCount').textContent = rawArea.value.length + ' caractère' + (rawArea.value.length!==1?'s':'') + ' · ' + rawWords + ' mot' + (rawWords!==1?'s':'') + (rawTasks.total ? ' · ✓ ' + rawTasks.done + '/' + rawTasks.total : '');
+  document.getElementById('iaCount').textContent = iaArea.value.length + ' caractère' + (iaArea.value.length!==1?'s':'') + ' · ' + iaWords + ' mot' + (iaWords!==1?'s':'') + (iaTasks.total ? ' · ✓ ' + iaTasks.done + '/' + iaTasks.total : '');
 }
 
 function onEdit(which){
@@ -1142,6 +1237,7 @@ function onEdit(which){
   if(which==='raw') t.raw = document.getElementById('rawArea').value;
   else t.ia = document.getElementById('iaArea').value;
   updateCounts();
+  renderContentTagsBar();
   persist();
 }
 
@@ -1164,18 +1260,12 @@ function renderTagsBar(){
   bar.innerHTML = '';
   TAGS.forEach(tag=>{
     const b = document.createElement('button');
-    b.className = 'tag-bubble'
-      + (selectedTagKey===tag.key ? ' active' : '')
-      + (activeTagFilter===tag.key ? ' filtering' : '');
+    b.className = 'tag-bubble' + (selectedTagKey===tag.key ? ' active' : '');
     b.textContent = tag.label;
-    b.title = 'Clique pour filtrer les onglets qui contiennent ' + tag.label + ' · Ctrl+clic (⌘+clic) pour l\'insérer et le préparer pour l\'IA : ' + tag.prompt;
-    b.onclick = (e)=>{
-      if(e.ctrlKey || e.metaKey) toggleTag(tag.key);
-      else toggleTagFilter(tag.key);
-    };
+    b.title = tag.prompt;
+    b.onclick = ()=> toggleTag(tag.key);
     bar.appendChild(b);
   });
-  renderTagFilterBanner();
 }
 
 function toggleTag(key){
@@ -1186,53 +1276,6 @@ function toggleTag(key){
   if(!wasSelected && tag){
     insertTagText(tag.label);
   }
-}
-
-// ── FILTRE DES ONGLETS PAR TAG ───────────────────────────────────────────────
-function toggleTagFilter(key){
-  activeTagFilter = (activeTagFilter === key) ? null : key;
-  renderTagsBar();
-  renderTabs();
-}
-
-function clearTagFilter(){
-  if(!activeTagFilter) return;
-  activeTagFilter = null;
-  renderTagsBar();
-  renderTabs();
-}
-
-function renderTagFilterBanner(){
-  const banner = document.getElementById('tagFilterBanner');
-  const text = document.getElementById('tagFilterBannerText');
-  if(!banner || !text) return;
-  const tag = activeTagFilter ? TAGS.find(t=>t.key===activeTagFilter) : null;
-  if(!tag){ banner.style.display = 'none'; return; }
-  banner.style.display = 'flex';
-  text.textContent = 'Filtré : ' + tag.label;
-}
-
-function getTagVisibility(tagKey){
-  const matches = new Set();
-  const tag = TAGS.find(t=>t.key===tagKey);
-  if(tag){
-    const needle = tag.label.toLowerCase();
-    state.order.forEach(id=>{
-      const t = state.tabs[id];
-      if(!t) return;
-      const hay = ((t.name||'')+' '+(t.raw||'')+' '+(t.ia||'')).toLowerCase();
-      if(hay.includes(needle)) matches.add(id);
-    });
-  }
-  const visible = new Set(matches);
-  matches.forEach(id=>{
-    let cur = state.tabs[id];
-    while(cur && cur.parentId && state.tabs[cur.parentId]){
-      visible.add(cur.parentId);
-      cur = state.tabs[cur.parentId];
-    }
-  });
-  return { matches, visible };
 }
 
 function insertTagText(label){
@@ -1464,40 +1507,128 @@ function toggleCheckboxAt(which, index){
   area.value = newValue;
   onEdit(which);
   renderViewState(which);
-  renderTabs();
 }
 
-// ── COMPTEUR DE TÂCHES + BARRE DE PROGRESSION (aperçu markdown) ──────────────
-// Pour chaque liste contenant des cases à cocher, insère juste au-dessus un
-// résumé "x/y fait" avec une barre de progression.
-function addTaskCounters(container){
-  const lists = container.querySelectorAll('ul, ol');
-  lists.forEach(list=>{
-    const boxes = Array.from(list.children)
-      .filter(li=>li.tagName==='LI')
-      .map(li=>li.querySelector(':scope > input[type="checkbox"]'))
-      .filter(Boolean);
-    if(!boxes.length) return;
-    const total = boxes.length;
-    const done = boxes.filter(b=>b.checked).length;
-    const pct = total ? Math.round((done/total)*100) : 0;
+// ── RECHERCHE / REMPLACEMENT DANS LE TEXTE ACTIF ────────────────────────────
+let findState = { raw: { matches: [], idx: -1 }, ia: { matches: [], idx: -1 } };
 
-    const wrap = document.createElement('div');
-    wrap.className = 'task-counter';
-    const label = document.createElement('span');
-    label.className = 'task-counter-label';
-    label.textContent = done + '/' + total + ' fait';
-    const bar = document.createElement('div');
-    bar.className = 'task-counter-bar';
-    const fill = document.createElement('div');
-    fill.className = 'task-counter-fill' + (done===total ? ' done' : '');
-    fill.style.width = pct + '%';
-    bar.appendChild(fill);
-    wrap.appendChild(label);
-    wrap.appendChild(bar);
+function escapeRegex(str){
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
-    list.parentNode.insertBefore(wrap, list);
-  });
+function toggleFindBar(which){
+  const bar = document.getElementById(which==='raw' ? 'rawFindBar' : 'iaFindBar');
+  const isHidden = !bar.style.display || bar.style.display === 'none';
+  bar.style.display = isHidden ? 'flex' : 'none';
+  if(isHidden){
+    document.getElementById(which==='raw' ? 'rawFindInput' : 'iaFindInput').focus();
+    findInArea(which);
+  } else {
+    findState[which] = { matches: [], idx: -1 };
+    document.getElementById(which==='raw' ? 'rawFindCount' : 'iaFindCount').textContent = '';
+  }
+}
+
+function closeFindBar(which){
+  document.getElementById(which==='raw' ? 'rawFindBar' : 'iaFindBar').style.display = 'none';
+  findState[which] = { matches: [], idx: -1 };
+}
+
+function findInArea(which){
+  const area = document.getElementById(which==='raw' ? 'rawArea' : 'iaArea');
+  const input = document.getElementById(which==='raw' ? 'rawFindInput' : 'iaFindInput');
+  const countEl = document.getElementById(which==='raw' ? 'rawFindCount' : 'iaFindCount');
+  const q = input.value;
+  const fs = findState[which];
+  fs.matches = [];
+  fs.idx = -1;
+  if(q){
+    const hay = area.value.toLowerCase();
+    const ql = q.toLowerCase();
+    let pos = 0;
+    while(true){
+      const i = hay.indexOf(ql, pos);
+      if(i === -1) break;
+      fs.matches.push(i);
+      pos = i + ql.length;
+    }
+  }
+  countEl.textContent = !q ? '' : (fs.matches.length ? '' : 'Aucun résultat');
+  if(fs.matches.length){
+    fs.idx = 0;
+    selectFindMatch(which);
+  }
+}
+
+function selectFindMatch(which){
+  const area = document.getElementById(which==='raw' ? 'rawArea' : 'iaArea');
+  const input = document.getElementById(which==='raw' ? 'rawFindInput' : 'iaFindInput');
+  const countEl = document.getElementById(which==='raw' ? 'rawFindCount' : 'iaFindCount');
+  const fs = findState[which];
+  if(fs.idx < 0 || !fs.matches.length) return;
+  const start = fs.matches[fs.idx];
+  const len = input.value.length;
+  area.focus();
+  area.setSelectionRange(start, start + len);
+  const before = area.value.slice(0, start);
+  const lineNum = before.split('\n').length;
+  const lineHeight = parseFloat(getComputedStyle(area).lineHeight) || 22;
+  area.scrollTop = Math.max(0, (lineNum - 4) * lineHeight);
+  countEl.textContent = (fs.idx + 1) + '/' + fs.matches.length;
+}
+
+function findNext(which){
+  const fs = findState[which];
+  if(!fs.matches.length) return;
+  fs.idx = (fs.idx + 1) % fs.matches.length;
+  selectFindMatch(which);
+}
+
+function findPrev(which){
+  const fs = findState[which];
+  if(!fs.matches.length) return;
+  fs.idx = (fs.idx - 1 + fs.matches.length) % fs.matches.length;
+  selectFindMatch(which);
+}
+
+function findBarKeydown(e, which){
+  if(e.key === 'Enter'){
+    e.preventDefault();
+    if(e.shiftKey) findPrev(which); else findNext(which);
+  } else if(e.key === 'Escape'){
+    e.preventDefault();
+    closeFindBar(which);
+  }
+}
+
+function replaceOne(which){
+  const area = document.getElementById(which==='raw' ? 'rawArea' : 'iaArea');
+  const findInput = document.getElementById(which==='raw' ? 'rawFindInput' : 'iaFindInput');
+  const replaceInput = document.getElementById(which==='raw' ? 'rawReplaceInput' : 'iaReplaceInput');
+  const fs = findState[which];
+  if(!findInput.value) return;
+  if(fs.idx < 0 || !fs.matches.length) findInArea(which);
+  if(fs.idx < 0 || !fs.matches.length) return;
+  const start = fs.matches[fs.idx];
+  const len = findInput.value.length;
+  area.value = area.value.slice(0, start) + replaceInput.value + area.value.slice(start + len);
+  onEdit(which);
+  findInArea(which);
+}
+
+function replaceAll(which){
+  const area = document.getElementById(which==='raw' ? 'rawArea' : 'iaArea');
+  const findInput = document.getElementById(which==='raw' ? 'rawFindInput' : 'iaFindInput');
+  const replaceInput = document.getElementById(which==='raw' ? 'rawReplaceInput' : 'iaReplaceInput');
+  const q = findInput.value;
+  if(!q) return;
+  const re = new RegExp(escapeRegex(q), 'gi');
+  const matches = area.value.match(re);
+  if(!matches || !matches.length) return;
+  if(!confirm('Remplacer ' + matches.length + ' occurrence' + (matches.length!==1?'s':'') + ' ?')) return;
+  area.value = area.value.replace(re, replaceInput.value);
+  onEdit(which);
+  findInArea(which);
 }
 
 function addInlineCopyButtons(container){
@@ -1596,13 +1727,11 @@ function renderViewState(which){
     prev.innerHTML = renderMarkdown(area.value);
     addInlineCopyButtons(prev);
     wireCheckboxes(prev, which);
-    addTaskCounters(prev);
   }
   if(mode === 'accordion'){
     acc.innerHTML = renderAccordion(area.value);
     addInlineCopyButtons(acc);
     wireCheckboxes(acc, which);
-    addTaskCounters(acc);
   }
 
   if(previewBtn) previewBtn.textContent = mode === 'preview' ? '✎ Éditer' : '👁 Aperçu';
@@ -1697,6 +1826,9 @@ function mdLink(areaId){
 function handleAreaKeydown(e){
   const areaId = e.target.id;
   const which = areaId==='rawArea' ? 'raw' : 'ia';
+  if((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase()==='f'){
+    e.preventDefault(); toggleFindBar(which); return;
+  }
   if((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase()==='b'){
     e.preventDefault(); mdWrap(areaId, '**', '**', 'gras'); return;
   }
