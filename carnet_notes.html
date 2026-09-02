@@ -120,6 +120,28 @@ input[type=file]{display:none;}
 .history-item button{flex-shrink:0;font-size:0.72rem;padding:6px 11px;}
 .history-empty{font-family:'Inter',sans-serif;font-size:0.85rem;color:var(--ink-soft);margin-bottom:14px;line-height:1.5;}
 
+.tags-panel-inner{max-width:440px;max-height:78vh;display:flex;flex-direction:column;}
+.tags-edit-list{overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+.tag-edit-item{
+  display:flex;flex-direction:column;gap:6px;
+  padding:9px 12px;border:1.5px solid var(--line);border-radius:8px;background:var(--paper-dim);
+}
+.tag-edit-row{display:flex;align-items:center;gap:6px;}
+.tag-edit-row input{
+  flex:1;min-width:0;font-family:'IBM Plex Mono',monospace;font-size:0.76rem;
+  padding:5px 8px;border-radius:6px;border:1.5px solid var(--line);
+  background:#fff;color:var(--ink);outline:none;
+}
+.tag-edit-row input:focus{border-color:var(--accent);}
+.tag-edit-row button{
+  flex-shrink:0;font-family:'IBM Plex Mono',monospace;font-size:0.72rem;
+  padding:5px 9px;border-radius:6px;border:1.5px solid var(--line);background:#fff;
+  color:var(--ink-soft);cursor:pointer;transition:all .15s;
+}
+.tag-edit-row button:hover{border-color:#a3402f;color:#a3402f;}
+.tag-edit-toggle{opacity:0.6;}
+.tag-edit-toggle:hover{opacity:1;}
+
 .breadcrumb-bar{
   padding:7px 16px;border-bottom:1.5px solid var(--line);flex-shrink:0;
   font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:var(--ink-soft);
@@ -286,10 +308,27 @@ textarea.note-area{
   flex:1;width:100%;border:none;outline:none;resize:none;
   font-family:'IBM Plex Mono',monospace;font-size:0.86rem;line-height:1.65;
   padding:18px 20px;color:var(--ink);background:transparent;
-  transition:background .15s;
+  transition:background-color .15s;
 }
-textarea.note-area:focus{background:#fffceb;box-shadow:inset 0 0 0 2px var(--accent);}
+textarea.note-area:focus{background-color:#fffceb;box-shadow:inset 0 0 0 2px var(--accent);}
 textarea.note-area::placeholder{color:#b0a695;}
+#rawArea{
+  background-color:var(--paper);
+  background-image:
+    repeating-linear-gradient(to bottom, rgba(47,93,98,0.10) 0, rgba(47,93,98,0.10) 1px, transparent 1px, transparent 8px),
+    repeating-linear-gradient(to right,  rgba(47,93,98,0.10) 0, rgba(47,93,98,0.10) 1px, transparent 1px, transparent 8px),
+    repeating-linear-gradient(to bottom, rgba(47,93,98,0.28) 0, rgba(47,93,98,0.28) 1px, transparent 1px, transparent 40px),
+    repeating-linear-gradient(to right,  rgba(47,93,98,0.28) 0, rgba(47,93,98,0.28) 1px, transparent 1px, transparent 40px);
+  background-attachment:local;
+}
+#rawArea:focus{
+  background-color:#fffceb;
+  background-image:
+    repeating-linear-gradient(to bottom, rgba(47,93,98,0.14) 0, rgba(47,93,98,0.14) 1px, transparent 1px, transparent 8px),
+    repeating-linear-gradient(to right,  rgba(47,93,98,0.14) 0, rgba(47,93,98,0.14) 1px, transparent 1px, transparent 8px),
+    repeating-linear-gradient(to bottom, rgba(47,93,98,0.32) 0, rgba(47,93,98,0.32) 1px, transparent 1px, transparent 40px),
+    repeating-linear-gradient(to right,  rgba(47,93,98,0.32) 0, rgba(47,93,98,0.32) 1px, transparent 1px, transparent 40px);
+}
 .char-count{
   padding:6px 16px;font-family:'IBM Plex Mono',monospace;font-size:0.65rem;
   color:var(--ink-soft);border-top:1.5px solid var(--line);flex-shrink:0;
@@ -473,6 +512,16 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
   </div>
 </div>
 
+<div class="help-panel" id="tagsPanel" style="display:none;">
+  <div class="help-panel-inner tags-panel-inner">
+    <h2>Tags IA</h2>
+    <p class="help-panel-note" style="margin-bottom:12px;">Ces tags s'insèrent dans le texte brut et servent de consigne quand tu envoies vers ChatGPT/Claude. Modifie le nom ou la consigne, ajoutes-en ou supprimes-en — c'est sauvegardé automatiquement sur cet appareil.</p>
+    <div class="tags-edit-list" id="tagsEditList"></div>
+    <button class="btn" onclick="addTagPrompt()" style="margin-bottom:10px;width:100%;justify-content:center;">＋ Ajouter un tag</button>
+    <button class="btn primary" onclick="toggleTagsPanel()">Fermer</button>
+  </div>
+</div>
+
 <div class="layout">
   <div class="tabs-col">
     <div class="content-tags-bar" id="contentTagsBar" style="display:none;"></div>
@@ -577,7 +626,8 @@ let iaViewMode = 'edit';
 const MOBILE_COL_KEY = 'carnet_notes_mobile_col';
 let mobileActiveCol = localStorage.getItem(MOBILE_COL_KEY) || 'raw'; // 'raw' | 'ia' — colonne visible en dessous de 820px
 
-const TAGS = [
+const TAGS_KEY = 'carnet_notes_tags';
+const DEFAULT_TAGS = [
   { key:'traduis-eng-fr', label:'#traduis-eng-fr', prompt:'Traduis ce texte de l\'anglais vers le français :' },
   { key:'traduis-fr-eng', label:'#traduis-fr-eng', prompt:'Traduis ce texte du français vers l\'anglais :' },
   { key:'corrige',        label:'#corrige',        prompt:'Corrige l\'orthographe et la grammaire de ce texte, sans en changer le sens :' },
@@ -585,6 +635,22 @@ const TAGS = [
   { key:'resume',         label:'#resume',         prompt:'Résume ce texte de façon concise :' },
   { key:'analyse-pro',    label:'#analyse-pro',    prompt:'Analyse ce texte de façon professionnelle et structurée :' }
 ];
+let TAGS = [];
+
+function loadTags(){
+  try{
+    const raw = localStorage.getItem(TAGS_KEY);
+    if(raw){
+      const data = JSON.parse(raw);
+      if(Array.isArray(data) && data.length){ TAGS = data; return; }
+    }
+  }catch(e){}
+  TAGS = JSON.parse(JSON.stringify(DEFAULT_TAGS));
+}
+
+function saveTags(){
+  try{ localStorage.setItem(TAGS_KEY, JSON.stringify(TAGS)); }catch(e){}
+}
 
 function uid(){ return 't_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
@@ -1266,6 +1332,89 @@ function renderTagsBar(){
     b.onclick = ()=> toggleTag(tag.key);
     bar.appendChild(b);
   });
+  const editBtn = document.createElement('button');
+  editBtn.className = 'tag-bubble tag-edit-toggle';
+  editBtn.textContent = '✎';
+  editBtn.title = 'Modifier les tags IA';
+  editBtn.onclick = ()=> toggleTagsPanel();
+  bar.appendChild(editBtn);
+}
+
+// ── ÉDITION DES TAGS IA (panneau) ───────────────────────────────────────────
+function toggleTagsPanel(){
+  const panel = document.getElementById('tagsPanel');
+  const isHidden = panel.style.display === 'none';
+  panel.style.display = isHidden ? 'flex' : 'none';
+  if(isHidden) renderTagsEditList();
+}
+
+function renderTagsEditList(){
+  const list = document.getElementById('tagsEditList');
+  list.innerHTML = '';
+  if(!TAGS.length){
+    list.innerHTML = '<p class="help-panel-note" style="margin:0;">Aucun tag. Ajoutes-en un ci-dessous.</p>';
+    return;
+  }
+  TAGS.forEach(tag=>{
+    const item = document.createElement('div');
+    item.className = 'tag-edit-item';
+
+    const row1 = document.createElement('div');
+    row1.className = 'tag-edit-row';
+    const labelInput = document.createElement('input');
+    labelInput.value = tag.label;
+    labelInput.placeholder = '#nom-du-tag';
+    labelInput.oninput = (e)=> updateTagField(tag.key, 'label', e.target.value);
+    row1.appendChild(labelInput);
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '✕';
+    delBtn.title = 'Supprimer ce tag';
+    delBtn.onclick = ()=> deleteTagPrompt(tag.key);
+    row1.appendChild(delBtn);
+    item.appendChild(row1);
+
+    const row2 = document.createElement('div');
+    row2.className = 'tag-edit-row';
+    const promptInput = document.createElement('input');
+    promptInput.value = tag.prompt;
+    promptInput.placeholder = 'Consigne envoyée avant le texte…';
+    promptInput.oninput = (e)=> updateTagField(tag.key, 'prompt', e.target.value);
+    row2.appendChild(promptInput);
+    item.appendChild(row2);
+
+    list.appendChild(item);
+  });
+}
+
+function updateTagField(key, field, value){
+  const tag = TAGS.find(t=>t.key===key);
+  if(!tag) return;
+  tag[field] = value;
+  saveTags();
+  renderTagsBar();
+}
+
+function addTagPrompt(){
+  const key = uid();
+  TAGS.push({ key, label:'#nouveau-tag', prompt:'' });
+  saveTags();
+  renderTagsEditList();
+  renderTagsBar();
+  setTimeout(()=>{
+    const inputs = document.querySelectorAll('#tagsEditList .tag-edit-item:last-child input');
+    if(inputs[0]){ inputs[0].focus(); inputs[0].select(); }
+  }, 30);
+}
+
+function deleteTagPrompt(key){
+  const tag = TAGS.find(t=>t.key===key);
+  if(!tag) return;
+  if(!confirm('Supprimer le tag "'+tag.label+'" ?')) return;
+  TAGS = TAGS.filter(t=>t.key!==key);
+  if(selectedTagKey===key) selectedTagKey = null;
+  saveTags();
+  renderTagsEditList();
+  renderTagsBar();
 }
 
 function toggleTag(key){
@@ -1933,6 +2082,7 @@ document.addEventListener('keydown', (e)=>{
 
 // INIT
 load();
+loadTags();
 if(!activeId) activeId = state.order[0] || null;
 applySavedSidebarState();
 applyMobileColView();
