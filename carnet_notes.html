@@ -275,7 +275,8 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
 .note-preview ul,.note-preview ol{margin:0 0 0.85em;padding-left:1.4em;}
 .note-preview li{margin:0.2em 0;}
 .note-preview li:has(>input[type=checkbox]){list-style:none;margin-left:-1.4em;}
-.note-preview input[type=checkbox]{margin-right:6px;accent-color:var(--accent);}
+.note-preview input[type=checkbox]{margin-right:6px;accent-color:var(--accent);cursor:pointer;width:14px;height:14px;vertical-align:middle;}
+.note-preview li:has(>input[type=checkbox]:checked){opacity:0.6;text-decoration:line-through;}
 .note-preview blockquote{border-left:3px solid var(--accent);padding:2px 14px;margin:0 0 0.85em;color:var(--ink-soft);font-style:italic;}
 .note-preview code{font-family:'IBM Plex Mono',monospace;background:var(--paper-dim);border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:0.85em;}
 .note-preview pre{background:var(--paper-dim);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow-x:auto;margin:0 0 0.85em;}
@@ -1302,6 +1303,35 @@ function renderMarkdown(text){
   return html;
 }
 
+// ── CASES À COCHER INTERACTIVES (listes de tâches) ───────────────────────────
+// Repère les items "- [ ]" / "- [x]" dans le texte source, dans l'ordre d'apparition.
+const CHECKBOX_RE = /^(\s*(?:[-*+]|\d+[.)])\s+)\[([ xX])\](?=\s|$)/gm;
+
+function wireCheckboxes(container, which){
+  const boxes = container.querySelectorAll('input[type="checkbox"]');
+  boxes.forEach((box, i)=>{
+    box.disabled = false;
+    box.addEventListener('change', ()=>{
+      toggleCheckboxAt(which, i);
+    });
+  });
+}
+
+function toggleCheckboxAt(which, index){
+  const areaId = which === 'raw' ? 'rawArea' : 'iaArea';
+  const area = document.getElementById(areaId);
+  let n = 0;
+  const newValue = area.value.replace(CHECKBOX_RE, (m, lead, mark)=>{
+    if(n++ !== index) return m;
+    const checked = mark.toLowerCase() === 'x';
+    return lead + '[' + (checked ? ' ' : 'x') + ']';
+  });
+  if(newValue === area.value) return;
+  area.value = newValue;
+  onEdit(which);
+  renderViewState(which);
+}
+
 function addInlineCopyButtons(container){
   container.querySelectorAll('code').forEach(code=>{
     if(code.closest('pre')) return; // bloc de code multi-lignes, pas concerné
@@ -1397,10 +1427,12 @@ function renderViewState(which){
   if(mode === 'preview'){
     prev.innerHTML = renderMarkdown(area.value);
     addInlineCopyButtons(prev);
+    wireCheckboxes(prev, which);
   }
   if(mode === 'accordion'){
     acc.innerHTML = renderAccordion(area.value);
     addInlineCopyButtons(acc);
+    wireCheckboxes(acc, which);
   }
 
   if(previewBtn) previewBtn.textContent = mode === 'preview' ? '✎ Éditer' : '👁 Aperçu';
