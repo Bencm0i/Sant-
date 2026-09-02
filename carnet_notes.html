@@ -428,6 +428,33 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
 
 /* SAVE STATUS + SIDEBAR COLLAPSE */
 .save-status{font-family:'IBM Plex Mono',monospace;font-size:0.68rem;color:var(--ink-soft);white-space:nowrap;min-width:84px;}
+.storage-badge{
+  font-family:'IBM Plex Mono',monospace;font-size:0.68rem;color:var(--ink-soft);
+  white-space:nowrap;background:transparent;border:1.5px solid var(--line);border-radius:999px;
+  padding:3px 10px;cursor:pointer;transition:all .15s;
+}
+.storage-badge:hover{border-color:var(--accent);color:var(--accent);}
+.storage-badge.warn{border-color:#c98a2c;color:#c98a2c;}
+.storage-badge.danger{border-color:#a3402f;color:#a3402f;}
+.storage-panel-inner{max-width:420px;}
+.storage-bar-track{
+  width:100%;height:10px;border-radius:999px;background:var(--paper-dim);
+  border:1.5px solid var(--line);overflow:hidden;margin:4px 0 6px;
+}
+.storage-bar-fill{height:100%;background:var(--accent);border-radius:999px;transition:width .2s;}
+.storage-bar-fill.warn{background:#c98a2c;}
+.storage-bar-fill.danger{background:#a3402f;}
+.storage-total-line{
+  font-family:'IBM Plex Mono',monospace;font-size:0.78rem;color:var(--ink);
+  display:flex;justify-content:space-between;margin-bottom:4px;
+}
+.storage-breakdown{list-style:none;display:flex;flex-direction:column;gap:6px;margin:14px 0;}
+.storage-breakdown li{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  font-family:'Inter',sans-serif;font-size:0.82rem;color:var(--ink-soft);
+  padding:7px 10px;border:1.5px solid var(--line);border-radius:7px;background:var(--paper-dim);
+}
+.storage-breakdown li span:last-child{font-family:'IBM Plex Mono',monospace;font-size:0.74rem;color:var(--ink);flex-shrink:0;}
 .tabs-col.collapsed{display:none;}
 
 .no-selection{
@@ -472,6 +499,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
   </div>
   <span class="search-count" id="searchCount"></span>
   <span class="save-status" id="saveStatus"></span>
+  <button class="storage-badge" id="storageBadge" onclick="toggleStoragePanel()" title="État de la mémoire de sauvegarde (localStorage)">💾 …</button>
   <div class="header-actions">
     <button class="btn" onclick="toggleSidebar()" title="Afficher/masquer la liste des onglets (Alt+S)">☰ Onglets</button>
     <button class="btn" onclick="toggleHelp()" title="Raccourcis clavier (touche ?)">⌨</button>
@@ -528,6 +556,17 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
     <div class="tags-edit-list" id="tagsEditList"></div>
     <button class="btn" onclick="addTagPrompt()" style="margin-bottom:10px;width:100%;justify-content:center;">＋ Ajouter un tag</button>
     <button class="btn primary" onclick="toggleTagsPanel()">Fermer</button>
+  </div>
+</div>
+
+<div class="help-panel" id="storagePanel" style="display:none;">
+  <div class="help-panel-inner storage-panel-inner">
+    <h2>Mémoire de sauvegarde</h2>
+    <p class="help-panel-note" style="margin-bottom:10px;">Tout est stocké en local dans ce navigateur (localStorage), sur cet appareil uniquement — rien n'est envoyé ailleurs. La limite dépend du navigateur (souvent autour de 5 Mo par site).</p>
+    <div class="storage-total-line"><span id="storageTotalLabel">…</span><span id="storageTotalPct"></span></div>
+    <div class="storage-bar-track"><div class="storage-bar-fill" id="storageBarFill" style="width:0%;"></div></div>
+    <ul class="storage-breakdown" id="storageBreakdown"></ul>
+    <button class="btn primary" onclick="toggleStoragePanel()">Fermer</button>
   </div>
 </div>
 
@@ -659,6 +698,7 @@ function loadTags(){
 
 function saveTags(){
   try{ localStorage.setItem(TAGS_KEY, JSON.stringify(TAGS)); }catch(e){}
+  updateStorageBadge();
 }
 
 function uid(){ return 't_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
@@ -688,7 +728,103 @@ function persist(){
       clearTimeout(status._fadeTimer);
       status._fadeTimer = setTimeout(()=>{ status.textContent = ''; }, 1500);
     }
+    updateStorageBadge();
   }, 250);
+}
+
+// ── ÉTAT DE LA MÉMOIRE DE SAUVEGARDE (localStorage) ─────────────────────────
+const STORAGE_QUOTA_ESTIMATE = 5 * 1024 * 1024; // ~5 Mo, quota typique par origine (indicatif, varie selon le navigateur)
+
+function formatBytes(bytes){
+  if(bytes < 1024) return bytes + ' o';
+  if(bytes < 1024*1024) return (bytes/1024).toFixed(1).replace('.0','') + ' Ko';
+  return (bytes/(1024*1024)).toFixed(2) + ' Mo';
+}
+
+function computeStorageUsage(){
+  const keys = [
+    { key: STORAGE_KEY,   label: 'Carnet de notes' },
+    { key: HISTORY_KEY,   label: 'Historique des versions' },
+    { key: TAGS_KEY,      label: 'Tags IA' },
+    { key: SIDEBAR_KEY,   label: 'Préférences d\'affichage' },
+    { key: MOBILE_COL_KEY,label: 'Préférences d\'affichage (mobile)' }
+  ];
+  let total = 0;
+  let otherTotal = 0;
+  const byKey = [];
+  keys.forEach(k=>{
+    const raw = localStorage.getItem(k.key);
+    const bytes = raw ? raw.length : 0;
+    total += bytes;
+    if(bytes) byKey.push({ label: k.label, bytes });
+  });
+  // On additionne aussi tout ce qui pourrait exister sous une autre clé (ex: écrite par un autre outil sur ce même domaine)
+  try{
+    const knownKeys = new Set(keys.map(k=>k.key));
+    for(let i=0;i<localStorage.length;i++){
+      const k = localStorage.key(i);
+      if(k && !knownKeys.has(k)){
+        const bytes = (localStorage.getItem(k)||'').length;
+        otherTotal += bytes;
+        total += bytes;
+      }
+    }
+  }catch(e){}
+  if(otherTotal) byKey.push({ label: 'Autres données du navigateur', bytes: otherTotal });
+  return { total, byKey };
+}
+
+function updateStorageBadge(){
+  const badge = document.getElementById('storageBadge');
+  if(!badge) return;
+  const { total } = computeStorageUsage();
+  const pct = Math.min(100, (total / STORAGE_QUOTA_ESTIMATE) * 100);
+  badge.textContent = '💾 ' + formatBytes(total);
+  badge.classList.remove('warn','danger');
+  if(pct >= 90) badge.classList.add('danger');
+  else if(pct >= 65) badge.classList.add('warn');
+  if(document.getElementById('storagePanel').style.display === 'flex'){
+    renderStoragePanel();
+  }
+}
+
+function toggleStoragePanel(){
+  const panel = document.getElementById('storagePanel');
+  const isHidden = panel.style.display === 'none';
+  panel.style.display = isHidden ? 'flex' : 'none';
+  if(isHidden) renderStoragePanel();
+}
+
+function renderStoragePanel(){
+  const { total, byKey } = computeStorageUsage();
+  const pct = Math.min(100, (total / STORAGE_QUOTA_ESTIMATE) * 100);
+  const totalLabel = document.getElementById('storageTotalLabel');
+  const totalPct = document.getElementById('storageTotalPct');
+  const fill = document.getElementById('storageBarFill');
+  const list = document.getElementById('storageBreakdown');
+
+  totalLabel.textContent = formatBytes(total) + ' utilisés';
+  totalPct.textContent = '≈ ' + pct.toFixed(1) + ' % de 5 Mo';
+  fill.style.width = pct + '%';
+  fill.classList.remove('warn','danger');
+  if(pct >= 90) fill.classList.add('danger');
+  else if(pct >= 65) fill.classList.add('warn');
+
+  list.innerHTML = '';
+  if(!byKey.length){
+    list.innerHTML = '<li><span>Rien de sauvegardé pour l\'instant.</span></li>';
+  } else {
+    byKey.sort((a,b)=> b.bytes - a.bytes).forEach(entry=>{
+      const li = document.createElement('li');
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = entry.label;
+      const sizeSpan = document.createElement('span');
+      sizeSpan.textContent = formatBytes(entry.bytes);
+      li.appendChild(nameSpan);
+      li.appendChild(sizeSpan);
+      list.appendChild(li);
+    });
+  }
 }
 
 // ── HISTORIQUE DES VERSIONS ───────────────────────────────────────────────
@@ -710,6 +846,7 @@ function saveHistoryList(list){
     // Quota localStorage dépassé : on réduit l'historique et on retente
     try{ localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(-8))); }catch(e2){}
   }
+  updateStorageBadge();
 }
 
 function snapshotHistory(reason, force){
@@ -2098,6 +2235,7 @@ applyMobileColView();
 renderTabs();
 renderColumns();
 renderTagsBar();
+updateStorageBadge();
 </script>
 </body>
 </html>
