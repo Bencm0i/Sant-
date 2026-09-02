@@ -1863,7 +1863,8 @@ function selectFindMatch(which){
   if(fs.idx < 0 || !fs.matches.length) return;
   const start = fs.matches[fs.idx];
   const len = input.value.length;
-  area.focus();
+  // On sélectionne le passage dans le textarea SANS lui donner le focus,
+  // pour que le champ de recherche garde la main pendant que l'utilisateur tape.
   area.setSelectionRange(start, start + len);
   const before = area.value.slice(0, start);
   const lineNum = before.split('\n').length;
