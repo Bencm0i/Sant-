@@ -339,10 +339,29 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
   font-family:'Lora',serif;font-style:italic;color:var(--ink-soft);font-size:0.95rem;padding:20px;text-align:center;
 }
 
+/* HISTORIQUE : boutons restauration totale / ciblée */
+.history-item-buttons{display:flex;flex-direction:column;gap:4px;flex-shrink:0;}
+.history-item-buttons .btn{font-size:0.68rem;padding:5px 9px;white-space:nowrap;}
+
+/* BASCULE BRUT/IA — mobile uniquement */
+.mobile-col-toggle{display:none;}
+
 @media(max-width:820px){
   .layout{flex-direction:column;overflow-y:auto;}
   .tabs-col{width:100%;max-height:220px;border-right:none;border-bottom:1.5px solid var(--line);}
   .text-col{border-right:none;border-bottom:1.5px solid var(--line);min-height:280px;}
+
+  .mobile-col-toggle{
+    display:flex;gap:6px;padding:8px 16px;border-bottom:1.5px solid var(--line);
+    flex-shrink:0;position:sticky;top:0;background:var(--paper);z-index:4;
+  }
+  .mobile-col-toggle button{
+    flex:1;font-family:'IBM Plex Mono',monospace;font-size:0.78rem;font-weight:700;
+    padding:9px;border-radius:8px;border:1.5px solid var(--line);background:#fff;
+    color:var(--ink-soft);cursor:pointer;transition:all .15s;
+  }
+  .mobile-col-toggle button.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .text-col.mobile-hidden{display:none;}
 }
 </style>
 </head>
@@ -370,6 +389,11 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
 <div class="link-hint">🔗 <code>[[Nom]]</code> + <strong>Ctrl+clic</strong> pour lier/créer un sous-onglet · 👁 <strong>Aperçu</strong> pour le rendu markdown · appuie sur <button class="link-hint-btn" onclick="toggleHelp()">⌨ ? pour tous les raccourcis</button></div>
 <div class="breadcrumb-bar" id="breadcrumbBar" style="display:none;">↳ sous-onglet de <button class="breadcrumb-link" id="breadcrumbBtn" onclick="goToParent()" title="Retourner à l'onglet parent"></button></div>
 
+<div class="mobile-col-toggle">
+  <button id="mobileColBrut" onclick="setMobileCol('raw')" title="Afficher la colonne texte brut">📝 Brut</button>
+  <button id="mobileColIA" onclick="setMobileCol('ia')" title="Afficher la colonne retravaillée par l'IA">🤖 IA</button>
+</div>
+
 <div class="help-panel" id="helpPanel" style="display:none;">
   <div class="help-panel-inner">
     <h2>Raccourcis clavier</h2>
@@ -394,7 +418,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
 <div class="help-panel" id="historyPanel" style="display:none;">
   <div class="help-panel-inner history-panel-inner">
     <h2>Historique des sauvegardes</h2>
-    <p class="help-panel-note" style="margin-bottom:12px;">Une version est enregistrée automatiquement pendant que tu travailles (et systématiquement avant une suppression ou un import). Tout reste en local sur cet appareil.</p>
+    <p class="help-panel-note" style="margin-bottom:12px;">Une version est enregistrée automatiquement pendant que tu travailles (et systématiquement avant une suppression ou un import). Tout reste en local sur cet appareil. « Tout restaurer » remplace l'intégralité du carnet ; l'autre bouton ne touche qu'à l'onglet actuellement ouvert.</p>
     <div class="history-list" id="historyList"></div>
     <button class="btn primary" onclick="toggleHistory()">Fermer</button>
   </div>
@@ -478,6 +502,8 @@ let saveTimer = null;
 let selectedTagKey = null;
 let rawViewMode = 'edit'; // 'edit' | 'preview' | 'accordion'
 let iaViewMode = 'edit';
+const MOBILE_COL_KEY = 'carnet_notes_mobile_col';
+let mobileActiveCol = localStorage.getItem(MOBILE_COL_KEY) || 'raw'; // 'raw' | 'ia' — colonne visible en dessous de 820px
 
 const TAGS = [
   { key:'traduis-eng-fr', label:'#traduis-eng-fr', prompt:'Traduis ce texte de l\'anglais vers le français :' },
@@ -570,14 +596,19 @@ function renderHistoryList(){
     el.innerHTML = '<p class="history-empty">Aucune sauvegarde antérieure pour l\'instant. Reviens un peu plus tard, le temps qu\'une première version se constitue.</p>';
     return;
   }
+  const activeTabName = (activeId && state.tabs[activeId]) ? state.tabs[activeId].name || 'Sans titre' : null;
   el.innerHTML = list.map(snap=>{
     const tabCount = snap.state && snap.state.order ? snap.state.order.length : 0;
+    const hasActiveTab = activeTabName && snap.state && snap.state.tabs && snap.state.tabs[activeId];
     return '<div class="history-item">'
       + '<div class="history-item-info">'
       + '<span class="history-item-date">' + formatHistoryDate(snap.ts) + '</span>'
       + '<span class="history-item-meta">' + tabCount + ' onglet' + (tabCount!==1?'s':'') + ' · ' + snap.reason + '</span>'
       + '</div>'
-      + '<button class="btn" onclick="restoreHistorySnapshot(' + snap.ts + ')">Restaurer</button>'
+      + '<div class="history-item-buttons">'
+      + (hasActiveTab ? '<button class="btn" onclick="restoreHistorySnapshotTabOnly(' + snap.ts + ')" title="Ne remplace que l\'onglet actif — les autres onglets ne sont pas touchés">↺ « ' + escapeHtml(activeTabName) + ' »</button>' : '')
+      + '<button class="btn" onclick="restoreHistorySnapshot(' + snap.ts + ')" title="Remplace tous les onglets par cette version">↺ Tout restaurer</button>'
+      + '</div>'
       + '</div>';
   }).join('');
 }
@@ -586,7 +617,7 @@ function restoreHistorySnapshot(ts){
   const list = loadHistory();
   const snap = list.find(s => s.ts === ts);
   if(!snap) return;
-  if(!confirm('Restaurer la version du ' + formatHistoryDate(ts) + ' ? Le contenu actuel sera remplacé (une version de sécurité sera quand même gardée).')) return;
+  if(!confirm('Restaurer la version du ' + formatHistoryDate(ts) + ' ? TOUS les onglets actuels seront remplacés (une version de sécurité sera quand même gardée avant).')) return;
   snapshotHistory('avant restauration', true);
   state = JSON.parse(JSON.stringify(snap.state));
   activeId = state.order[0] || null;
@@ -597,12 +628,48 @@ function restoreHistorySnapshot(ts){
   toggleHistory();
 }
 
+// Restauration ciblée : ne touche que le contenu (brut + IA) de l'onglet actif,
+// pour éviter d'écraser accidentellement le travail fait entretemps dans les autres onglets.
+function restoreHistorySnapshotTabOnly(ts){
+  const list = loadHistory();
+  const snap = list.find(s => s.ts === ts);
+  if(!snap || !activeId) return;
+  const snapTab = snap.state && snap.state.tabs ? snap.state.tabs[activeId] : null;
+  if(!snapTab){ alert('Cet onglet n\'existait pas encore dans cette version.'); return; }
+  const curName = state.tabs[activeId].name || 'Sans titre';
+  if(!confirm('Restaurer uniquement le contenu de l\'onglet « ' + curName + ' » à partir de la version du ' + formatHistoryDate(ts) + ' ? Les autres onglets ne seront pas modifiés (une version de sécurité sera quand même gardée avant).')) return;
+  snapshotHistory('avant restauration partielle (' + curName + ')', true);
+  state.tabs[activeId].raw = snapTab.raw;
+  state.tabs[activeId].ia = snapTab.ia;
+  persist();
+  renderColumns();
+  toggleHistory();
+}
+
 window.addEventListener('beforeunload', ()=>{
   if(saveTimer){
     clearTimeout(saveTimer);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }
 });
+
+// ── BASCULE BRUT/IA EN MODE MOBILE ──────────────────────────────────────────
+function applyMobileColView(){
+  const rawCol = document.getElementById('rawCol');
+  const iaCol = document.getElementById('iaCol');
+  const btnRaw = document.getElementById('mobileColBrut');
+  const btnIa = document.getElementById('mobileColIA');
+  rawCol.classList.toggle('mobile-hidden', mobileActiveCol !== 'raw');
+  iaCol.classList.toggle('mobile-hidden', mobileActiveCol !== 'ia');
+  btnRaw.classList.toggle('active', mobileActiveCol === 'raw');
+  btnIa.classList.toggle('active', mobileActiveCol === 'ia');
+}
+
+function setMobileCol(which){
+  mobileActiveCol = which;
+  localStorage.setItem(MOBILE_COL_KEY, which);
+  applyMobileColView();
+}
 
 function toggleSidebar(){
   const col = document.querySelector('.tabs-col');
@@ -816,7 +883,12 @@ function renderTabs(){
 
     const body = document.createElement('div');
     body.className = 'tab-body';
-    body.onclick = (e)=>{ if(e.target.tagName!=='INPUT') selectTab(id); };
+    body.onclick = (e)=>{
+      if(e.target.tagName!=='INPUT'){
+        selectTab(id);
+        if(q && isMatch) jumpToMatch(q);
+      }
+    };
 
     const mainRow = document.createElement('div');
     mainRow.className = 'tab-main-row';
@@ -906,6 +978,36 @@ function buildSnippetEl(t, q){
 
   el.title = (ctx.before + ' ' + ctx.match + ' ' + ctx.after).trim();
   return el;
+}
+
+// ── SAUT VERS UN RÉSULTAT DE RECHERCHE ───────────────────────────────────────
+// Sélectionne et scrolle jusqu'à la première occurrence de q dans le texte
+// (brut en priorité, puis IA), en forçant le mode édition si besoin.
+function jumpToMatch(q){
+  if(!q || !activeId) return;
+  const t = state.tabs[activeId];
+  if(!t) return;
+  const ql = q.toLowerCase();
+  let which = null, idx = -1;
+  if(t.raw && t.raw.toLowerCase().includes(ql)){ which = 'raw'; idx = t.raw.toLowerCase().indexOf(ql); }
+  else if(t.ia && t.ia.toLowerCase().includes(ql)){ which = 'ia'; idx = t.ia.toLowerCase().indexOf(ql); }
+  if(!which) return;
+
+  const areaId = which === 'raw' ? 'rawArea' : 'iaArea';
+  const colId = which === 'raw' ? 'rawCol' : 'iaCol';
+  const curMode = which === 'raw' ? rawViewMode : iaViewMode;
+  if(curMode !== 'edit'){
+    if(which === 'raw') rawViewMode = 'edit'; else iaViewMode = 'edit';
+    renderViewState(which);
+  }
+  setMobileCol(which);
+
+  requestAnimationFrame(()=>{
+    const area = document.getElementById(areaId);
+    area.focus();
+    area.setSelectionRange(idx, idx + q.length);
+    flash(colId);
+  });
 }
 
 function renderColumns(){
@@ -1499,6 +1601,7 @@ document.addEventListener('keydown', (e)=>{
 load();
 if(!activeId) activeId = state.order[0] || null;
 applySavedSidebarState();
+applyMobileColView();
 renderTabs();
 renderColumns();
 renderTagsBar();
