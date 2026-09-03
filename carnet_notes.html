@@ -623,7 +623,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
         <button onclick="insertTagSection()" title="Insérer une section à balise (repliable automatiquement dans l'aperçu, pas besoin de bouton accordéon)">🏷 Section</button>
         <button onclick="copyRawToClipboard()" title="Copier le texte brut dans le presse-papiers">📋 Copier</button>
         <button onclick="exportTabAsMarkdown('raw')" title="Télécharger ce texte en fichier .md">⬇ .md</button>
-        <button onclick="copyRawToIA()" title="Copier vers la colonne IA">→ IA</button>
+        <button onclick="copyRawToIA()" title="Déplacer vers la colonne IA (vide le texte brut)">→ IA</button>
         <button class="ai-link chatgpt" onclick="sendToAI('chatgpt')" title="Copier le texte (+ tag choisi) et ouvrir ChatGPT"><span class="dot"></span>ChatGPT ↗</button>
         <button class="ai-link claude" onclick="sendToAI('claude')" title="Copier le texte (+ tag choisi) et ouvrir Claude"><span class="dot"></span>Claude ↗</button>
       </div>
@@ -1782,11 +1782,15 @@ function copyRawToIA(){
   if(!activeId) return;
   const t = state.tabs[activeId];
   t.ia = t.raw;
+  t.raw = '';
   document.getElementById('iaArea').value = t.ia;
+  document.getElementById('rawArea').value = t.raw;
   updateCounts();
   persist();
   renderViewState('ia');
+  renderViewState('raw');
   flash('iaCol');
+  flash('rawCol');
 }
 function copyIAToRaw(){
   if(!activeId) return;
