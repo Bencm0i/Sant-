@@ -428,6 +428,26 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
 .accordion-body > *:last-child{margin-bottom:0;}
 .accordion-empty{font-family:'Lora',serif;font-style:italic;color:var(--ink-soft);font-size:0.9rem;}
 
+/* SECTIONS À BALISES (accordéon automatique intégré au markdown, sans bouton dédié) */
+.tag-accordion-item{
+  border:1.5px solid var(--line);border-radius:8px;margin:10px 0;overflow:hidden;background:#fff;
+}
+.tag-accordion-item summary{
+  cursor:pointer;padding:8px 14px;list-style:none;user-select:none;
+  display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;
+  background:rgba(47,93,98,0.06);
+}
+.tag-accordion-item summary::-webkit-details-marker{display:none;}
+.tag-accordion-item summary::before{content:'▸';display:inline-block;transition:transform .15s;flex-shrink:0;color:var(--accent);}
+.tag-accordion-item[open] summary::before{transform:rotate(90deg);}
+.tag-accordion-tag{
+  font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:0.76rem;
+  color:var(--accent);background:#fff;border:1.5px solid var(--accent);border-radius:999px;padding:1px 9px;
+}
+.tag-accordion-desc{font-family:'Inter',sans-serif;font-size:0.86rem;color:var(--ink);}
+.tag-accordion-item .accordion-body{padding:12px 16px;border-top:1.5px solid var(--line);}
+.tag-accordion-item .accordion-body > *:last-child{margin-bottom:0;}
+
 /* SAVE STATUS + SIDEBAR COLLAPSE */
 .save-status{font-family:'IBM Plex Mono',monospace;font-size:0.68rem;color:var(--ink-soft);white-space:nowrap;min-width:84px;}
 .storage-badge{
@@ -600,6 +620,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
         <button id="rawPreviewBtn" onclick="togglePreview('raw')" title="Basculer entre édition et aperçu markdown">👁 Aperçu</button>
         <button id="rawAccordionBtn" onclick="toggleAccordion('raw')" title="Regrouper le texte en accordéon, une section par horodatage">📑 Accordéon</button>
         <button onclick="insertTimestamp()" title="Insérer la date et l'heure actuelles dans le texte brut">🕒 Horodatage</button>
+        <button onclick="insertTagSection()" title="Insérer une section à balise (repliable automatiquement dans l'aperçu, pas besoin de bouton accordéon)">🏷 Section</button>
         <button onclick="copyRawToClipboard()" title="Copier le texte brut dans le presse-papiers">📋 Copier</button>
         <button onclick="exportTabAsMarkdown('raw')" title="Télécharger ce texte en fichier .md">⬇ .md</button>
         <button onclick="copyRawToIA()" title="Copier vers la colonne IA">→ IA</button>
@@ -1687,6 +1708,32 @@ function insertTimestamp(){
   flash('rawCol');
 }
 
+function insertTagSection(){
+  if(!activeId) return;
+  const rawTag = prompt('Nom court de la balise (sans espace ni #) :', '');
+  if(rawTag === null) return; // annulé
+  const tag = rawTag.trim().replace(/^#+/, '').replace(/\s+/g, '-');
+  if(!tag){ alert('Nom de balise vide, rien n\'a été inséré.'); return; }
+  const desc = prompt('Description de cette section :', '') || '';
+
+  const area = document.getElementById('rawArea');
+  const start = area.selectionStart ?? area.value.length;
+  const end = area.selectionEnd ?? area.value.length;
+  const before = area.value.slice(0, start);
+  const after = area.value.slice(end);
+  const needsNlBefore = before.length && !/\n$/.test(before);
+  const line = '#' + tag + ': ' + desc.trim();
+  const insertion = (needsNlBefore ? '\n\n' : '') + line + '\n';
+
+  area.value = before + insertion + after;
+  const caret = before.length + insertion.length;
+  area.focus();
+  area.setSelectionRange(caret, caret);
+
+  onEdit('raw');
+  flash('rawCol');
+}
+
 function copyTextToClipboard(text){
   // Tente d'abord l'API Clipboard moderne (nécessite un contexte sécurisé :
   // https, localhost… mais souvent PAS un fichier ouvert en file:// selon le navigateur).
@@ -1820,6 +1867,36 @@ function escapeHtml(s){
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// ── SECTIONS À BALISES (accordéon intégré au markdown, sans bouton dédié) ───
+// Syntaxe : une ligne "#balise: Description" (pas d'espace entre # et la balise,
+// pour ne pas entrer en conflit avec les titres markdown "# Titre").
+// Tout ce qui suit cette ligne, jusqu'à la balise suivante ou la fin du texte,
+// devient une section repliable — automatiquement, dès que tu utilises cette syntaxe.
+const TAG_SECTION_RE = /^#([a-zA-Z0-9À-ÿ_-]+)\s*:\s*(.*)$/;
+
+function splitTagSections(text){
+  const lines = text.split('\n');
+  const preambleLines = [];
+  const blocks = [];
+  let current = null;
+  lines.forEach(line=>{
+    const m = line.match(TAG_SECTION_RE);
+    if(m){
+      if(current) blocks.push(current);
+      current = { tag: m[1], desc: m[2].trim(), lines: [] };
+    } else if(current){
+      current.lines.push(line);
+    } else {
+      preambleLines.push(line);
+    }
+  });
+  if(current) blocks.push(current);
+  return {
+    preamble: preambleLines.join('\n'),
+    blocks: blocks.map(b=> ({ tag: b.tag, desc: b.desc, content: b.lines.join('\n') }))
+  };
+}
+
 function renderMarkdown(text){
   if(!text || !text.trim()){
     return '<p style="opacity:.55;font-style:italic;">Rien à prévisualiser…</p>';
@@ -1830,7 +1907,26 @@ function renderMarkdown(text){
     links.push(name.trim());
     return '§§WIKILINK' + (links.length - 1) + '§§';
   });
-  let html = marked.parse(withTokens, { breaks:true, gfm:true });
+
+  const { preamble, blocks } = splitTagSections(withTokens);
+  let html = '';
+  if(!blocks.length){
+    // Aucune balise "#nom: description" utilisée : rendu classique, inchangé.
+    html = marked.parse(withTokens, { breaks:true, gfm:true });
+  } else {
+    if(preamble.trim()){
+      html += marked.parse(preamble, { breaks:true, gfm:true });
+    }
+    blocks.forEach(b=>{
+      html += '<details class="tag-accordion-item" open>'
+        + '<summary><span class="tag-accordion-tag">#' + escapeHtml(b.tag) + '</span>'
+        + (b.desc ? '<span class="tag-accordion-desc">' + escapeHtml(b.desc) + '</span>' : '')
+        + '</summary>'
+        + '<div class="accordion-body">' + marked.parse(b.content, { breaks:true, gfm:true }) + '</div>'
+        + '</details>';
+    });
+  }
+
   html = html.replace(/§§WIKILINK(\d+)§§/g, (m, i)=>{
     const name = links[Number(i)];
     const exists = !!findTabIdByName(name);
