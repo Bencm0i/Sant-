@@ -372,6 +372,8 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
 .note-preview li:has(>input[type=checkbox]){list-style:none;margin-left:-1.4em;}
 .note-preview input[type=checkbox]{margin-right:6px;accent-color:var(--accent);cursor:pointer;width:14px;height:14px;vertical-align:middle;}
 .note-preview li:has(>input[type=checkbox]:checked){opacity:0.6;text-decoration:line-through;}
+.note-preview img{max-width:100%;height:auto;border-radius:8px;border:1.5px solid var(--line);display:block;margin:0.6em 0;}
+.note-preview img.carnet-img-missing{opacity:0.45;border-style:dashed;min-height:60px;background:var(--paper-dim);}
 .note-preview blockquote{border-left:3px solid var(--accent);padding:2px 14px;margin:0 0 0.85em;color:var(--ink-soft);font-style:italic;}
 .note-preview code{font-family:'IBM Plex Mono',monospace;background:var(--paper-dim);border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-size:0.85em;}
 .note-preview pre{background:var(--paper-dim);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow-x:auto;margin:0 0 0.85em;}
@@ -455,6 +457,13 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
   padding:7px 10px;border:1.5px solid var(--line);border-radius:7px;background:var(--paper-dim);
 }
 .storage-breakdown li span:last-child{font-family:'IBM Plex Mono',monospace;font-size:0.74rem;color:var(--ink);flex-shrink:0;}
+.storage-images-block{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  font-family:'Inter',sans-serif;font-size:0.82rem;color:var(--ink-soft);
+  padding:9px 10px;border:1.5px dashed var(--line);border-radius:7px;margin-bottom:16px;
+}
+.storage-images-label{color:var(--ink);font-weight:600;}
+#storageImagesLine{font-family:'IBM Plex Mono',monospace;font-size:0.74rem;flex-shrink:0;}
 .tabs-col.collapsed{display:none;}
 
 .no-selection{
@@ -499,7 +508,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
   </div>
   <span class="search-count" id="searchCount"></span>
   <span class="save-status" id="saveStatus"></span>
-  <button class="storage-badge" id="storageBadge" onclick="toggleStoragePanel()" title="État de la mémoire de sauvegarde (localStorage)">💾 …</button>
+  <button class="storage-badge" id="storageBadge" onclick="toggleStoragePanel()" title="État de la mémoire de sauvegarde du carnet (les images sont stockées à part)">💾 …</button>
   <div class="header-actions">
     <button class="btn" onclick="toggleSidebar()" title="Afficher/masquer la liste des onglets (Alt+S)">☰ Onglets</button>
     <button class="btn" onclick="toggleHelp()" title="Raccourcis clavier (touche ?)">⌨</button>
@@ -562,10 +571,14 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
 <div class="help-panel" id="storagePanel" style="display:none;">
   <div class="help-panel-inner storage-panel-inner">
     <h2>Mémoire de sauvegarde</h2>
-    <p class="help-panel-note" style="margin-bottom:10px;">Tout est stocké en local dans ce navigateur (localStorage), sur cet appareil uniquement — rien n'est envoyé ailleurs. La limite dépend du navigateur (souvent autour de 5 Mo par site).</p>
+    <p class="help-panel-note" style="margin-bottom:10px;">Tout est stocké en local dans ce navigateur, sur cet appareil uniquement — rien n'est envoyé ailleurs. Le carnet (notes, historique, tags) utilise le localStorage, limité (souvent ≈5 Mo par site). Les images, elles, sont stockées à part dans IndexedDB, avec un quota bien plus large — elles n'entament donc pas la barre ci-dessous.</p>
     <div class="storage-total-line"><span id="storageTotalLabel">…</span><span id="storageTotalPct"></span></div>
     <div class="storage-bar-track"><div class="storage-bar-fill" id="storageBarFill" style="width:0%;"></div></div>
     <ul class="storage-breakdown" id="storageBreakdown"></ul>
+    <div class="storage-images-block">
+      <span class="storage-images-label">🖼 Images (stockage séparé)</span>
+      <span id="storageImagesLine">…</span>
+    </div>
     <button class="btn primary" onclick="toggleStoragePanel()">Fermer</button>
   </div>
 </div>
@@ -614,6 +627,8 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
       <button class="md-btn" onclick="mdPrefix('rawArea','> ')" title="Citation">❝</button>
       <button class="md-btn" onclick="mdWrap('rawArea','\`','\`','code')" title="Code">{ }</button>
       <button class="md-btn" onclick="mdLink('rawArea')" title="Lien">🔗</button>
+      <button class="md-btn" onclick="document.getElementById('rawImageInput').click()" title="Insérer une image (ou colle-la directement avec Ctrl+V)">🖼</button>
+      <input type="file" id="rawImageInput" accept="image/*" style="display:none;" onchange="onImageFileSelected(event,'raw')">
     </div>
     <textarea class="note-area" id="rawArea" placeholder="Écris ton texte brut ici… (markdown supporté)" oninput="onEdit('raw')"></textarea>
     <div class="note-preview" id="rawPreview" style="display:none;"></div>
@@ -652,6 +667,8 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
       <button class="md-btn" onclick="mdPrefix('iaArea','> ')" title="Citation">❝</button>
       <button class="md-btn" onclick="mdWrap('iaArea','\`','\`','code')" title="Code">{ }</button>
       <button class="md-btn" onclick="mdLink('iaArea')" title="Lien">🔗</button>
+      <button class="md-btn" onclick="document.getElementById('iaImageInput').click()" title="Insérer une image (ou colle-la directement avec Ctrl+V)">🖼</button>
+      <input type="file" id="iaImageInput" accept="image/*" style="display:none;" onchange="onImageFileSelected(event,'ia')">
     </div>
     <textarea class="note-area" id="iaArea" placeholder="Colle ici le texte retravaillé par une IA… (markdown supporté)" oninput="onEdit('ia')"></textarea>
     <div class="note-preview" id="iaPreview" style="display:none;"></div>
@@ -774,7 +791,7 @@ function computeStorageUsage(){
   return { total, byKey };
 }
 
-function updateStorageBadge(){
+async function updateStorageBadge(){
   const badge = document.getElementById('storageBadge');
   if(!badge) return;
   const { total } = computeStorageUsage();
@@ -795,13 +812,14 @@ function toggleStoragePanel(){
   if(isHidden) renderStoragePanel();
 }
 
-function renderStoragePanel(){
+async function renderStoragePanel(){
   const { total, byKey } = computeStorageUsage();
   const pct = Math.min(100, (total / STORAGE_QUOTA_ESTIMATE) * 100);
   const totalLabel = document.getElementById('storageTotalLabel');
   const totalPct = document.getElementById('storageTotalPct');
   const fill = document.getElementById('storageBarFill');
   const list = document.getElementById('storageBreakdown');
+  const imgLine = document.getElementById('storageImagesLine');
 
   totalLabel.textContent = formatBytes(total) + ' utilisés';
   totalPct.textContent = '≈ ' + pct.toFixed(1) + ' % de 5 Mo';
@@ -824,6 +842,14 @@ function renderStoragePanel(){
       li.appendChild(sizeSpan);
       list.appendChild(li);
     });
+  }
+
+  if(imgLine){
+    imgLine.textContent = 'Calcul en cours…';
+    const { total: imgTotal, count: imgCount } = await idbTotalBytesAndCount();
+    imgLine.textContent = imgCount
+      ? formatBytes(imgTotal) + ' — ' + imgCount + ' image' + (imgCount!==1 ? 's' : '')
+      : 'Aucune image stockée pour l\'instant.';
   }
 }
 
@@ -998,12 +1024,38 @@ function deleteTab(id){
   if(!confirm(msg)) return;
   snapshotHistory('avant suppression d\'un onglet', true);
   const toDelete = [id, ...descendants];
+  // Nettoyage des images stockées à part (IndexedDB) référencées par les onglets supprimés
+  // — sauf si un onglet dupliqué ailleurs référence encore la même image.
+  toDelete.forEach(x=>{
+    const tab = state.tabs[x];
+    if(!tab) return;
+    [tab.raw, tab.ia].forEach(text=>{
+      if(!text) return;
+      const imgIds = [...text.matchAll(/!\[[^\]]*\]\(carnet-img:([^)]+)\)/g)].map(m=>m[1]);
+      imgIds.forEach(imgId=>{
+        if(!isImageIdUsedOutside(imgId, toDelete)){
+          idbDeleteImage(imgId).catch(()=>{});
+        }
+      });
+    });
+  });
   toDelete.forEach(x=>{ delete state.tabs[x]; });
   state.order = state.order.filter(x=>!toDelete.includes(x));
   if(toDelete.includes(activeId)) activeId = state.order[0] || null;
   persist();
   renderTabs();
   renderColumns();
+}
+
+function isImageIdUsedOutside(imgId, excludeIds){
+  const needle = 'carnet-img:' + imgId;
+  for(const tid of Object.keys(state.tabs)){
+    if(excludeIds.includes(tid)) continue;
+    const tab = state.tabs[tid];
+    if(!tab) continue;
+    if((tab.raw && tab.raw.indexOf(needle) !== -1) || (tab.ia && tab.ia.indexOf(needle) !== -1)) return true;
+  }
+  return false;
 }
 
 function duplicateTab(id){
@@ -1594,7 +1646,7 @@ function insertTagText(label){
 }
 
 function sendToAI(target){
-  const raw = document.getElementById('rawArea').value;
+  const raw = plainizeImageRefs(document.getElementById('rawArea').value);
   if(!raw.trim()){ alert('Le texte brut est vide.'); return; }
   const tag = TAGS.find(t=>t.key===selectedTagKey);
   const payload = tag ? (tag.prompt + '\n\n' + raw) : raw;
@@ -1668,13 +1720,13 @@ function legacyCopy(text){
 }
 
 function copyRawToClipboard(){
-  const val = document.getElementById('rawArea').value;
+  const val = plainizeImageRefs(document.getElementById('rawArea').value);
   copyTextToClipboard(val)
     .then(()=>flash('rawCol'))
     .catch(()=>alert('❌ La copie a échoué. Sélectionnez le texte manuellement (Ctrl+A puis Ctrl+C) dans la zone de texte.'));
 }
 function copyIAToClipboard(){
-  const val = document.getElementById('iaArea').value;
+  const val = plainizeImageRefs(document.getElementById('iaArea').value);
   copyTextToClipboard(val)
     .then(()=>flash('iaCol'))
     .catch(()=>alert('❌ La copie a échoué. Sélectionnez le texte manuellement (Ctrl+A puis Ctrl+C) dans la zone de texte.'));
@@ -1706,8 +1758,16 @@ function flash(colId){
   setTimeout(()=>{ el.style.background = ''; }, 220);
 }
 
-function exportJSON(){
-  const data = { type:'carnet_notes', v:1, exportedAt: Date.now(), state };
+async function exportJSON(){
+  // On réinjecte les images (stockées à part dans IndexedDB) en base64 dans une
+  // COPIE du carnet, pour que le fichier exporté reste autonome et portable.
+  const stateCopy = JSON.parse(JSON.stringify(state));
+  for(const id of Object.keys(stateCopy.tabs)){
+    const t = stateCopy.tabs[id];
+    t.raw = await resolveImageRefsToDataUrls(t.raw || '');
+    t.ia = await resolveImageRefsToDataUrls(t.ia || '');
+  }
+  const data = { type:'carnet_notes', v:1, exportedAt: Date.now(), state: stateCopy };
   const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -1715,11 +1775,12 @@ function exportJSON(){
   a.click();
 }
 
-function exportTabAsMarkdown(which){
+async function exportTabAsMarkdown(which){
   if(!activeId) return;
   const t = state.tabs[activeId];
-  const content = which==='raw' ? t.raw : t.ia;
+  let content = which==='raw' ? t.raw : t.ia;
   if(!content || !content.trim()){ alert('Rien à exporter : ce texte est vide.'); return; }
+  content = await resolveImageRefsToDataUrls(content);
   const safeName = (t.name || 'note').trim().replace(/[\\/:*?"<>|]/g, '-') || 'note';
   const filename = safeName + (which==='ia' ? ' (IA)' : '') + '.md';
   const blob = new Blob([content], {type:'text/markdown'});
@@ -1744,6 +1805,9 @@ function importJSON(e){
       persist();
       renderTabs();
       renderColumns();
+      // Les images du fichier importé sont en base64 dans le texte : on les
+      // déplace vers IndexedDB pour ne pas alourdir le localStorage.
+      migrateInlineImagesToIDB();
       alert('✅ Carnet importé avec succès !');
     }catch(err){ alert('❌ Fichier invalide : '+err.message); }
     e.target.value = '';
@@ -2023,11 +2087,13 @@ function renderViewState(which){
     prev.innerHTML = renderMarkdown(area.value);
     addInlineCopyButtons(prev);
     wireCheckboxes(prev, which);
+    wireImages(prev);
   }
   if(mode === 'accordion'){
     acc.innerHTML = renderAccordion(area.value);
     addInlineCopyButtons(acc);
     wireCheckboxes(acc, which);
+    wireImages(acc);
   }
 
   if(previewBtn) previewBtn.textContent = mode === 'preview' ? '✎ Éditer' : '👁 Aperçu';
@@ -2117,6 +2183,274 @@ function mdLink(areaId){
   area.setSelectionRange(urlStart, urlStart + 3);
   onEdit(areaId==='rawArea' ? 'raw' : 'ia');
   flash(areaId==='rawArea' ? 'rawCol' : 'iaCol');
+}
+
+// ── IMAGES (coller ou insérer) — stockées à part dans IndexedDB, PAS dans le
+// localStorage utilisé pour le carnet : bien plus de place (quota nettement
+// supérieur), et ça n'alourdit ni le carnet ni son historique de versions.
+const IMAGE_MAX_DIM = 1280;       // dimension max (px) après redimensionnement
+const IMAGE_JPEG_QUALITY = 0.78;  // qualité de compression JPEG
+const IMAGE_SIZE_WARN_BYTES = 8 * 1024 * 1024; // au-delà, on prévient (cas rare, juste une sécurité)
+const IDB_NAME = 'carnet_notes_images';
+const IDB_STORE = 'images';
+let idbPromise = null;
+
+function openImageDB(){
+  if(idbPromise) return idbPromise;
+  idbPromise = new Promise((resolve, reject)=>{
+    if(!window.indexedDB){ reject(new Error('IndexedDB indisponible sur ce navigateur')); return; }
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = ()=>{ req.result.createObjectStore(IDB_STORE); };
+    req.onsuccess = ()=> resolve(req.result);
+    req.onerror = ()=> reject(req.error || new Error('ouverture IndexedDB échouée'));
+  });
+  return idbPromise;
+}
+
+async function idbPutImage(id, blob){
+  const db = await openImageDB();
+  return new Promise((resolve, reject)=>{
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(blob, id);
+    tx.oncomplete = ()=> resolve();
+    tx.onerror = ()=> reject(tx.error);
+  });
+}
+
+async function idbGetImage(id){
+  const db = await openImageDB();
+  return new Promise((resolve, reject)=>{
+    const tx = db.transaction(IDB_STORE, 'readonly');
+    const req = tx.objectStore(IDB_STORE).get(id);
+    req.onsuccess = ()=> resolve(req.result || null);
+    req.onerror = ()=> reject(req.error);
+  });
+}
+
+async function idbDeleteImage(id){
+  const db = await openImageDB();
+  return new Promise((resolve, reject)=>{
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).delete(id);
+    tx.oncomplete = ()=> resolve();
+    tx.onerror = ()=> reject(tx.error);
+  });
+}
+
+async function idbTotalBytesAndCount(){
+  try{
+    const db = await openImageDB();
+    return await new Promise((resolve, reject)=>{
+      const tx = db.transaction(IDB_STORE, 'readonly');
+      const req = tx.objectStore(IDB_STORE).getAll();
+      req.onsuccess = ()=>{
+        let total = 0;
+        const items = req.result || [];
+        items.forEach(b=>{ if(b && b.size) total += b.size; });
+        resolve({ total, count: items.length });
+      };
+      req.onerror = ()=> reject(req.error);
+    });
+  }catch(e){
+    return { total: 0, count: 0 };
+  }
+}
+
+function blobToDataUrl(blob){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = ()=> resolve(reader.result);
+    reader.onerror = ()=> reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
+function dataUrlToBlob(dataUrl){
+  return fetch(dataUrl).then(r=>r.blob());
+}
+
+function downscaleImageToBlob(file, maxDim, quality){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onerror = ()=> reject(new Error('lecture du fichier échouée'));
+    reader.onload = ()=>{
+      const img = new Image();
+      img.onerror = ()=> reject(new Error('fichier image invalide'));
+      img.onload = ()=>{
+        let width = img.naturalWidth, height = img.naturalHeight;
+        if(width > maxDim || height > maxDim){
+          const ratio = Math.min(maxDim / width, maxDim / height);
+          width = Math.max(1, Math.round(width * ratio));
+          height = Math.max(1, Math.round(height * ratio));
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        // On garde le PNG (transparence) seulement pour les petits fichiers ; sinon JPEG, bien plus léger.
+        const keepPng = file.type === 'image/png' && file.size < 250 * 1024;
+        const mime = keepPng ? 'image/png' : 'image/jpeg';
+        canvas.toBlob(blob=>{
+          if(blob) resolve(blob); else reject(new Error('conversion impossible'));
+        }, mime, quality);
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function insertImageMarkdown(areaId, which, src, filename){
+  const area = document.getElementById(areaId);
+  const alt = (filename || 'image').replace(/\.[a-zA-Z0-9]+$/, '').replace(/[\[\]]/g, '').trim() || 'image';
+  const start = area.selectionStart ?? area.value.length;
+  const end = area.selectionEnd ?? area.value.length;
+  const before = area.value.slice(0, start);
+  const after = area.value.slice(end);
+  const needsNlBefore = before.length && !/\n$/.test(before);
+  const needsNlAfter = after.length && !/^\n/.test(after);
+  const insertion = (needsNlBefore ? '\n' : '') + '![' + alt + '](' + src + ')' + (needsNlAfter ? '\n' : '');
+  area.value = before + insertion + after;
+  const caret = before.length + insertion.length;
+  area.focus();
+  area.setSelectionRange(caret, caret);
+  onEdit(which);
+}
+
+async function insertImageFile(file, which){
+  if(!file || !activeId) return;
+  const areaId = which === 'raw' ? 'rawArea' : 'iaArea';
+  const colId = which === 'raw' ? 'rawCol' : 'iaCol';
+  try{
+    const blob = await downscaleImageToBlob(file, IMAGE_MAX_DIM, IMAGE_JPEG_QUALITY);
+    if(blob.size > IMAGE_SIZE_WARN_BYTES){
+      const ok = confirm('Cette image pèse encore ' + formatBytes(blob.size) + ' une fois compressée. L\'insérer quand même ?');
+      if(!ok) return;
+    }
+    const id = 'img_' + uid();
+    await idbPutImage(id, blob);
+    insertImageMarkdown(areaId, which, 'carnet-img:' + id, file.name);
+    flash(colId);
+    updateStorageBadge();
+  }catch(err){
+    alert('❌ Impossible d\'insérer cette image : ' + err.message);
+  }
+}
+
+function onImageFileSelected(e, which){
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if(file) insertImageFile(file, which);
+}
+
+function handleAreaPaste(e){
+  const areaId = e.target.id;
+  const which = areaId === 'rawArea' ? 'raw' : 'ia';
+  const items = (e.clipboardData && e.clipboardData.items) || [];
+  let imageItem = null;
+  for(const item of items){
+    if(item.kind === 'file' && item.type && item.type.startsWith('image/')){ imageItem = item; break; }
+  }
+  if(!imageItem) return; // texte normal : on laisse le comportement natif du navigateur
+  e.preventDefault();
+  const file = imageItem.getAsFile();
+  if(file) insertImageFile(file, which);
+}
+document.getElementById('rawArea').addEventListener('paste', handleAreaPaste);
+document.getElementById('iaArea').addEventListener('paste', handleAreaPaste);
+
+// Résout les références carnet-img: en <img src> affichable (URL objet temporaire),
+// sans jamais réinjecter le contenu binaire dans le texte source.
+function revokeContainerImages(container){
+  if(container._imgUrls){
+    container._imgUrls.forEach(u=> URL.revokeObjectURL(u));
+  }
+  container._imgUrls = [];
+}
+
+async function wireImages(container){
+  revokeContainerImages(container);
+  const imgs = container.querySelectorAll('img[src^="carnet-img:"]');
+  for(const img of imgs){
+    const id = img.getAttribute('src').slice('carnet-img:'.length);
+    try{
+      const blob = await idbGetImage(id);
+      if(blob){
+        const url = URL.createObjectURL(blob);
+        container._imgUrls.push(url);
+        img.src = url;
+      } else {
+        img.alt = (img.alt || 'image') + ' (introuvable)';
+        img.classList.add('carnet-img-missing');
+      }
+    }catch(e){
+      img.alt = (img.alt || 'image') + ' (erreur de chargement)';
+      img.classList.add('carnet-img-missing');
+    }
+  }
+}
+
+// Remplace les références image par un texte neutre — utilisé quand on copie
+// vers le presse-papiers ou qu'on envoie à une IA externe (l'image elle-même
+// n'a pas de sens hors de ce carnet).
+function plainizeImageRefs(text){
+  if(!text) return text;
+  return text.replace(/!\[([^\]]*)\]\((?:carnet-img:[^)]+|data:image\/[^)]+)\)/g, (m, alt)=> '[image' + (alt ? ' : ' + alt : '') + ']');
+}
+
+// Réinjecte les images en base64 dans une copie de texte — utilisé uniquement
+// pour les exports .md / .json, afin qu'ils restent autonomes et portables.
+async function resolveImageRefsToDataUrls(text){
+  if(!text || text.indexOf('carnet-img:') === -1) return text;
+  const re = /!\[([^\]]*)\]\(carnet-img:([^)]+)\)/g;
+  const matches = [...text.matchAll(re)];
+  let result = text;
+  for(const m of matches){
+    const [full, alt, id] = m;
+    try{
+      const blob = await idbGetImage(id);
+      if(blob){
+        const dataUrl = await blobToDataUrl(blob);
+        result = result.replace(full, '![' + alt + '](' + dataUrl + ')');
+      }
+    }catch(e){ /* on laisse la référence telle quelle si erreur */ }
+  }
+  return result;
+}
+
+// Migration : les images collées avant cette mise à jour étaient encodées en
+// base64 directement dans le texte (donc dans le localStorage). On les
+// déplace une bonne fois vers IndexedDB pour alléger le carnet.
+async function migrateInlineImagesToIDB(){
+  const re = /!\[([^\]]*)\]\((data:image\/[a-zA-Z0-9+.;=,\/-]+)\)/g;
+  let changed = false;
+  for(const id of Object.keys(state.tabs)){
+    const t = state.tabs[id];
+    for(const field of ['raw','ia']){
+      const text = t[field];
+      if(!text || text.indexOf('data:image/') === -1) continue;
+      const matches = [...text.matchAll(re)];
+      if(!matches.length) continue;
+      let newText = text;
+      for(const m of matches){
+        const [full, alt, dataUrl] = m;
+        try{
+          const blob = await dataUrlToBlob(dataUrl);
+          const newId = 'img_' + uid();
+          await idbPutImage(newId, blob);
+          newText = newText.replace(full, '![' + alt + '](carnet-img:' + newId + ')');
+          changed = true;
+        }catch(e){ /* on laisse tel quel en cas d'échec */ }
+      }
+      t[field] = newText;
+    }
+  }
+  if(changed){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    if(activeId){ renderColumns(); }
+    renderTabs();
+    updateStorageBadge();
+  }
 }
 
 function handleAreaKeydown(e){
@@ -2237,6 +2571,7 @@ renderTabs();
 renderColumns();
 renderTagsBar();
 updateStorageBadge();
+migrateInlineImagesToIDB(); // convertit les images collées par une version antérieure (base64 inline → IndexedDB)
 </script>
 </body>
 </html>
