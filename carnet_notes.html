@@ -35,10 +35,12 @@ body{
 
 /* HEADER */
 header{
-  display:flex;align-items:center;gap:18px;flex-wrap:wrap;
-  padding:16px 22px;border-bottom:1.5px solid var(--line);
+  display:flex;flex-direction:column;gap:8px;
+  padding:12px 22px;border-bottom:1.5px solid var(--line);
   background:var(--paper);position:sticky;top:0;z-index:5;
 }
+.header-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.header-row-actions{justify-content:flex-end;}
 h1{
   font-family:'Lora',serif;font-weight:700;font-size:1.35rem;letter-spacing:0.01em;
   display:flex;align-items:center;gap:8px;flex-shrink:0;
@@ -60,7 +62,7 @@ h1 .spine{width:9px;height:22px;border-radius:2px;background:var(--accent);displ
 }
 .search-clear:hover{background:var(--accent);color:#fff;}
 .search-count{font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:var(--ink-soft);white-space:nowrap;}
-.header-actions{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;}
+.header-actions{display:flex;gap:8px;flex-wrap:wrap;}
 .btn{
   font-family:'Inter',sans-serif;font-size:0.74rem;font-weight:600;letter-spacing:0.02em;
   padding:8px 13px;border-radius:8px;border:1.5px solid var(--line);background:#fff;
@@ -85,6 +87,17 @@ input[type=file]{display:none;}
   font-family:inherit;font-size:inherit;padding:0;
 }
 .link-hint-btn:hover{text-decoration-color:var(--accent);}
+
+.backup-banner{
+  font-size:0.76rem; color:#7a5a1f; padding:7px 16px; border-bottom:1.5px solid var(--line);
+  background:#fbf1da; display:flex; align-items:center; gap:10px; flex-wrap:wrap; flex-shrink:0;
+  font-family:'Inter',sans-serif;
+}
+.backup-banner-dismiss{
+  background:transparent;border:none;color:#7a5a1f;cursor:pointer;opacity:0.6;
+  margin-left:auto;font-size:0.8rem;padding:0 2px;
+}
+.backup-banner-dismiss:hover{opacity:1;}
 
 .help-panel{
   position:fixed;inset:0;background:rgba(43,38,32,0.4);z-index:50;
@@ -141,6 +154,22 @@ input[type=file]{display:none;}
 .tag-edit-row button:hover{border-color:#a3402f;color:#a3402f;}
 .tag-edit-toggle{opacity:0.6;}
 .tag-edit-toggle:hover{opacity:1;}
+
+.storage-badge.has-tasks{border-color:var(--accent);color:var(--accent);}
+
+.tasks-panel-inner{max-width:460px;max-height:80vh;display:flex;flex-direction:column;}
+.tasks-list{overflow-y:auto;display:flex;flex-direction:column;gap:7px;margin-bottom:14px;}
+.task-item{
+  display:flex;align-items:flex-start;gap:9px;
+  padding:9px 11px;border:1.5px solid var(--line);border-radius:8px;background:var(--paper-dim);
+}
+.task-item input[type=checkbox]{margin-top:2px;flex-shrink:0;width:15px;height:15px;accent-color:var(--accent);cursor:pointer;}
+.task-item-body{flex:1;min-width:0;cursor:pointer;}
+.task-item-meta{display:flex;align-items:center;gap:6px;margin-bottom:2px;}
+.task-item-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.task-item-tab{font-family:'IBM Plex Mono',monospace;font-size:0.68rem;font-weight:600;color:var(--ink-soft);}
+.task-item-text{font-family:'Inter',sans-serif;font-size:0.85rem;color:var(--ink);line-height:1.4;word-break:break-word;}
+.task-item.done .task-item-text{opacity:0.5;text-decoration:line-through;}
 
 .breadcrumb-bar{
   padding:7px 16px;border-bottom:1.5px solid var(--line);flex-shrink:0;
@@ -215,6 +244,14 @@ input[type=file]{display:none;}
 }
 .tab-row:hover .tab-dup{opacity:0.55;}
 .tab-dup:hover{opacity:1 !important;color:var(--accent);}
+.tab-pin{
+  background:transparent;border:none;cursor:pointer;opacity:0;font-size:0.78rem;
+  flex-shrink:0;padding:2px 4px;transition:opacity .12s,transform .12s;filter:grayscale(1);
+}
+.tab-row:hover .tab-pin{opacity:0.55;}
+.tab-pin:hover{opacity:1 !important;transform:scale(1.1);}
+.tab-pin.pinned{opacity:1 !important;filter:none;}
+.tab-row.pinned .tab-body{box-shadow:inset 3px 0 0 var(--accent);}
 .tab-main-row{display:flex;align-items:center;gap:8px;min-width:0;}
 .tab-snippet{
   font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--ink-soft);
@@ -234,9 +271,25 @@ input[type=file]{display:none;}
 .ai-link.chatgpt .dot{background:#10a37f;}
 .ai-link.claude .dot{background:#c96442;}
 .tags-bar{
-  display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px;
-  border-bottom:1.5px solid var(--line);flex-shrink:0;
+  display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px 12px;
+  flex-shrink:0;
 }
+.tags-accordion{border-bottom:1.5px solid var(--line);flex-shrink:0;}
+.tags-accordion summary{
+  cursor:pointer;padding:8px 16px;list-style:none;user-select:none;
+  display:flex;align-items:center;gap:8px;
+  font-family:'IBM Plex Mono',monospace;font-size:0.74rem;font-weight:600;color:var(--ink-soft);
+  transition:color .15s;
+}
+.tags-accordion summary::-webkit-details-marker{display:none;}
+.tags-accordion summary::before{content:'▸';display:inline-block;transition:transform .15s;color:var(--accent);flex-shrink:0;}
+.tags-accordion[open] summary::before{transform:rotate(90deg);}
+.tags-accordion summary:hover{color:var(--accent);}
+.tags-accordion-count{
+  font-family:'IBM Plex Mono',monospace;font-size:0.64rem;font-weight:700;color:#fff;background:var(--accent);
+  border-radius:999px;padding:1px 7px;
+}
+.tags-accordion-hint{font-weight:400;opacity:0.7;font-size:0.7rem;}
 .tag-bubble{
   font-family:'IBM Plex Mono',monospace;font-size:0.72rem;font-weight:600;
   padding:5px 12px;border-radius:999px;border:1.5px solid var(--line);
@@ -293,17 +346,23 @@ input[type=file]{display:none;}
 .text-col:last-child{border-right:none;}
 .col-head{
   display:flex;align-items:center;justify-content:space-between;gap:10px;
-  padding:11px 16px;border-bottom:1.5px solid var(--line);flex-shrink:0;
+  padding:11px 16px;border-bottom:1.5px solid var(--line);flex-shrink:0;flex-wrap:wrap;
 }
-.col-label{font-family:'Lora',serif;font-weight:600;font-size:0.86rem;color:var(--ink);display:flex;align-items:center;gap:8px;}
+.col-label{font-family:'Lora',serif;font-weight:600;font-size:0.86rem;color:var(--ink);display:flex;align-items:center;gap:8px;flex-shrink:0;}
 .col-label .active-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-.col-tools{display:flex;gap:6px;}
+.col-tools{display:flex;gap:6px;flex-wrap:wrap;row-gap:6px;}
 .col-tools button{
   font-family:'IBM Plex Mono',monospace;font-size:0.68rem;font-weight:600;
   padding:5px 9px;border-radius:6px;border:1.5px solid var(--line);background:#fff;
   color:var(--ink-soft);cursor:pointer;transition:all .15s;
 }
 .col-tools button:hover{border-color:var(--accent);color:var(--accent);}
+.col-tools select{
+  font-family:'IBM Plex Mono',monospace;font-size:0.68rem;font-weight:600;
+  padding:5px 6px;border-radius:6px;border:1.5px solid var(--line);background:#fff;
+  color:var(--ink-soft);cursor:pointer;transition:all .15s;
+}
+.col-tools select:hover{border-color:var(--accent);color:var(--accent);}
 textarea.note-area{
   flex:1;width:100%;border:none;outline:none;resize:none;
   font-family:'IBM Plex Mono',monospace;font-size:0.86rem;line-height:1.65;
@@ -514,38 +573,57 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
   }
   .mobile-col-toggle button.active{background:var(--accent);color:#fff;border-color:var(--accent);}
   .text-col.mobile-hidden{display:none;}
+
+  header{padding:10px 14px;gap:6px;}
+  .header-row{gap:8px;}
+  .header-row-actions{justify-content:flex-start;}
+  .search-wrap{min-width:120px;}
+  .header-actions .btn{padding:6px 8px;font-size:0.68rem;}
 }
 </style>
 </head>
 <body>
 
 <header>
-  <h1><span class="spine"></span>Carnet</h1>
-  <div class="search-wrap">
-    <span class="search-icon">⌕</span>
-    <input type="text" id="searchInput" placeholder="Rechercher dans tous les onglets…" oninput="onSearch()">
-    <button class="search-clear" id="searchClear" onclick="clearSearch()" title="Vider la recherche" style="display:none;">✕</button>
+  <div class="header-row">
+    <h1><span class="spine"></span>Carnet</h1>
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input type="text" id="searchInput" placeholder="Rechercher dans tous les onglets…" oninput="onSearch()">
+      <button class="search-clear" id="searchClear" onclick="clearSearch()" title="Vider la recherche" style="display:none;">✕</button>
+    </div>
+    <span class="search-count" id="searchCount"></span>
   </div>
-  <span class="search-count" id="searchCount"></span>
-  <span class="save-status" id="saveStatus"></span>
-  <button class="storage-badge" id="storageBadge" onclick="toggleStoragePanel()" title="État de la mémoire de sauvegarde du carnet (les images sont stockées à part)">💾 …</button>
-  <div class="header-actions">
-    <button class="btn" onclick="toggleSidebar()" title="Afficher/masquer la liste des onglets (Alt+S)">☰ Onglets</button>
-    <button class="btn" onclick="toggleHelp()" title="Raccourcis clavier (touche ?)">⌨</button>
-    <button class="btn" onclick="toggleHistory()" title="Historique des sauvegardes automatiques">🕘 Historique</button>
-    <button class="btn" onclick="document.getElementById('importInput').click()">⬆ Importer JSON</button>
-    <input type="file" id="importInput" accept=".json" onchange="importJSON(event)">
-    <button class="btn primary" onclick="exportJSON()">⬇ Exporter JSON</button>
+  <div class="header-row header-row-actions">
+    <span class="save-status" id="saveStatus"></span>
+    <button class="storage-badge" id="tasksBadge" onclick="toggleTasksPanel()" title="Toutes les tâches en cours, tous onglets confondus">✅ …</button>
+    <button class="storage-badge" id="storageBadge" onclick="toggleStoragePanel()" title="État de la mémoire de sauvegarde du carnet (les images sont stockées à part)">💾 …</button>
+    <div class="header-actions">
+      <button class="btn" onclick="toggleSidebar()" title="Afficher/masquer la liste des onglets (Alt+S)">☰ Onglets</button>
+      <button class="btn" onclick="toggleHelp()" title="Raccourcis clavier (touche ?)">⌨</button>
+      <button class="btn" onclick="toggleHistory()" title="Historique des sauvegardes automatiques">🕘 Historique</button>
+      <button class="btn" onclick="document.getElementById('importInput').click()">⬆ Importer JSON</button>
+      <input type="file" id="importInput" accept=".json" onchange="importJSON(event)">
+      <button class="btn primary" onclick="exportJSON()">⬇ Exporter JSON</button>
+    </div>
   </div>
 </header>
 
 <div class="link-hint">🔗 <code>[[Nom]]</code> + <strong>Ctrl+clic</strong> pour lier/créer un sous-onglet · 👁 <strong>Aperçu</strong> pour le rendu markdown · appuie sur <button class="link-hint-btn" onclick="toggleHelp()">⌨ ? pour tous les raccourcis</button></div>
 <div class="breadcrumb-bar" id="breadcrumbBar" style="display:none;">↳ sous-onglet de <button class="breadcrumb-link" id="breadcrumbBtn" onclick="goToParent()" title="Retourner à l'onglet parent"></button></div>
 
-<div class="mobile-col-toggle">
-  <button id="mobileColBrut" onclick="setMobileCol('raw')" title="Afficher la colonne texte brut">📝 Brut</button>
-  <button id="mobileColIA" onclick="setMobileCol('ia')" title="Afficher la colonne retravaillée par l'IA">🤖 IA</button>
+<div class="backup-banner" id="backupBanner" style="display:none;">
+  ⚠ Ça fait un moment que tu n'as pas exporté de sauvegarde — tout est en local sur cet appareil uniquement.
+  <button class="link-hint-btn" onclick="exportJSON()">⬇ Exporter maintenant</button>
+  <button class="backup-banner-dismiss" onclick="dismissBackupBanner()" title="Me le redemander plus tard">✕</button>
 </div>
+
+<div class="mobile-col-toggle">
+  <button id="mobileColBrut" onclick="setMobileCol('raw')" title="Affiche la colonne texte brut (le texte IA reste intact, juste masqué)">👁 Brut</button>
+  <button id="mobileColIA" onclick="setMobileCol('ia')" title="Affiche la colonne IA (le texte brut reste intact, juste masqué)">👁 IA</button>
+</div>
+
+<span style="position:fixed;bottom:4px;right:8px;font-size:9px;color:#c7bfae;z-index:1;pointer-events:none;font-family:monospace;">build 2026-09-04-fix6</span>
 
 <div class="help-panel" id="helpPanel" style="display:none;">
   <div class="help-panel-inner">
@@ -588,6 +666,16 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
   </div>
 </div>
 
+<div class="help-panel" id="tasksPanel" style="display:none;">
+  <div class="help-panel-inner tasks-panel-inner">
+    <h2 id="tasksTitle">Tâches</h2>
+    <p class="help-panel-note" style="margin-bottom:12px;">Toutes les cases à cocher de tous les onglets, au même endroit. Clique le texte pour ouvrir l'onglet, ou coche directement ici sans y aller.</p>
+    <div class="tasks-list" id="tasksList"></div>
+    <button class="btn" id="tasksShowDoneBtn" onclick="toggleShowDoneTasks()" style="margin-bottom:10px;width:100%;justify-content:center;">☐ Afficher les tâches faites</button>
+    <button class="btn primary" onclick="toggleTasksPanel()">Fermer</button>
+  </div>
+</div>
+
 <div class="help-panel" id="storagePanel" style="display:none;">
   <div class="help-panel-inner storage-panel-inner">
     <h2>Mémoire de sauvegarde</h2>
@@ -621,9 +709,17 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
         <button id="rawAccordionBtn" onclick="toggleAccordion('raw')" title="Regrouper le texte en accordéon, une section par horodatage">📑 Accordéon</button>
         <button onclick="insertTimestamp()" title="Insérer la date et l'heure actuelles dans le texte brut">🕒 Horodatage</button>
         <button onclick="insertTagSection()" title="Insérer une section à balise (repliable automatiquement dans l'aperçu, pas besoin de bouton accordéon)">🏷 Section</button>
+        <select onchange="insertTemplateFromSelect(this)" title="Insérer un modèle de note pré-rempli">
+          <option value="">🧩 Modèle…</option>
+          <option value="reunion">Réunion</option>
+          <option value="projet">Point projet</option>
+          <option value="appel">Appel</option>
+          <option value="action">Action rapide</option>
+          <option value="decision">Décision</option>
+        </select>
         <button onclick="copyRawToClipboard()" title="Copier le texte brut dans le presse-papiers">📋 Copier</button>
         <button onclick="exportTabAsMarkdown('raw')" title="Télécharger ce texte en fichier .md">⬇ .md</button>
-        <button onclick="copyRawToIA()" title="Déplacer vers la colonne IA (vide le texte brut)">→ IA</button>
+        <button onclick="copyRawToIA()" title="Déplacer ce texte vers la colonne IA (vide la colonne brut)">✂ → IA</button>
         <button class="ai-link chatgpt" onclick="sendToAI('chatgpt')" title="Copier le texte (+ tag choisi) et ouvrir ChatGPT"><span class="dot"></span>ChatGPT ↗</button>
         <button class="ai-link claude" onclick="sendToAI('claude')" title="Copier le texte (+ tag choisi) et ouvrir Claude"><span class="dot"></span>Claude ↗</button>
       </div>
@@ -638,7 +734,10 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
       <button onclick="replaceAll('raw')">Tout remplacer</button>
       <button onclick="closeFindBar('raw')" title="Fermer">✕</button>
     </div>
-    <div class="tags-bar" id="tagsBar"></div>
+    <details class="tags-accordion" id="tagsAccordion">
+      <summary>🏷 Tags IA <span class="tags-accordion-count" id="tagsBarCount">0</span><span class="tags-accordion-hint">— consignes pour ChatGPT/Claude</span></summary>
+      <div class="tags-bar" id="tagsBar"></div>
+    </details>
     <div class="md-toolbar">
       <button class="md-btn" onclick="mdWrap('rawArea','**','**','gras')" title="Gras (Ctrl+B)"><b>B</b></button>
       <button class="md-btn" onclick="mdWrap('rawArea','*','*','italique')" title="Italique (Ctrl+I)"><i>I</i></button>
@@ -701,6 +800,11 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
 <script>
 const STORAGE_KEY = 'carnet_notes_data';
 const SIDEBAR_KEY = 'carnet_notes_sidebar_collapsed';
+const ACTIVE_KEY = 'carnet_notes_active_id';
+const EXPORT_KEY = 'carnet_notes_last_export_ts';
+const BACKUP_DISMISS_KEY = 'carnet_notes_backup_dismiss_ts';
+const BACKUP_REMINDER_MS = 7 * 24 * 60 * 60 * 1000; // relance si aucun export depuis 7 jours
+const BACKUP_DISMISS_MS = 24 * 60 * 60 * 1000; // ré-affiche le bandeau 24h après un "plus tard"
 const PALETTE = ['#2f5d62','#b5573f','#c98a2c','#6b4a6b','#5c6b3f','#45566b','#7a3b46','#3d5a73'];
 
 let state = { order: [], tabs: {} };
@@ -760,6 +864,10 @@ function persist(){
   if(status) status.textContent = '● modifications…';
   saveTimer = setTimeout(()=>{
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    try{
+      if(activeId) localStorage.setItem(ACTIVE_KEY, activeId);
+      else localStorage.removeItem(ACTIVE_KEY);
+    }catch(e){}
     snapshotHistory('auto');
     if(status){
       status.textContent = '✓ enregistré';
@@ -767,6 +875,7 @@ function persist(){
       status._fadeTimer = setTimeout(()=>{ status.textContent = ''; }, 1500);
     }
     updateStorageBadge();
+    updateTasksBadge();
   }, 250);
 }
 
@@ -1095,6 +1204,7 @@ function duplicateTab(id){
 function selectTab(id){
   if(activeId === id) return;
   activeId = id;
+  try{ localStorage.setItem(ACTIVE_KEY, id); }catch(e){}
   updateActiveRow();
   renderColumns();
 }
@@ -1127,6 +1237,15 @@ function computeDisplayOrder(){
     if(!childrenMap[p]) childrenMap[p] = [];
     childrenMap[p].push(id);
   });
+  // Onglets épinglés (racine uniquement) remontés en haut de liste — tri stable,
+  // donc l'ordre relatif choisi par glisser-déposer est conservé au sein de chaque groupe.
+  if(childrenMap[null]){
+    childrenMap[null] = childrenMap[null].slice().sort((a, b)=>{
+      const pa = state.tabs[a].pinned ? 1 : 0;
+      const pb = state.tabs[b].pinned ? 1 : 0;
+      return pb - pa;
+    });
+  }
   const result = [];
   (function walk(parentKey, depth){
     (childrenMap[parentKey] || []).forEach(id=>{
@@ -1159,6 +1278,16 @@ function recolorTab(id, val){
   state.tabs[id].color = val;
   persist();
   renderTabs();
+}
+
+// ── ONGLETS ÉPINGLÉS (toujours en haut de la liste) ─────────────────────────
+function togglePin(id){
+  const t = state.tabs[id];
+  if(!t) return;
+  t.pinned = !t.pinned;
+  persist();
+  renderTabs();
+  updateActiveRow();
 }
 
 // ── FILTRE PAR TAG DE CONTENU (#hashtags détectés dans les notes) ──────────
@@ -1289,7 +1418,7 @@ function renderTabs(){
     if(isMatch) visibleCount++;
 
     const row = document.createElement('div');
-    row.className = 'tab-row' + (depth>0 ? ' child' : '') + (id===activeId ? ' active' : '') + (dim ? ' dimmed' : '');
+    row.className = 'tab-row' + (depth>0 ? ' child' : '') + (id===activeId ? ' active' : '') + (dim ? ' dimmed' : '') + (t.pinned ? ' pinned' : '');
     if(depth>0) row.style.marginLeft = (depth*18) + 'px';
     row.draggable = true;
     row.ondragstart = (e)=>{ draggedTabId = id; e.dataTransfer.effectAllowed = 'move'; setTimeout(()=>row.classList.add('dragging'),0); };
@@ -1358,6 +1487,15 @@ function renderTabs(){
       taskBadge.textContent = tasks.done + '/' + tasks.total;
       taskBadge.title = tasks.done + ' tâche' + (tasks.done!==1?'s':'') + ' cochée' + (tasks.done!==1?'s':'') + ' sur ' + tasks.total;
       mainRow.appendChild(taskBadge);
+    }
+
+    if(depth === 0){
+      const pin = document.createElement('button');
+      pin.className = 'tab-pin' + (t.pinned ? ' pinned' : '');
+      pin.textContent = '📌';
+      pin.title = t.pinned ? 'Désépingler (retirer du haut de la liste)' : 'Épingler en haut de la liste';
+      pin.onclick = (e)=>{ e.stopPropagation(); togglePin(id); };
+      mainRow.appendChild(pin);
     }
 
     const dup = document.createElement('button');
@@ -1557,6 +1695,19 @@ function renderTagsBar(){
   editBtn.title = 'Modifier les tags IA';
   editBtn.onclick = ()=> toggleTagsPanel();
   bar.appendChild(editBtn);
+  const count = document.getElementById('tagsBarCount');
+  if(count) count.textContent = TAGS.length;
+}
+
+// ── ACCORDÉON DES TAGS IA (repliable, état mémorisé) ────────────────────────
+const TAGS_BAR_OPEN_KEY = 'carnet_notes_tagsbar_open';
+function applySavedTagsAccordionState(){
+  const el = document.getElementById('tagsAccordion');
+  if(!el) return;
+  el.open = localStorage.getItem(TAGS_BAR_OPEN_KEY) === '1';
+  el.addEventListener('toggle', ()=>{
+    localStorage.setItem(TAGS_BAR_OPEN_KEY, el.open ? '1' : '0');
+  });
 }
 
 // ── ÉDITION DES TAGS IA (panneau) ───────────────────────────────────────────
@@ -1734,6 +1885,48 @@ function insertTagSection(){
   flash('rawCol');
 }
 
+// ── MODÈLES RAPIDES (structure de note prête à l'emploi, pour aller plus vite) ──
+const TEMPLATES = {
+  reunion: '## Réunion — {date}\n**Présents :** \n**Sujets abordés :**\n- \n**Décisions :**\n- \n**Actions à suivre :**\n- [ ] \n',
+  projet:  '## Point projet — {date}\n**État :** \n**Blocages :**\n- \n**Prochaines étapes :**\n- [ ] \n',
+  appel:   '## Appel — {date}\n**Avec :** \n**Résumé :**\n\n**Actions :**\n- [ ] \n',
+  action:  '- [ ] ',
+  decision:'**Décision :** '
+};
+
+function insertTemplateFromSelect(sel){
+  const key = sel.value;
+  sel.selectedIndex = 0;
+  if(!key) return;
+  insertTemplateText(key);
+}
+
+function insertTemplateText(key){
+  if(!activeId) return;
+  const tpl = TEMPLATES[key];
+  if(!tpl) return;
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const dateStr = pad(now.getDate()) + '/' + pad(now.getMonth()+1) + '/' + now.getFullYear();
+  const text = tpl.replace('{date}', dateStr);
+
+  const area = document.getElementById('rawArea');
+  const start = area.selectionStart ?? area.value.length;
+  const end = area.selectionEnd ?? area.value.length;
+  const before = area.value.slice(0, start);
+  const after = area.value.slice(end);
+  const needsNlBefore = before.length && !/\n$/.test(before);
+  const insertion = (needsNlBefore ? '\n\n' : '') + text;
+
+  area.value = before + insertion + after;
+  const caret = before.length + insertion.length;
+  area.focus();
+  area.setSelectionRange(caret, caret);
+
+  onEdit('raw');
+  flash('rawCol');
+}
+
 function copyTextToClipboard(text){
   // Tente d'abord l'API Clipboard moderne (nécessite un contexte sécurisé :
   // https, localhost… mais souvent PAS un fichier ouvert en file:// selon le navigateur).
@@ -1781,20 +1974,26 @@ function copyIAToClipboard(){
 function copyRawToIA(){
   if(!activeId) return;
   const t = state.tabs[activeId];
+  if(!t.raw || !t.raw.trim()){ alert('La colonne brut est vide, rien à déplacer.'); return; }
+  if(t.ia && t.ia.trim() && t.ia !== t.raw){
+    if(!confirm('La colonne IA contient déjà du texte : le remplacer par le texte brut ?')) return;
+  }
   t.ia = t.raw;
   t.raw = '';
-  document.getElementById('iaArea').value = t.ia;
   document.getElementById('rawArea').value = t.raw;
+  document.getElementById('iaArea').value = t.ia;
   updateCounts();
   persist();
-  renderViewState('ia');
   renderViewState('raw');
+  renderViewState('ia');
   flash('iaCol');
-  flash('rawCol');
 }
 function copyIAToRaw(){
   if(!activeId) return;
   const t = state.tabs[activeId];
+  if(t.raw && t.raw.trim() && t.raw !== t.ia){
+    if(!confirm('La colonne texte brut contient déjà du texte : le remplacer par le texte IA ?')) return;
+  }
   t.raw = t.ia;
   document.getElementById('rawArea').value = t.raw;
   updateCounts();
@@ -1824,6 +2023,29 @@ async function exportJSON(){
   a.href = URL.createObjectURL(blob);
   a.download = 'carnet_' + new Date().toISOString().slice(0,10) + '.json';
   a.click();
+  try{ localStorage.setItem(EXPORT_KEY, String(Date.now())); }catch(e){}
+  checkBackupReminder();
+}
+
+// ── RAPPEL DE SAUVEGARDE ─────────────────────────────────────────────────────
+// Tout est en local (localStorage/IndexedDB) : un vidage de cache ou un souci
+// navigateur peut tout emporter. Ce bandeau rappelle d'exporter un JSON de temps
+// en temps, sans bloquer le travail — "plus tard" le fait taire pendant 24h.
+function checkBackupReminder(){
+  const banner = document.getElementById('backupBanner');
+  if(!banner) return;
+  const last = Number(localStorage.getItem(EXPORT_KEY) || 0);
+  const dismissed = Number(localStorage.getItem(BACKUP_DISMISS_KEY) || 0);
+  const now = Date.now();
+  const dueForReminder = (now - last) > BACKUP_REMINDER_MS;
+  const recentlyDismissed = (now - dismissed) < BACKUP_DISMISS_MS;
+  const hasContent = state.order.some(id => state.tabs[id] && ((state.tabs[id].raw||'').trim() || (state.tabs[id].ia||'').trim()));
+  banner.style.display = (dueForReminder && !recentlyDismissed && hasContent) ? 'flex' : 'none';
+}
+
+function dismissBackupBanner(){
+  try{ localStorage.setItem(BACKUP_DISMISS_KEY, String(Date.now())); }catch(e){}
+  checkBackupReminder();
 }
 
 async function exportTabAsMarkdown(which){
@@ -1966,7 +2188,142 @@ function toggleCheckboxAt(which, index){
   area.value = newValue;
   onEdit(which);
   renderViewState(which);
+  if(document.getElementById('tasksPanel').style.display === 'flex') renderTasksPanel();
 }
+
+// ── VUE "TÂCHES" GLOBALE (toutes les cases à cocher, tous onglets confondus) ──
+// Évite d'avoir à rouvrir chaque onglet pour se souvenir de ce qui reste à faire.
+let showDoneTasks = false;
+
+function extractAllTasks(){
+  const tasks = [];
+  state.order.forEach(id=>{
+    const t = state.tabs[id];
+    if(!t) return;
+    ['raw','ia'].forEach(field=>{
+      const text = t[field] || '';
+      if(!text) return;
+      const re = new RegExp(CHECKBOX_RE.source, 'gm');
+      let m, idx = 0;
+      while((m = re.exec(text))){
+        const done = m[2].toLowerCase() === 'x';
+        const lineEndIdx = text.indexOf('\n', m.index);
+        const lineEnd = lineEndIdx === -1 ? text.length : lineEndIdx;
+        const desc = text.slice(m.index + m[0].length, lineEnd).trim();
+        tasks.push({ tabId:id, tabName: t.name || 'Sans titre', color: t.color, field, index: idx, done, text: desc || '(vide)' });
+        idx++;
+      }
+    });
+  });
+  return tasks;
+}
+
+function updateTasksBadge(){
+  const badge = document.getElementById('tasksBadge');
+  if(!badge) return;
+  const open = extractAllTasks().filter(t=>!t.done).length;
+  badge.textContent = '✅ ' + open;
+  badge.classList.toggle('has-tasks', open > 0);
+  if(document.getElementById('tasksPanel').style.display === 'flex') renderTasksPanel();
+}
+
+function toggleTasksPanel(){
+  const panel = document.getElementById('tasksPanel');
+  const isHidden = panel.style.display === 'none';
+  panel.style.display = isHidden ? 'flex' : 'none';
+  if(isHidden) renderTasksPanel();
+}
+
+function toggleShowDoneTasks(){
+  showDoneTasks = !showDoneTasks;
+  renderTasksPanel();
+}
+
+function renderTasksPanel(){
+  const list = document.getElementById('tasksList');
+  const toggleBtn = document.getElementById('tasksShowDoneBtn');
+  if(toggleBtn) toggleBtn.textContent = showDoneTasks ? '☑ Masquer les tâches faites' : '☐ Afficher les tâches faites';
+  const all = extractAllTasks();
+  const tasks = showDoneTasks ? all : all.filter(t=>!t.done);
+  const openCount = all.filter(t=>!t.done).length;
+  const title = document.getElementById('tasksTitle');
+  if(title) title.textContent = 'Tâches (' + openCount + ' en cours)';
+  if(!tasks.length){
+    list.innerHTML = '<p class="history-empty">' + (showDoneTasks ? 'Aucune tâche pour l\'instant.' : 'Rien en cours — tout est coché 🎉') + '</p>';
+    return;
+  }
+  list.innerHTML = '';
+  tasks.forEach(task=>{
+    const item = document.createElement('div');
+    item.className = 'task-item' + (task.done ? ' done' : '');
+
+    const box = document.createElement('input');
+    box.type = 'checkbox';
+    box.checked = task.done;
+    box.title = 'Cocher / décocher sans quitter cette vue';
+    box.onclick = (e)=>{ e.stopPropagation(); toggleTaskGlobal(task.tabId, task.field, task.index); };
+    item.appendChild(box);
+
+    const body = document.createElement('div');
+    body.className = 'task-item-body';
+    body.title = 'Ouvrir cet onglet';
+    body.onclick = ()=> jumpToTask(task.tabId);
+
+    const meta = document.createElement('div');
+    meta.className = 'task-item-meta';
+    const dot = document.createElement('span');
+    dot.className = 'task-item-dot';
+    dot.style.background = task.color;
+    meta.appendChild(dot);
+    const tabName = document.createElement('span');
+    tabName.className = 'task-item-tab';
+    tabName.textContent = task.tabName + (task.field === 'ia' ? ' · IA' : '');
+    meta.appendChild(tabName);
+    body.appendChild(meta);
+
+    const txt = document.createElement('div');
+    txt.className = 'task-item-text';
+    txt.textContent = task.text;
+    body.appendChild(txt);
+
+    item.appendChild(body);
+    list.appendChild(item);
+  });
+}
+
+function toggleTaskGlobal(tabId, field, index){
+  const t = state.tabs[tabId];
+  if(!t) return;
+  const text = t[field] || '';
+  let n = 0;
+  const newValue = text.replace(CHECKBOX_RE, (m, lead, mark)=>{
+    if(n++ !== index) return m;
+    const checked = mark.toLowerCase() === 'x';
+    return lead + '[' + (checked ? ' ' : 'x') + ']';
+  });
+  if(newValue === text) return;
+  t[field] = newValue;
+  persist();
+  if(activeId === tabId){
+    const areaId = field === 'raw' ? 'rawArea' : 'iaArea';
+    const area = document.getElementById(areaId);
+    if(area) area.value = newValue;
+    updateCounts();
+    renderViewState(field);
+  }
+  renderTabs();
+  renderTasksPanel();
+}
+
+function jumpToTask(tabId){
+  if(tabId !== activeId) selectTab(tabId);
+  toggleTasksPanel();
+  setMobileCol('raw');
+  flash('rawCol');
+}
+document.getElementById('tasksPanel').addEventListener('click', (e)=>{
+  if(e.target.id === 'tasksPanel') toggleTasksPanel();
+});
 
 // ── RECHERCHE / REMPLACEMENT DANS LE TEXTE ACTIF ────────────────────────────
 let findState = { raw: { matches: [], idx: -1 }, ia: { matches: [], idx: -1 } };
@@ -2661,16 +3018,26 @@ document.addEventListener('keydown', (e)=>{
   }
 });
 
+// Restaure l'onglet qui était ouvert à la dernière session (au lieu de toujours
+// retomber sur le premier onglet), pour ne pas avoir à le rechercher à chaque fois.
+function restoreActiveId(){
+  const saved = localStorage.getItem(ACTIVE_KEY);
+  activeId = (saved && state.tabs[saved]) ? saved : (state.order[0] || null);
+}
+
 // INIT
 load();
 loadTags();
-if(!activeId) activeId = state.order[0] || null;
+restoreActiveId();
 applySavedSidebarState();
+applySavedTagsAccordionState();
 applyMobileColView();
 renderTabs();
 renderColumns();
 renderTagsBar();
 updateStorageBadge();
+updateTasksBadge();
+checkBackupReminder();
 migrateInlineImagesToIDB(); // convertit les images collées par une version antérieure (base64 inline → IndexedDB)
 </script>
 </body>
