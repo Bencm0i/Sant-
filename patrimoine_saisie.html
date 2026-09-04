@@ -331,8 +331,7 @@ a.ticker-item:hover {
   justify-content: space-between;
   border-bottom: 1px solid var(--border);
 }
-.section-title {
-  font-family: 'Syne', sans-serif;
+.section-title { font-family: 'Syne', sans-serif;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 2px;
@@ -343,6 +342,11 @@ a.ticker-item:hover {
   gap: 7px;
 }
 .section-body { padding: 14px 16px; }
+
+/* ═══ ACCORDION (blocs repliables) ═══ */
+.section-title.acc-toggle { cursor: pointer; user-select: none; }
+.acc-chevron { margin-left: 4px; font-size: 10px; color: var(--muted); transition: transform 0.15s; }
+.section-body.acc-collapsed { display: none; }
 
 /* ═══ FIELD ROWS ═══ */
 .field-row {
@@ -1262,7 +1266,7 @@ button, input, select { touch-action: manipulation; }
 <div class="panel" id="panel-investissements">
   <div class="section accent-blue">
     <div class="section-head">
-      <div class="section-title">📈 PEA</div>
+      <div class="section-title acc-toggle" onclick="toggleAccSection(this)">📈 PEA<span class="acc-chevron">▾</span></div>
       <div style="display:flex;gap:6px;">
         <button class="mini-btn" style="width:auto;margin:0;padding:5px 12px;border-style:solid;font-size:11px;" onclick="fetchAllInvPrices('pea')" title="Récupérer tous les cours live">⟳ Cours</button>
         <button class="mini-btn" style="width:auto;margin:0;padding:5px 12px;" onclick="addInvRow('pea')">＋</button>
@@ -1272,7 +1276,7 @@ button, input, select { touch-action: manipulation; }
   </div>
   <div class="section accent-green">
     <div class="section-head">
-      <div class="section-title">📊 CTO</div>
+      <div class="section-title acc-toggle" onclick="toggleAccSection(this)">📊 CTO<span class="acc-chevron">▾</span></div>
       <div style="display:flex;gap:6px;">
         <button class="mini-btn" style="width:auto;margin:0;padding:5px 12px;border-style:solid;font-size:11px;" onclick="fetchAllInvPrices('cto')" title="Récupérer tous les cours live">⟳ Cours</button>
         <button class="mini-btn" style="width:auto;margin:0;padding:5px 12px;" onclick="addInvRow('cto')">＋</button>
@@ -1282,7 +1286,7 @@ button, input, select { touch-action: manipulation; }
   </div>
   <div class="section accent-gold">
     <div class="section-head">
-      <div class="section-title">💳 Revolut Invest.</div>
+      <div class="section-title acc-toggle" onclick="toggleAccSection(this)">💳 Revolut Invest.<span class="acc-chevron">▾</span></div>
       <div style="display:flex;gap:6px;">
         <button class="mini-btn" style="width:auto;margin:0;padding:5px 12px;border-style:solid;font-size:11px;" onclick="fetchAllInvPrices('revolut')" title="Récupérer tous les cours live">⟳ Cours</button>
         <button class="mini-btn" style="width:auto;margin:0;padding:5px 12px;" onclick="addInvRow('revolut')">＋</button>
@@ -1292,21 +1296,21 @@ button, input, select { touch-action: manipulation; }
   </div>
   <div class="section">
     <div class="section-head">
-      <div class="section-title">🏢 Épargne Entreprise (PEE/PERCO)</div>
+      <div class="section-title acc-toggle" onclick="toggleAccSection(this)">🏢 Épargne Entreprise (PEE/PERCO)<span class="acc-chevron">▾</span></div>
       <button class="mini-btn" style="width:auto;margin:0;padding:5px 12px;" onclick="addEERow()">＋</button>
     </div>
     <div class="section-body" id="body-ee"></div>
   </div>
   <div class="section accent-red">
     <div class="section-head">
-      <div class="section-title">🛡️ Assurances Vie</div>
+      <div class="section-title acc-toggle" onclick="toggleAccSection(this)">🛡️ Assurances Vie<span class="acc-chevron">▾</span></div>
       <button class="mini-btn" style="width:auto;margin:0;padding:5px 12px;" onclick="addAVRow()">＋</button>
     </div>
     <div class="section-body" id="body-av"></div>
   </div>
   <div class="section">
     <div class="section-head">
-      <div class="section-title">🔒 Épargne Réglementée</div>
+      <div class="section-title acc-toggle" onclick="toggleAccSection(this)">🔒 Épargne Réglementée<span class="acc-chevron">▾</span></div>
       <button class="mini-btn" style="width:auto;margin:0;padding:5px 12px;" onclick="addEBRow()">＋</button>
     </div>
     <div class="section-body" id="body-eb"></div>
@@ -1694,6 +1698,16 @@ let DATA = {
     carburant:{essence:0,prixLitre:0,capaciteTank:0,conso100km:0},
   },
 };
+
+// ─── ACCORDION (blocs repliables) ──────────────────────────────────────────
+function toggleAccSection(titleEl) {
+  const head = titleEl.closest('.section-head');
+  const body = head && head.nextElementSibling;
+  if (!body || !body.classList.contains('section-body')) return;
+  const collapsed = body.classList.toggle('acc-collapsed');
+  const chevron = titleEl.querySelector('.acc-chevron');
+  if (chevron) chevron.textContent = collapsed ? '▸' : '▾';
+}
 
 // ─── TAB SWITCHING ─────────────────────────────────────────────────────────
 function switchTab(name) {
