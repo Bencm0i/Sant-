@@ -221,6 +221,14 @@ body {
   font-family: 'DM Mono', monospace;
   font-size: 13px;
   border-right: 1px solid rgba(255,255,255,0.06);
+  color: inherit;
+  text-decoration: none;
+}
+a.ticker-item {
+  cursor: pointer;
+}
+a.ticker-item:hover {
+  opacity: 0.8;
 }
 .ticker-item:last-child { border-right: none; }
 .t-sym {
@@ -4125,8 +4133,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
   const TICKERS_DEF = [
     { id:'btc',  sym:'BTC/EUR',   gfSym:'CURRENCY:BTCEUR',   yf:'BTC-EUR',   fmt:'eur',  dot:'#f7931a', yfOnly:false },
-    { id:'wpea', sym:'WPEA',      gfSym:'EPA:WPEA',           yf:'WPEA.PA',   fmt:'eur',  dot:'#a855f7', yfOnly:false },
-    { id:'iwda', sym:'IWDA',      gfSym:'AMS:IWDA',           yf:'IWDA.AS',   fmt:'eur',  dot:'#3fa9c9', yfOnly:false },
+    { id:'wpea', sym:'WPEA',      gfSym:'EPA:WPEA',           yf:'WPEA.PA',   fmt:'eur',  dot:'#a855f7', yfOnly:false, url:'https://www.boursorama.com/bourse/trackers/cours/1rTWPEA/' },
+    { id:'iwda', sym:'IWDA',      gfSym:'AMS:IWDA',           yf:'IWDA.AS',   fmt:'eur',  dot:'#3fa9c9', yfOnly:false, url:'https://www.boursorama.com/bourse/trackers/cours/1rAIWDA/' },
     { id:'eur',  sym:'EUR/USD',   gfSym:'CURRENCY:EURUSD',    yf:'EURUSD=X',  fmt:'fx',   dot:'#4df0c8', yfOnly:true  },
     // { id:'gold' } — supprimé (OR retiré du ticker)
     // { id:'nas' } — supprimé (NASDAQ retiré du ticker)
@@ -4191,12 +4199,14 @@ window.addEventListener('DOMContentLoaded', () => {
         const s = state[t.id];
         const priceStr = fmtPrice(s.price, t.fmt);
         const { txt: chgTxt, cls: chgCls } = fmtChg(s.chgPct);
-        html += `<div class="ticker-item">
+        const tag = t.url ? 'a' : 'div';
+        const attrs = t.url ? ` href="${t.url}" target="_blank" rel="noopener"` : '';
+        html += `<${tag} class="ticker-item"${attrs}>
           <span class="t-dot" style="background:${t.dot}"></span>
           <span class="t-sym">${t.sym}</span>
           <span class="t-price" id="tp-${t.id}${suffix}">${priceStr}</span>
           <span class="t-chg ${chgCls}" id="tc-${t.id}${suffix}">${chgTxt}</span>
-        </div>`;
+        </${tag}>`;
       });
     }
     track.innerHTML = html;
