@@ -2226,6 +2226,27 @@ function dcaStatus(r) {
   return { label:'Dans ' + diff + ' j', cls: diff<=3 ? 'gold' : '' };
 }
 
+// Ajoute un mois à une date ISO (YYYY-MM-DD), en gérant les fins de mois (ex: 31 janv. → 28/29 févr.)
+function addOneMonth(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  const day = d.getDate();
+  d.setMonth(d.getMonth() + 1);
+  if (d.getDate() !== day) d.setDate(0);
+  return d.toISOString().slice(0,10);
+}
+
+// Marque un DCA récurrent comme effectué : fait avancer sa date d'un mois (prochaine échéance)
+function dcaMarkDone(i) {
+  const r = DATA.dca[i];
+  if (!r) return;
+  r.date = addOneMonth(r.date || todayISO());
+  r.fait = false;
+  autoSave();
+  renderDCA();
+  const dLabel = new Date(r.date+'T00:00:00').toLocaleDateString('fr-FR');
+  showToast(`✓ Effectué — prochaine échéance le ${dLabel}`);
+}
+
 function renderDCA() {
   const c = document.getElementById('body-dca');
   const rows = DATA.dca || [];
@@ -2250,7 +2271,7 @@ function renderDCA() {
         </div>
         <div class="log-card-field">
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
-            <input type="checkbox" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;" ${r.fait?'checked':''} onchange="DATA.dca[${i}].fait=this.checked;autoSave();renderDCA()">
+            <input type="checkbox" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;" ${r.fait?'checked':''} onchange="if(this.checked){dcaMarkDone(${i});}else{DATA.dca[${i}].fait=false;autoSave();renderDCA();}">
             Effectué
           </label>
         </div>
