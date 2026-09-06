@@ -3690,15 +3690,65 @@ window.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>`;
 
-    // ── CARD TAUX DE RENDEMENT MOYEN (détail par poche) ──────────────
+    // ── CARD TAUX DE RENDEMENT MOYEN (détail par poche + estimation annualisée) ──
+    // Méthode d'annualisation (approximation, pas un TRI exact) :
+    // Pour un versement régulier (DCA), l'argent est en moyenne resté investi
+    // la moitié de la durée totale écoulée depuis le premier versement.
+    // On applique donc un CAGR sur cette "durée effective" = durée totale / 2.
+    // Pour la SCPI, on utilise la vraie date moyenne pondérée (par montant placé)
+    // calculée à partir des dates saisies ligne par ligne — plus précis, pas d'approximation.
+    const MS_JOUR = 86400000;
+    const annualiser = (cout, gain, dureeEffAns) => {
+      if (!(cout > 0) || !(dureeEffAns > 0.08)) return null; // évite les taux absurdes sur <1 mois
+      const facteur = (cout + gain) / cout;
+      if (facteur <= 0) return null; // perte totale, CAGR non défini
+      return (Math.pow(facteur, 1 / dureeEffAns) - 1) * 100;
+    };
+    DATA.rendementDates = DATA.rendementDates || {};
     const rendPockets = [
-      { label:'PEA',  icon:'📈', cout:k.peaPR,   gain:k.pmvPEA },
-      { label:'CTO',  icon:'📊', cout:k.ctoPR,   gain:k.pmvCTO },
-      { label:'Revolut (investi)', icon:'💳', cout:k.revInvPR, gain:k.pmvRev },
-      { label:'PEE / Épar. Entr.', icon:'🏢', cout:k.eePR, gain:k.pmvEE },
-      { label:'Assurance Vie', icon:'🛡️', cout:k.avVers, gain:k.pmvAV },
-      { label:'SCPI', icon:'🏛️', cout:k.scpiPrix, gain:pmvSCPITotal, loyers:k.scpiLoyersPercus },
+      { label:'PEA',  icon:'📈', key:'pea',     cout:k.peaPR,   gain:k.pmvPEA },
+      { label:'CTO',  icon:'📊', key:'cto',     cout:k.ctoPR,   gain:k.pmvCTO },
+      { label:'Revolut (investi)', icon:'💳', key:'revolut', cout:k.revInvPR, gain:k.pmvRev },
+      { label:'PEE / Épar. Entr.', icon:'🏢', key:'pee',    cout:k.eePR, gain:k.pmvEE },
+      { label:'Assurance Vie', icon:'🛡️', key:'av',       cout:k.avVers, gain:k.pmvAV },
+      { label:'SCPI', icon:'🏛️', key:null, cout:k.scpiPrix, gain:pmvSCPITotal, loyers:k.scpiLoyersPercus },
     ].filter(p => p.cout > 0);
+    // Date moyenne pondérée SCPI (par montant placé) à partir des lignes saisies
+    let scpiDureeAns = null;
+    { let poidsT=0, joursT=0;
+      (DATA.scpi||[]).forEach(r => {
+        if (!r.dateAchat) return;
+        const d0 = new Date(r.dateAchat); if (isNaN(d0)) return;
+        const poids = r.montantPlace || (r.parts||0)*(r.pxAchat||0) || 0;
+        if (poids <= 0) return;
+        poidsT += poids;
+        joursT += poids * (Date.now() - d0.getTime());
+      });
+      if (poidsT > 0) scpiDureeAns = (joursT / poidsT) / MS_JOUR / 365.25;
+    }
+    rendPockets.forEach(p => {
+      if (p.key === null) {
+        p.dureeAns = scpiDureeAns;
+        p.tauxAnnee = scpiDureeAns !== null ? annualiser(p.cout, p.gain, scpiDureeAns) : null;
+      } else {
+        const dateStr = DATA.rendementDates[p.key] || '';
+        if (dateStr) {
+          const d0 = new Date(dateStr);
+          if (!isNaN(d0)) {
+            const dureeTotaleAns = (Date.now() - d0.getTime()) / MS_JOUR / 365.25;
+            p.dureeAns = dureeTotaleAns / 2; // durée effective ≈ moitié (DCA régulier)
+            p.tauxAnnee = annualiser(p.cout, p.gain, p.dureeAns);
+          }
+        }
+        p.dateStr = dateStr;
+      }
+    });
+    const pocketsAnnualises = rendPockets.filter(p => p.tauxAnnee !== null && p.tauxAnnee !== undefined);
+    const capitalAnnualise  = pocketsAnnualises.reduce((s,p) => s+p.cout, 0);
+    const tauxAnnuelEstime  = capitalAnnualise > 0
+      ? pocketsAnnualises.reduce((s,p) => s + p.tauxAnnee * p.cout, 0) / capitalAnnualise
+      : null;
+
     const rendCls = rendementMoyen >= 0 ? '#5aab7a' : '#c05a5a';
     const rendementCard = `
       <div class="kpi-card full" style="cursor:pointer;border-top:2px solid ${rendCls};" onclick="this.querySelector('.rend-detail').style.display=this.querySelector('.rend-detail').style.display==='none'?'block':'none';">
@@ -3706,17 +3756,36 @@ window.addEventListener('DOMContentLoaded', () => {
           <div class="kpi-card-label">Taux de rendement moyen <span style="font-size:9px;color:var(--muted);margin-left:4px;">▾ détail</span></div>
           <span style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);">${rendPockets.length} poches</span>
         </div>
-        <div class="kpi-card-value" style="color:${rendCls};">${rendementMoyen>=0?'+':''}${rendementMoyen.toFixed(1)}%</div>
-        <div class="kpi-card-sub">Gain pondéré (${(gainPondereTot>=0?'+':'')+fmtK(gainPondereTot)}) / capital investi (${fmtK(capitalInvestiTot)}) · SCPI incl. loyers perçus</div>
+        <div style="display:flex;align-items:flex-end;gap:22px;flex-wrap:wrap;margin-top:4px;">
+          <div>
+            <div class="kpi-card-value" style="color:${rendCls};">${rendementMoyen>=0?'+':''}${rendementMoyen.toFixed(1)}%</div>
+            <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">Depuis l'origine</div>
+          </div>
+          <div>
+            <div class="kpi-card-value" style="color:${tauxAnnuelEstime===null?'var(--muted)':(tauxAnnuelEstime>=0?'var(--gold)':'#c05a5a')};">${tauxAnnuelEstime!==null ? (tauxAnnuelEstime>=0?'+':'')+tauxAnnuelEstime.toFixed(1)+'%' : '—'}</div>
+            <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">≈ Supposé / an</div>
+          </div>
+        </div>
+        <div class="kpi-card-sub">Cumulé depuis l'origine — ${(gainPondereTot>=0?'+':'')+fmtK(gainPondereTot)} / ${fmtK(capitalInvestiTot)} investis${tauxAnnuelEstime===null?' · ajoute des dates ci-dessous pour estimer un taux annuel':''}</div>
         <div class="rend-detail" style="display:none;margin-top:12px;padding-top:10px;border-top:1px solid var(--border);">
           <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:4px 10px;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding-bottom:5px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:4px;">
-            <span>Poche</span><span style="text-align:right;">Investi</span><span style="text-align:right;">Gain €</span><span style="text-align:right;">Rendement</span>
+            <span>Poche</span><span style="text-align:right;">Investi</span><span style="text-align:right;">Cumulé</span><span style="text-align:right;">≈ /an</span>
           </div>
           ${rendPockets.map(p => {
             const pPct = p.cout > 0 ? (p.gain / p.cout * 100) : 0;
             const c = pPct >= 0 ? '#5aab7a' : '#c05a5a';
             const sign = pPct >= 0 ? '+' : '';
             const barW = Math.min(Math.abs(pPct), 100).toFixed(0);
+            const anTxt = p.tauxAnnee !== null && p.tauxAnnee !== undefined
+              ? `${p.tauxAnnee>=0?'+':''}${p.tauxAnnee.toFixed(1)}%`
+              : '—';
+            const dateInput = p.key !== null ? `
+                <div style="margin-top:4px;display:flex;align-items:center;gap:5px;">
+                  <span style="font-size:9px;color:var(--muted);">Début :</span>
+                  <input type="date" value="${p.dateStr||''}"
+                    style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:'DM Mono',monospace;font-size:10px;padding:2px 6px;"
+                    onchange="DATA.rendementDates=DATA.rendementDates||{};DATA.rendementDates['${p.key}']=this.value;autoSave();if(typeof renderKPIPanel==='function')renderKPIPanel();">
+                </div>` : (p.dureeAns !== null && p.dureeAns !== undefined ? `<div style="font-size:9px;color:var(--muted);margin-top:4px;">Date moy. pondérée des lignes SCPI</div>` : `<div style="font-size:9px;color:var(--muted);margin-top:4px;">Renseigne une date d'achat sur les lignes SCPI</div>`);
             return `<div style="display:grid;grid-template-columns:1fr auto auto auto;gap:4px 10px;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
               <div>
                 <div style="font-size:11px;color:var(--text);">${p.icon} ${p.label}</div>
@@ -3724,17 +3793,24 @@ window.addEventListener('DOMContentLoaded', () => {
                 <div style="margin-top:3px;height:3px;background:var(--surface2);border-radius:2px;width:100%;overflow:hidden;">
                   <div style="height:100%;width:${barW}%;background:${c};border-radius:2px;"></div>
                 </div>
+                ${dateInput}
               </div>
               <div style="text-align:right;font-size:10px;color:var(--muted);white-space:nowrap;">${fmtK(p.cout)}</div>
-              <div style="text-align:right;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:${c};white-space:nowrap;">${sign}${fmtK(p.gain)}</div>
-              <div style="text-align:right;font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:${c};white-space:nowrap;">${sign}${pPct.toFixed(1)}%</div>
+              <div style="text-align:right;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:${c};white-space:nowrap;">${sign}${pPct.toFixed(1)}%</div>
+              <div style="text-align:right;font-family:'Syne',sans-serif;font-size:12px;font-weight:800;color:${p.tauxAnnee>0?'#5aab7a':(p.tauxAnnee<0?'#c05a5a':'var(--muted)')};white-space:nowrap;">${anTxt}</div>
             </div>`;
           }).join('')}
-          <div style="display:flex;align-items:center;justify-content:space-between;padding-top:8px;margin-top:4px;border-top:1px solid var(--border);">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding-top:8px;margin-top:4px;border-top:1px solid var(--border);flex-wrap:wrap;gap:6px;">
             <span style="font-family:'Syne',sans-serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">TOTAL PONDÉRÉ</span>
-            <span style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:${rendCls};">${gainPondereTot>=0?'+':''}${fmtK(gainPondereTot)} (${rendementMoyen>=0?'+':''}${rendementMoyen.toFixed(1)}%)</span>
+            <span style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:${rendCls};">
+              Origine ${gainPondereTot>=0?'+':''}${fmtK(gainPondereTot)} (${rendementMoyen>=0?'+':''}${rendementMoyen.toFixed(1)}%)
+              <span style="color:${tauxAnnuelEstime===null?'var(--muted)':'var(--gold)'};margin-left:8px;">· ≈/an ${tauxAnnuelEstime!==null ? (tauxAnnuelEstime>=0?'+':'')+tauxAnnuelEstime.toFixed(1)+'%' : '—'}</span>
+            </span>
           </div>
-          <div class="kpi-card-sub" style="margin-top:8px;">Épargne bloquée (Livret A, LDDS…) exclue : capital garanti sans cours vs PR suivi ici. Renseigne la date d'achat sur chaque ligne SCPI pour inclure ses loyers cumulés.</div>
+          <div class="kpi-card-sub" style="margin-top:8px;">
+            Épargne bloquée (Livret A, LDDS…) exclue : capital garanti sans cours vs PR suivi ici.<br>
+            Estimation "≈/an" : approximation par CAGR sur une durée effective ≈ moitié du temps écoulé depuis le premier versement (hypothèse : apports réguliers). Pas un TRI exact — donne un ordre de grandeur, pas une valeur précise.
+          </div>
         </div>
       </div>`;
 
