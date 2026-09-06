@@ -2150,11 +2150,16 @@ function renderSCPI() {
             <input type="number" value="${r.loyerMensuel||''}" step="0.01" min="0" inputmode="decimal" autocomplete="off"
               oninput="DATA.scpi[${i}].loyerMensuel=parseFloat(this.value)||0;autoSave()">
           </div>
+          <div class="form-field">
+            <label class="lbl">Date d'achat<small style="display:block;font-weight:400;">Pour calculer les loyers cumulés perçus</small></label>
+            <input type="date" value="${r.dateAchat||''}"
+              onchange="DATA.scpi[${i}].dateAchat=this.value;autoSave();if(typeof renderKPIPanel==='function')renderKPIPanel();">
+          </div>
         </div>
       </div>
     </div>`).join('');
 }
-function addSCPIRow() { DATA.scpi.push({gestionnaire:'',produit:'',parts:0,pxAchat:0,pxActuel:0,totalActuel:0,montantPlace:0,loyerMensuel:0,url:''}); renderSCPI(); autoSave(); }
+function addSCPIRow() { DATA.scpi.push({gestionnaire:'',produit:'',parts:0,pxAchat:0,pxActuel:0,totalActuel:0,montantPlace:0,loyerMensuel:0,dateAchat:'',url:''}); renderSCPI(); autoSave(); }
 function delSCPIRow(i) { deleteWithUndo(DATA.scpi, i, renderSCPI, 'Ligne SCPI supprimée'); }
 
 // ─── ATH ───────────────────────────────────────────────────────────────────
@@ -3112,6 +3117,14 @@ window.addEventListener('DOMContentLoaded', () => {
     const scpiVal = (DATA.scpi||[]).reduce((s,r) => s+(r.totalActuel || (r.parts||0)*(r.pxActuel||0) || 0), 0);
     const scpiPrix= (DATA.scpi||[]).reduce((s,r) => s+(r.parts||0)*(r.pxAchat||0), 0);
     const scpiCR  = (DATA.scpi||[]).reduce((s,r) => s+(r.montantPlace || (r.parts||0)*(r.pxAchat||0) || 0), 0);
+    // Loyers cumulés perçus depuis l'achat (compense les frais d'entrée dans le temps)
+    const scpiLoyersPercus = (DATA.scpi||[]).reduce((s,r) => {
+      if (!r.dateAchat || !r.loyerMensuel) return s;
+      const d0 = new Date(r.dateAchat);
+      if (isNaN(d0)) return s;
+      const moisEcoules = Math.max(0, (Date.now() - d0.getTime()) / (1000*60*60*24*30.4375));
+      return s + moisEcoules * r.loyerMensuel;
+    }, 0);
 
     const maison  = DATA.maison || 0;
     const liquide = DATA.especeCache || 0;
@@ -3170,7 +3183,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     return {
       grandTotal, heritageVal, banquesTotal, boursoTotal, fortuneoTotal, revolutTotal, natixisTotal,
-      scpiVal, scpiPrix, scpiCR, maison, liquide, eeVal, avVal, avValNonSync, avSyncVal, ebVal, avVers,
+      scpiVal, scpiPrix, scpiCR, scpiLoyersPercus, maison, liquide, eeVal, avVal, avValNonSync, avSyncVal, ebVal, avVers,
       peaVal, peaPR, ctoVal, ctoPR, revInvVal, revInvPR, eePR,
       btcVal, btcPR, orVal, orPR,
       ccBourso, ccFortuneo, ccRevolut, ccEspeces, ccLivrets, ccTotal,
@@ -3187,6 +3200,15 @@ window.addEventListener('DOMContentLoaded', () => {
     // ── NOUVEAU : P/MV sans SCPI
     const pmvHorsSCPI = k.pmvPEA + k.pmvCTO + k.pmvRev + k.pmvEE + k.pmvAV;
     const epargne = Math.max(0, k.revenu - k.depMens);
+    // ── NOUVEAU : Taux de rendement moyen pondéré (investissements + épargne trackés)
+    // Capital investi = PEA + CTO + Revolut + PEE + versements AV + prix d'achat SCPI
+    // (Épargne bloquée type Livret A/LDDS exclue : capital garanti, pas de PR vs cours suivi ici)
+    // SCPI : le gain intègre les loyers cumulés perçus depuis l'achat, qui compensent
+    // dans le temps la décote initiale (frais d'entrée ~10%) — sinon le taux serait faussé.
+    const capitalInvestiTot = k.peaPR + k.ctoPR + k.revInvPR + k.eePR + k.avVers + k.scpiPrix;
+    const pmvSCPITotal = k.pmvSCPI + k.scpiLoyersPercus;
+    const gainPondereTot = k.pmvPEA + k.pmvCTO + k.pmvRev + k.pmvEE + k.pmvAV + pmvSCPITotal;
+    const rendementMoyen = capitalInvestiTot > 0 ? (gainPondereTot / capitalInvestiTot * 100) : 0;
     const cards = [
       { label:'SCPI', value: fmtK(k.scpiVal), cls:'gold', sub:'Pierre-papier' },
       { label:'Immobilier direct', value: fmtK(k.maison), cls:'', sub:'Résidence principale' },
@@ -3668,7 +3690,55 @@ window.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>`;
 
-    el.innerHTML = resumeCard + patrimoineCard + athCard + battleCard + depensesCard + impotCard + banquesCard + niCard + pruCard + achatCard + cards.map(c => `
+    // ── CARD TAUX DE RENDEMENT MOYEN (détail par poche) ──────────────
+    const rendPockets = [
+      { label:'PEA',  icon:'📈', cout:k.peaPR,   gain:k.pmvPEA },
+      { label:'CTO',  icon:'📊', cout:k.ctoPR,   gain:k.pmvCTO },
+      { label:'Revolut (investi)', icon:'💳', cout:k.revInvPR, gain:k.pmvRev },
+      { label:'PEE / Épar. Entr.', icon:'🏢', cout:k.eePR, gain:k.pmvEE },
+      { label:'Assurance Vie', icon:'🛡️', cout:k.avVers, gain:k.pmvAV },
+      { label:'SCPI', icon:'🏛️', cout:k.scpiPrix, gain:pmvSCPITotal, loyers:k.scpiLoyersPercus },
+    ].filter(p => p.cout > 0);
+    const rendCls = rendementMoyen >= 0 ? '#5aab7a' : '#c05a5a';
+    const rendementCard = `
+      <div class="kpi-card full" style="cursor:pointer;border-top:2px solid ${rendCls};" onclick="this.querySelector('.rend-detail').style.display=this.querySelector('.rend-detail').style.display==='none'?'block':'none';">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div class="kpi-card-label">Taux de rendement moyen <span style="font-size:9px;color:var(--muted);margin-left:4px;">▾ détail</span></div>
+          <span style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);">${rendPockets.length} poches</span>
+        </div>
+        <div class="kpi-card-value" style="color:${rendCls};">${rendementMoyen>=0?'+':''}${rendementMoyen.toFixed(1)}%</div>
+        <div class="kpi-card-sub">Gain pondéré (${(gainPondereTot>=0?'+':'')+fmtK(gainPondereTot)}) / capital investi (${fmtK(capitalInvestiTot)}) · SCPI incl. loyers perçus</div>
+        <div class="rend-detail" style="display:none;margin-top:12px;padding-top:10px;border-top:1px solid var(--border);">
+          <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:4px 10px;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding-bottom:5px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:4px;">
+            <span>Poche</span><span style="text-align:right;">Investi</span><span style="text-align:right;">Gain €</span><span style="text-align:right;">Rendement</span>
+          </div>
+          ${rendPockets.map(p => {
+            const pPct = p.cout > 0 ? (p.gain / p.cout * 100) : 0;
+            const c = pPct >= 0 ? '#5aab7a' : '#c05a5a';
+            const sign = pPct >= 0 ? '+' : '';
+            const barW = Math.min(Math.abs(pPct), 100).toFixed(0);
+            return `<div style="display:grid;grid-template-columns:1fr auto auto auto;gap:4px 10px;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+              <div>
+                <div style="font-size:11px;color:var(--text);">${p.icon} ${p.label}</div>
+                ${p.loyers > 0 ? `<div style="font-size:9px;color:var(--muted);">dont ${fmtK(p.loyers)} loyers perçus</div>` : ''}
+                <div style="margin-top:3px;height:3px;background:var(--surface2);border-radius:2px;width:100%;overflow:hidden;">
+                  <div style="height:100%;width:${barW}%;background:${c};border-radius:2px;"></div>
+                </div>
+              </div>
+              <div style="text-align:right;font-size:10px;color:var(--muted);white-space:nowrap;">${fmtK(p.cout)}</div>
+              <div style="text-align:right;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:${c};white-space:nowrap;">${sign}${fmtK(p.gain)}</div>
+              <div style="text-align:right;font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:${c};white-space:nowrap;">${sign}${pPct.toFixed(1)}%</div>
+            </div>`;
+          }).join('')}
+          <div style="display:flex;align-items:center;justify-content:space-between;padding-top:8px;margin-top:4px;border-top:1px solid var(--border);">
+            <span style="font-family:'Syne',sans-serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">TOTAL PONDÉRÉ</span>
+            <span style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:${rendCls};">${gainPondereTot>=0?'+':''}${fmtK(gainPondereTot)} (${rendementMoyen>=0?'+':''}${rendementMoyen.toFixed(1)}%)</span>
+          </div>
+          <div class="kpi-card-sub" style="margin-top:8px;">Épargne bloquée (Livret A, LDDS…) exclue : capital garanti sans cours vs PR suivi ici. Renseigne la date d'achat sur chaque ligne SCPI pour inclure ses loyers cumulés.</div>
+        </div>
+      </div>`;
+
+    el.innerHTML = resumeCard + patrimoineCard + athCard + battleCard + depensesCard + impotCard + banquesCard + niCard + pruCard + rendementCard + achatCard + cards.map(c => `
       <div class="kpi-card${c.full?' full':''}">
         <div class="kpi-card-label">${c.label}</div>
         <div class="kpi-card-value ${c.cls}">${c.value}</div>
