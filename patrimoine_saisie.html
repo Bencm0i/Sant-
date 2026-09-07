@@ -3215,7 +3215,6 @@ window.addEventListener('DOMContentLoaded', () => {
     const gainPondereTot = k.pmvPEA + k.pmvCTO + k.pmvRev + k.pmvEE + k.pmvAV + pmvSCPITotal;
     const rendementMoyen = capitalInvestiTot > 0 ? (gainPondereTot / capitalInvestiTot * 100) : 0;
     const cards = [
-      { label:'Total investi hors immo', value: fmtK(k.investiHorsImmo), cls:'blue', sub:`PEA · CTO · Revolut · PEE · AV · SCPI · Ép. bloquée — rappel liquidité réellement disponible (onglet Poches) : ${fmtK(liquiditeReelDispo)}` },
       { label:'SCPI', value: fmtK(k.scpiVal), cls:'gold', sub:'Pierre-papier' },
       { label:'Immobilier direct', value: fmtK(k.maison), cls:'', sub:'Résidence principale' },
       // ── MODIFIÉ : Épargne bloquée + Natixis PEE
@@ -3224,8 +3223,8 @@ window.addEventListener('DOMContentLoaded', () => {
       { label:'P/MV hors SCPI', value: (pmvHorsSCPI>=0?'+':'')+fmtK(pmvHorsSCPI), cls:pmvHorsSCPI>=0?'green':'red', sub:'PEA · CTO · Revolut · EE · AV' },
       // P/MV tout (2e card)
       { label:'P/MV (tout)', value: (pmvTot>=0?'+':'')+fmtK(pmvTot), cls:pmvTot>=0?'green':'red', sub:'Toutes poches incl. SCPI' },
-      { label:'Dépenses / mois', value: fmtK(k.depMens), cls:'red', sub:'Toutes catégories' },
       { label:'Revenu mensuel total', value: fmtK(k.revenu), cls:'blue', sub: `Salaire ${fmtK(k.revenuSalaire)} + Loyers ${fmtK(k.revenuLocatif)}` },
+      { label:'Dépenses / mois', value: fmtK(k.depMens), cls:'red', sub:'Toutes catégories' },
       { label:'Épargne mensuelle', value: fmtK(epargne), cls:'green', sub:'Revenu (salaire + loyers) − Dépenses' },
       { label:'Taux d\'épargne', value: pct(k.txEpargne), cls: k.txEpargne>=20?'green':k.txEpargne>=10?'gold':'red', sub:'% du revenu total (salaire + loyers)' },
       // ── MODIFIÉ : Indépendance hors résidence principale
@@ -3323,6 +3322,14 @@ window.addEventListener('DOMContentLoaded', () => {
             <span style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--accent);">${fmt(k.grandTotal)}</span>
           </div>
         </div>
+      </div>`;
+
+    // ── CARD TOTAL INVESTI HORS IMMO (juste après le total, avant le détail) ──
+    const investiCard = `
+      <div class="kpi-card full" style="border-top:2px solid var(--accent);">
+        <div class="kpi-card-label">Total investi hors immo</div>
+        <div class="kpi-card-value blue">${fmtK(k.investiHorsImmo)}</div>
+        <div class="kpi-card-sub">PEA · CTO · Revolut · PEE · AV · SCPI · Ép. bloquée — rappel liquidité réellement disponible (onglet Poches) : ${fmtK(liquiditeReelDispo)}</div>
       </div>`;
 
     // ── CARD PATRIMOINE ACTUEL vs ATH ────────────────────────────────
@@ -3820,7 +3827,7 @@ window.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>`;
 
-    el.innerHTML = resumeCard + patrimoineCard + athCard + battleCard + depensesCard + impotCard + banquesCard + niCard + pruCard + rendementCard + achatCard + cards.map(c => `
+    el.innerHTML = patrimoineCard + investiCard + niCard + resumeCard + banquesCard + athCard + pruCard + rendementCard + battleCard + depensesCard + impotCard + achatCard + cards.map(c => `
       <div class="kpi-card${c.full?' full':''}">
         <div class="kpi-card-label">${c.label}</div>
         <div class="kpi-card-value ${c.cls}">${c.value}</div>
