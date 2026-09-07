@@ -3181,6 +3181,9 @@ window.addEventListener('DOMContentLoaded', () => {
     if (liquide > 0) nonInvestiLines.push({ bank: 'Divers', label: 'Espèces / Liquide', val: liquide });
     const nonInvestiTotal = nonInvestiLines.reduce((s,r) => s + r.val, 0);
 
+    // ── NOUVEAU : Total investi hors immo (PEA+CTO+Revolut invest+PEE+AV+SCPI, hors immobilier et hors liquidités)
+    const investiHorsImmo = peaVal + ctoVal + revInvVal + eeVal + avVal + scpiVal + ebVal;
+
     return {
       grandTotal, heritageVal, banquesTotal, boursoTotal, fortuneoTotal, revolutTotal, natixisTotal,
       scpiVal, scpiPrix, scpiCR, scpiLoyersPercus, maison, liquide, eeVal, avVal, avValNonSync, avSyncVal, ebVal, avVers,
@@ -3189,7 +3192,7 @@ window.addEventListener('DOMContentLoaded', () => {
       ccBourso, ccFortuneo, ccRevolut, ccEspeces, ccLivrets, ccTotal,
       pmvPEA, pmvCTO, pmvRev, pmvEE, pmvAV, pmvSCPI,
       depMens, revenu, revenuSalaire, revenuLocatif, immoLoyerMens, scpiLoyerMens, txEpargne, moisLiberte, moisLiberteSansMaison,
-      nonInvestiTotal, nonInvestiLines,
+      nonInvestiTotal, nonInvestiLines, investiHorsImmo,
       immoTotal, immoP1Val, immoP2Val, immoP3Val, immoAll: maison + immoTotal,
     };
   }
@@ -3197,6 +3200,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
   function renderKPICards(k) {
     const pmvTot  = k.pmvPEA + k.pmvCTO + k.pmvRev + k.pmvEE + k.pmvAV + k.pmvSCPI;
+    // ── Rappel liquidité réellement disponible (onglet Poches) : liquidités hors poches investies − provisions poches
+    const liquiditeReelDispo = k.nonInvestiTotal - (typeof pochesGrandTotal === 'function' ? pochesGrandTotal() : 0);
     // ── NOUVEAU : P/MV sans SCPI
     const pmvHorsSCPI = k.pmvPEA + k.pmvCTO + k.pmvRev + k.pmvEE + k.pmvAV;
     const epargne = Math.max(0, k.revenu - k.depMens);
@@ -3210,6 +3215,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const gainPondereTot = k.pmvPEA + k.pmvCTO + k.pmvRev + k.pmvEE + k.pmvAV + pmvSCPITotal;
     const rendementMoyen = capitalInvestiTot > 0 ? (gainPondereTot / capitalInvestiTot * 100) : 0;
     const cards = [
+      { label:'Total investi hors immo', value: fmtK(k.investiHorsImmo), cls:'blue', sub:`PEA · CTO · Revolut · PEE · AV · SCPI · Ép. bloquée — rappel liquidité réellement disponible (onglet Poches) : ${fmtK(liquiditeReelDispo)}` },
       { label:'SCPI', value: fmtK(k.scpiVal), cls:'gold', sub:'Pierre-papier' },
       { label:'Immobilier direct', value: fmtK(k.maison), cls:'', sub:'Résidence principale' },
       // ── MODIFIÉ : Épargne bloquée + Natixis PEE
@@ -3223,7 +3229,7 @@ window.addEventListener('DOMContentLoaded', () => {
       { label:'Épargne mensuelle', value: fmtK(epargne), cls:'green', sub:'Revenu (salaire + loyers) − Dépenses' },
       { label:'Taux d\'épargne', value: pct(k.txEpargne), cls: k.txEpargne>=20?'green':k.txEpargne>=10?'gold':'red', sub:'% du revenu total (salaire + loyers)' },
       // ── MODIFIÉ : Indépendance hors résidence principale
-      { label:'Indépendance (hors immo)', value: k.moisLiberteSansMaison.toFixed(0)+' mois', cls:'gold', sub:'Patrimoine liquide ÷ dépenses' },
+      { label:'Indépendance (hors immo)', value: (k.moisLiberteSansMaison/12).toFixed(1).replace('.',',')+' ans', cls:'gold', sub:'Patrimoine liquide ÷ dépenses' },
     ];
     const el = document.getElementById('kpi-cards');
     if (!el) return;
@@ -3997,7 +4003,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const rows = [
       { label:"Taux d'épargne", sub:"Épargne / Revenu net", val:pct(k.txEpargne), num:k.txEpargne, max:50, color:k.txEpargne>=20?'#5aab7a':k.txEpargne>=10?'#c8a96e':'#c05a5a' },
       { label:"Charge des dépenses", sub:"Dépenses / Revenu mensuel", val:pct(k.revenu>0?k.depMens/k.revenu*100:0), num:k.revenu>0?k.depMens/k.revenu*100:0, max:100, color:k.revenu>0&&k.depMens/k.revenu<0.7?'#5aab7a':'#c05a5a' },
-      { label:"Indépendance (hors immo)", sub:"Patrimoine liquide ÷ dépenses mensuelles", val:k.moisLiberteSansMaison.toFixed(0)+' mois', num:Math.min(k.moisLiberteSansMaison,120), max:120, color:k.moisLiberteSansMaison>=24?'#5aab7a':k.moisLiberteSansMaison>=6?'#c8a96e':'#c05a5a' },
+      { label:"Indépendance (hors immo)", sub:"Patrimoine liquide ÷ dépenses mensuelles", val:(k.moisLiberteSansMaison/12).toFixed(1).replace('.',',')+' ans', num:Math.min(k.moisLiberteSansMaison,120), max:120, color:k.moisLiberteSansMaison>=24?'#5aab7a':k.moisLiberteSansMaison>=6?'#c8a96e':'#c05a5a' },
       { label:"Exposition actions", sub:"PEA + CTO + Revolut / Patrimoine", val:pct(k.grandTotal>0?(k.peaVal+k.ctoVal+k.revInvVal)/k.grandTotal*100:0), num:k.grandTotal>0?(k.peaVal+k.ctoVal+k.revInvVal)/k.grandTotal*100:0, max:100, color:'#7eb8d4' },
       { label:"Exposition immobilier", sub:"Immo (résidence+locatif) + SCPI / Patrimoine", val:pct(k.grandTotal>0?(k.immoAll+k.scpiVal)/k.grandTotal*100:0), num:k.grandTotal>0?(k.immoAll+k.scpiVal)/k.grandTotal*100:0, max:100, color:'#c8a96e' },
     ];
@@ -4346,27 +4352,7 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   function getKPITickerItems(suffix) {
-    const fmtEur = v => new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v);
-    // Patrimoine total
-    const sumBank = (key) => (typeof DATA !== 'undefined' ? (DATA[key]||[]).reduce((s,r)=>s+(r.val||0),0) : 0);
-    const bTotal = sumBank('boursorama') + sumBank('fortuneo') + sumBank('revolut') + sumBank('natixis');
-    const scpiVal = typeof DATA !== 'undefined' ? (DATA.scpi||[]).reduce((s,r)=>s+(r.totalActuel||(r.parts||0)*(r.pxActuel||0)||0),0) : 0;
-    const avVal   = typeof DATA !== 'undefined' ? (DATA.investissements?.assurance_vie||[]).reduce((s,r)=>s+(r.valeurActuelle||0),0) : 0;
-    const avSyncVal = typeof DATA !== 'undefined' ? (DATA.investissements?.assurance_vie||[]).filter(r=>r.assureur==='Boursorama'||r.nom?.toLowerCase().includes('bourso')||r.assureur==='Fortuneo'||r.nom?.toLowerCase().includes('fortuneo')).reduce((s,r)=>s+(r.valeurActuelle||0),0) : 0;
-    const ebVal   = typeof DATA !== 'undefined' ? (DATA.investissements?.epargne_bloquee||[]).reduce((s,r)=>s+(r.montant||0),0) : 0;
-    const maison  = typeof DATA !== 'undefined' ? (DATA.maison||0) : 0;
-    const liquide = typeof DATA !== 'undefined' ? (DATA.especeCache||0) : 0;
-    const immoVal = typeof DATA !== 'undefined' ? ((DATA.immobilier?.p1?.valeur||0) + (DATA.immobilier?.p2?.valeur||0) + (DATA.immobilier?.p3?.valeur||0)) : 0;
-    const heritageVal = typeof heritageTotal === 'function' ? heritageTotal() : 0;
-    const grandTotal = bTotal + scpiVal + maison + liquide + (avVal - avSyncVal) + ebVal + immoVal + heritageVal;
-
-    return [
-      `<div class="ticker-item" id="kpi-patrimoine${suffix}" style="border-left:1px solid rgba(255,255,255,0.10);border-right:1px solid rgba(255,255,255,0.06);">
-        <span class="t-dot" style="background:#7eb8d4"></span>
-        <span class="t-sym">PATRIMOINE</span>
-        <span class="t-price">${grandTotal > 0 ? fmtEur(grandTotal) : '—'}</span>
-      </div>`,
-    ].join('');
+    return '';
   }
 
   function buildTrack() {
@@ -4400,16 +4386,7 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   function updateKPITickers() {
-    ['', '-b'].forEach(suffix => {
-      const ids = ['kpi-patrimoine'];
-      const tmp = document.createElement('div');
-      tmp.innerHTML = getKPITickerItems(suffix);
-      const newNodes = Array.from(tmp.children);
-      ids.forEach((baseId, idx) => {
-        const existing = document.getElementById(baseId + suffix);
-        if (existing && newNodes[idx]) existing.replaceWith(newNodes[idx]);
-      });
-    });
+    // Ticker PATRIMOINE retiré de la barre défilante — plus rien à mettre à jour ici.
   }
   window.updateKPITickers = updateKPITickers;
 
