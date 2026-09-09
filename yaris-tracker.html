@@ -8,6 +8,7 @@
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
   :root{
+    color-scheme: light dark;
     --bg: #EEF0EF;
     --panel-dark: #1E2126;
     --panel-dark-2: #2A2E35;
@@ -27,7 +28,27 @@
     --mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
   }
 
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg: #121316;
+      --panel-dark: #17191D;
+      --panel-dark-2: #1F2227;
+      --panel-dark-line: #2C2F35;
+      --text: #EDEDEF;
+      --text-mid: #A7ABB2;
+      --text-soft: #75797F;
+      --card: #1B1D22;
+      --border: #2A2D33;
+    }
+    body{ background:#0B0C0E; }
+    .field input, .computed-total{ background:#101216; color:var(--text); }
+    .field input:focus{ background:#15171B; }
+    .btn-secondary{ background:#22252B; }
+    @media (min-width:461px){ body{ background:#0B0C0E; } }
+  }
+
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  .hidden{ display:none !important; }
 
   body{
     margin:0;
@@ -248,15 +269,35 @@
   .field{ display:flex; flex-direction:column; gap:5px; }
   .field label{ font-size:0.78rem; color:var(--text-mid); font-weight:500; }
   .field input{
+    -webkit-appearance:none;
+    appearance:none;
     font-family:var(--mono);
     font-size:1rem;
     padding:10px 11px;
     border-radius:var(--radius-md);
     border:1px solid var(--border);
     background:#FAFAFA;
-    color:var(--text);
+    color:var(--text) !important;
+    -webkit-text-fill-color:var(--text);
+    opacity:1;
   }
   .field input:focus{ outline:none; border-color:var(--accent); background:#fff; }
+  .field input:-webkit-autofill,
+  .field input:-webkit-autofill:hover,
+  .field input:-webkit-autofill:focus{
+    -webkit-text-fill-color:var(--text) !important;
+    -webkit-box-shadow:0 0 0px 1000px #FAFAFA inset;
+    box-shadow:0 0 0px 1000px #FAFAFA inset;
+    caret-color:var(--text);
+  }
+  @media (prefers-color-scheme: dark){
+    .field input:-webkit-autofill,
+    .field input:-webkit-autofill:hover,
+    .field input:-webkit-autofill:focus{
+      -webkit-box-shadow:0 0 0px 1000px #101216 inset;
+      box-shadow:0 0 0px 1000px #101216 inset;
+    }
+  }
 
   .field-row{ display:flex; gap:10px; }
   .field-row .field{ flex:1; }
@@ -420,6 +461,86 @@
     .odo-confirm{ justify-content:flex-start; }
     .digit-cell{ width:26px; }
   }
+
+  /* ---------- Backup reminder banner ---------- */
+  .backup-banner{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    margin:10px 12px 0;
+    padding:10px 12px;
+    background:var(--warn);
+    color:#fff;
+    border-radius:var(--radius-md);
+    font-size:0.78rem;
+  }
+  .backup-banner.hidden{ display:none; }
+  .backup-banner button{
+    background:rgba(255,255,255,0.18);
+    border:none;
+    color:#fff;
+    border-radius:8px;
+    padding:6px 10px;
+    font-size:0.72rem;
+    font-weight:600;
+    cursor:pointer;
+    flex:none;
+  }
+
+  /* ---------- Field errors ---------- */
+  .field.has-error input{ border-color:var(--accent); background:#C81E1E11; }
+  .field-error{ font-size:0.76rem; font-weight:600; color:var(--accent); margin-top:-2px; padding:4px 8px; background:#C81E1E14; border-radius:6px; display:none; }
+  .field.has-error .field-error{ display:block; }
+
+  /* ---------- History filter ---------- */
+  .history-filter{
+    display:flex; gap:8px;
+    padding:10px 16px 0;
+  }
+  .history-filter select{
+    flex:1;
+    font-family:var(--sans);
+    font-size:0.82rem;
+    padding:8px 10px;
+    border-radius:var(--radius-md);
+    border:1px solid var(--border);
+    background:var(--card);
+    color:var(--text);
+  }
+
+  /* ---------- History row edit affordance ---------- */
+  .history-row{ cursor:pointer; }
+  .hr-del{ position:relative; z-index:2; }
+  .history-row.editing{ background:var(--accent-dim); }
+
+  /* ---------- Mini chart ---------- */
+  .chart-wrap{ padding:10px 16px 16px; }
+  .chart-empty{ padding:10px 4px; text-align:center; color:var(--text-soft); font-size:0.85rem; }
+  .chart-svg{ width:100%; display:block; overflow:visible; }
+  .chart-legend{ display:flex; justify-content:space-between; font-size:0.68rem; color:var(--text-soft); margin-top:6px; }
+
+  /* ---------- Maintenance ---------- */
+  .maint-list{ padding:2px 0; }
+  .maint-row{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:12px 16px; border-top:1px solid var(--border);
+  }
+  .maint-row:first-child{ border-top:none; }
+  .maint-main{ flex:1; min-width:0; }
+  .maint-label{ font-weight:600; font-size:0.9rem; }
+  .maint-sub{ font-size:0.75rem; color:var(--text-soft); margin-top:2px; }
+  .maint-status{
+    font-size:0.66rem; font-weight:600;
+    padding:3px 8px; border-radius:8px;
+    white-space:nowrap;
+  }
+  .maint-status.ok{ color:var(--ok); background:#3C7A5C1a; }
+  .maint-status.warn{ color:var(--warn); background:#B8791A1a; }
+  .maint-status.due{ color:var(--accent); background:#C81E1E1a; }
+  .maint-del{
+    background:none; border:none; color:var(--text-soft);
+    font-size:1.2rem; min-width:36px; min-height:36px; cursor:pointer;
+  }
+  .maint-form{ padding:4px 16px 16px; display:flex; flex-direction:column; gap:12px; }
+  .maint-form.hidden{ display:none; }
 </style>
 </head>
 <body>
@@ -459,6 +580,11 @@
     </div>
   </header>
 
+  <div class="backup-banner hidden" id="backupBanner">
+    <span id="backupBannerText">Pense à exporter tes données.</span>
+    <button id="backupBannerBtn">Exporter</button>
+  </div>
+
   <section class="trip-computer" id="tripComputer">
     <div class="stat">
       <div class="stat-label">Consommation moy.</div>
@@ -491,35 +617,81 @@
       <span class="chev">⌄</span>
     </button>
     <form class="fillup-form hidden" id="fillupForm">
-      <div class="field">
+      <div class="field" id="fu-date-field">
         <label for="fu-date">Date</label>
         <input type="date" id="fu-date" required>
+        <div class="field-error" id="fu-date-error">Date requise.</div>
       </div>
       <div class="field-row">
-        <div class="field">
+        <div class="field" id="fu-km-field">
           <label for="fu-km">Kilométrage</label>
           <input type="number" id="fu-km" inputmode="numeric" min="0" step="1" required>
+          <div class="field-error" id="fu-km-error">Doit être ≥ au dernier km enregistré.</div>
         </div>
-        <div class="field">
+        <div class="field" id="fu-liters-field">
           <label for="fu-liters">Litres</label>
-          <input type="number" id="fu-liters" inputmode="decimal" min="0" step="0.01" required>
+          <input type="text" id="fu-liters" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" required>
+          <div class="field-error" id="fu-liters-error">Litres invalides.</div>
         </div>
       </div>
-      <div class="field">
+      <div class="field" id="fu-price-field">
         <label for="fu-price">Prix / litre</label>
-        <input type="number" id="fu-price" inputmode="decimal" min="0" step="0.001" required>
+        <input type="text" id="fu-price" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" required>
+        <div class="field-error" id="fu-price-error">Prix invalide.</div>
       </div>
       <label class="checkbox-row">
         <input type="checkbox" id="fu-full" checked>
         Plein complet (réservoir plein)
       </label>
       <div class="computed-total">Total : <b id="fu-total">-- €</b></div>
-      <button type="submit" class="btn-primary">Enregistrer le plein</button>
+      <div style="display:flex; gap:10px;">
+        <button type="submit" class="btn-primary" id="fu-submit" style="flex:1">Enregistrer le plein</button>
+        <button type="button" class="btn-secondary hidden" id="fu-cancel-edit">Annuler</button>
+      </div>
     </form>
+  </section>
+
+  <div class="section-title">Évolution</div>
+  <section class="card">
+    <button class="card-toggle" id="toggleChart">
+      <span>📈 Consommation &amp; prix dans le temps</span>
+      <span class="chev">⌄</span>
+    </button>
+    <div class="chart-wrap hidden" id="chartWrap"></div>
+  </section>
+
+  <div class="section-title">Entretien</div>
+  <section class="card">
+    <button class="card-toggle" id="toggleMaintForm">
+      <span>+ Ajouter un rappel</span>
+      <span class="chev">⌄</span>
+    </button>
+    <form class="maint-form hidden" id="maintForm">
+      <div class="field">
+        <label for="maint-label">Nom (ex. Vidange, Pneus, Révision)</label>
+        <input type="text" id="maint-label" maxlength="40" required>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="maint-km">Prochain km</label>
+          <input type="number" id="maint-km" inputmode="numeric" min="0" step="1" placeholder="optionnel">
+        </div>
+        <div class="field">
+          <label for="maint-date">Prochaine date</label>
+          <input type="date" id="maint-date">
+        </div>
+      </div>
+      <div class="hint">Renseigne l'un ou l'autre (ou les deux). Une alerte s'affiche à l'approche.</div>
+      <button type="submit" class="btn-primary">Enregistrer le rappel</button>
+    </form>
+    <div class="maint-list" id="maintList"></div>
   </section>
 
   <div class="section-title">Historique</div>
   <section class="card">
+    <div class="history-filter">
+      <select id="historyYearFilter"><option value="">Toutes les années</option></select>
+    </div>
     <div class="history-list" id="historyList"></div>
   </section>
 
@@ -538,7 +710,7 @@
     </div>
     <div class="field">
       <label for="set-defaultconso">Consommation par défaut (L/100km)</label>
-      <input type="number" id="set-defaultconso" min="0" step="0.1">
+      <input type="text" id="set-defaultconso" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*">
       <div class="hint">Utilisée tant qu'il n'y a pas assez de pleins complets pour calculer une vraie moyenne.</div>
     </div>
     <div class="field">
@@ -551,6 +723,10 @@
       <button class="btn-secondary" id="importBtn">Importer (JSON)</button>
       <input type="file" id="importFile" accept="application/json">
     </div>
+    <div class="settings-actions">
+      <button class="btn-secondary" id="exportCsvBtn" style="width:100%">Exporter l'historique (CSV)</button>
+    </div>
+    <div class="hint" id="lastExportHint">Aucun export effectué pour l'instant.</div>
 
     <div class="danger-zone">
       <button class="btn-secondary" id="resetBtn" style="width:100%">Réinitialiser toutes les données</button>
@@ -570,7 +746,9 @@
     vehicle: { name: "Toyota Yaris", tankCapacity: 42, defaultConso: 5.3, currency: "€" },
     currentKm: 0,
     currentKmDate: todayISO(),
-    fillups: []
+    fillups: [],
+    maintenance: [],
+    lastExportAt: null
   };
 
   var state = loadState();
@@ -582,16 +760,43 @@
     return d.getFullYear()+"-"+m+"-"+day;
   }
 
+  function sanitizeState(parsed){
+    parsed.vehicle = Object.assign({}, defaultState.vehicle, parsed.vehicle||{});
+    parsed.fillups = Array.isArray(parsed.fillups) ? parsed.fillups : [];
+    parsed.maintenance = Array.isArray(parsed.maintenance) ? parsed.maintenance : [];
+    if(typeof parsed.currentKm !== "number" || isNaN(parsed.currentKm)) parsed.currentKm = 0;
+    if(typeof parsed.lastExportAt !== "string") parsed.lastExportAt = null;
+    return parsed;
+  }
+
+  function isValidFillup(f){
+    return f && typeof f === "object" &&
+      typeof f.id !== "undefined" &&
+      typeof f.date === "string" &&
+      typeof f.km === "number" && !isNaN(f.km) &&
+      typeof f.liters === "number" && !isNaN(f.liters) && f.liters > 0 &&
+      typeof f.pricePerLiter === "number" && !isNaN(f.pricePerLiter) && f.pricePerLiter > 0;
+  }
+
+  function validateImportedState(parsed){
+    if(!parsed || typeof parsed !== "object") return "Fichier invalide (format inattendu).";
+    if(!Array.isArray(parsed.fillups)) return "Fichier invalide (pleins manquants).";
+    for(var i=0;i<parsed.fillups.length;i++){
+      if(!isValidFillup(parsed.fillups[i])) return "Fichier invalide (un plein est mal formé).";
+    }
+    if(parsed.maintenance && !Array.isArray(parsed.maintenance)) return "Fichier invalide (entretien mal formé).";
+    if(typeof parsed.currentKm !== "undefined" && (typeof parsed.currentKm !== "number" || isNaN(parsed.currentKm))) return "Fichier invalide (kilométrage courant invalide).";
+    return null;
+  }
+
   function loadState(){
     try{
       var raw = localStorage.getItem(STORAGE_KEY);
       if(!raw) return JSON.parse(JSON.stringify(defaultState));
       var parsed = JSON.parse(raw);
-      parsed.vehicle = Object.assign({}, defaultState.vehicle, parsed.vehicle||{});
-      parsed.fillups = Array.isArray(parsed.fillups) ? parsed.fillups : [];
-      if(typeof parsed.currentKm !== "number") parsed.currentKm = 0;
-      return parsed;
+      return sanitizeState(parsed);
     }catch(e){
+      showToast("Données locales illisibles : réinitialisation");
       return JSON.parse(JSON.stringify(defaultState));
     }
   }
@@ -622,6 +827,51 @@
     var parts = iso.split("-");
     if(parts.length!==3) return iso;
     return parts[2]+"/"+parts[1]+"/"+parts[0];
+  }
+
+  function toNum(v){
+    if(typeof v === "number") return v;
+    if(!v) return NaN;
+    return parseFloat(String(v).trim().replace(",", "."));
+  }
+
+  function maxFillupKm(excludeId){
+    var max = 0;
+    state.fillups.forEach(function(f){
+      if(excludeId && f.id === excludeId) return;
+      if(f.km > max) max = f.km;
+    });
+    return max;
+  }
+
+  function daysSince(iso){
+    if(!iso) return Infinity;
+    var d = new Date(iso);
+    if(isNaN(d.getTime())) return Infinity;
+    return Math.floor((Date.now() - d.getTime()) / 86400000);
+  }
+
+  function refreshBackupBanner(){
+    var banner = document.getElementById("backupBanner");
+    var textEl = document.getElementById("backupBannerText");
+    var hintEl = document.getElementById("lastExportHint");
+    var days = daysSince(state.lastExportAt);
+    var hasData = state.fillups.length > 0;
+
+    if(!state.lastExportAt){
+      hintEl.textContent = "Aucun export effectué pour l'instant.";
+    } else {
+      hintEl.textContent = "Dernier export : "+fmtDate(state.lastExportAt.slice(0,10))+" ("+days+" j).";
+    }
+
+    if(hasData && days >= 30){
+      textEl.textContent = state.lastExportAt
+        ? "Dernière sauvegarde il y a "+days+" jours. Pense à exporter."
+        : "Aucune sauvegarde exportée. Pense à exporter tes données.";
+      banner.classList.remove("hidden");
+    } else {
+      banner.classList.add("hidden");
+    }
   }
 
   /* ---------- KPI computation ---------- */
@@ -792,18 +1042,35 @@
     needle.setAttribute("stroke", pct <= 15 ? "var(--accent)" : "#EDEDED");
 
     renderHistory(k);
+    renderMaintenance();
+    renderChart();
+    refreshBackupBanner();
+  }
+
+  function updateYearFilterOptions(){
+    var sel = document.getElementById("historyYearFilter");
+    var years = Array.from(new Set(state.fillups.map(function(f){ return (f.date||"").slice(0,4); }).filter(Boolean))).sort().reverse();
+    var current = sel.value;
+    sel.innerHTML = '<option value="">Toutes les années</option>' + years.map(function(y){ return '<option value="'+y+'">'+y+'</option>'; }).join("");
+    if(years.indexOf(current) !== -1) sel.value = current;
   }
 
   function renderHistory(){
     var listEl = document.getElementById("historyList");
+    updateYearFilterOptions();
+    var yearFilter = document.getElementById("historyYearFilter").value;
+
+    var ascSorted = state.fillups.slice().sort(function(a,b){ return a.km-b.km; });
     var sorted = state.fillups.slice().sort(function(a,b){ return b.km - a.km; });
+    if(yearFilter){
+      sorted = sorted.filter(function(f){ return (f.date||"").slice(0,4) === yearFilter; });
+    }
 
     if(!sorted.length){
-      listEl.innerHTML = '<div class="history-empty">Aucun plein enregistré pour le moment.</div>';
+      listEl.innerHTML = '<div class="history-empty">'+(state.fillups.length ? "Aucun plein pour cette période." : "Aucun plein enregistré pour le moment.")+'</div>';
       return;
     }
 
-    var ascSorted = state.fillups.slice().sort(function(a,b){ return a.km-b.km; });
     var cur = state.vehicle.currency;
 
     listEl.innerHTML = sorted.map(function(f){
@@ -813,7 +1080,7 @@
         ? (conso!==null ? '<span class="hr-tag">≈ '+fmt(conso,1)+' L/100</span>' : '<span class="hr-tag">plein</span>')
         : '<span class="hr-tag partial">partiel</span>';
       return (
-        '<div class="history-row" data-id="'+f.id+'">'+
+        '<div class="history-row'+(f.id===editingFillupId?' editing':'')+'" data-id="'+f.id+'">'+
           '<div class="hr-main">'+
             '<div class="hr-date">'+fmtDate(f.date)+'</div>'+
             '<div class="hr-km">'+fmt(f.km,0)+' km'+tag+'</div>'+
@@ -823,6 +1090,90 @@
             '<div class="hr-total">'+fmt(total,2)+' '+cur+'</div>'+
             '<button class="hr-del" data-del="'+f.id+'" aria-label="Supprimer">×</button>'+
           '</div>'+
+        '</div>'
+      );
+    }).join("");
+  }
+
+  /* ---------- Mini chart (conso & prix dans le temps) ---------- */
+  function renderChart(){
+    var wrap = document.getElementById("chartWrap");
+    if(wrap.classList.contains("hidden")) return;
+
+    var ascSorted = state.fillups.slice().sort(function(a,b){ return a.km-b.km; });
+    var fullOnes = ascSorted.filter(function(f){ return f.full; });
+    var points = [];
+    for(var i=1;i<fullOnes.length;i++){
+      var conso = intervalConsoFor(fullOnes[i], ascSorted);
+      if(conso!==null) points.push({ date: fullOnes[i].date, conso: conso, price: fullOnes[i].pricePerLiter });
+    }
+    if(points.length < 2){
+      wrap.innerHTML = '<div class="chart-empty">Pas encore assez de pleins complets consécutifs pour tracer une courbe (2 minimum).</div>';
+      return;
+    }
+
+    var W = 320, H = 130, padL = 30, padR = 8, padT = 10, padB = 18;
+    var consoVals = points.map(function(p){ return p.conso; });
+    var minC = Math.min.apply(null, consoVals), maxC = Math.max.apply(null, consoVals);
+    if(minC === maxC){ minC -= 1; maxC += 1; }
+
+    function xAt(i){ return padL + (i/(points.length-1)) * (W-padL-padR); }
+    function yAt(v){ return padT + (1 - (v-minC)/(maxC-minC)) * (H-padT-padB); }
+
+    var linePath = points.map(function(p,i){ return (i===0?"M":"L")+xAt(i).toFixed(1)+","+yAt(p.conso).toFixed(1); }).join(" ");
+    var dots = points.map(function(p,i){ return '<circle cx="'+xAt(i).toFixed(1)+'" cy="'+yAt(p.conso).toFixed(1)+'" r="3" fill="var(--accent)"></circle>'; }).join("");
+
+    var svg = '<svg class="chart-svg" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet">'+
+      '<text x="2" y="'+(yAt(maxC)+3)+'" font-size="9" fill="var(--text-soft)">'+fmt(maxC,1)+'</text>'+
+      '<text x="2" y="'+(yAt(minC)+3)+'" font-size="9" fill="var(--text-soft)">'+fmt(minC,1)+'</text>'+
+      '<path d="'+linePath+'" fill="none" stroke="var(--accent)" stroke-width="2"></path>'+
+      dots+
+      '</svg>';
+
+    wrap.innerHTML = svg +
+      '<div class="chart-legend"><span>'+fmtDate(points[0].date)+'</span><span>Consommation (L/100km) entre pleins complets</span><span>'+fmtDate(points[points.length-1].date)+'</span></div>';
+  }
+
+  /* ---------- Maintenance ---------- */
+  function maintenanceStatus(m){
+    var kmLeft = (typeof m.dueKm === "number") ? m.dueKm - (state.currentKm||0) : null;
+    var daysLeft = m.dueDate ? Math.round((new Date(m.dueDate) - new Date(todayISO())) / 86400000) : null;
+
+    var level = "ok";
+    if((kmLeft!==null && kmLeft<=0) || (daysLeft!==null && daysLeft<=0)) level = "due";
+    else if((kmLeft!==null && kmLeft<=1000) || (daysLeft!==null && daysLeft<=30)) level = "warn";
+
+    var parts = [];
+    if(kmLeft!==null) parts.push(kmLeft>0 ? ("dans "+fmt(kmLeft,0)+" km") : (fmt(Math.abs(kmLeft),0)+" km de dépassement"));
+    if(daysLeft!==null) parts.push(daysLeft>0 ? ("dans "+daysLeft+" j") : (Math.abs(daysLeft)+" j de retard"));
+
+    return { level: level, text: parts.join(" · ") || "Pas de seuil défini" };
+  }
+
+  function renderMaintenance(){
+    var listEl = document.getElementById("maintList");
+    if(!state.maintenance.length){
+      listEl.innerHTML = '<div class="history-empty">Aucun rappel d\'entretien pour le moment.</div>';
+      return;
+    }
+    var sorted = state.maintenance.slice().sort(function(a,b){
+      return maintenanceStatus(a).level === maintenanceStatus(b).level ? 0 :
+        (maintenanceStatus(a).level==="due"?-1:maintenanceStatus(b).level==="due"?1:0);
+    });
+    listEl.innerHTML = sorted.map(function(m){
+      var st = maintenanceStatus(m);
+      var labelMap = { ok:"OK", warn:"Bientôt", due:"À faire" };
+      var subParts = [];
+      if(typeof m.dueKm === "number") subParts.push(fmt(m.dueKm,0)+" km");
+      if(m.dueDate) subParts.push(fmtDate(m.dueDate));
+      return (
+        '<div class="maint-row" data-id="'+m.id+'">'+
+          '<div class="maint-main">'+
+            '<div class="maint-label">'+m.label+'</div>'+
+            '<div class="maint-sub">'+(subParts.join(" · ")||"—")+' · '+st.text+'</div>'+
+          '</div>'+
+          '<span class="maint-status '+st.level+'">'+labelMap[st.level]+'</span>'+
+          '<button class="maint-del" data-del="'+m.id+'" aria-label="Supprimer">×</button>'+
         '</div>'
       );
     }).join("");
@@ -840,6 +1191,7 @@
   var odometerEl = document.getElementById("odometer");
   var odoConfirmEl = document.getElementById("odoConfirm");
   var odoDirty = false;
+  var editingFillupId = null;
 
   function buildOdometer(){
     odometerEl.innerHTML = "";
@@ -932,6 +1284,11 @@
 
   document.getElementById("odoValidateBtn").addEventListener("click", function(){
     var pending = readOdometerValue();
+    var floor = maxFillupKm();
+    if(pending < floor){
+      showToast("Le km ne peut pas être inférieur au dernier plein ("+fmt(floor,0)+" km)");
+      return;
+    }
     state.currentKm = pending;
     state.currentKmDate = todayISO();
     odoDirty = false;
@@ -949,19 +1306,77 @@
 
   var toggleBtn = document.getElementById("toggleFillupForm");
   var form = document.getElementById("fillupForm");
+  var cancelEditBtn = document.getElementById("fu-cancel-edit");
+  var submitBtn = document.getElementById("fu-submit");
+
+  function clearFieldErrors(){
+    ["fu-date","fu-km","fu-liters","fu-price"].forEach(function(id){
+      document.getElementById(id+"-field").classList.remove("has-error");
+    });
+  }
+  function setFieldError(id, msg){
+    var f = document.getElementById(id+"-field");
+    f.classList.add("has-error");
+    if(msg) document.getElementById(id+"-error").textContent = msg;
+  }
+
+  function openFormForAdd(){
+    editingFillupId = null;
+    form.classList.remove("hidden");
+    toggleBtn.classList.add("open");
+    cancelEditBtn.classList.add("hidden");
+    submitBtn.textContent = "Enregistrer le plein";
+    clearFieldErrors();
+    document.getElementById("fu-date").value = todayISO();
+    document.getElementById("fu-km").value = state.currentKm || "";
+    document.getElementById("fu-liters").value = "";
+    document.getElementById("fu-price").value = "";
+    document.getElementById("fu-full").checked = true;
+    updateComputedTotal();
+    document.getElementById("fu-km").focus();
+  }
+
+  function openFormForEdit(id){
+    var f = state.fillups.find(function(x){ return x.id === id; });
+    if(!f) return;
+    editingFillupId = id;
+    form.classList.remove("hidden");
+    toggleBtn.classList.add("open");
+    cancelEditBtn.classList.remove("hidden");
+    submitBtn.textContent = "Mettre à jour le plein";
+    clearFieldErrors();
+    document.getElementById("fu-date").value = f.date;
+    document.getElementById("fu-km").value = f.km;
+    document.getElementById("fu-liters").value = f.liters;
+    document.getElementById("fu-price").value = f.pricePerLiter;
+    document.getElementById("fu-full").checked = !!f.full;
+    updateComputedTotal();
+    renderHistory();
+    if(typeof form.scrollIntoView === "function") form.scrollIntoView({ behavior:"smooth", block:"center" });
+  }
+
+  function closeForm(){
+    editingFillupId = null;
+    form.classList.add("hidden");
+    toggleBtn.classList.remove("open");
+    cancelEditBtn.classList.add("hidden");
+    submitBtn.textContent = "Enregistrer le plein";
+    clearFieldErrors();
+    renderHistory();
+  }
+
   toggleBtn.addEventListener("click", function(){
-    form.classList.toggle("hidden");
-    toggleBtn.classList.toggle("open");
-    if(!form.classList.contains("hidden")){
-      document.getElementById("fu-date").value = todayISO();
-      document.getElementById("fu-km").value = state.currentKm || "";
-      document.getElementById("fu-km").focus();
+    if(!form.classList.contains("hidden") && editingFillupId===null){
+      closeForm();
+    } else {
+      openFormForAdd();
     }
   });
+  cancelEditBtn.addEventListener("click", closeForm);
 
   function updateComputedTotal(){
-    var liters = parseFloat(document.getElementById("fu-liters").value) || 0;
-    var price = parseFloat(document.getElementById("fu-price").value) || 0;
+    var liters = toNum(document.getElementById("fu-liters").value) || 0;
+    var price = toNum(document.getElementById("fu-price").value) || 0;
     document.getElementById("fu-total").textContent = fmt(liters*price,2)+" "+state.vehicle.currency;
   }
   document.getElementById("fu-liters").addEventListener("input", updateComputedTotal);
@@ -969,49 +1384,136 @@
 
   form.addEventListener("submit", function(e){
     e.preventDefault();
-    var date = document.getElementById("fu-date").value || todayISO();
+    clearFieldErrors();
+
+    var date = document.getElementById("fu-date").value;
     var km = parseInt(document.getElementById("fu-km").value, 10);
-    var liters = parseFloat(document.getElementById("fu-liters").value);
-    var price = parseFloat(document.getElementById("fu-price").value);
+    var liters = toNum(document.getElementById("fu-liters").value);
+    var price = toNum(document.getElementById("fu-price").value);
     var full = document.getElementById("fu-full").checked;
 
-    if(isNaN(km) || isNaN(liters) || isNaN(price) || liters<=0 || price<=0){
-      showToast("Merci de remplir tous les champs correctement");
+    var isEditing = editingFillupId !== null;
+    var floor = isEditing ? 0 : maxFillupKm();
+    var ok = true;
+
+    if(!date){ setFieldError("fu-date","Date requise."); ok = false; }
+    if(isNaN(km) || km < 0){ setFieldError("fu-km","Kilométrage invalide."); ok = false; }
+    else if(!isEditing && km < floor){ setFieldError("fu-km","Doit être ≥ "+fmt(floor,0)+" km (dernier plein)."); ok = false; }
+    if(isNaN(liters) || liters<=0){ setFieldError("fu-liters","Nombre de litres invalide."); ok = false; }
+    if(isNaN(price) || price<=0){ setFieldError("fu-price","Prix invalide."); ok = false; }
+
+    if(!ok){
+      showToast("Corrige les champs en rouge");
       return;
     }
 
-    var entry = { id: Date.now()+"-"+Math.floor(Math.random()*1000), date:date, km:km, liters:liters, pricePerLiter:price, full:full };
-    state.fillups.push(entry);
-    if(km > state.currentKm){ state.currentKm = km; state.currentKmDate = date; }
-
-    saveState();
-    form.reset();
-    form.classList.add("hidden");
-    toggleBtn.classList.remove("open");
-    render();
-    showToast("Plein enregistré");
+    if(editingFillupId !== null){
+      var existing = state.fillups.find(function(f){ return f.id === editingFillupId; });
+      existing.date = date; existing.km = km; existing.liters = liters; existing.pricePerLiter = price; existing.full = full;
+      if(km > state.currentKm){ state.currentKm = km; state.currentKmDate = date; }
+      saveState();
+      closeForm();
+      form.reset();
+      render();
+      showToast("Plein mis à jour");
+    } else {
+      var entry = { id: Date.now()+"-"+Math.floor(Math.random()*1000), date:date, km:km, liters:liters, pricePerLiter:price, full:full };
+      state.fillups.push(entry);
+      if(km > state.currentKm){ state.currentKm = km; state.currentKmDate = date; }
+      saveState();
+      form.reset();
+      form.classList.add("hidden");
+      toggleBtn.classList.remove("open");
+      render();
+      showToast("Plein enregistré");
+    }
   });
+
+  document.getElementById("fu-date").addEventListener("input", function(){ document.getElementById("fu-date-field").classList.remove("has-error"); });
+  document.getElementById("fu-km").addEventListener("input", function(){ document.getElementById("fu-km-field").classList.remove("has-error"); });
+  document.getElementById("fu-liters").addEventListener("input", function(){ document.getElementById("fu-liters-field").classList.remove("has-error"); });
+  document.getElementById("fu-price").addEventListener("input", function(){ document.getElementById("fu-price-field").classList.remove("has-error"); });
 
   document.getElementById("historyList").addEventListener("click", function(e){
     var btn = e.target.closest("[data-del]");
+    var row = e.target.closest(".history-row");
+    if(!row) return;
+    var id = row.getAttribute("data-id");
+
+    if(btn){
+      if(row.classList.contains("confirming")){
+        state.fillups = state.fillups.filter(function(f){ return f.id !== id; });
+        if(editingFillupId === id) closeForm();
+        saveState(); render();
+        showToast("Plein supprimé");
+      } else {
+        row.classList.add("confirming");
+        btn.textContent = "✓";
+        btn.setAttribute("aria-label","Confirmer la suppression");
+        setTimeout(function(){
+          if(row && row.isConnected){
+            row.classList.remove("confirming");
+            btn.textContent = "×";
+          }
+        }, 2500);
+      }
+      return;
+    }
+    openFormForEdit(id);
+  });
+
+  document.getElementById("historyYearFilter").addEventListener("change", renderHistory);
+
+  /* ---------- Chart toggle ---------- */
+  var toggleChartBtn = document.getElementById("toggleChart");
+  var chartWrap = document.getElementById("chartWrap");
+  toggleChartBtn.addEventListener("click", function(){
+    chartWrap.classList.toggle("hidden");
+    toggleChartBtn.classList.toggle("open");
+    if(!chartWrap.classList.contains("hidden")) renderChart();
+  });
+
+  /* ---------- Maintenance ---------- */
+  var toggleMaintBtn = document.getElementById("toggleMaintForm");
+  var maintForm = document.getElementById("maintForm");
+  toggleMaintBtn.addEventListener("click", function(){
+    maintForm.classList.toggle("hidden");
+    toggleMaintBtn.classList.toggle("open");
+    if(!maintForm.classList.contains("hidden")){
+      document.getElementById("maint-label").focus();
+    }
+  });
+
+  maintForm.addEventListener("submit", function(e){
+    e.preventDefault();
+    var label = document.getElementById("maint-label").value.trim();
+    var kmVal = document.getElementById("maint-km").value;
+    var dateVal = document.getElementById("maint-date").value;
+
+    if(!label){ showToast("Nom du rappel requis"); return; }
+    if(!kmVal && !dateVal){ showToast("Indique un km ou une date"); return; }
+
+    state.maintenance.push({
+      id: Date.now()+"-"+Math.floor(Math.random()*1000),
+      label: label,
+      dueKm: kmVal ? parseInt(kmVal,10) : null,
+      dueDate: dateVal || null
+    });
+    saveState();
+    maintForm.reset();
+    maintForm.classList.add("hidden");
+    toggleMaintBtn.classList.remove("open");
+    render();
+    showToast("Rappel ajouté");
+  });
+
+  document.getElementById("maintList").addEventListener("click", function(e){
+    var btn = e.target.closest("[data-del]");
     if(!btn) return;
     var id = btn.getAttribute("data-del");
-    var row = btn.closest(".history-row");
-    if(row.classList.contains("confirming")){
-      state.fillups = state.fillups.filter(function(f){ return f.id !== id; });
-      saveState(); render();
-      showToast("Plein supprimé");
-    } else {
-      row.classList.add("confirming");
-      btn.textContent = "✓";
-      btn.setAttribute("aria-label","Confirmer la suppression");
-      setTimeout(function(){
-        if(row && row.isConnected){
-          row.classList.remove("confirming");
-          btn.textContent = "×";
-        }
-      }, 2500);
-    }
+    state.maintenance = state.maintenance.filter(function(m){ return m.id !== id; });
+    saveState(); render();
+    showToast("Rappel supprimé");
   });
 
   /* ---------- Settings ---------- */
@@ -1027,11 +1529,11 @@
   });
 
   document.getElementById("set-capacity").addEventListener("change", function(e){
-    var v = parseFloat(e.target.value);
+    var v = toNum(e.target.value);
     if(!isNaN(v) && v>0){ state.vehicle.tankCapacity = v; saveState(); render(); }
   });
   document.getElementById("set-defaultconso").addEventListener("change", function(e){
-    var v = parseFloat(e.target.value);
+    var v = toNum(e.target.value);
     if(!isNaN(v) && v>=0){ state.vehicle.defaultConso = v; saveState(); render(); }
   });
   document.getElementById("set-currency").addEventListener("change", function(e){
@@ -1039,17 +1541,38 @@
     saveState(); render();
   });
 
-  document.getElementById("exportBtn").addEventListener("click", function(){
-    var blob = new Blob([JSON.stringify(state, null, 2)], {type:"application/json"});
+  function downloadBlob(content, type, filename){
+    var blob = new Blob([content], {type:type});
     var url = URL.createObjectURL(blob);
     var a = document.createElement("a");
     a.href = url;
-    a.download = "yaris-tracker-backup-"+todayISO()+".json";
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  }
+
+  function doExportJson(){
+    downloadBlob(JSON.stringify(state, null, 2), "application/json", "yaris-tracker-backup-"+todayISO()+".json");
+    state.lastExportAt = new Date().toISOString();
+    saveState();
+    refreshBackupBanner();
     showToast("Export lancé");
+  }
+
+  document.getElementById("exportBtn").addEventListener("click", doExportJson);
+  document.getElementById("backupBannerBtn").addEventListener("click", doExportJson);
+
+  document.getElementById("exportCsvBtn").addEventListener("click", function(){
+    if(!state.fillups.length){ showToast("Aucun plein à exporter"); return; }
+    var rows = [["date","km","litres","prix_par_litre","total","plein_complet"]];
+    state.fillups.slice().sort(function(a,b){ return a.km-b.km; }).forEach(function(f){
+      rows.push([f.date, f.km, f.liters, f.pricePerLiter, (f.liters*f.pricePerLiter).toFixed(2), f.full ? "oui" : "non"]);
+    });
+    var csv = rows.map(function(r){ return r.join(";"); }).join("\n");
+    downloadBlob(csv, "text/csv", "yaris-tracker-historique-"+todayISO()+".csv");
+    showToast("Export CSV lancé");
   });
 
   var importFile = document.getElementById("importFile");
@@ -1061,14 +1584,14 @@
     reader.onload = function(ev){
       try{
         var parsed = JSON.parse(ev.target.result);
-        if(!parsed || !Array.isArray(parsed.fillups)) throw new Error("format invalide");
-        state = parsed;
-        state.vehicle = Object.assign({}, defaultState.vehicle, state.vehicle||{});
+        var err = validateImportedState(parsed);
+        if(err) throw new Error(err);
+        state = sanitizeState(parsed);
         saveState(); render();
         showToast("Import réussi");
         settingsPanel.classList.add("hidden");
       }catch(err){
-        showToast("Fichier invalide");
+        showToast(err.message || "Fichier invalide");
       }
     };
     reader.readAsText(file);
