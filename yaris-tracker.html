@@ -40,11 +40,6 @@
       --card: #1B1D22;
       --border: #2A2D33;
     }
-    body{ background:#0B0C0E; }
-    .field input, .computed-total{ background:#101216; color:var(--text); }
-    .field input:focus{ background:#15171B; }
-    .btn-secondary{ background:#22252B; }
-    @media (min-width:461px){ body{ background:#0B0C0E; } }
   }
 
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -541,6 +536,23 @@
   }
   .maint-form{ padding:4px 16px 16px; display:flex; flex-direction:column; gap:12px; }
   .maint-form.hidden{ display:none; }
+
+  /* ---------- Dark mode: element overrides (kept last on purpose so they win) ---------- */
+  @media (prefers-color-scheme: dark){
+    body{ background:#0B0C0E; }
+    @media (min-width:461px){ body{ background:#0B0C0E; } }
+    .field input{ background:#101216 !important; color:var(--text) !important; -webkit-text-fill-color:var(--text) !important; }
+    .field input:focus{ background:#15171B !important; }
+    .field input:-webkit-autofill,
+    .field input:-webkit-autofill:hover,
+    .field input:-webkit-autofill:focus{
+      -webkit-box-shadow:0 0 0px 1000px #101216 inset !important;
+      box-shadow:0 0 0px 1000px #101216 inset !important;
+    }
+    .computed-total{ background:#101216 !important; }
+    .btn-secondary{ background:#22252B !important; }
+    .history-filter select{ background:#101216 !important; }
+  }
 </style>
 </head>
 <body>
