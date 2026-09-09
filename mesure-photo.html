@@ -379,6 +379,10 @@ canvas#c:focus-visible{ outline:none; }
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 9l5-5 5 5M12 4v13"/></svg>
         Ajouter une ou plusieurs photos
       </button>
+      <button class="btn" id="pasteBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/></svg>
+        Coller le presse-papier
+      </button>
       <input type="file" id="fileInput" accept="image/*" multiple>
       <div id="sessionStrip">
         <div class="empty-hint" id="sessionEmptyHint">Aucune photo dans la session.<br>Chargez, glissez, ou collez (Ctrl+V) une ou plusieurs images.</div>
@@ -502,6 +506,7 @@ canvas#c:focus-visible{ outline:none; }
       <div class="dz-sub">ou cliquez pour parcourir — JPG, PNG, WebP</div>
       <div class="dz-sub" style="margin-top:-6px;">ou collez une capture d'écran avec <kbd class="kbd">Ctrl</kbd>+<kbd class="kbd">V</kbd></div>
       <button class="dz-btn" id="dzBtn">Choisir une image</button>
+      <button class="dz-btn" id="dzPasteBtn" style="background:transparent; color:var(--accent); border:1px solid var(--accent-dim); margin-top:-4px;">📋 Coller le presse-papier</button>
     </div>
     <canvas id="c"></canvas>
 
@@ -787,12 +792,56 @@ canvas#c:focus-visible{ outline:none; }
           loadFile(file);
           flashPasteToast();
         }
-        break;
+        return;
+      }
+    }
+    // Repli : certains navigateurs (notamment lors d'un copier-coller de capture d'écran)
+    // n'exposent l'image que via clipboardData.files et pas via .items.
+    const files = (e.clipboardData && e.clipboardData.files) || [];
+    for(const f of files){
+      if(f.type && f.type.startsWith('image/')){
+        e.preventDefault();
+        loadFile(f);
+        flashPasteToast();
+        return;
       }
     }
   });
   // Make sure a paste target is focusable/obvious even before any click
   document.addEventListener('click', ()=>{ /* keep body focus so paste keeps working */ }, {capture:true});
+
+  // ---------- Repli manuel : bouton "Coller le presse-papier" ----------
+  // L'événement 'paste' du navigateur (Ctrl+V) ne se déclenche pas toujours de façon fiable :
+  // - si le focus de la fenêtre a été perdu (ex: on revient d'un outil de capture d'écran externe),
+  // - sur certains navigateurs/OS où le raccourci clavier est intercepté avant d'atteindre la page.
+  // navigator.clipboard.read() est déclenché par un vrai clic utilisateur, donc plus fiable.
+  async function pasteFromClipboardAPI(){
+    if(!navigator.clipboard || !navigator.clipboard.read){
+      hintBar.innerHTML = '<b style="color:#ff8a5c">Votre navigateur ne permet pas la lecture directe du presse-papier. Utilisez Ctrl+V, ou vérifiez que la page est en HTTPS.</b>';
+      return;
+    }
+    try{
+      const clipItems = await navigator.clipboard.read();
+      for(const item of clipItems){
+        const imgType = item.types.find(t=> t.startsWith('image/'));
+        if(imgType){
+          const blob = await item.getType(imgType);
+          const ext = imgType.split('/')[1] || 'png';
+          const file = new File([blob], 'presse-papier-'+Date.now()+'.'+ext, {type: imgType});
+          loadFile(file);
+          flashPasteToast();
+          return;
+        }
+      }
+      hintBar.innerHTML = '<b style="color:#ff8a5c">Aucune image trouvée dans le presse-papier. Copiez d\'abord une capture d\'écran, puis réessayez.</b>';
+    }catch(err){
+      hintBar.innerHTML = '<b style="color:#ff8a5c">Impossible de lire le presse-papier (autorisation refusée ou indisponible). Essayez Ctrl+V directement sur la page.</b>';
+    }
+  }
+  const pasteBtn = document.getElementById('pasteBtn');
+  const dzPasteBtn = document.getElementById('dzPasteBtn');
+  if(pasteBtn) pasteBtn.addEventListener('click', pasteFromClipboardAPI);
+  if(dzPasteBtn) dzPasteBtn.addEventListener('click', e=>{ e.stopPropagation(); pasteFromClipboardAPI(); });
 
   // ---------- Mode switching ----------
   function setMode(m){
