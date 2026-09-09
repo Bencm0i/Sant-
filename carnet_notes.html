@@ -344,6 +344,19 @@ input[type=file]{display:none;}
 /* TEXT COLUMNS */
 .text-col{flex:1;display:flex;flex-direction:column;min-width:0;border-right:1.5px solid var(--line);}
 .text-col:last-child{border-right:none;}
+#iaCol{flex:0 0 var(--ia-col-width, 50%);}
+
+/* RESIZER — glisser pour redimensionner la colonne IA */
+.col-resizer{
+  width:7px;flex-shrink:0;cursor:col-resize;position:relative;
+  background:transparent;transition:background .15s;
+}
+.col-resizer::before{
+  content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:3px;height:32px;border-radius:3px;background:var(--line);transition:background .15s;
+}
+.col-resizer:hover,.col-resizer.dragging{background:rgba(47,93,98,0.12);}
+.col-resizer:hover::before,.col-resizer.dragging::before{background:var(--accent);}
 .col-head{
   display:flex;align-items:center;justify-content:space-between;gap:10px;
   padding:11px 16px;border-bottom:1.5px solid var(--line);flex-shrink:0;flex-wrap:wrap;
@@ -561,6 +574,8 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
   .layout{flex-direction:column;overflow-y:auto;}
   .tabs-col{width:100%;max-height:220px;border-right:none;border-bottom:1.5px solid var(--line);}
   .text-col{border-right:none;border-bottom:1.5px solid var(--line);min-height:280px;}
+  #iaCol{flex:1 1 auto !important;}
+  .col-resizer{display:none;}
 
   .mobile-col-toggle{
     display:flex;gap:6px;padding:8px 16px;border-bottom:1.5px solid var(--line);
@@ -755,6 +770,8 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
     <div class="note-preview" id="rawAccordionView" style="display:none;"></div>
     <div class="char-count" id="rawCount">0 caractère</div>
   </div>
+
+  <div class="col-resizer" id="colResizer" title="Glisser pour redimensionner la colonne IA"></div>
 
   <div class="text-col" id="iaCol">
     <div class="col-head">
@@ -3025,6 +3042,80 @@ function restoreActiveId(){
   activeId = (saved && state.tabs[saved]) ? saved : (state.order[0] || null);
 }
 
+// ── REDIMENSIONNEMENT DE LA COLONNE IA (glisser-déposer) ───────────────────
+const IA_COL_WIDTH_KEY = 'carnet_notes_ia_col_width_v1';
+function initColResizer(){
+  const resizer = document.getElementById('colResizer');
+  const layout = document.querySelector('.layout');
+  const tabsCol = document.querySelector('.tabs-col');
+  if(!resizer || !layout || !tabsCol) return;
+
+  const MIN_COL = 260; // largeur mini pour chaque colonne de texte, en px
+
+  function clampWidth(px){
+    const tabsW = tabsCol.offsetWidth || 250;
+    const max = layout.clientWidth - tabsW - MIN_COL - resizer.offsetWidth;
+    return Math.round(Math.max(MIN_COL, Math.min(max, px)));
+  }
+
+  function applyWidth(px, persist){
+    const clamped = clampWidth(px);
+    layout.style.setProperty('--ia-col-width', clamped + 'px');
+    if(persist) localStorage.setItem(IA_COL_WIDTH_KEY, String(clamped));
+  }
+
+  const saved = parseInt(localStorage.getItem(IA_COL_WIDTH_KEY), 10);
+  if(saved && !isNaN(saved)) applyWidth(saved, false);
+
+  let dragging = false;
+
+  function onMove(clientX){
+    const rect = layout.getBoundingClientRect();
+    applyWidth(rect.right - clientX, true);
+  }
+
+  resizer.addEventListener('mousedown', (e) => {
+    dragging = true;
+    resizer.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', (e) => { if(dragging) onMove(e.clientX); });
+  window.addEventListener('mouseup', () => {
+    if(!dragging) return;
+    dragging = false;
+    resizer.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  });
+
+  resizer.addEventListener('touchstart', (e) => {
+    dragging = true;
+    resizer.classList.add('dragging');
+    e.preventDefault();
+  }, {passive:false});
+  window.addEventListener('touchmove', (e) => {
+    if(!dragging) return;
+    onMove(e.touches[0].clientX);
+    e.preventDefault();
+  }, {passive:false});
+  window.addEventListener('touchend', () => {
+    dragging = false;
+    resizer.classList.remove('dragging');
+  });
+
+  resizer.addEventListener('dblclick', () => {
+    layout.style.setProperty('--ia-col-width', '50%');
+    localStorage.removeItem(IA_COL_WIDTH_KEY);
+  });
+
+  window.addEventListener('resize', () => {
+    const current = parseInt(localStorage.getItem(IA_COL_WIDTH_KEY), 10);
+    if(current && !isNaN(current)) applyWidth(current, false);
+  });
+}
+
 // INIT
 load();
 loadTags();
@@ -3032,6 +3123,7 @@ restoreActiveId();
 applySavedSidebarState();
 applySavedTagsAccordionState();
 applyMobileColView();
+initColResizer();
 renderTabs();
 renderColumns();
 renderTagsBar();
