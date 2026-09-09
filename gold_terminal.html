@@ -247,6 +247,10 @@
         <h1 id="pairTitle">OR (PAXG) / USD</h1>
         <div class="sub">ICHIMOKU · KOUMORI TERMINAL</div>
       </div>
+      <div class="quote-toggle" id="quoteToggle">
+        <button class="qt active" data-cur="USD">USD</button>
+        <button class="qt" data-cur="EUR">EUR</button>
+      </div>
     </div>
     <div class="price-block">
       <div class="px" id="pxNow">—</div>
@@ -374,7 +378,10 @@
     channels: [],           // {id, slope, upperIntercept, lowerIntercept, label, hidden}
     nextChannelId: 1,
     patterns: [],           // {id, type, label, points, neck, target, hidden}
-    nextPatternId: 1
+    nextPatternId: 1,
+    currency: 'USD',         // 'USD' | 'EUR' — devise d'affichage
+    eurRate: null,           // taux USD->EUR courant (null tant que non chargé)
+    lastHigh: null, lastLow: null, lastVol: null, lastChgPct: null // dernier ticker 24h brut (USD), pour ré-affichage instantané au bascule devise
   };
 
   // interaction (pan / line-drag) — module scope, not persisted
@@ -396,7 +403,33 @@
   };
 
   function symbolNow(){ return 'PAXGUSDT'; } // PAX Gold — pas de paire PAXG/EUR sur Binance
-  function currencySymbol(){ return '$'; }
+  function currencySymbol(){ return state.currency === 'EUR' ? '€' : '$'; }
+  function conv(n){ return (state.currency === 'EUR' && state.eurRate) ? n * state.eurRate : n; } // conversion USD->devise affichée
+
+  async function fetchEurRate(){
+    try{
+      const res = await fetch('https://api.frankfurter.app/latest?from=USD&to=EUR');
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      if(data && data.rates && data.rates.EUR) state.eurRate = data.rates.EUR;
+    }catch(err){
+      // silencieux — le bouton EUR restera indisponible tant que le taux n'est pas chargé
+      console.warn('Taux USD/EUR indisponible :', err.message);
+    }
+  }
+
+  function updateHeaderPrice(){
+    const cs = currencySymbol();
+    if(state.lastPrice != null) document.getElementById('pxNow').textContent = cs + fmt(state.lastPrice,1);
+    if(state.lastChgPct != null){
+      const chgEl = document.getElementById('pxChg');
+      chgEl.textContent = (state.lastChgPct>=0?'▲ ':'▼ ') + Math.abs(state.lastChgPct).toFixed(2) + '% (24h)';
+      chgEl.className = 'chg ' + (state.lastChgPct>=0?'up':'down');
+    }
+    if(state.lastHigh != null) document.getElementById('mH24').textContent = cs + fmt(state.lastHigh,0);
+    if(state.lastLow != null) document.getElementById('mL24').textContent = cs + fmt(state.lastLow,0);
+    if(state.lastVol != null) document.getElementById('mVol').textContent = fmtCompact(state.lastVol)+' oz (PAXG)';
+  }
 
   // ---------- PERSISTANCE LOCALE (localStorage) ----------
   const LS_LINES = 'goldTerminal_lines';
@@ -614,7 +647,7 @@
   // ---------- RENDER HELPERS ----------
   function fmt(n, d=2){
     if(n===null||n===undefined||isNaN(n)) return '—';
-    return n.toLocaleString('en-US', {minimumFractionDigits:d, maximumFractionDigits:d});
+    return conv(n).toLocaleString('en-US', {minimumFractionDigits:d, maximumFractionDigits:d});
   }
   function fmtCompact(n){
     if(n===null||n===undefined) return '—';
@@ -1956,6 +1989,33 @@
 
   document.getElementById('refreshBtn').addEventListener('click', load);
 
+  // ---------- BASCULE USD / EUR ----------
+  document.querySelectorAll('#quoteToggle .qt').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const cur = btn.dataset.cur;
+      if(cur === state.currency) return;
+      if(cur === 'EUR' && !state.eurRate){
+        btn.textContent = '…';
+        await fetchEurRate();
+        btn.textContent = 'EUR';
+        if(!state.eurRate){ // taux toujours indispo, on annule le bascule
+          statusEl.classList.remove('hidden');
+          statusEl.textContent = 'TAUX USD/EUR INDISPONIBLE';
+          setTimeout(()=>statusEl.classList.add('hidden'), 2500);
+          return;
+        }
+      }
+      state.currency = cur;
+      document.querySelectorAll('#quoteToggle .qt').forEach(b=>b.classList.toggle('active', b===btn));
+      document.getElementById('pairTitle').textContent = 'OR (PAXG) / ' + cur;
+      updateHeaderPrice();
+      renderLineList();
+      renderCostLine();
+      draw();
+      drawFullHistory();
+    });
+  });
+
   window.addEventListener('resize', ()=>{ if(!state.loading) draw(); });
 
   // ---------- LOAD ----------
@@ -1982,17 +2042,13 @@
 
       const last = candles[candles.length-1];
       const prevClose = +ticker.prevClosePrice;
-      const chgPct = +ticker.priceChangePercent;
-      const cs = currencySymbol();
       state.lastPrice = last.c;
+      state.lastChgPct = +ticker.priceChangePercent;
+      state.lastHigh = +ticker.highPrice;
+      state.lastLow = +ticker.lowPrice;
+      state.lastVol = +ticker.volume;
       renderCostLine();
-      document.getElementById('pxNow').textContent = cs + fmt(last.c,1);
-      const chgEl = document.getElementById('pxChg');
-      chgEl.textContent = (chgPct>=0?'▲ ':'▼ ') + Math.abs(chgPct).toFixed(2) + '% (24h)';
-      chgEl.className = 'chg ' + (chgPct>=0?'up':'down');
-      document.getElementById('mH24').textContent = cs+fmt(+ticker.highPrice,0);
-      document.getElementById('mL24').textContent = cs+fmt(+ticker.lowPrice,0);
-      document.getElementById('mVol').textContent = fmtCompact(+ticker.volume)+' oz (PAXG)';
+      updateHeaderPrice();
       document.getElementById('lastUpdate').textContent = 'Dernière mise à jour : ' + new Date().toLocaleTimeString('fr-FR');
 
       statusEl.classList.add('hidden');
@@ -2079,7 +2135,8 @@
 
     // labels min / max (prix réels, pas log)
     const maxVal = Math.max(...closes), minVal = Math.min(...closes);
-    fullHistRangeDefaultHTML = `<span>${new Date(fullHistData[0].t).getFullYear()} · $${fmtCompact(minVal)}</span><span>ATH $${fmtCompact(maxVal)}</span>`;
+    const cs = currencySymbol();
+    fullHistRangeDefaultHTML = `<span>${new Date(fullHistData[0].t).getFullYear()} · ${cs}${fmtCompact(conv(minVal))}</span><span>ATH ${cs}${fmtCompact(conv(maxVal))}</span>`;
     fullHistRange.innerHTML = fullHistRangeDefaultHTML;
   }
 
@@ -2144,10 +2201,13 @@
 
   load();
   loadFullHistory();
+  fetchEurRate();
   // auto-refresh every 60s
   setInterval(()=>{ if(!state.loading) load(); }, 60000);
   // rafraîchit l'historique complet toutes les 10 min (données hebdo, pas besoin de plus)
   setInterval(loadFullHistory, 600000);
+  // rafraîchit le taux USD/EUR toutes les 10 min
+  setInterval(fetchEurRate, 600000);
 })();
 </script>
 </body>
