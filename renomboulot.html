@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Outils fichiers</title>
+<style>
+  :root{
+    --bg:#0f1115;
+    --panel:#171a21;
+    --panel2:#1f232c;
+    --border:#2a2f3a;
+    --text:#e6e8eb;
+    --muted:#8a90a0;
+    --accent:#4f8cff;
+    --accent2:#3ecf8e;
+    --danger:#e2545a;
+    --warn:#e0a63e;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    display:flex;
+    justify-content:center;
+    padding:20px 12px 60px;
+  }
+  .wrap{width:100%;max-width:560px;}
+  h1{font-size:1.15rem;font-weight:600;margin:0 0 4px;}
+  .sub{color:var(--muted);font-size:.82rem;margin-bottom:16px;}
+
+  .tabs{
+    display:flex;
+    gap:6px;
+    margin-bottom:16px;
+    background:var(--panel2);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:4px;
+  }
+  .tab{
+    flex:1;
+    text-align:center;
+    padding:9px 6px;
+    border-radius:8px;
+    font-size:.85rem;
+    font-weight:600;
+    color:var(--muted);
+    cursor:pointer;
+    user-select:none;
+  }
+  .tab.active{background:var(--accent);color:#fff;}
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  .card{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:18px;
+    margin-bottom:16px;
+  }
+  label{
+    display:block;
+    font-size:.78rem;
+    color:var(--muted);
+    margin-bottom:6px;
+    text-transform:uppercase;
+    letter-spacing:.03em;
+  }
+  input[type=text], textarea{
+    width:100%;
+    background:var(--panel2);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:11px 12px;
+    border-radius:9px;
+    font-size:.95rem;
+    margin-bottom:14px;
+    outline:none;
+    font-family:inherit;
+  }
+  textarea{
+    resize:vertical;
+    min-height:110px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:.85rem;
+    line-height:1.5;
+  }
+  input[type=text]:focus, textarea:focus{border-color:var(--accent);}
+  .field:last-of-type input,.field:last-of-type textarea{margin-bottom:0;}
+  .row-opts{display:flex;gap:10px;flex-wrap:wrap;margin-top:-4px;margin-bottom:6px;}
+  .opt{
+    display:flex;align-items:center;gap:6px;
+    font-size:.78rem;color:var(--muted);
+    background:var(--panel2);border:1px solid var(--border);
+    padding:6px 10px;border-radius:20px;cursor:pointer;user-select:none;
+  }
+  .opt input{margin:0;}
+  .result-label{font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:8px;}
+  .result-box{
+    display:flex;align-items:center;gap:10px;
+    background:var(--panel2);border:1px solid var(--border);
+    border-radius:10px;padding:12px 14px;
+  }
+  #output{
+    flex:1;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:.92rem;word-break:break-all;color:var(--accent2);
+  }
+  #output.empty{color:var(--muted);}
+  button.copy{
+    flex-shrink:0;background:var(--accent);color:#fff;border:none;
+    padding:9px 14px;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;white-space:nowrap;
+  }
+  button.copy:active{transform:scale(.97);}
+  button.copy.copied{background:var(--accent2);}
+  .clear{display:block;margin:14px auto 0;background:none;border:none;color:var(--muted);font-size:.8rem;cursor:pointer;text-decoration:underline;}
+  .hint{font-size:.74rem;color:var(--muted);margin-top:8px;line-height:1.4;}
+
+  .btn{
+    background:var(--accent);color:#fff;border:none;
+    padding:10px 16px;border-radius:9px;font-size:.88rem;font-weight:600;cursor:pointer;
+  }
+  .btn.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--border);}
+  .btn.small{padding:6px 10px;font-size:.78rem;border-radius:7px;}
+  .btn-row{display:flex;gap:8px;flex-wrap:wrap;}
+
+  .step-config{margin-bottom:14px;}
+
+  .file-row{
+    background:var(--panel2);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:12px;
+    margin-bottom:10px;
+  }
+  .file-row.done{border-color:var(--accent2);}
+  .file-row .fname{
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:.88rem;
+    color:var(--text);
+    word-break:break-all;
+    margin-bottom:8px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+  }
+  .file-row .fname .name{flex:1;}
+  .file-row .fname .mini-copy{
+    background:none;border:1px solid var(--border);color:var(--muted);
+    border-radius:6px;padding:3px 7px;font-size:.7rem;cursor:pointer;flex-shrink:0;
+  }
+  .steps-list{display:flex;gap:8px;flex-wrap:wrap;}
+  .step{
+    display:flex;align-items:center;gap:5px;
+    background:var(--panel);border:1px solid var(--border);
+    padding:5px 9px;border-radius:20px;font-size:.78rem;color:var(--muted);
+    cursor:pointer;user-select:none;
+  }
+  .step.checked{color:var(--accent2);border-color:var(--accent2);}
+  .step input{margin:0;}
+  .remove-row{
+    background:none;border:none;color:var(--danger);font-size:.72rem;cursor:pointer;
+    margin-top:8px;text-decoration:underline;
+  }
+  .empty-state{color:var(--muted);font-size:.82rem;text-align:center;padding:20px 0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Outils fichiers</h1>
+  <div class="sub">Renommage &amp; suivi de traitement</div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="rename">Renommage</div>
+    <div class="tab" data-tab="batch">Suivi multi-fichiers</div>
+  </div>
+
+  <!-- ===================== TAB 1 : RENOMMAGE ===================== -->
+  <div class="panel active" id="panel-rename">
+    <div class="card">
+      <div class="field">
+        <label for="fournisseur">Fournisseur</label>
+        <input type="text" id="fournisseur" list="fournisseurList" placeholder="ex: Schneider">
+        <datalist id="fournisseurList"></datalist>
+      </div>
+      <div class="field">
+        <label for="description">Description</label>
+        <input type="text" id="description" list="descriptionList" placeholder="ex: disjoncteur 16A, courbe C">
+        <datalist id="descriptionList"></datalist>
+      </div>
+      <div class="field">
+        <label for="reference">Référence</label>
+        <input type="text" id="reference" placeholder="ex: A9F74216">
+      </div>
+      <div class="field">
+        <label for="extension">Extension (optionnel)</label>
+        <input type="text" id="extension" list="extensionList" placeholder="ex: pdf">
+        <datalist id="extensionList"></datalist>
+      </div>
+
+      <div class="row-opts">
+        <label class="opt"><input type="checkbox" id="optLower"> minuscules</label>
+        <label class="opt"><input type="checkbox" id="optRefUpper" checked> référence en MAJ</label>
+      </div>
+    </div>
+
+    <div class="result-label">Résultat</div>
+    <div class="result-box">
+      <span id="output" class="empty">en attente...</span>
+      <button class="copy" id="copyBtn">Copier</button>
+    </div>
+    <div class="hint">La description est nettoyée automatiquement : accents supprimés, tirets/virgules/ponctuation retirés, espaces réduits puis remplacés par "_". Les champs se mémorisent (autocomplétion) au fil de l'usage.</div>
+
+    <div class="btn-row" style="margin-top:14px;">
+      <button class="btn secondary" id="clearBtn">Vider les champs</button>
+    </div>
+  </div>
+
+  <!-- ===================== TAB 2 : SUIVI MULTI-FICHIERS ===================== -->
+  <div class="panel" id="panel-batch">
+    <div class="card">
+      <div class="field">
+        <label for="batchInput">Noms de fichiers (un par ligne)</label>
+        <textarea id="batchInput" placeholder="5PAF0150PMC001A&#10;5PAF0150PMC002A&#10;5PAF0150PMC003A"></textarea>
+      </div>
+      <div class="field step-config">
+        <label for="stepsInput">Étapes (séparées par des virgules)</label>
+        <input type="text" id="stepsInput" value="Indice,PDF,DWG">
+      </div>
+      <div class="btn-row">
+        <button class="btn" id="generateBtn">Générer la liste</button>
+        <button class="btn secondary" id="addLinesBtn">Ajouter à la liste existante</button>
+        <button class="btn secondary" id="clearFieldsBtn">Vider les champs</button>
+      </div>
+      <div class="hint">L'étape nommée "Indice" incrémente automatiquement la dernière lettre du nom (A→B, B→C...) quand elle est cochée. Les autres étapes sont de simples cases à cocher.</div>
+    </div>
+
+    <div id="fileRows"></div>
+
+    <div class="btn-row" id="batchActions" style="display:none;">
+      <button class="btn secondary small" id="copyAllBtn">Copier tous les noms</button>
+      <button class="clear" id="clearBatchBtn" style="margin:0;">Vider la liste</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+/* ---------- Onglets ---------- */
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    $('panel-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+/* ===================== TAB 1 : RENOMMAGE ===================== */
+const fournisseur = $('fournisseur');
+const description = $('description');
+const reference = $('reference');
+const extension = $('extension');
+const optLower = $('optLower');
+const optRefUpper = $('optRefUpper');
+const output = $('output');
+const copyBtn = $('copyBtn');
+const clearBtn = $('clearBtn');
+
+function stripAccents(str){
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+function cleanSegment(str){
+  if(!str) return '';
+  let s = stripAccents(str);
+  s = s.replace(/[^a-zA-Z0-9\s]/g, ' ');
+  s = s.trim().replace(/\s+/g, '_');
+  return s;
+}
+function cleanReference(str){
+  if(!str) return '';
+  let s = stripAccents(str);
+  s = s.replace(/\s+/g, '');
+  s = s.replace(/[^a-zA-Z0-9\-_]/g, '');
+  return s;
+}
+
+function build(){
+  let f = cleanSegment(fournisseur.value);
+  let d = cleanSegment(description.value);
+  let r = cleanReference(reference.value);
+  let ext = extension.value.trim().replace(/^\./, '').replace(/[^a-zA-Z0-9]/g,'');
+
+  if(optRefUpper.checked) r = r.toUpperCase();
+
+  const parts = [f, d, r].filter(p => p.length > 0);
+  let name = parts.join('_');
+  if(optLower.checked) name = name.toLowerCase();
+  if(ext) name += '.' + ext;
+
+  if(name){
+    output.textContent = name;
+    output.classList.remove('empty');
+  } else {
+    output.textContent = 'en attente...';
+    output.classList.add('empty');
+  }
+}
+
+[fournisseur, description, reference, extension].forEach(el => el.addEventListener('input', build));
+[optLower, optRefUpper].forEach(el => el.addEventListener('change', build));
+
+/* Autocomplétion via localStorage */
+const HIST_KEYS = {
+  fournisseur: 'rf_hist_fournisseur',
+  description: 'rf_hist_description',
+  extension:   'rf_hist_extension'
+};
+function loadHist(key){
+  try{ return JSON.parse(localStorage.getItem(key) || '[]'); }catch(e){ return []; }
+}
+function saveHistValue(key, value){
+  if(!value) return;
+  let list = loadHist(key);
+  list = list.filter(v => v.toLowerCase() !== value.toLowerCase());
+  list.unshift(value);
+  list = list.slice(0, 25);
+  localStorage.setItem(key, JSON.stringify(list));
+  fillDatalist(key);
+}
+function fillDatalist(key){
+  const map = {
+    rf_hist_fournisseur: 'fournisseurList',
+    rf_hist_description: 'descriptionList',
+    rf_hist_extension: 'extensionList'
+  };
+  const dl = $(map[key]);
+  if(!dl) return;
+  dl.innerHTML = '';
+  loadHist(key).forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v;
+    dl.appendChild(opt);
+  });
+}
+Object.values(HIST_KEYS).forEach(fillDatalist);
+
+copyBtn.addEventListener('click', () => {
+  if(output.classList.contains('empty')) return;
+  navigator.clipboard.writeText(output.textContent).then(() => {
+    copyBtn.textContent = 'Copié !';
+    copyBtn.classList.add('copied');
+    setTimeout(() => { copyBtn.textContent = 'Copier'; copyBtn.classList.remove('copied'); }, 1200);
+  });
+  // mémorise les valeurs saisies pour l'autocomplétion
+  saveHistValue(HIST_KEYS.fournisseur, fournisseur.value.trim());
+  saveHistValue(HIST_KEYS.description, description.value.trim());
+  saveHistValue(HIST_KEYS.extension, extension.value.trim());
+});
+
+clearBtn.addEventListener('click', () => {
+  [fournisseur, description, reference, extension].forEach(el => el.value = '');
+  optLower.checked = false;
+  optRefUpper.checked = true;
+  build();
+  fournisseur.focus();
+});
+
+build();
+
+/* ===================== TAB 2 : SUIVI MULTI-FICHIERS ===================== */
+const BATCH_KEY = 'rf_batch_rows';
+const batchInput = $('batchInput');
+const stepsInput = $('stepsInput');
+const generateBtn = $('generateBtn');
+const addLinesBtn = $('addLinesBtn');
+const clearFieldsBtn = $('clearFieldsBtn');
+const fileRowsEl = $('fileRows');
+const batchActions = $('batchActions');
+const copyAllBtn = $('copyAllBtn');
+const clearBatchBtn = $('clearBatchBtn');
+
+let rows = []; // {id, name, steps:{stepName: bool}}
+
+function loadRows(){
+  try{ rows = JSON.parse(localStorage.getItem(BATCH_KEY) || '[]'); }catch(e){ rows = []; }
+}
+function saveRows(){
+  localStorage.setItem(BATCH_KEY, JSON.stringify(rows));
+}
+function getSteps(){
+  return stepsInput.value.split(',').map(s => s.trim()).filter(s => s.length > 0);
+}
+
+function incrementIndice(name){
+  const m = name.match(/^(.*?)([A-Za-z])$/);
+  if(!m) return name; // pas de lettre finale trouvée, on ne touche à rien
+  const base = m[1];
+  let letter = m[2];
+  const isUpper = letter === letter.toUpperCase();
+  let code = letter.toUpperCase().charCodeAt(0);
+  if(code >= 90){ // Z -> pas de rollover automatique, on laisse tel quel
+    return name;
+  }
+  code += 1;
+  let next = String.fromCharCode(code);
+  if(!isUpper) next = next.toLowerCase();
+  return base + next;
+}
+
+function renderRows(){
+  fileRowsEl.innerHTML = '';
+  if(rows.length === 0){
+    fileRowsEl.innerHTML = '<div class="empty-state">Aucun fichier dans la liste.</div>';
+    batchActions.style.display = 'none';
+    return;
+  }
+  batchActions.style.display = 'flex';
+
+  rows.forEach(row => {
+    const steps = getSteps();
+    const div = document.createElement('div');
+    const allDone = steps.length > 0 && steps.every(s => row.steps[s]);
+    div.className = 'file-row' + (allDone ? ' done' : '');
+
+    const fnameDiv = document.createElement('div');
+    fnameDiv.className = 'fname';
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'name';
+    nameSpan.textContent = row.name;
+    const miniCopy = document.createElement('button');
+    miniCopy.className = 'mini-copy';
+    miniCopy.textContent = 'copier';
+    miniCopy.addEventListener('click', () => {
+      navigator.clipboard.writeText(row.name).then(() => {
+        miniCopy.textContent = 'ok';
+        setTimeout(() => miniCopy.textContent = 'copier', 900);
+      });
+    });
+    fnameDiv.appendChild(nameSpan);
+    fnameDiv.appendChild(miniCopy);
+    div.appendChild(fnameDiv);
+
+    const stepsList = document.createElement('div');
+    stepsList.className = 'steps-list';
+    steps.forEach(stepName => {
+      const checked = !!row.steps[stepName];
+      const label = document.createElement('label');
+      label.className = 'step' + (checked ? ' checked' : '');
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = checked;
+      cb.addEventListener('change', () => {
+        row.steps[stepName] = cb.checked;
+        if(stepName.toLowerCase() === 'indice' && cb.checked){
+          row.name = incrementIndice(row.name);
+        }
+        saveRows();
+        renderRows();
+      });
+      label.appendChild(cb);
+      label.appendChild(document.createTextNode(stepName));
+      stepsList.appendChild(label);
+    });
+    div.appendChild(stepsList);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'remove-row';
+    removeBtn.textContent = 'Retirer';
+    removeBtn.addEventListener('click', () => {
+      rows = rows.filter(r => r.id !== row.id);
+      saveRows();
+      renderRows();
+    });
+    div.appendChild(removeBtn);
+
+    fileRowsEl.appendChild(div);
+  });
+}
+
+function namesFromTextarea(){
+  return batchInput.value.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+}
+
+generateBtn.addEventListener('click', () => {
+  const names = namesFromTextarea();
+  if(names.length === 0) return;
+  rows = names.map(n => ({ id: crypto.randomUUID(), name: n, steps: {} }));
+  saveRows();
+  renderRows();
+});
+
+addLinesBtn.addEventListener('click', () => {
+  const names = namesFromTextarea();
+  if(names.length === 0) return;
+  const added = names.map(n => ({ id: crypto.randomUUID(), name: n, steps: {} }));
+  rows = rows.concat(added);
+  saveRows();
+  renderRows();
+});
+
+copyAllBtn.addEventListener('click', () => {
+  const text = rows.map(r => r.name).join('\n');
+  navigator.clipboard.writeText(text).then(() => {
+    copyAllBtn.textContent = 'Copié !';
+    setTimeout(() => copyAllBtn.textContent = 'Copier tous les noms', 1200);
+  });
+});
+
+clearBatchBtn.addEventListener('click', () => {
+  if(rows.length && !confirm('Vider toute la liste de suivi ?')) return;
+  rows = [];
+  saveRows();
+  renderRows();
+});
+
+clearFieldsBtn.addEventListener('click', () => {
+  batchInput.value = '';
+  stepsInput.value = 'Indice,PDF,DWG';
+  batchInput.focus();
+});
+
+stepsInput.addEventListener('input', renderRows);
+
+loadRows();
+renderRows();
+</script>
+</body>
+</html>
