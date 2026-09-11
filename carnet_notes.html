@@ -342,7 +342,7 @@ input[type=file]{display:none;}
 }
 
 /* TEXT COLUMNS */
-.text-col{flex:1;display:flex;flex-direction:column;min-width:0;border-right:1.5px solid var(--line);}
+.text-col{flex:1;display:flex;flex-direction:column;min-width:0;border-right:1.5px solid var(--line);border-top:6px solid transparent;transition:border-top-color .15s;}
 .text-col:last-child{border-right:none;}
 #iaCol{flex:0 0 var(--ia-col-width, 50%);}
 
@@ -1295,6 +1295,10 @@ function recolorTab(id, val){
   state.tabs[id].color = val;
   persist();
   renderTabs();
+  if(id === activeId){
+    document.getElementById('rawCol').style.borderTopColor = val;
+    document.getElementById('iaCol').style.borderTopColor = val;
+  }
 }
 
 // ── ONGLETS ÉPINGLÉS (toujours en haut de la liste) ─────────────────────────
@@ -1623,12 +1627,16 @@ function renderColumns(){
   closeFindBar('raw');
   closeFindBar('ia');
 
+  const rawCol = document.getElementById('rawCol');
+  const iaCol = document.getElementById('iaCol');
   const t = state.tabs[activeId];
   if(!t){
     rawArea.value = ''; iaArea.value = '';
     rawArea.disabled = true; iaArea.disabled = true;
     rawDot.style.background = 'transparent';
     iaDot.style.background = 'transparent';
+    rawCol.style.borderTopColor = 'transparent';
+    iaCol.style.borderTopColor = 'transparent';
     document.getElementById('rawCount').textContent = '0 caractère · 0 mot';
     document.getElementById('iaCount').textContent = '0 caractère · 0 mot';
     renderViewState('raw');
@@ -1641,6 +1649,8 @@ function renderColumns(){
   iaArea.value = t.ia;
   rawDot.style.background = t.color;
   iaDot.style.background = t.color;
+  rawCol.style.borderTopColor = t.color;
+  iaCol.style.borderTopColor = t.color;
   updateCounts();
   renderViewState('raw');
   renderViewState('ia');
