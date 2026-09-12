@@ -1474,6 +1474,20 @@ button, input, select { touch-action: manipulation; }
       <div class="section-title">📐 Taux d'épargne & ratios</div>
     </div>
     <div class="section-body" style="padding:14px 16px;">
+      <div class="field-row">
+        <div class="field-label">Rendement nominal attendu (hypothèse)<small>Pour l'indicateur "Indépendance corrigée inflation" — moyenne pondérée patrimoine (hors résidence)</small></div>
+        <div class="field-input-wrap input-pct">
+          <input type="number" id="hypRendement" step="0.1" inputmode="decimal" autocomplete="off"
+            oninput="DATA.hypotheses=DATA.hypotheses||{};DATA.hypotheses.rendement=parseFloat(this.value)||0;autoSave();if(typeof renderKPIPanel==='function')renderKPIPanel();">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field-label">Inflation supposée (hypothèse)<small>Taux annuel appliqué à la croissance des dépenses</small></div>
+        <div class="field-input-wrap input-pct">
+          <input type="number" id="hypInflation" step="0.1" inputmode="decimal" autocomplete="off"
+            oninput="DATA.hypotheses=DATA.hypotheses||{};DATA.hypotheses.inflation=parseFloat(this.value)||0;autoSave();if(typeof renderKPIPanel==='function')renderKPIPanel();">
+        </div>
+      </div>
       <div id="kpi-ratios"></div>
     </div>
   </div>
@@ -1604,6 +1618,8 @@ let DATA = {
   especeCache:0,
   revenuMensuelNet:0,
   impotAnnee:0,
+  // Hypothèses pour l'indicateur "Indépendance totale (corrigée inflation)"
+  hypotheses:{ rendement:4, inflation:2.5 },
   ath:[],
   heritage:[],
   dca:[],
@@ -3073,6 +3089,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const fmt  = v => new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v);
   const fmtK = v => v >= 1000 ? (v/1000).toFixed(1)+'k\u202f€' : v.toFixed(0)+'\u202f€';
   const pct  = v => v.toFixed(1)+'%';
+  const fmtAnnees = v => (!isFinite(v)) ? '∞ (auto-suffisant)' : v.toFixed(1).replace('.',',')+' ans';
 
   function computeKPIs() {
     const sumBank = (key) => (DATA[key]||[]).reduce((s,r) => s+(r.val||0), 0);
@@ -3160,6 +3177,28 @@ window.addEventListener('DOMContentLoaded', () => {
     // ── NOUVEAU : indépendance sans résidence principale
     const moisLiberteSansMaison = depMens > 0 ? (grandTotal - maison) / depMens : 0;
 
+    // ── NOUVEAU : Indépendance totale corrigée de l'inflation ────────────
+    // Si plus aucun revenu : combien d'années le patrimoine mobilisable (hors
+    // résidence principale) tient-il, en supposant qu'il continue de générer
+    // un rendement nominal moyen (hypothèse réglable) et que les dépenses
+    // augmentent chaque année avec l'inflation (hypothèse réglable) ?
+    // Modèle : P_(t+1) = P_t·(1+r_réel) − D0 (tout exprimé en euros constants)
+    const hypRendementNominal = (DATA.hypotheses?.rendement ?? 4) / 100;
+    const hypInflation        = (DATA.hypotheses?.inflation ?? 2.5) / 100;
+    const rendementReel = (1 + hypRendementNominal) / (1 + hypInflation) - 1;
+    const patrimoineMobilisable = grandTotal - maison;
+    const depAnnuelle = depMens * 12;
+    function calcAnneesIndependance(P0, D0, r) {
+      if (D0 <= 0) return Infinity;      // aucune dépense trackée
+      if (P0 <= 0) return 0;             // pas de patrimoine mobilisable
+      if (Math.abs(r) < 1e-9) return P0 / D0;
+      const ratio = 1 - (P0 * r) / D0;
+      if (r > 0 && ratio <= 0) return Infinity; // rendement réel seul couvre déjà les dépenses : patrimoine auto-suffisant
+      if (ratio <= 0) return 0;
+      return -Math.log(ratio) / Math.log(1 + r);
+    }
+    const anneesIndependanceReel = calcAnneesIndependance(patrimoineMobilisable, depAnnuelle, rendementReel);
+
     // ── RESTE NON INVESTI : comptes courants + livrets (hors poches investissements)
     // On identifie les lignes par label (lowercase) : celles qui ne sont PAS des poches d'investissement
     const INVEST_LABELS_RE = /pea|cto|assurance.?vie|revolut.invest|actions|crypto|bitcoin|obligation|reit|gold|or\b|ster/i;
@@ -3192,6 +3231,7 @@ window.addEventListener('DOMContentLoaded', () => {
       ccBourso, ccFortuneo, ccRevolut, ccEspeces, ccLivrets, ccTotal,
       pmvPEA, pmvCTO, pmvRev, pmvEE, pmvAV, pmvSCPI,
       depMens, revenu, revenuSalaire, revenuLocatif, immoLoyerMens, scpiLoyerMens, txEpargne, moisLiberte, moisLiberteSansMaison,
+      hypRendementNominal, hypInflation, rendementReel, patrimoineMobilisable, depAnnuelle, anneesIndependanceReel,
       nonInvestiTotal, nonInvestiLines, investiHorsImmo,
       immoTotal, immoP1Val, immoP2Val, immoP3Val, immoAll: maison + immoTotal,
     };
@@ -3229,6 +3269,9 @@ window.addEventListener('DOMContentLoaded', () => {
       { label:'Taux d\'épargne', value: pct(k.txEpargne), cls: k.txEpargne>=20?'green':k.txEpargne>=10?'gold':'red', sub:'% du revenu total (salaire + loyers)' },
       // ── MODIFIÉ : Indépendance hors résidence principale
       { label:'Indépendance (hors immo)', value: (k.moisLiberteSansMaison/12).toFixed(1).replace('.',',')+' ans', cls:'gold', sub:'Patrimoine liquide ÷ dépenses' },
+      // ── NOUVEAU : Indépendance totale corrigée de l'inflation (rendement réel)
+      { label:'Indépendance (corrigée inflation)', value: fmtAnnees(k.anneesIndependanceReel), cls:'gold',
+        sub:`Rendement réel ${(k.rendementReel*100).toFixed(1).replace('.',',')}%/an (${k.hypRendementNominal*100}% nominal − ${k.hypInflation*100}% inflation)` },
     ];
     const el = document.getElementById('kpi-cards');
     if (!el) return;
@@ -4011,6 +4054,7 @@ window.addEventListener('DOMContentLoaded', () => {
       { label:"Taux d'épargne", sub:"Épargne / Revenu net", val:pct(k.txEpargne), num:k.txEpargne, max:50, color:k.txEpargne>=20?'#5aab7a':k.txEpargne>=10?'#c8a96e':'#c05a5a' },
       { label:"Charge des dépenses", sub:"Dépenses / Revenu mensuel", val:pct(k.revenu>0?k.depMens/k.revenu*100:0), num:k.revenu>0?k.depMens/k.revenu*100:0, max:100, color:k.revenu>0&&k.depMens/k.revenu<0.7?'#5aab7a':'#c05a5a' },
       { label:"Indépendance (hors immo)", sub:"Patrimoine liquide ÷ dépenses mensuelles", val:(k.moisLiberteSansMaison/12).toFixed(1).replace('.',',')+' ans', num:Math.min(k.moisLiberteSansMaison,120), max:120, color:k.moisLiberteSansMaison>=24?'#5aab7a':k.moisLiberteSansMaison>=6?'#c8a96e':'#c05a5a' },
+      { label:"Indépendance (corrigée inflation)", sub:`Si plus aucun revenu · rendement réel ${(k.rendementReel*100).toFixed(1).replace('.',',')}%/an`, val:fmtAnnees(k.anneesIndependanceReel), num:isFinite(k.anneesIndependanceReel)?Math.min(k.anneesIndependanceReel,60):60, max:60, color:!isFinite(k.anneesIndependanceReel)||k.anneesIndependanceReel>=30?'#5aab7a':k.anneesIndependanceReel>=10?'#c8a96e':'#c05a5a' },
       { label:"Exposition actions", sub:"PEA + CTO + Revolut / Patrimoine", val:pct(k.grandTotal>0?(k.peaVal+k.ctoVal+k.revInvVal)/k.grandTotal*100:0), num:k.grandTotal>0?(k.peaVal+k.ctoVal+k.revInvVal)/k.grandTotal*100:0, max:100, color:'#7eb8d4' },
       { label:"Exposition immobilier", sub:"Immo (résidence+locatif) + SCPI / Patrimoine", val:pct(k.grandTotal>0?(k.immoAll+k.scpiVal)/k.grandTotal*100:0), num:k.grandTotal>0?(k.immoAll+k.scpiVal)/k.grandTotal*100:0, max:100, color:'#c8a96e' },
     ];
@@ -4303,6 +4347,11 @@ window.addEventListener('DOMContentLoaded', () => {
   window.generateAIReportText = generateAIReportText;
 
   window.renderKPIPanel = async function() {
+    DATA.hypotheses = DATA.hypotheses || { rendement:4, inflation:2.5 };
+    const hypRendEl = document.getElementById('hypRendement');
+    const hypInflEl = document.getElementById('hypInflation');
+    if (hypRendEl && document.activeElement !== hypRendEl) hypRendEl.value = DATA.hypotheses.rendement;
+    if (hypInflEl && document.activeElement !== hypInflEl) hypInflEl.value = DATA.hypotheses.inflation;
     const k = computeKPIs();
     renderKPICards(k);
     renderRatios(k);
