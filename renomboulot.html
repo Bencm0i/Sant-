@@ -213,7 +213,7 @@
       <span id="output" class="empty">en attente...</span>
       <button class="copy" id="copyBtn">Copier</button>
     </div>
-    <div class="hint">La description est nettoyée automatiquement : accents supprimés, tirets/virgules/ponctuation retirés, espaces réduits puis remplacés par "_". Les champs se mémorisent (autocomplétion) au fil de l'usage.</div>
+    <div class="hint">La description est nettoyée automatiquement : accents supprimés, tirets/virgules/ponctuation retirés, espaces supprimés. Les segments (fournisseur/description/référence) restent séparés par "_". Les champs se mémorisent (autocomplétion) au fil de l'usage.</div>
 
     <div class="btn-row" style="margin-top:14px;">
       <button class="btn secondary" id="clearBtn">Vider les champs</button>
@@ -280,7 +280,7 @@ function cleanSegment(str){
   if(!str) return '';
   let s = stripAccents(str);
   s = s.replace(/[^a-zA-Z0-9\s]/g, ' ');
-  s = s.trim().replace(/\s+/g, '_');
+  s = s.trim().replace(/\s+/g, '');
   return s;
 }
 function cleanReference(str){
