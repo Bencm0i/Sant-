@@ -157,6 +157,31 @@
   }
   .note b{color:var(--khaki-dim);}
   .copied{color:var(--khaki) !important;}
+  .meter{margin-top:8px;margin-bottom:2px;}
+  .meter-bar{height:4px;display:flex;gap:3px;}
+  .meter-seg{flex:1;background:var(--line);transition:background .15s ease;}
+  .meter-seg.s0{background:var(--danger);}
+  .meter-seg.s1{background:#c96b3c;}
+  .meter-seg.s2{background:var(--amber);}
+  .meter-seg.s3{background:var(--khaki-dim);}
+  .meter-seg.s4{background:var(--khaki);}
+  .meter-info{
+    display:flex;
+    justify-content:space-between;
+    font-size:10px;
+    color:var(--text-dim);
+    margin-top:5px;
+  }
+  .meter-info .label{font-weight:700;}
+  .meter-info .label.weak{color:var(--danger);}
+  .meter-info .label.mid{color:var(--amber);}
+  .meter-info .label.strong{color:var(--khaki);}
+  .meter-warn{
+    font-size:9.5px;
+    color:var(--danger);
+    margin-top:4px;
+    line-height:1.4;
+  }
 </style>
 </head>
 <body>
@@ -181,6 +206,20 @@
     <div class="field">
       <label for="phrase">PHRASE PERSONNELLE</label>
       <input type="text" id="phrase" placeholder="une phrase que toi seul connais" autocomplete="off">
+      <div class="meter" id="phraseMeter" style="display:none;">
+        <div class="meter-bar">
+          <div class="meter-seg" id="phraseSeg0"></div>
+          <div class="meter-seg" id="phraseSeg1"></div>
+          <div class="meter-seg" id="phraseSeg2"></div>
+          <div class="meter-seg" id="phraseSeg3"></div>
+          <div class="meter-seg" id="phraseSeg4"></div>
+        </div>
+        <div class="meter-info">
+          <span class="label" id="phraseLabel"></span>
+          <span id="phraseCrack"></span>
+        </div>
+        <div class="meter-warn" id="phraseWarn"></div>
+      </div>
     </div>
 
     <div class="adv-toggle" id="advToggle">+ options avancées</div>
@@ -188,6 +227,20 @@
       <div class="field">
         <label for="secret">CLÉ SECRÈTE PERSONNELLE (optionnel, recommandé)</label>
         <input type="password" id="secret" placeholder="laisser vide = mot de passe basé sur email+site+phrase" autocomplete="off">
+        <div class="meter" id="secretMeter" style="display:none;">
+          <div class="meter-bar">
+            <div class="meter-seg" id="secretSeg0"></div>
+            <div class="meter-seg" id="secretSeg1"></div>
+            <div class="meter-seg" id="secretSeg2"></div>
+            <div class="meter-seg" id="secretSeg3"></div>
+            <div class="meter-seg" id="secretSeg4"></div>
+          </div>
+          <div class="meter-info">
+            <span class="label" id="secretLabel"></span>
+            <span id="secretCrack"></span>
+          </div>
+          <div class="meter-warn" id="secretWarn"></div>
+        </div>
       </div>
       <div class="field">
         <label>LONGUEUR</label>
@@ -218,7 +271,8 @@
 
     <div class="note">
       <b>Principe :</b> le mot de passe est recalculé localement (SHA-256/PBKDF2, dans le navigateur) à partir de l'email, du site et de la phrase saisis, sans jamais rien envoyer ni stocker. Mêmes entrées → toujours le même mot de passe.<br><br>
-      <b>Attention :</b> toute personne connaissant cette méthode et ces informations peut reconstituer le mot de passe. Pour un usage sérieux, renseigne aussi une clé secrète personnelle (mémorisée par toi, jamais stockée) — elle change entièrement le résultat.
+      <b>Attention :</b> toute personne connaissant cette méthode et ces informations peut reconstituer le mot de passe. Pour un usage sérieux, renseigne aussi une clé secrète personnelle (mémorisée par toi, jamais stockée) — elle change entièrement le résultat.<br><br>
+      <b>Indicateur de force :</b> l'estimation de temps de craquage est une hypothèse conservatrice (attaque hors-ligne, 10 000 essais/s malgré les 150 000 itérations PBKDF2) — à titre indicatif, pas une garantie mathématique.
     </div>
 
   </div>
@@ -288,6 +342,146 @@ function estimateStrength(length, useSymbols) {
   const bits = Math.log2(poolSize) * length;
   return Math.round(bits);
 }
+
+const COMMON_WEAK = [
+  'motdepasse','password','123456','1234567','12345678','123456789','azerty',
+  'azertyuiop','qwerty','qwertyuiop','bonjour','soleil','bienvenue','welcome',
+  'loulou','chouchou','doudou','amour','monamour','jetaime','football','marseille',
+  'admin','letmein','password1','iloveyou','princesse','superman','batman',
+  '00000000','11111111','aaaaaaaa','abcdefgh','abcd1234','password123'
+];
+
+function hasSequential(str) {
+  const s = str.toLowerCase();
+  const seqs = ['abcdefghijklmnopqrstuvwxyz', '0123456789', 'azertyuiop', 'qwertyuiop'];
+  for (const seq of seqs) {
+    for (let i = 0; i <= seq.length - 4; i++) {
+      const chunk = seq.slice(i, i + 4);
+      if (s.includes(chunk) || s.includes(chunk.split('').reverse().join(''))) return true;
+    }
+  }
+  return false;
+}
+
+function hasRepeats(str) {
+  return /(.)\1{3,}/.test(str);
+}
+
+function analyzeStrength(str) {
+  if (!str) return null;
+
+  const warnings = [];
+  const len = str.length;
+
+  let poolSize = 0;
+  if (/[a-z]/.test(str)) poolSize += 26;
+  if (/[A-Z]/.test(str)) poolSize += 26;
+  if (/[0-9]/.test(str)) poolSize += 10;
+  if (/[^a-zA-Z0-9]/.test(str)) poolSize += 33;
+  if (poolSize === 0) poolSize = 26;
+
+  let entropy = len * Math.log2(poolSize);
+
+  const lower = str.toLowerCase();
+  const isCommon = COMMON_WEAK.some(w => lower.includes(w));
+  if (isCommon) {
+    entropy = Math.min(entropy, 14);
+    warnings.push('contient un mot ou motif très courant');
+  }
+
+  if (hasSequential(str)) {
+    entropy *= 0.5;
+    warnings.push('contient une séquence prévisible (abcd, 1234...)');
+  }
+
+  if (hasRepeats(str)) {
+    entropy *= 0.6;
+    warnings.push('caractères répétés en série');
+  }
+
+  const wordCount = str.trim().split(/\s+/).filter(Boolean).length;
+  if (wordCount <= 1 && len < 12) {
+    warnings.push('trop court pour un mot unique — vise une phrase');
+  }
+
+  if (len < 8) {
+    entropy = Math.min(entropy, 20);
+    warnings.push('très court');
+  }
+
+  entropy = Math.max(0, Math.round(entropy));
+
+  const guessesPerSecond = 1e4; // hypothèse conservatrice, dérivation PBKDF2 150k itérations
+  const combinations = Math.pow(2, entropy);
+  const seconds = combinations / guessesPerSecond;
+  const crackTime = formatDuration(seconds);
+
+  let score;
+  if (entropy < 28) score = 0;
+  else if (entropy < 40) score = 1;
+  else if (entropy < 55) score = 2;
+  else if (entropy < 70) score = 3;
+  else score = 4;
+
+  if (isCommon || hasSequential(str)) score = Math.min(score, 1);
+
+  const labels = ['très faible', 'faible', 'moyen', 'bon', 'très bon'];
+  const classes = ['weak', 'weak', 'mid', 'strong', 'strong'];
+
+  return {
+    score,
+    entropy,
+    label: labels[score],
+    labelClass: classes[score],
+    crackTime,
+    warnings
+  };
+}
+
+function formatDuration(seconds) {
+  if (seconds < 1) return '< 1 seconde';
+  const units = [
+    ['siècle', 3153600000],
+    ['an', 31536000],
+    ['jour', 86400],
+    ['heure', 3600],
+    ['minute', 60],
+    ['seconde', 1]
+  ];
+  for (const [name, secs] of units) {
+    if (seconds >= secs) {
+      const val = Math.round(seconds / secs);
+      return val + ' ' + name + (val > 1 ? 's' : '');
+    }
+  }
+  return '< 1 seconde';
+}
+
+function renderMeter(prefix, result) {
+  const meterEl = $(prefix + 'Meter');
+  if (!result) {
+    meterEl.style.display = 'none';
+    return;
+  }
+  meterEl.style.display = 'block';
+  for (let i = 0; i < 5; i++) {
+    const seg = $(prefix + 'Seg' + i);
+    seg.className = 'meter-seg' + (i <= result.score ? ' s' + result.score : '');
+  }
+  const labelEl = $(prefix + 'Label');
+  labelEl.textContent = result.label + ' · ~' + result.entropy + ' bits';
+  labelEl.className = 'label ' + result.labelClass;
+  $(prefix + 'Crack').textContent = 'craquage estimé : ' + result.crackTime;
+  $(prefix + 'Warn').textContent = result.warnings.join(' · ');
+}
+
+$('phrase').addEventListener('input', () => {
+  renderMeter('phrase', analyzeStrength($('phrase').value.trim()));
+});
+
+$('secret').addEventListener('input', () => {
+  renderMeter('secret', analyzeStrength($('secret').value));
+});
 
 let currentPassword = '';
 let visible = false;
