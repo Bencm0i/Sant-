@@ -2,8 +2,9 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>GEN-MDP // Générateur déterministe</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23161a13'/%3E%3Ccircle cx='24' cy='24' r='11' fill='none' stroke='%23c9a227' stroke-width='5'/%3E%3Crect x='30' y='30' width='7' height='24' fill='%23c9a227' transform='rotate(45 33 42)'/%3E%3Crect x='40' y='36' width='6' height='6' fill='%23c9a227' transform='rotate(45 43 39)'/%3E%3Crect x='46' y='42' width='6' height='6' fill='%23c9a227' transform='rotate(45 49 45)'/%3E%3C/svg%3E">
 <style>
   :root{
     --bg:#161a13;
@@ -27,10 +28,15 @@
     color:var(--text);
     font-family:var(--mono);
     min-height:100vh;
+    min-height:100dvh;
     display:flex;
     align-items:center;
     justify-content:center;
     padding:24px;
+    padding-top:max(24px, env(safe-area-inset-top));
+    padding-bottom:max(24px, env(safe-area-inset-bottom));
+    padding-left:max(24px, env(safe-area-inset-left));
+    padding-right:max(24px, env(safe-area-inset-right));
   }
   .panel{
     width:100%;
@@ -72,9 +78,11 @@
     border:1px solid var(--line);
     color:var(--text);
     font-family:var(--mono);
-    font-size:13px;
-    padding:9px 10px;
+    font-size:16px;
+    padding:11px 10px;
     outline:none;
+    -webkit-appearance:none;
+    border-radius:0;
   }
   .field input:focus{border-color:var(--khaki-dim);}
   .row{display:flex;gap:12px;}
@@ -93,8 +101,8 @@
   .toggle-row{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:12px;color:var(--text-dim);}
   .toggle-row input{accent-color:var(--khaki);}
   .len-row{display:flex;align-items:center;gap:10px;}
-  .len-row input[type=range]{flex:1;accent-color:var(--khaki);}
-  .len-val{font-size:12px;color:var(--khaki);width:28px;text-align:right;}
+  .len-row input[type=range]{flex:1;accent-color:var(--khaki);height:28px;}
+  .len-val{font-size:13px;color:var(--khaki);width:28px;text-align:right;}
   button.gen{
     width:100%;
     background:var(--khaki-dim);
@@ -104,8 +112,10 @@
     font-weight:700;
     font-size:13px;
     letter-spacing:1px;
-    padding:11px;
+    padding:15px;
+    min-height:48px;
     cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
     transition:background .12s ease;
   }
   button.gen:hover{background:var(--khaki);}
@@ -121,25 +131,30 @@
     display:flex;
     justify-content:space-between;
     align-items:center;
-    padding:8px 10px;
+    padding:6px 8px;
     border-bottom:1px solid var(--line);
     font-size:11px;
     color:var(--text-dim);
   }
-  .result-actions{display:flex;gap:10px;}
+  .result-actions{display:flex;gap:4px;}
   .result-actions a{
     color:var(--khaki);
     text-decoration:none;
     cursor:pointer;
+    padding:10px 8px;
+    display:inline-block;
+    -webkit-tap-highlight-color:transparent;
   }
   .result-actions a:hover{color:var(--amber);}
   .pwd-out{
-    padding:16px 12px;
-    font-size:16px;
+    padding:18px 12px;
+    font-size:17px;
     letter-spacing:1px;
     word-break:break-all;
     text-align:center;
     color:var(--amber);
+    -webkit-user-select:all;
+    user-select:all;
   }
   .strength{
     padding:6px 10px 12px 10px;
@@ -182,6 +197,47 @@
     margin-top:4px;
     line-height:1.4;
   }
+  .ctr-row{display:flex;align-items:center;gap:8px;}
+  .ctr-row input[type=number]{
+    width:100%;
+    background:#12160e;
+    border:1px solid var(--line);
+    color:var(--amber);
+    font-family:var(--mono);
+    font-size:16px;
+    text-align:center;
+    padding:11px 6px;
+    outline:none;
+    -moz-appearance:textfield;
+    -webkit-appearance:none;
+    border-radius:0;
+  }
+  .ctr-row input[type=number]::-webkit-outer-spin-button,
+  .ctr-row input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+  .ctr-row input:focus{border-color:var(--khaki-dim);}
+  .ctr-btn{
+    background:#12160e;
+    border:1px solid var(--line);
+    color:var(--khaki);
+    font-family:var(--mono);
+    font-size:20px;
+    width:46px;
+    height:46px;
+    flex:0 0 46px;
+    cursor:pointer;
+    line-height:1;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .ctr-btn:hover{border-color:var(--khaki-dim);color:var(--amber);}
+  .ctr-btn:active{transform:translateY(1px);}
+  .ctr-hint{font-size:10px;color:var(--text-dim);margin-top:6px;}
+  @media (max-width: 420px){
+    body{padding:10px;padding-top:max(10px, env(safe-area-inset-top));padding-bottom:max(10px, env(safe-area-inset-bottom));}
+    .panel-head{padding:12px 14px;flex-direction:column;align-items:flex-start;gap:2px;}
+    .panel-body{padding:14px;}
+    .field{margin-bottom:16px;}
+    .pwd-out{font-size:15px;}
+  }
 </style>
 </head>
 <body>
@@ -195,17 +251,17 @@
 
     <div class="field">
       <label for="email">ADRESSE EMAIL</label>
-      <input type="email" id="email" placeholder="exemple@domaine.fr" autocomplete="off">
+      <input type="email" id="email" placeholder="exemple@domaine.fr" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="email">
     </div>
 
     <div class="field">
       <label for="site">SITE / SERVICE</label>
-      <input type="text" id="site" placeholder="nom-du-site.com" autocomplete="off">
+      <input type="text" id="site" placeholder="nom-du-site.com" autocomplete="off" autocapitalize="off" spellcheck="false">
     </div>
 
     <div class="field">
       <label for="phrase">PHRASE PERSONNELLE</label>
-      <input type="text" id="phrase" placeholder="une phrase que toi seul connais" autocomplete="off">
+      <input type="text" id="phrase" placeholder="une phrase que toi seul connais" autocomplete="off" autocapitalize="off" spellcheck="false">
       <div class="meter" id="phraseMeter" style="display:none;">
         <div class="meter-bar">
           <div class="meter-seg" id="phraseSeg0"></div>
@@ -220,6 +276,16 @@
         </div>
         <div class="meter-warn" id="phraseWarn"></div>
       </div>
+    </div>
+
+    <div class="field">
+      <label for="counter">COMPTEUR DE ROTATION</label>
+      <div class="ctr-row">
+        <button type="button" class="ctr-btn" id="ctrMinus">−</button>
+        <input type="number" id="counter" min="1" step="1" value="1" inputmode="numeric">
+        <button type="button" class="ctr-btn" id="ctrPlus">+</button>
+      </div>
+      <div class="ctr-hint">change le mot de passe sans changer les autres champs (utile pour une rotation) — mémorisé localement par couple email/site</div>
     </div>
 
     <div class="adv-toggle" id="advToggle">+ options avancées</div>
@@ -270,7 +336,8 @@
     </div>
 
     <div class="note">
-      <b>Principe :</b> le mot de passe est recalculé localement (SHA-256/PBKDF2, dans le navigateur) à partir de l'email, du site et de la phrase saisis, sans jamais rien envoyer ni stocker. Mêmes entrées → toujours le même mot de passe.<br><br>
+      <b>Principe :</b> le mot de passe est recalculé localement (SHA-256/PBKDF2, dans le navigateur) à partir de l'email, du site, de la phrase et du compteur de rotation saisis, sans jamais rien envoyer ni stocker. Mêmes entrées → toujours le même mot de passe.<br><br>
+      <b>Compteur :</b> incrémente-le pour changer le mot de passe d'un site sans toucher aux autres champs (ex. après une fuite de données). Sa valeur est mémorisée dans le navigateur pour chaque couple email/site, jamais transmise.<br><br>
       <b>Attention :</b> toute personne connaissant cette méthode et ces informations peut reconstituer le mot de passe. Pour un usage sérieux, renseigne aussi une clé secrète personnelle (mémorisée par toi, jamais stockée) — elle change entièrement le résultat.<br><br>
       <b>Indicateur de force :</b> l'estimation de temps de craquage est une hypothèse conservatrice (attaque hors-ligne, 10 000 essais/s malgré les 150 000 itérations PBKDF2) — à titre indicatif, pas une garantie mathématique.
     </div>
@@ -483,6 +550,47 @@ $('secret').addEventListener('input', () => {
   renderMeter('secret', analyzeStrength($('secret').value));
 });
 
+const CTR_STORE_KEY = 'genmdp-counters';
+
+function loadCounters() {
+  try {
+    return JSON.parse(localStorage.getItem(CTR_STORE_KEY)) || {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function counterKey() {
+  const email = $('email').value.trim().toLowerCase();
+  const site = $('site').value.trim().toLowerCase();
+  return email + '::' + site;
+}
+
+function refreshCounterFromStore() {
+  const key = counterKey();
+  const store = loadCounters();
+  $('counter').value = store[key] || 1;
+}
+
+function saveCounter() {
+  const key = counterKey();
+  if (!key.trim()) return;
+  const store = loadCounters();
+  store[key] = parseInt($('counter').value, 10) || 1;
+  localStorage.setItem(CTR_STORE_KEY, JSON.stringify(store));
+}
+
+$('email').addEventListener('change', refreshCounterFromStore);
+$('site').addEventListener('change', refreshCounterFromStore);
+
+$('ctrPlus').addEventListener('click', () => {
+  $('counter').value = (parseInt($('counter').value, 10) || 0) + 1;
+});
+$('ctrMinus').addEventListener('click', () => {
+  const v = (parseInt($('counter').value, 10) || 1) - 1;
+  $('counter').value = Math.max(1, v);
+});
+
 let currentPassword = '';
 let visible = false;
 
@@ -493,15 +601,18 @@ async function generate() {
   const secret = $('secret').value;
   const length = parseInt($('length').value, 10);
   const useSymbols = $('symbols').checked;
+  const counter = parseInt($('counter').value, 10) || 1;
 
   if (!email || !site) {
     $('email').focus();
     return;
   }
 
-  const base = email + '::' + site + '::' + phrase + '::' + secret;
+  saveCounter();
+
+  const base = email + '::' + site + '::' + phrase + '::' + secret + '::' + counter;
   const bytesNeeded = length + 10;
-  const bytes = await deriveBytes(base, site, bytesNeeded);
+  const bytes = await deriveBytes(base, site + '::' + counter, bytesNeeded);
 
   currentPassword = buildPassword(bytes, length, useSymbols);
   visible = false;
