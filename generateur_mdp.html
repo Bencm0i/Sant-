@@ -280,16 +280,17 @@
 
     <div class="field">
       <label for="site">SITE / SERVICE</label>
-      <input type="text" id="site" placeholder="amazon" autocomplete="off" autocapitalize="off" spellcheck="false">
-      <div class="field-err" id="siteErr">uniquement le nom, sans domaine ni extension (ex. amazon)</div>
+      <input type="text" id="site" placeholder="amazon.com" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <div class="field-err" id="siteErr">uniquement le domaine racine — sans http(s)://, www., sous-domaine ou chemin (ex. amazon.com, amazon.fr)</div>
     </div>
 
     <div class="field">
-      <label for="secret">CLÉ SECRÈTE PERSONNELLE</label>
+      <label for="secret">CLÉ SECRÈTE PERSONNELLE (obligatoire)</label>
       <div class="secret-row">
-        <input type="password" id="secret" placeholder="laisser vide = mot de passe basé sur email+site+phrase" autocomplete="off">
+        <input type="password" id="secret" placeholder="jamais stockée, jamais envoyée" autocomplete="off">
         <button type="button" class="secret-toggle" id="secretToggle">voir</button>
       </div>
+      <div class="field-err" id="secretErr">champ obligatoire — sans elle, la sécurité repose uniquement sur ta phrase</div>
       <div class="meter" id="secretMeter" style="display:none;">
         <div class="meter-bar">
           <div class="meter-seg" id="secretSeg0"></div>
@@ -366,7 +367,7 @@
     <div class="note">
       <b>Principe :</b> le mot de passe est recalculé localement (SHA-256/PBKDF2, dans le navigateur) à partir de l'email, du site, de la phrase et du compteur de rotation saisis, sans jamais rien envoyer ni stocker. Mêmes entrées → toujours le même mot de passe.<br><br>
       <b>Compteur :</b> incrémente-le pour changer le mot de passe d'un site sans toucher aux autres champs (ex. après une fuite de données). Sa valeur est mémorisée dans le navigateur pour chaque couple email/site, jamais transmise.<br><br>
-      <b>Attention :</b> toute personne connaissant cette méthode et ces informations peut reconstituer le mot de passe. Pour un usage sérieux, renseigne aussi une clé secrète personnelle (mémorisée par toi, jamais stockée) — elle change entièrement le résultat.<br><br>
+      <b>Attention :</b> toute personne connaissant cette méthode et ces informations peut reconstituer le mot de passe — la clé secrète personnelle (jamais stockée) est donc obligatoire, c'est elle qui porte l'essentiel de la sécurité.<br><br>
       <b>Indicateur de force :</b> l'estimation de temps de craquage est une hypothèse conservatrice (attaque hors-ligne, 10 000 essais/s malgré les 150 000 itérations PBKDF2) — à titre indicatif, pas une garantie mathématique.
     </div>
 
@@ -407,9 +408,10 @@ function normalizeSite(raw) {
   s = s.split('?')[0].split('#')[0];
   s = s.split(':')[0];
   const labels = s.split('.').filter(Boolean);
-  if (labels.length === 0) return '';
-  if (labels.length === 1) return labels[0];
-  return labels[labels.length - 2];
+  if (labels.length > 2) {
+    s = labels.slice(-2).join('.');
+  }
+  return s;
 }
 
 function isSiteValid(value) {
@@ -622,6 +624,10 @@ $('phrase').addEventListener('input', () => {
 
 $('secret').addEventListener('input', () => {
   renderMeter('secret', analyzeStrength($('secret').value));
+  if ($('secret').value) {
+    $('secret').classList.remove('invalid');
+    $('secretErr').classList.remove('show');
+  }
 });
 
 $('secretToggle').addEventListener('click', () => {
@@ -709,6 +715,19 @@ async function generate() {
     $('site').focus();
     return;
   }
+
+  if (!secret) {
+    $('secret').classList.add('invalid');
+    $('secretErr').classList.add('show');
+    if (!$('advPanel').classList.contains('open')) {
+      $('advPanel').classList.add('open');
+      $('advToggle').textContent = '− options avancées';
+    }
+    $('secret').focus();
+    return;
+  }
+  $('secret').classList.remove('invalid');
+  $('secretErr').classList.remove('show');
 
   await saveCounter();
 
