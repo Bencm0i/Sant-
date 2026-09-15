@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GEN-MDP // Générateur déterministe</title>
+<style>
+  :root{
+    --bg:#161a13;
+    --bg-panel:#1e2318;
+    --line:#3a4030;
+    --khaki:#9aa66b;
+    --khaki-dim:#6d7650;
+    --amber:#c9a227;
+    --text:#d9dbc9;
+    --text-dim:#8b9078;
+    --danger:#b5533c;
+    --mono:'JetBrains Mono','Courier New',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    background:
+      linear-gradient(var(--line) 1px,transparent 1px) 0 0/32px 32px,
+      linear-gradient(90deg,var(--line) 1px,transparent 1px) 0 0/32px 32px,
+      var(--bg);
+    background-attachment:fixed;
+    color:var(--text);
+    font-family:var(--mono);
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+  .panel{
+    width:100%;
+    max-width:520px;
+    background:var(--bg-panel);
+    border:1px solid var(--line);
+    box-shadow:0 0 0 1px #000, 0 10px 30px rgba(0,0,0,.4);
+  }
+  .panel-head{
+    border-bottom:1px solid var(--line);
+    padding:14px 18px;
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+  }
+  .panel-head h1{
+    font-size:14px;
+    font-weight:700;
+    letter-spacing:.5px;
+    color:var(--khaki);
+  }
+  .panel-head span{
+    font-size:11px;
+    color:var(--text-dim);
+  }
+  .panel-body{padding:18px;}
+  .field{margin-bottom:14px;}
+  .field label{
+    display:block;
+    font-size:11px;
+    color:var(--text-dim);
+    margin-bottom:6px;
+  }
+  .field input[type=text],
+  .field input[type=email],
+  .field input[type=password]{
+    width:100%;
+    background:#12160e;
+    border:1px solid var(--line);
+    color:var(--text);
+    font-family:var(--mono);
+    font-size:13px;
+    padding:9px 10px;
+    outline:none;
+  }
+  .field input:focus{border-color:var(--khaki-dim);}
+  .row{display:flex;gap:12px;}
+  .row .field{flex:1;}
+  .adv-toggle{
+    font-size:11px;
+    color:var(--khaki-dim);
+    cursor:pointer;
+    user-select:none;
+    display:inline-block;
+    margin:2px 0 14px 0;
+    border-bottom:1px dotted var(--khaki-dim);
+  }
+  .adv{display:none;border-left:2px solid var(--line);padding-left:12px;margin-bottom:14px;}
+  .adv.open{display:block;}
+  .toggle-row{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:12px;color:var(--text-dim);}
+  .toggle-row input{accent-color:var(--khaki);}
+  .len-row{display:flex;align-items:center;gap:10px;}
+  .len-row input[type=range]{flex:1;accent-color:var(--khaki);}
+  .len-val{font-size:12px;color:var(--khaki);width:28px;text-align:right;}
+  button.gen{
+    width:100%;
+    background:var(--khaki-dim);
+    color:#12160e;
+    border:none;
+    font-family:var(--mono);
+    font-weight:700;
+    font-size:13px;
+    letter-spacing:1px;
+    padding:11px;
+    cursor:pointer;
+    transition:background .12s ease;
+  }
+  button.gen:hover{background:var(--khaki);}
+  button.gen:active{transform:translateY(1px);}
+  .result{
+    margin-top:16px;
+    border:1px solid var(--line);
+    background:#12160e;
+    display:none;
+  }
+  .result.show{display:block;}
+  .result-bar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:8px 10px;
+    border-bottom:1px solid var(--line);
+    font-size:11px;
+    color:var(--text-dim);
+  }
+  .result-actions{display:flex;gap:10px;}
+  .result-actions a{
+    color:var(--khaki);
+    text-decoration:none;
+    cursor:pointer;
+  }
+  .result-actions a:hover{color:var(--amber);}
+  .pwd-out{
+    padding:16px 12px;
+    font-size:16px;
+    letter-spacing:1px;
+    word-break:break-all;
+    text-align:center;
+    color:var(--amber);
+  }
+  .strength{
+    padding:6px 10px 12px 10px;
+    font-size:10px;
+    color:var(--text-dim);
+    text-align:center;
+  }
+  .note{
+    margin-top:16px;
+    font-size:10.5px;
+    line-height:1.5;
+    color:var(--text-dim);
+    border-top:1px solid var(--line);
+    padding-top:12px;
+  }
+  .note b{color:var(--khaki-dim);}
+  .copied{color:var(--khaki) !important;}
+</style>
+</head>
+<body>
+
+<div class="panel">
+  <div class="panel-head">
+    <h1>GEN-MDP</h1>
+    <span>dérivation déterministe locale</span>
+  </div>
+  <div class="panel-body">
+
+    <div class="field">
+      <label for="email">ADRESSE EMAIL</label>
+      <input type="email" id="email" placeholder="exemple@domaine.fr" autocomplete="off">
+    </div>
+
+    <div class="field">
+      <label for="site">SITE / SERVICE</label>
+      <input type="text" id="site" placeholder="nom-du-site.com" autocomplete="off">
+    </div>
+
+    <div class="field">
+      <label for="phrase">PHRASE PERSONNELLE</label>
+      <input type="text" id="phrase" placeholder="une phrase que toi seul connais" autocomplete="off">
+    </div>
+
+    <div class="adv-toggle" id="advToggle">+ options avancées</div>
+    <div class="adv" id="advPanel">
+      <div class="field">
+        <label for="secret">CLÉ SECRÈTE PERSONNELLE (optionnel, recommandé)</label>
+        <input type="password" id="secret" placeholder="laisser vide = mot de passe basé sur email+site+phrase" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>LONGUEUR</label>
+        <div class="len-row">
+          <input type="range" id="length" min="12" max="32" value="18">
+          <span class="len-val" id="lengthVal">18</span>
+        </div>
+      </div>
+      <div class="toggle-row">
+        <input type="checkbox" id="symbols" checked>
+        <label for="symbols" style="margin:0;">inclure les symboles (!@#$...)</label>
+      </div>
+    </div>
+
+    <button class="gen" id="genBtn">GÉNÉRER LE MOT DE PASSE</button>
+
+    <div class="result" id="result">
+      <div class="result-bar">
+        <span>RÉSULTAT</span>
+        <div class="result-actions">
+          <a id="toggleShow">afficher</a>
+          <a id="copyBtn">copier</a>
+        </div>
+      </div>
+      <div class="pwd-out" id="pwdOut">••••••••••••••••••</div>
+      <div class="strength" id="strengthOut"></div>
+    </div>
+
+    <div class="note">
+      <b>Principe :</b> le mot de passe est recalculé localement (SHA-256/PBKDF2, dans le navigateur) à partir de l'email, du site et de la phrase saisis, sans jamais rien envoyer ni stocker. Mêmes entrées → toujours le même mot de passe.<br><br>
+      <b>Attention :</b> toute personne connaissant cette méthode et ces informations peut reconstituer le mot de passe. Pour un usage sérieux, renseigne aussi une clé secrète personnelle (mémorisée par toi, jamais stockée) — elle change entièrement le résultat.
+    </div>
+
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+$('advToggle').addEventListener('click', () => {
+  const adv = $('advPanel');
+  adv.classList.toggle('open');
+  $('advToggle').textContent = adv.classList.contains('open') ? '− options avancées' : '+ options avancées';
+});
+
+$('length').addEventListener('input', () => {
+  $('lengthVal').textContent = $('length').value;
+});
+
+const LOWER = 'abcdefghijklmnopqrstuvwxyz';
+const UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const DIGITS = '0123456789';
+const SYMBOLS = '!@#$%^&*-_=+?';
+
+async function deriveBytes(baseString, saltString, numBytes) {
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw', enc.encode(baseString), 'PBKDF2', false, ['deriveBits']
+  );
+  const bits = await crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      salt: enc.encode('gen-mdp::' + saltString),
+      iterations: 150000,
+      hash: 'SHA-256'
+    },
+    keyMaterial,
+    numBytes * 8
+  );
+  return new Uint8Array(bits);
+}
+
+function buildPassword(bytes, length, useSymbols) {
+  const pool = LOWER + UPPER + DIGITS + (useSymbols ? SYMBOLS : '');
+  let chars = [];
+  for (let i = 0; i < length; i++) {
+    chars.push(pool[bytes[i] % pool.length]);
+  }
+
+  const required = [LOWER, UPPER, DIGITS];
+  if (useSymbols) required.push(SYMBOLS);
+
+  required.forEach((set, idx) => {
+    const hasOne = chars.some(c => set.includes(c));
+    if (!hasOne) {
+      const posByte = bytes[length + idx * 2];
+      const charByte = bytes[length + idx * 2 + 1];
+      const pos = posByte % length;
+      chars[pos] = set[charByte % set.length];
+    }
+  });
+
+  return chars.join('');
+}
+
+function estimateStrength(length, useSymbols) {
+  const poolSize = LOWER.length + UPPER.length + DIGITS.length + (useSymbols ? SYMBOLS.length : 0);
+  const bits = Math.log2(poolSize) * length;
+  return Math.round(bits);
+}
+
+let currentPassword = '';
+let visible = false;
+
+async function generate() {
+  const email = $('email').value.trim().toLowerCase();
+  const site = $('site').value.trim().toLowerCase();
+  const phrase = $('phrase').value.trim();
+  const secret = $('secret').value;
+  const length = parseInt($('length').value, 10);
+  const useSymbols = $('symbols').checked;
+
+  if (!email || !site) {
+    $('email').focus();
+    return;
+  }
+
+  const base = email + '::' + site + '::' + phrase + '::' + secret;
+  const bytesNeeded = length + 10;
+  const bytes = await deriveBytes(base, site, bytesNeeded);
+
+  currentPassword = buildPassword(bytes, length, useSymbols);
+  visible = false;
+  $('pwdOut').textContent = '•'.repeat(length);
+  $('toggleShow').textContent = 'afficher';
+  $('strengthOut').textContent = '~' + estimateStrength(length, useSymbols) + ' bits d\'entropie · ' + length + ' caractères';
+  $('result').classList.add('show');
+}
+
+$('genBtn').addEventListener('click', generate);
+
+$('toggleShow').addEventListener('click', () => {
+  if (!currentPassword) return;
+  visible = !visible;
+  $('pwdOut').textContent = visible ? currentPassword : '•'.repeat(currentPassword.length);
+  $('toggleShow').textContent = visible ? 'masquer' : 'afficher';
+});
+
+$('copyBtn').addEventListener('click', async () => {
+  if (!currentPassword) return;
+  try {
+    await navigator.clipboard.writeText(currentPassword);
+    $('copyBtn').textContent = 'copié ✓';
+    $('copyBtn').classList.add('copied');
+    setTimeout(() => {
+      $('copyBtn').textContent = 'copier';
+      $('copyBtn').classList.remove('copied');
+    }, 1500);
+  } catch (e) {
+    alert('Copie impossible — sélectionne et copie manuellement.');
+  }
+});
+
+[$('email'), $('site'), $('phrase'), $('secret')].forEach(el => {
+  el.addEventListener('keydown', e => {
+    if (e.key === 'Enter') generate();
+  });
+});
+</script>
+
+</body>
+</html>
