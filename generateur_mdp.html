@@ -260,21 +260,21 @@
     </div>
 
     <div class="field">
-      <label for="phrase">PHRASE PERSONNELLE</label>
-      <input type="text" id="phrase" placeholder="une phrase que toi seul connais" autocomplete="off" autocapitalize="off" spellcheck="false">
-      <div class="meter" id="phraseMeter" style="display:none;">
+      <label for="secret">CLÉ SECRÈTE PERSONNELLE</label>
+      <input type="password" id="secret" placeholder="laisser vide = mot de passe basé sur email+site+phrase" autocomplete="off">
+      <div class="meter" id="secretMeter" style="display:none;">
         <div class="meter-bar">
-          <div class="meter-seg" id="phraseSeg0"></div>
-          <div class="meter-seg" id="phraseSeg1"></div>
-          <div class="meter-seg" id="phraseSeg2"></div>
-          <div class="meter-seg" id="phraseSeg3"></div>
-          <div class="meter-seg" id="phraseSeg4"></div>
+          <div class="meter-seg" id="secretSeg0"></div>
+          <div class="meter-seg" id="secretSeg1"></div>
+          <div class="meter-seg" id="secretSeg2"></div>
+          <div class="meter-seg" id="secretSeg3"></div>
+          <div class="meter-seg" id="secretSeg4"></div>
         </div>
         <div class="meter-info">
-          <span class="label" id="phraseLabel"></span>
-          <span id="phraseCrack"></span>
+          <span class="label" id="secretLabel"></span>
+          <span id="secretCrack"></span>
         </div>
-        <div class="meter-warn" id="phraseWarn"></div>
+        <div class="meter-warn" id="secretWarn"></div>
       </div>
     </div>
 
@@ -291,21 +291,21 @@
     <div class="adv-toggle" id="advToggle">+ options avancées</div>
     <div class="adv" id="advPanel">
       <div class="field">
-        <label for="secret">CLÉ SECRÈTE PERSONNELLE (optionnel, recommandé)</label>
-        <input type="password" id="secret" placeholder="laisser vide = mot de passe basé sur email+site+phrase" autocomplete="off">
-        <div class="meter" id="secretMeter" style="display:none;">
+        <label for="phrase">PHRASE PERSONNELLE</label>
+        <input type="text" id="phrase" placeholder="une phrase que toi seul connais" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <div class="meter" id="phraseMeter" style="display:none;">
           <div class="meter-bar">
-            <div class="meter-seg" id="secretSeg0"></div>
-            <div class="meter-seg" id="secretSeg1"></div>
-            <div class="meter-seg" id="secretSeg2"></div>
-            <div class="meter-seg" id="secretSeg3"></div>
-            <div class="meter-seg" id="secretSeg4"></div>
+            <div class="meter-seg" id="phraseSeg0"></div>
+            <div class="meter-seg" id="phraseSeg1"></div>
+            <div class="meter-seg" id="phraseSeg2"></div>
+            <div class="meter-seg" id="phraseSeg3"></div>
+            <div class="meter-seg" id="phraseSeg4"></div>
           </div>
           <div class="meter-info">
-            <span class="label" id="secretLabel"></span>
-            <span id="secretCrack"></span>
+            <span class="label" id="phraseLabel"></span>
+            <span id="phraseCrack"></span>
           </div>
-          <div class="meter-warn" id="secretWarn"></div>
+          <div class="meter-warn" id="phraseWarn"></div>
         </div>
       </div>
       <div class="field">
