@@ -85,6 +85,21 @@
     border-radius:0;
   }
   .field input:focus{border-color:var(--khaki-dim);}
+  .secret-row{display:flex;gap:8px;}
+  .secret-row input{flex:1;}
+  .secret-toggle{
+    flex:0 0 auto;
+    background:#12160e;
+    border:1px solid var(--line);
+    color:var(--khaki);
+    font-family:var(--mono);
+    font-size:11px;
+    padding:0 12px;
+    cursor:pointer;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .secret-toggle:hover{border-color:var(--khaki-dim);color:var(--amber);}
+  .secret-toggle:active{transform:translateY(1px);}
   .row{display:flex;gap:12px;}
   .row .field{flex:1;}
   .adv-toggle{
@@ -261,7 +276,10 @@
 
     <div class="field">
       <label for="secret">CLÉ SECRÈTE PERSONNELLE</label>
-      <input type="password" id="secret" placeholder="laisser vide = mot de passe basé sur email+site+phrase" autocomplete="off">
+      <div class="secret-row">
+        <input type="password" id="secret" placeholder="laisser vide = mot de passe basé sur email+site+phrase" autocomplete="off">
+        <button type="button" class="secret-toggle" id="secretToggle">voir</button>
+      </div>
       <div class="meter" id="secretMeter" style="display:none;">
         <div class="meter-bar">
           <div class="meter-seg" id="secretSeg0"></div>
@@ -548,6 +566,13 @@ $('phrase').addEventListener('input', () => {
 
 $('secret').addEventListener('input', () => {
   renderMeter('secret', analyzeStrength($('secret').value));
+});
+
+$('secretToggle').addEventListener('click', () => {
+  const secretInput = $('secret');
+  const isHidden = secretInput.type === 'password';
+  secretInput.type = isHidden ? 'text' : 'password';
+  $('secretToggle').textContent = isHidden ? 'masquer' : 'voir';
 });
 
 const CTR_STORE_KEY = 'genmdp-counters';
