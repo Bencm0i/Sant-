@@ -585,21 +585,29 @@ function loadCounters() {
   }
 }
 
-function counterKey() {
-  const email = $('email').value.trim().toLowerCase();
-  const site = $('site').value.trim().toLowerCase();
-  return email + '::' + site;
+async function sha256Hex(str) {
+  const enc = new TextEncoder();
+  const buf = await crypto.subtle.digest('SHA-256', enc.encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-function refreshCounterFromStore() {
-  const key = counterKey();
+async function counterKey() {
+  const email = $('email').value.trim().toLowerCase();
+  const site = $('site').value.trim().toLowerCase();
+  if (!email && !site) return '';
+  return await sha256Hex(email + '::' + site);
+}
+
+async function refreshCounterFromStore() {
+  const key = await counterKey();
+  if (!key) { $('counter').value = 1; return; }
   const store = loadCounters();
   $('counter').value = store[key] || 1;
 }
 
-function saveCounter() {
-  const key = counterKey();
-  if (!key.trim()) return;
+async function saveCounter() {
+  const key = await counterKey();
+  if (!key) return;
   const store = loadCounters();
   store[key] = parseInt($('counter').value, 10) || 1;
   localStorage.setItem(CTR_STORE_KEY, JSON.stringify(store));
@@ -633,7 +641,7 @@ async function generate() {
     return;
   }
 
-  saveCounter();
+  await saveCounter();
 
   const base = email + '::' + site + '::' + phrase + '::' + secret + '::' + counter;
   const bytesNeeded = length + 10;
