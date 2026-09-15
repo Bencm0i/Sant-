@@ -85,6 +85,14 @@
     border-radius:0;
   }
   .field input:focus{border-color:var(--khaki-dim);}
+  .field input.invalid{border-color:var(--danger);}
+  .field-err{
+    display:none;
+    font-size:10px;
+    color:var(--danger);
+    margin-top:5px;
+  }
+  .field-err.show{display:block;}
   .secret-row{display:flex;gap:8px;}
   .secret-row input{flex:1;}
   .secret-toggle{
@@ -265,13 +273,15 @@
   <div class="panel-body">
 
     <div class="field">
-      <label for="email">ADRESSE EMAIL</label>
-      <input type="email" id="email" placeholder="exemple@domaine.fr" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="email">
+      <label for="email">IDENTIFIANT (racine)</label>
+      <input type="text" id="email" placeholder="guillaume.truc" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <div class="field-err" id="emailErr">uniquement la racine — sans @ ni domaine (ex. guillaume.truc)</div>
     </div>
 
     <div class="field">
       <label for="site">SITE / SERVICE</label>
-      <input type="text" id="site" placeholder="nom-du-site.com" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <input type="text" id="site" placeholder="amazon" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <div class="field-err" id="siteErr">uniquement le nom, sans domaine ni extension (ex. amazon)</div>
     </div>
 
     <div class="field">
@@ -371,6 +381,52 @@ $('advToggle').addEventListener('click', () => {
   adv.classList.toggle('open');
   $('advToggle').textContent = adv.classList.contains('open') ? '− options avancées' : '+ options avancées';
 });
+
+const ROOT_ID_RE = /^[^\s@\/\\]+$/;
+
+function isEmailValid(value) {
+  const v = value.trim();
+  return v !== '' && !v.includes('@') && ROOT_ID_RE.test(v);
+}
+
+function validateEmailField() {
+  const value = $('email').value.trim();
+  const valid = value === '' || isEmailValid(value);
+  $('email').classList.toggle('invalid', !valid);
+  $('emailErr').classList.toggle('show', !valid);
+  return valid;
+}
+
+$('email').addEventListener('input', validateEmailField);
+$('email').addEventListener('blur', validateEmailField);
+
+function normalizeSite(raw) {
+  let s = raw.trim().toLowerCase();
+  s = s.replace(/^[a-z]+:\/\//, '');
+  s = s.split('/')[0];
+  s = s.split('?')[0].split('#')[0];
+  s = s.split(':')[0];
+  const labels = s.split('.').filter(Boolean);
+  if (labels.length === 0) return '';
+  if (labels.length === 1) return labels[0];
+  return labels[labels.length - 2];
+}
+
+function isSiteValid(value) {
+  const v = value.trim().toLowerCase();
+  return v !== '' && normalizeSite(v) === v;
+}
+
+function validateSiteField() {
+  const value = $('site').value.trim();
+  const valid = value === '' || isSiteValid(value);
+  $('site').classList.toggle('invalid', !valid);
+  $('siteErr').classList.toggle('show', !valid);
+  return valid;
+}
+
+$('site').addEventListener('input', validateSiteField);
+$('site').addEventListener('blur', validateSiteField);
 
 $('length').addEventListener('input', () => {
   $('lengthVal').textContent = $('length').value;
@@ -593,7 +649,7 @@ async function sha256Hex(str) {
 
 async function counterKey() {
   const email = $('email').value.trim().toLowerCase();
-  const site = $('site').value.trim().toLowerCase();
+  const site = normalizeSite($('site').value);
   if (!email && !site) return '';
   return await sha256Hex(email + '::' + site);
 }
@@ -629,7 +685,8 @@ let visible = false;
 
 async function generate() {
   const email = $('email').value.trim().toLowerCase();
-  const site = $('site').value.trim().toLowerCase();
+  const siteRaw = $('site').value;
+  const site = normalizeSite(siteRaw);
   const phrase = $('phrase').value.trim();
   const secret = $('secret').value;
   const length = parseInt($('length').value, 10);
@@ -638,6 +695,18 @@ async function generate() {
 
   if (!email || !site) {
     $('email').focus();
+    return;
+  }
+
+  if (!isEmailValid(email)) {
+    validateEmailField();
+    $('email').focus();
+    return;
+  }
+
+  if (!isSiteValid(siteRaw)) {
+    validateSiteField();
+    $('site').focus();
     return;
   }
 
