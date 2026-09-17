@@ -253,6 +253,13 @@ input[type=file]{display:none;}
 .tab-pin.pinned{opacity:1 !important;filter:none;}
 .tab-row.pinned .tab-body{box-shadow:inset 3px 0 0 var(--accent);}
 .tab-main-row{display:flex;align-items:center;gap:8px;min-width:0;}
+.tab-desc{
+  width:100%;margin-top:1px;padding:0 0 0 22px;
+  font-family:'Inter',sans-serif;font-size:0.74rem;font-style:italic;
+  background:transparent;border:none;outline:none;color:var(--ink-soft);
+}
+.tab-desc::placeholder{color:#c2b9a8;font-style:italic;}
+.tab-row.child .tab-desc{font-size:0.68rem;}
 .tab-snippet{
   font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--ink-soft);
   padding:3px 0 0 22px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
@@ -1143,7 +1150,7 @@ function applySavedSidebarState(){
 function addTab(){
   const id = uid();
   const color = PALETTE[state.order.length % PALETTE.length];
-  state.tabs[id] = { name:'Nouvel onglet', color, raw:'', ia:'', parentId:null };
+  state.tabs[id] = { name:'Nouvel onglet', color, raw:'', ia:'', description:'', parentId:null };
   state.order.push(id);
   activeId = id;
   persist();
@@ -1209,7 +1216,7 @@ function duplicateTab(id){
   const src = state.tabs[id];
   if(!src) return;
   const newId = uid();
-  state.tabs[newId] = { name: (src.name || 'Sans titre') + ' (copie)', color: src.color, raw: src.raw || '', ia: src.ia || '', parentId: src.parentId || null };
+  state.tabs[newId] = { name: (src.name || 'Sans titre') + ' (copie)', color: src.color, raw: src.raw || '', ia: src.ia || '', description: src.description || '', parentId: src.parentId || null };
   const idx = state.order.indexOf(id);
   state.order.splice(idx + 1, 0, newId);
   activeId = newId;
@@ -1242,6 +1249,12 @@ function renameTab(id, val){
   persist();
   const active = state.tabs[activeId];
   if(active && active.parentId === id) updateBreadcrumb();
+}
+
+function describeTab(id, val){
+  if(!state.tabs[id]) return;
+  state.tabs[id].description = val;
+  persist();
 }
 
 // ── HIÉRARCHIE DES ONGLETS (sous-onglets créés via [[liens]]) ──────────────
@@ -1534,6 +1547,16 @@ function renderTabs(){
     mainRow.appendChild(del);
 
     body.appendChild(mainRow);
+
+    const descInput = document.createElement('input');
+    descInput.type = 'text';
+    descInput.className = 'tab-desc';
+    descInput.value = t.description || '';
+    descInput.placeholder = 'Descriptif (optionnel)';
+    descInput.oninput = (e)=> describeTab(id, e.target.value);
+    descInput.onclick = ()=> selectTab(id);
+    descInput.onfocus = ()=>{ if(activeId!==id) selectTab(id); };
+    body.appendChild(descInput);
 
     if(q && isMatch){
       const snippetEl = buildSnippetEl(t, q);
@@ -2609,7 +2632,7 @@ function handlePreviewLinkClick(e){
   } else if(confirm(`L'onglet "${name}" n'existe pas encore. Le créer comme sous-onglet ?`)){
     const id = uid();
     const color = PALETTE[state.order.length % PALETTE.length];
-    state.tabs[id] = { name, color, raw:'', ia:'', parentId: activeId };
+    state.tabs[id] = { name, color, raw:'', ia:'', description:'', parentId: activeId };
     state.order.push(id);
     activeId = id;
     persist();
@@ -3001,7 +3024,7 @@ function handleNoteLinkClick(e){
   } else if(confirm(`L'onglet "${name}" n'existe pas encore. Le créer comme sous-onglet ?`)){
     const id = uid();
     const color = PALETTE[state.order.length % PALETTE.length];
-    state.tabs[id] = { name, color, raw:'', ia:'', parentId: activeId };
+    state.tabs[id] = { name, color, raw:'', ia:'', description:'', parentId: activeId };
     state.order.push(id);
     activeId = id;
     persist();
