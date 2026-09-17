@@ -155,6 +155,23 @@ input[type=file]{display:none;}
 .tag-edit-toggle{opacity:0.6;}
 .tag-edit-toggle:hover{opacity:1;}
 
+.draw-panel-inner{max-width:760px;width:100%;}
+.draw-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
+.draw-colors{display:flex;gap:6px;flex-wrap:wrap;}
+.draw-color-swatch{
+  width:22px;height:22px;border-radius:50%;border:2px solid transparent;cursor:pointer;
+  padding:0;transition:transform .1s;
+}
+.draw-color-swatch:hover{transform:scale(1.12);}
+.draw-color-swatch.active{border-color:var(--ink);box-shadow:0 0 0 2px var(--paper);}
+.draw-size-row{display:flex;align-items:center;gap:6px;font-family:'Inter',sans-serif;font-size:0.78rem;color:var(--ink-soft);}
+.draw-size-row input[type=range]{width:90px;accent-color:var(--accent);}
+#drawEraserBtn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.draw-canvas-wrap{border:1.5px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:14px;background:#fff;touch-action:none;line-height:0;}
+#drawCanvas{display:block;width:100%;height:auto;cursor:crosshair;background:#fff;}
+.draw-actions-row{display:flex;gap:8px;flex-wrap:wrap;}
+.draw-actions-row .btn{flex:1;min-width:100px;justify-content:center;}
+
 .storage-badge.has-tasks{border-color:var(--accent);color:var(--accent);}
 
 .tasks-panel-inner{max-width:460px;max-height:80vh;display:flex;flex-direction:column;}
@@ -733,6 +750,37 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
   </div>
 </div>
 
+<div class="help-panel" id="drawPanel" style="display:none;">
+  <div class="help-panel-inner draw-panel-inner">
+    <h2>Atelier de dessin</h2>
+    <p class="help-panel-note" style="margin-bottom:12px;">Dessine un croquis ou un schéma à la souris, au doigt ou au stylet, puis insère-le dans <span id="drawTargetLabel">le texte</span> comme une image normale.</p>
+    <div class="draw-toolbar">
+      <div class="draw-colors" id="drawColors">
+        <button class="draw-color-swatch active" style="background:#2b2620;" data-color="#2b2620" onclick="setDrawColor('#2b2620')" title="Noir"></button>
+        <button class="draw-color-swatch" style="background:#2f5d62;" data-color="#2f5d62" onclick="setDrawColor('#2f5d62')" title="Vert sarcelle"></button>
+        <button class="draw-color-swatch" style="background:#b5573f;" data-color="#b5573f" onclick="setDrawColor('#b5573f')" title="Terracotta"></button>
+        <button class="draw-color-swatch" style="background:#c98a2c;" data-color="#c98a2c" onclick="setDrawColor('#c98a2c')" title="Ocre"></button>
+        <button class="draw-color-swatch" style="background:#45566b;" data-color="#45566b" onclick="setDrawColor('#45566b')" title="Bleu ardoise"></button>
+        <button class="draw-color-swatch" style="background:#6b4a6b;" data-color="#6b4a6b" onclick="setDrawColor('#6b4a6b')" title="Prune"></button>
+      </div>
+      <div class="draw-size-row">
+        <span>Épaisseur</span>
+        <input type="range" min="1" max="16" value="4" id="drawSizeInput" oninput="drawSize=parseInt(this.value,10)">
+      </div>
+      <button class="btn" id="drawEraserBtn" onclick="toggleDrawEraser()" title="Gomme">🧹 Gomme</button>
+      <button class="btn" onclick="undoDraw()" title="Annuler le dernier trait">↺ Annuler</button>
+      <button class="btn" onclick="clearDrawCanvas()" title="Tout effacer">🗑 Effacer</button>
+    </div>
+    <div class="draw-canvas-wrap">
+      <canvas id="drawCanvas" width="680" height="420"></canvas>
+    </div>
+    <div class="draw-actions-row">
+      <button class="btn" onclick="closeDrawModal()">Annuler</button>
+      <button class="btn primary" onclick="insertDrawing()">✓ Insérer le dessin</button>
+    </div>
+  </div>
+</div>
+
 <div class="layout">
   <div class="tabs-col">
     <div class="content-tags-bar" id="contentTagsBar" style="display:none;"></div>
@@ -794,6 +842,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
       <button class="md-btn" onclick="mdLink('rawArea')" title="Lien">🔗</button>
       <button class="md-btn" onclick="document.getElementById('rawImageInput').click()" title="Insérer une image (ou colle-la directement avec Ctrl+V)">🖼</button>
       <input type="file" id="rawImageInput" accept="image/*" style="display:none;" onchange="onImageFileSelected(event,'raw')">
+      <button class="md-btn" onclick="openDrawModal('raw')" title="Ouvrir l'atelier de dessin et insérer un croquis">✏️</button>
     </div>
     <textarea class="note-area" id="rawArea" placeholder="Écris ton texte brut ici… (markdown supporté)" oninput="onEdit('raw')"></textarea>
     <div class="note-preview" id="rawPreview" style="display:none;"></div>
@@ -836,6 +885,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
       <button class="md-btn" onclick="mdLink('iaArea')" title="Lien">🔗</button>
       <button class="md-btn" onclick="document.getElementById('iaImageInput').click()" title="Insérer une image (ou colle-la directement avec Ctrl+V)">🖼</button>
       <input type="file" id="iaImageInput" accept="image/*" style="display:none;" onchange="onImageFileSelected(event,'ia')">
+      <button class="md-btn" onclick="openDrawModal('ia')" title="Ouvrir l'atelier de dessin et insérer un croquis">✏️</button>
     </div>
     <textarea class="note-area" id="iaArea" placeholder="Colle ici le texte retravaillé par une IA… (markdown supporté)" oninput="onEdit('ia')"></textarea>
     <div class="note-preview" id="iaPreview" style="display:none;"></div>
@@ -2969,6 +3019,141 @@ function onImageFileSelected(e, which){
   if(file) insertImageFile(file, which);
 }
 
+// ── ATELIER DE DESSIN (colonne IA) ──────────────────────────────────────────
+// Petit canvas de croquis : le résultat est stocké comme une image normale
+// (même mécanisme IndexedDB que les images collées/importées).
+let drawCtx = null, drawing = false, drawColor = '#2b2620', drawSize = 4, drawErasing = false, drawHistory = [], drawTargetWhich = 'ia';
+
+function openDrawModal(which){
+  drawTargetWhich = which === 'raw' ? 'raw' : 'ia';
+  document.getElementById('drawTargetLabel').textContent = drawTargetWhich === 'raw' ? 'le texte brut' : 'la colonne IA';
+  const panel = document.getElementById('drawPanel');
+  const canvas = document.getElementById('drawCanvas');
+  if(!drawCtx){
+    drawCtx = canvas.getContext('2d');
+    initDrawCanvasEvents(canvas);
+  }
+  drawHistory = [];
+  drawErasing = false;
+  document.getElementById('drawEraserBtn').classList.remove('active');
+  setDrawColor(drawColor);
+  drawCtx.fillStyle = '#ffffff';
+  drawCtx.fillRect(0, 0, canvas.width, canvas.height);
+  panel.style.display = 'flex';
+}
+
+function closeDrawModal(){
+  document.getElementById('drawPanel').style.display = 'none';
+}
+document.getElementById('drawPanel').addEventListener('click', (e)=>{
+  if(e.target.id === 'drawPanel') closeDrawModal();
+});
+
+function setDrawColor(c){
+  drawColor = c;
+  drawErasing = false;
+  document.getElementById('drawEraserBtn').classList.remove('active');
+  document.querySelectorAll('.draw-color-swatch').forEach(el=>{
+    el.classList.toggle('active', el.dataset.color === c);
+  });
+}
+
+function toggleDrawEraser(){
+  drawErasing = !drawErasing;
+  document.getElementById('drawEraserBtn').classList.toggle('active', drawErasing);
+}
+
+function pushDrawHistory(){
+  const canvas = document.getElementById('drawCanvas');
+  drawHistory.push(canvas.toDataURL());
+  if(drawHistory.length > 25) drawHistory.shift();
+}
+
+function undoDraw(){
+  if(!drawHistory.length) return;
+  const canvas = document.getElementById('drawCanvas');
+  const last = drawHistory.pop();
+  const img = new Image();
+  img.onload = ()=>{ drawCtx.clearRect(0, 0, canvas.width, canvas.height); drawCtx.drawImage(img, 0, 0); };
+  img.src = last;
+}
+
+function clearDrawCanvas(){
+  const canvas = document.getElementById('drawCanvas');
+  pushDrawHistory();
+  drawCtx.fillStyle = '#ffffff';
+  drawCtx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+function drawPointFromEvent(canvas, e){
+  const rect = canvas.getBoundingClientRect();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  return {
+    x: (clientX - rect.left) * (canvas.width / rect.width),
+    y: (clientY - rect.top) * (canvas.height / rect.height)
+  };
+}
+
+function initDrawCanvasEvents(canvas){
+  let lastPoint = null;
+
+  function start(e){
+    e.preventDefault();
+    pushDrawHistory();
+    drawing = true;
+    lastPoint = drawPointFromEvent(canvas, e);
+    // Un simple point au cas où l'utilisateur clique sans bouger
+    drawCtx.fillStyle = drawErasing ? '#ffffff' : drawColor;
+    drawCtx.beginPath();
+    drawCtx.arc(lastPoint.x, lastPoint.y, (drawErasing ? drawSize * 3 : drawSize) / 2, 0, Math.PI * 2);
+    drawCtx.fill();
+  }
+  function move(e){
+    if(!drawing) return;
+    e.preventDefault();
+    const p = drawPointFromEvent(canvas, e);
+    drawCtx.strokeStyle = drawErasing ? '#ffffff' : drawColor;
+    drawCtx.lineWidth = drawErasing ? drawSize * 3 : drawSize;
+    drawCtx.lineCap = 'round';
+    drawCtx.lineJoin = 'round';
+    drawCtx.beginPath();
+    drawCtx.moveTo(lastPoint.x, lastPoint.y);
+    drawCtx.lineTo(p.x, p.y);
+    drawCtx.stroke();
+    lastPoint = p;
+  }
+  function end(){ drawing = false; lastPoint = null; }
+
+  canvas.addEventListener('mousedown', start);
+  canvas.addEventListener('mousemove', move);
+  window.addEventListener('mouseup', end);
+  canvas.addEventListener('touchstart', start, {passive:false});
+  canvas.addEventListener('touchmove', move, {passive:false});
+  canvas.addEventListener('touchend', end);
+}
+
+function insertDrawing(){
+  if(!activeId){ alert('Ouvre ou crée d\'abord un onglet.'); return; }
+  const canvas = document.getElementById('drawCanvas');
+  const which = drawTargetWhich;
+  const areaId = which === 'raw' ? 'rawArea' : 'iaArea';
+  const colId = which === 'raw' ? 'rawCol' : 'iaCol';
+  canvas.toBlob(async (blob)=>{
+    if(!blob){ alert('❌ Impossible de générer le dessin.'); return; }
+    try{
+      const id = 'img_' + uid();
+      await idbPutImage(id, blob);
+      insertImageMarkdown(areaId, which, 'carnet-img:' + id, 'dessin');
+      flash(colId);
+      updateStorageBadge();
+      closeDrawModal();
+    }catch(err){
+      alert('❌ Impossible d\'insérer ce dessin : ' + err.message);
+    }
+  }, 'image/png');
+}
+
 function handleAreaPaste(e){
   const areaId = e.target.id;
   const which = areaId === 'rawArea' ? 'raw' : 'ia';
@@ -3169,8 +3354,10 @@ document.addEventListener('keydown', (e)=>{
   const tag = (e.target.tagName || '').toLowerCase();
   const typing = tag === 'input' || tag === 'textarea';
   const helpOpen = document.getElementById('helpPanel').style.display === 'flex';
+  const drawOpen = document.getElementById('drawPanel').style.display === 'flex';
 
   if(e.key === 'Escape' && helpOpen){ toggleHelp(); return; }
+  if(e.key === 'Escape' && drawOpen){ closeDrawModal(); return; }
   if(e.key === '?' && !typing){ e.preventDefault(); toggleHelp(); return; }
 
   if(!e.altKey) return;
