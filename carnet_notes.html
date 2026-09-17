@@ -219,6 +219,10 @@ input[type=file]{display:none;}
 .tab-row.separator.drag-over-bottom .separator-line{background:var(--accent);height:2px;}
 .tab-row.separator .tab-del{opacity:0;margin-left:6px;}
 .tab-row.separator:hover .tab-del{opacity:0.5;}
+.tab-row.brouillon{cursor:pointer;margin:3px 0 8px;}
+.tab-row.brouillon .tab-body{padding:6px 10px;flex-direction:row;align-items:center;gap:8px;}
+.tab-row.brouillon.active .tab-body{border-color:var(--accent);}
+.brouillon-label{font-family:'Lora',serif;font-weight:600;font-size:0.86rem;color:var(--ink);flex:1;}
 .tab-color-dot{
   width:14px;height:14px;border-radius:50%;flex-shrink:0;cursor:pointer;
   border:1.5px solid rgba(43,38,32,0.2);padding:0;appearance:none;-webkit-appearance:none;
@@ -888,17 +892,27 @@ function saveTags(){
 
 function uid(){ return 't_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
+// ── ONGLET "BROUILLON" (fixe, non supprimable, toujours en tête) ───────────
+const BROUILLON_ID = '__brouillon__';
+function ensureBrouillon(){
+  if(!state.tabs[BROUILLON_ID]){
+    state.tabs[BROUILLON_ID] = { name:'Brouillon', color:'#8a8272', raw:'', ia:'', description:'', parentId:null, locked:true };
+  }
+  if(!state.order.includes(BROUILLON_ID)) state.order.unshift(BROUILLON_ID);
+}
+
 function load(){
   const raw = localStorage.getItem(STORAGE_KEY);
   if(raw){
     try{
       const data = JSON.parse(raw);
-      if(data && data.tabs && data.order){ state = data; return; }
+      if(data && data.tabs && data.order){ state = data; ensureBrouillon(); return; }
     }catch(e){}
   }
   // Premier lancement : un onglet d'exemple
   const id = uid();
   state = { order:[id], tabs:{ [id]: { name:'Notes', color:PALETTE[0], raw:'', ia:'', parentId:null } } };
+  ensureBrouillon();
 }
 
 function persist(){
@@ -1205,6 +1219,7 @@ function getDescendantIds(id){
 }
 
 function deleteTab(id){
+  if(id === BROUILLON_ID) return;
   const t = state.tabs[id];
   const descendants = getDescendantIds(id);
   const msg = descendants.length
@@ -1280,6 +1295,7 @@ function updateActiveRow(){
 }
 
 function renameTab(id, val){
+  if(id === BROUILLON_ID) return;
   state.tabs[id].name = val;
   persist();
   const active = state.tabs[activeId];
@@ -1296,6 +1312,7 @@ function describeTab(id, val){
 function computeDisplayOrder(){
   const childrenMap = {};
   state.order.forEach(id=>{
+    if(id === BROUILLON_ID) return; // traité séparément, toujours en tête
     const t = state.tabs[id];
     if(!t) return;
     const p = (t.parentId && state.tabs[t.parentId]) ? t.parentId : null;
@@ -1312,6 +1329,7 @@ function computeDisplayOrder(){
     });
   }
   const result = [];
+  if(state.tabs[BROUILLON_ID]) result.push({ id: BROUILLON_ID, depth: 0 });
   (function walk(parentKey, depth){
     (childrenMap[parentKey] || []).forEach(id=>{
       result.push({ id, depth });
@@ -1485,6 +1503,38 @@ function renderTabs(){
     const isMatch = matches.has(id);
     const dim = anyFilter && !visible.has(id);
     if(isMatch) visibleCount++;
+
+    if(id === BROUILLON_ID){
+      const bRow = document.createElement('div');
+      bRow.className = 'tab-row brouillon' + (id===activeId ? ' active' : '');
+      bRow.draggable = false;
+
+      const bSpine = document.createElement('div');
+      bSpine.className = 'tab-spine';
+      bSpine.style.background = t.color;
+      bRow.appendChild(bSpine);
+
+      const bBody = document.createElement('div');
+      bBody.className = 'tab-body';
+      bBody.onclick = ()=> selectTab(id);
+
+      const bLabel = document.createElement('span');
+      bLabel.className = 'tab-name brouillon-label';
+      bLabel.textContent = '📝 Brouillon';
+      bBody.appendChild(bLabel);
+
+      const tasks = countTasks((t.raw||'') + '\n' + (t.ia||''));
+      if(tasks.total){
+        const taskBadge = document.createElement('span');
+        taskBadge.className = 'tab-task-badge' + (tasks.done===tasks.total ? ' done' : '');
+        taskBadge.textContent = tasks.done + '/' + tasks.total;
+        bBody.appendChild(taskBadge);
+      }
+
+      bRow.appendChild(bBody);
+      list.appendChild(bRow);
+      return;
+    }
 
     if(t.type === 'separator'){
       const sepRow = document.createElement('div');
