@@ -211,6 +211,14 @@ input[type=file]{display:none;}
 .tab-row.dragging{opacity:0.35;}
 .tab-row.drag-over-top .tab-body{box-shadow:inset 0 2px 0 0 var(--accent);}
 .tab-row.drag-over-bottom .tab-body{box-shadow:inset 0 -2px 0 0 var(--accent);}
+.tab-row.separator{cursor:grab;margin:2px 0;padding:5px 10px;align-items:center;}
+.tab-row.separator:hover{transform:none;}
+.separator-line{flex:1;height:1px;background:var(--line);transition:background .15s;}
+.tab-row.separator:hover .separator-line{background:var(--accent);}
+.tab-row.separator.drag-over-top .separator-line,
+.tab-row.separator.drag-over-bottom .separator-line{background:var(--accent);height:2px;}
+.tab-row.separator .tab-del{opacity:0;margin-left:6px;}
+.tab-row.separator:hover .tab-del{opacity:0.5;}
 .tab-color-dot{
   width:14px;height:14px;border-radius:50%;flex-shrink:0;cursor:pointer;
   border:1.5px solid rgba(43,38,32,0.2);padding:0;appearance:none;-webkit-appearance:none;
@@ -311,6 +319,14 @@ input[type=file]{display:none;}
   color:var(--ink-soft);cursor:pointer;transition:all .15s;
 }
 .add-tab-btn:hover{border-color:var(--accent);color:var(--accent);border-style:solid;}
+.add-tab-row{display:flex;gap:6px;}
+.add-tab-row .add-tab-btn{flex:1;}
+.add-sep-btn{
+  flex-shrink:0;width:36px;font-family:'IBM Plex Mono',monospace;font-size:0.85rem;font-weight:600;
+  border-radius:8px;border:1.5px dashed var(--line);background:transparent;
+  color:var(--ink-soft);cursor:pointer;transition:all .15s;
+}
+.add-sep-btn:hover{border-color:var(--accent);color:var(--accent);border-style:solid;}
 .empty-tabs{padding:24px 16px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:0.75rem;color:var(--ink-soft);}
 
 /* FILTRE PAR TAG DE CONTENU (#hashtags trouvés dans les notes) */
@@ -718,7 +734,10 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
     <div class="content-tags-bar" id="contentTagsBar" style="display:none;"></div>
     <div class="tabs-list" id="tabsList"></div>
     <div class="add-tab-wrap">
-      <button class="add-tab-btn" onclick="addTab()">＋ Nouvel onglet</button>
+      <div class="add-tab-row">
+        <button class="add-tab-btn" onclick="addTab()">＋ Nouvel onglet</button>
+        <button class="add-sep-btn" onclick="addSeparator()" title="Ajouter une ligne de séparation">┄</button>
+      </div>
     </div>
   </div>
 
@@ -1162,6 +1181,22 @@ function addTab(){
   }, 30);
 }
 
+// ── SÉPARATEURS (simple ligne de rupture visuelle entre onglets, niveau racine) ─
+function addSeparator(){
+  const id = uid();
+  state.tabs[id] = { type:'separator', name:'', color:'', raw:'', ia:'', description:'', parentId:null };
+  state.order.push(id);
+  persist();
+  renderTabs();
+}
+
+function deleteSeparator(id){
+  delete state.tabs[id];
+  state.order = state.order.filter(x=>x!==id);
+  persist();
+  renderTabs();
+}
+
 function getDescendantIds(id){
   const result = [];
   const children = state.order.filter(x => state.tabs[x] && state.tabs[x].parentId === id);
@@ -1450,6 +1485,40 @@ function renderTabs(){
     const isMatch = matches.has(id);
     const dim = anyFilter && !visible.has(id);
     if(isMatch) visibleCount++;
+
+    if(t.type === 'separator'){
+      const sepRow = document.createElement('div');
+      sepRow.className = 'tab-row separator';
+      sepRow.draggable = true;
+      sepRow.ondragstart = (e)=>{ draggedTabId = id; e.dataTransfer.effectAllowed = 'move'; setTimeout(()=>sepRow.classList.add('dragging'),0); };
+      sepRow.ondragend = ()=>{ sepRow.classList.remove('dragging'); document.querySelectorAll('.drag-over-top,.drag-over-bottom').forEach(r=>r.classList.remove('drag-over-top','drag-over-bottom')); draggedTabId = null; };
+      sepRow.ondragover = (e)=>{
+        if(!draggedTabId || draggedTabId===id) return;
+        e.preventDefault();
+        const rect = sepRow.getBoundingClientRect();
+        const before = (e.clientY - rect.top) < rect.height/2;
+        document.querySelectorAll('.drag-over-top,.drag-over-bottom').forEach(r=>r.classList.remove('drag-over-top','drag-over-bottom'));
+        sepRow.classList.add(before ? 'drag-over-top' : 'drag-over-bottom');
+      };
+      sepRow.ondrop = (e)=>{
+        e.preventDefault();
+        if(!draggedTabId || draggedTabId===id) return;
+        const rect = sepRow.getBoundingClientRect();
+        const before = (e.clientY - rect.top) < rect.height/2;
+        reorderTab(draggedTabId, id, before);
+      };
+      const sepLine = document.createElement('div');
+      sepLine.className = 'separator-line';
+      sepRow.appendChild(sepLine);
+      const sepDel = document.createElement('button');
+      sepDel.className = 'tab-del';
+      sepDel.textContent = '✕';
+      sepDel.title = 'Supprimer cette séparation';
+      sepDel.onclick = (e)=>{ e.stopPropagation(); deleteSeparator(id); };
+      sepRow.appendChild(sepDel);
+      list.appendChild(sepRow);
+      return;
+    }
 
     const row = document.createElement('div');
     row.className = 'tab-row' + (depth>0 ? ' child' : '') + (id===activeId ? ' active' : '') + (dim ? ' dimmed' : '') + (t.pinned ? ' pinned' : '');
