@@ -9048,5 +9048,94 @@ function ghLinkGenerate(){
 })();
 </script>
 
+<!-- ═══════════ WIDGET BASCULE Carnet / Mesures (déplaçable) ═══════════ -->
+<style>
+#santeToggleWidget{position:fixed;bottom:41px;left:calc(50% + 210px);z-index:950;font-family:inherit;touch-action:none;}
+#santeToggleBtn{width:52px;height:64px;border-radius:14px;overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.35);border:1.5px solid rgba(255,255,255,.15);background:#0b0b0f;display:flex;flex-direction:column;transition:box-shadow .2s,transform .15s;cursor:grab;}
+#santeToggleBtn.dragging{cursor:grabbing;box-shadow:0 8px 26px rgba(0,0,0,.45);transition:box-shadow .2s;}
+#santeToggleBtn:hover{transform:scale(1.04);}
+</style>
+<div id="santeToggleWidget">
+  <div id="santeToggleBtn">
+    <div class="flipHalf" title="Ouvrir le carnet de notes" data-url="https://bencm0i.github.io/Sant-/carnet_notes.html" style="background:linear-gradient(160deg,#c77b3d,#7a4a1f);">
+      <span class="flipIcon">📝</span><span>Carnet</span>
+    </div>
+    <div class="flipHalf" title="Ouvrir mesures / photo" data-url="https://bencm0i.github.io/Sant-/mesure-photo.html" style="background:linear-gradient(160deg,#3d8ec7,#1f4f7a);">
+      <span class="flipIcon">📏</span><span>Mesures</span>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  const wrap = document.getElementById('santeToggleWidget');
+  const btn = document.getElementById('santeToggleBtn');
+  const zones = Array.from(btn.querySelectorAll('.flipHalf')).map(el => ({el}));
+  const SK = 'santeToggleWidgetPos';
+
+  function applyPos(left, top){
+    wrap.style.left = left + 'px';
+    wrap.style.top = top + 'px';
+    wrap.style.bottom = 'auto';
+  }
+  const saved = JSON.parse(localStorage.getItem(SK) || 'null');
+  if(saved) applyPos(saved.left, saved.top);
+
+  let dragging = false, didDrag = false, startX, startY, origLeft, origTop;
+
+  function pointerDown(clientX, clientY){
+    dragging = true; didDrag = false;
+    startX = clientX; startY = clientY;
+    const r = wrap.getBoundingClientRect();
+    origLeft = r.left; origTop = r.top;
+    btn.classList.add('dragging');
+  }
+  function pointerMove(clientX, clientY){
+    if(!dragging) return;
+    const dx = clientX - startX, dy = clientY - startY;
+    if(Math.abs(dx) > 3 || Math.abs(dy) > 3) didDrag = true;
+    const left = Math.max(0, Math.min(origLeft + dx, window.innerWidth - wrap.offsetWidth));
+    const top = Math.max(30, Math.min(origTop + dy, window.innerHeight - wrap.offsetHeight - 4));
+    applyPos(left, top);
+  }
+  function pointerUp(clientX, clientY){
+    if(!dragging) return;
+    dragging = false;
+    btn.classList.remove('dragging');
+    if(!didDrag){
+      const r = wrap.getBoundingClientRect();
+      const relY = clientY - r.top;
+      const idx = Math.min(zones.length - 1, Math.max(0, Math.floor(relY / (r.height / zones.length))));
+      window.open(zones[idx].el.dataset.url, '_blank');
+    } else {
+      const r = wrap.getBoundingClientRect();
+      localStorage.setItem(SK, JSON.stringify({left: r.left, top: r.top}));
+    }
+  }
+
+  btn.addEventListener('mousedown', e => {
+    if(e.button !== 0) return;
+    pointerDown(e.clientX, e.clientY);
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', e => pointerMove(e.clientX, e.clientY));
+  document.addEventListener('mouseup', e => pointerUp(e.clientX, e.clientY));
+
+  btn.addEventListener('touchstart', e => {
+    const t = e.touches[0];
+    pointerDown(t.clientX, t.clientY);
+  }, {passive: true});
+  document.addEventListener('touchmove', e => {
+    if(!dragging) return;
+    const t = e.touches[0];
+    pointerMove(t.clientX, t.clientY);
+    e.preventDefault();
+  }, {passive: false});
+  document.addEventListener('touchend', e => {
+    const t = e.changedTouches[0];
+    pointerUp(t.clientX, t.clientY);
+  });
+})();
+</script>
+
 </body>
 </html>
