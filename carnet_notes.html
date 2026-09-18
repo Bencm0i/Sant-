@@ -754,6 +754,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
   <div class="help-panel-inner draw-panel-inner">
     <h2>Atelier de dessin</h2>
     <p class="help-panel-note" style="margin-bottom:12px;">Dessine un croquis ou un schéma à la souris, au doigt ou au stylet, puis insère-le dans <span id="drawTargetLabel">le texte</span> comme une image normale.</p>
+    <p class="help-panel-note" style="margin-bottom:12px;">Maj+molette sur le canvas : épaisseur du trait/gomme · Maintenir <strong>H</strong> : ligne horizontale · Maintenir <strong>V</strong> : ligne verticale</p>
     <div class="draw-toolbar">
       <div class="draw-colors" id="drawColors">
         <button class="draw-color-swatch active" style="background:#2b2620;" data-color="#2b2620" onclick="setDrawColor('#2b2620')" title="Noir"></button>
@@ -3023,6 +3024,7 @@ function onImageFileSelected(e, which){
 // Petit canvas de croquis : le résultat est stocké comme une image normale
 // (même mécanisme IndexedDB que les images collées/importées).
 let drawCtx = null, drawing = false, drawColor = '#2b2620', drawSize = 4, drawErasing = false, drawHistory = [], drawTargetWhich = 'ia';
+let drawLockH = false, drawLockV = false; // verrouillage ligne horizontale (H) / verticale (V)
 
 function openDrawModal(which){
   drawTargetWhich = which === 'raw' ? 'raw' : 'ia';
@@ -3113,6 +3115,8 @@ function initDrawCanvasEvents(canvas){
     if(!drawing) return;
     e.preventDefault();
     const p = drawPointFromEvent(canvas, e);
+    if(drawLockH) p.y = lastPoint.y; // trait forcé horizontal tant que H est maintenu
+    if(drawLockV) p.x = lastPoint.x; // trait forcé vertical tant que V est maintenu
     drawCtx.strokeStyle = drawErasing ? '#ffffff' : drawColor;
     drawCtx.lineWidth = drawErasing ? drawSize * 3 : drawSize;
     drawCtx.lineCap = 'round';
@@ -3131,6 +3135,16 @@ function initDrawCanvasEvents(canvas){
   canvas.addEventListener('touchstart', start, {passive:false});
   canvas.addEventListener('touchmove', move, {passive:false});
   canvas.addEventListener('touchend', end);
+
+  // Maj+molette : ajuste l'épaisseur du trait (ou de la gomme)
+  canvas.addEventListener('wheel', (e) => {
+    if(!e.shiftKey) return;
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -1 : 1;
+    drawSize = Math.max(1, Math.min(16, drawSize + delta));
+    const input = document.getElementById('drawSizeInput');
+    if(input) input.value = drawSize;
+  }, {passive:false});
 }
 
 function insertDrawing(){
@@ -3360,6 +3374,12 @@ document.addEventListener('keydown', (e)=>{
   if(e.key === 'Escape' && drawOpen){ closeDrawModal(); return; }
   if(e.key === '?' && !typing){ e.preventDefault(); toggleHelp(); return; }
 
+  if(drawOpen && !typing){
+    const dk = e.key.toLowerCase();
+    if(dk === 'h'){ drawLockH = true; }
+    else if(dk === 'v'){ drawLockV = true; }
+  }
+
   if(!e.altKey) return;
   const k = e.key.toLowerCase();
   if(k === 'n'){ e.preventDefault(); addTab(); }
@@ -3372,6 +3392,11 @@ document.addEventListener('keydown', (e)=>{
     const inIaCol = !!(e.target.closest && e.target.closest('#iaCol'));
     togglePreview(inIaCol ? 'ia' : 'raw');
   }
+});
+document.addEventListener('keyup', (e)=>{
+  const dk = e.key.toLowerCase();
+  if(dk === 'h') drawLockH = false;
+  if(dk === 'v') drawLockV = false;
 });
 
 // Restaure l'onglet qui était ouvert à la dernière session (au lieu de toujours
