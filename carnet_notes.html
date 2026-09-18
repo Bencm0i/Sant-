@@ -862,6 +862,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
       <button class="md-btn" onclick="mdPrefix('rawArea','- [ ] ')" title="Case à cocher">☑</button>
       <button class="md-btn" onclick="mdPrefix('rawArea','> ')" title="Citation">❝</button>
       <button class="md-btn" onclick="mdWrap('rawArea','\`','\`','code')" title="Code">{ }</button>
+      <button class="md-btn" onclick="insertAsciiFlowchart('rawArea')" title="Insérer un gabarit de logigramme ASCII">▭→</button>
       <button class="md-btn" onclick="mdLink('rawArea')" title="Lien">🔗</button>
       <button class="md-btn" onclick="document.getElementById('rawImageInput').click()" title="Insérer une image (ou colle-la directement avec Ctrl+V)">🖼</button>
       <input type="file" id="rawImageInput" accept="image/*" style="display:none;" onchange="onImageFileSelected(event,'raw')">
@@ -905,6 +906,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
       <button class="md-btn" onclick="mdPrefix('iaArea','- [ ] ')" title="Case à cocher">☑</button>
       <button class="md-btn" onclick="mdPrefix('iaArea','> ')" title="Citation">❝</button>
       <button class="md-btn" onclick="mdWrap('iaArea','\`','\`','code')" title="Code">{ }</button>
+      <button class="md-btn" onclick="insertAsciiFlowchart('iaArea')" title="Insérer un gabarit de logigramme ASCII">▭→</button>
       <button class="md-btn" onclick="mdLink('iaArea')" title="Lien">🔗</button>
       <button class="md-btn" onclick="document.getElementById('iaImageInput').click()" title="Insérer une image (ou colle-la directement avec Ctrl+V)">🖼</button>
       <input type="file" id="iaImageInput" accept="image/*" style="display:none;" onchange="onImageFileSelected(event,'ia')">
@@ -2880,6 +2882,44 @@ function mdLink(areaId){
   const urlStart = start + selected.length + 3;
   area.focus();
   area.setSelectionRange(urlStart, urlStart + 3);
+  onEdit(areaId==='rawArea' ? 'raw' : 'ia');
+  flash(areaId==='rawArea' ? 'rawCol' : 'iaCol');
+}
+
+// Gabarit rapide de logigramme en ASCII, inséré dans un bloc de code (police mono
+// en édition et en aperçu, donc les colonnes restent alignées). Pas éditable comme
+// des formes : juste du texte à retoucher à la main. Pour un vrai éditeur de
+// logigramme (formes déplaçables, connexions automatiques), prévoir un outil séparé.
+function insertAsciiFlowchart(areaId){
+  const area = document.getElementById(areaId);
+  if(!activeId) return;
+  const template = [
+    '```',
+    '+-----------+',
+    '|   Début   |',
+    '+-----+-----+',
+    '      |',
+    '      v',
+    '+-----+-----+',
+    '|  Étape 1  |',
+    '+-----+-----+',
+    '      |',
+    '      v',
+    '+-----------+',
+    '|    Fin    |',
+    '+-----------+',
+    '```'
+  ].join('\n');
+  const value = area.value;
+  const start = area.selectionStart, end = area.selectionEnd;
+  const needsNlBefore = start > 0 && value[start - 1] !== '\n';
+  const needsNlAfter = end < value.length && value[end] !== '\n';
+  const insertion = (needsNlBefore ? '\n\n' : '') + template + (needsNlAfter ? '\n\n' : '\n');
+  area.value = value.slice(0, start) + insertion + value.slice(end);
+  area.focus();
+  // Sélectionne directement "Début" pour le renommer sans avoir à le chercher
+  const debutIdx = area.value.indexOf('Début', start);
+  if(debutIdx !== -1){ area.setSelectionRange(debutIdx, debutIdx + 'Début'.length); }
   onEdit(areaId==='rawArea' ? 'raw' : 'ia');
   flash(areaId==='rawArea' ? 'rawCol' : 'iaCol');
 }
