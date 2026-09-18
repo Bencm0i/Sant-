@@ -167,6 +167,12 @@ input[type=file]{display:none;}
 .draw-size-row{display:flex;align-items:center;gap:6px;font-family:'Inter',sans-serif;font-size:0.78rem;color:var(--ink-soft);}
 .draw-size-row input[type=range]{width:90px;accent-color:var(--accent);}
 #drawEraserBtn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+#drawTextBtn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.draw-text-input{
+  position:absolute;z-index:4;border:1.5px dashed var(--accent);border-radius:3px;
+  background:rgba(255,255,255,0.92);padding:1px 4px;font-family:'Inter',sans-serif;
+  outline:none;min-width:120px;line-height:1.2;
+}
 .draw-canvas-wrap{border:1.5px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:14px;background:#fff;touch-action:none;line-height:0;position:relative;}
 #drawCanvas{display:block;width:100%;height:auto;cursor:crosshair;background:#fff;}
 #drawCursorPreview{
@@ -759,7 +765,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
   <div class="help-panel-inner draw-panel-inner">
     <h2>Atelier de dessin</h2>
     <p class="help-panel-note" style="margin-bottom:12px;">Dessine un croquis ou un schéma à la souris, au doigt ou au stylet, puis insère-le dans <span id="drawTargetLabel">le texte</span> comme une image normale.</p>
-    <p class="help-panel-note" style="margin-bottom:12px;">Maj+molette sur le canvas : épaisseur du trait/gomme · Maintenir <strong>H</strong> : ligne horizontale · Maintenir <strong>V</strong> : ligne verticale</p>
+    <p class="help-panel-note" style="margin-bottom:12px;">Maj+molette sur le canvas : épaisseur du trait/gomme · Maintenir <strong>H</strong> : ligne horizontale · Maintenir <strong>V</strong> : ligne verticale · Outil 🔤 Texte : clic sur le canvas puis tape au clavier, <strong>Entrée</strong> valide, <strong>Échap</strong> annule</p>
     <div class="draw-toolbar">
       <div class="draw-colors" id="drawColors">
         <button class="draw-color-swatch active" style="background:#2b2620;" data-color="#2b2620" onclick="setDrawColor('#2b2620')" title="Noir"></button>
@@ -774,6 +780,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
         <input type="range" min="1" max="16" value="4" id="drawSizeInput" oninput="drawSize=parseInt(this.value,10)">
       </div>
       <button class="btn" id="drawEraserBtn" onclick="toggleDrawEraser()" title="Gomme">🧹 Gomme</button>
+      <button class="btn" id="drawTextBtn" onclick="toggleDrawTextMode()" title="Ajouter du texte au clavier">🔤 Texte</button>
       <button class="btn" onclick="undoDraw()" title="Annuler le dernier trait">↺ Annuler</button>
       <button class="btn" onclick="clearDrawCanvas()" title="Tout effacer">🗑 Effacer</button>
     </div>
@@ -3031,6 +3038,7 @@ function onImageFileSelected(e, which){
 // (même mécanisme IndexedDB que les images collées/importées).
 let drawCtx = null, drawing = false, drawColor = '#2b2620', drawSize = 4, drawErasing = false, drawHistory = [], drawTargetWhich = 'ia';
 let drawLockH = false, drawLockV = false; // verrouillage ligne horizontale (H) / verticale (V)
+let drawTextMode = false;
 
 function openDrawModal(which){
   drawTargetWhich = which === 'raw' ? 'raw' : 'ia';
@@ -3043,7 +3051,10 @@ function openDrawModal(which){
   }
   drawHistory = [];
   drawErasing = false;
+  drawTextMode = false;
   document.getElementById('drawEraserBtn').classList.remove('active');
+  document.getElementById('drawTextBtn').classList.remove('active');
+  canvas.style.cursor = 'crosshair';
   hideDrawCursorPreview();
   setDrawColor(drawColor);
   drawCtx.fillStyle = '#ffffff';
@@ -3072,6 +3083,73 @@ function toggleDrawEraser(){
   drawErasing = !drawErasing;
   document.getElementById('drawEraserBtn').classList.toggle('active', drawErasing);
   if(!drawErasing) hideDrawCursorPreview();
+  if(drawErasing && drawTextMode){ drawTextMode = false; document.getElementById('drawTextBtn').classList.remove('active'); document.getElementById('drawCanvas').style.cursor = 'crosshair'; }
+}
+
+function toggleDrawTextMode(){
+  drawTextMode = !drawTextMode;
+  document.getElementById('drawTextBtn').classList.toggle('active', drawTextMode);
+  const canvas = document.getElementById('drawCanvas');
+  if(drawTextMode){
+    drawErasing = false;
+    document.getElementById('drawEraserBtn').classList.remove('active');
+    hideDrawCursorPreview();
+    canvas.style.cursor = 'text';
+  } else {
+    canvas.style.cursor = 'crosshair';
+  }
+}
+
+// Insertion de texte au clavier : un champ flottant apparaît à l'endroit du clic
+function startDrawTextInput(canvas, e){
+  const existing = document.getElementById('drawTextInputActive');
+  if(existing) existing.dispatchEvent(new Event('blur'));
+
+  const wrap = canvas.parentElement;
+  const wrapRect = wrap.getBoundingClientRect();
+  const canvasRect = canvas.getBoundingClientRect();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  const scale = canvasRect.width / canvas.width;
+  const p = drawPointFromEvent(canvas, e); // coordonnées en pixels canvas
+  const fontSizeCanvas = Math.max(14, drawSize * 4);
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.id = 'drawTextInputActive';
+  input.className = 'draw-text-input';
+  input.style.left = (clientX - wrapRect.left) + 'px';
+  input.style.top = (clientY - wrapRect.top) + 'px';
+  input.style.fontSize = (fontSizeCanvas * scale) + 'px';
+  input.style.color = drawColor;
+  wrap.appendChild(input);
+  input.focus();
+
+  let done = false;
+  function commit(){
+    if(done) return;
+    done = true;
+    const text = input.value;
+    input.remove();
+    if(text && text.trim()){
+      pushDrawHistory();
+      drawCtx.fillStyle = drawColor;
+      drawCtx.font = fontSizeCanvas + 'px Inter, sans-serif';
+      drawCtx.textBaseline = 'top';
+      drawCtx.fillText(text, p.x, p.y);
+    }
+  }
+  function cancel(){
+    if(done) return;
+    done = true;
+    input.remove();
+  }
+
+  input.addEventListener('keydown', (ev)=>{
+    if(ev.key === 'Enter'){ ev.preventDefault(); commit(); }
+    else if(ev.key === 'Escape'){ ev.preventDefault(); ev.stopPropagation(); cancel(); }
+  });
+  input.addEventListener('blur', commit);
 }
 
 // Aperçu visuel de la gomme : carré pointillé suivant la souris, à la taille réelle de la zone effacée
@@ -3134,6 +3212,7 @@ function initDrawCanvasEvents(canvas){
 
   function start(e){
     e.preventDefault();
+    if(drawTextMode){ startDrawTextInput(canvas, e); return; }
     pushDrawHistory();
     drawing = true;
     lastPoint = drawPointFromEvent(canvas, e);
