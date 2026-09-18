@@ -167,8 +167,13 @@ input[type=file]{display:none;}
 .draw-size-row{display:flex;align-items:center;gap:6px;font-family:'Inter',sans-serif;font-size:0.78rem;color:var(--ink-soft);}
 .draw-size-row input[type=range]{width:90px;accent-color:var(--accent);}
 #drawEraserBtn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
-.draw-canvas-wrap{border:1.5px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:14px;background:#fff;touch-action:none;line-height:0;}
+.draw-canvas-wrap{border:1.5px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:14px;background:#fff;touch-action:none;line-height:0;position:relative;}
 #drawCanvas{display:block;width:100%;height:auto;cursor:crosshair;background:#fff;}
+#drawCursorPreview{
+  position:absolute;pointer-events:none;display:none;z-index:3;
+  border:1.5px dashed var(--ink);background:rgba(43,38,32,0.06);
+  transform:translate(-50%,-50%);box-sizing:border-box;
+}
 .draw-actions-row{display:flex;gap:8px;flex-wrap:wrap;}
 .draw-actions-row .btn{flex:1;min-width:100px;justify-content:center;}
 
@@ -774,6 +779,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
     </div>
     <div class="draw-canvas-wrap">
       <canvas id="drawCanvas" width="680" height="420"></canvas>
+      <div id="drawCursorPreview"></div>
     </div>
     <div class="draw-actions-row">
       <button class="btn" onclick="closeDrawModal()">Annuler</button>
@@ -3038,6 +3044,7 @@ function openDrawModal(which){
   drawHistory = [];
   drawErasing = false;
   document.getElementById('drawEraserBtn').classList.remove('active');
+  hideDrawCursorPreview();
   setDrawColor(drawColor);
   drawCtx.fillStyle = '#ffffff';
   drawCtx.fillRect(0, 0, canvas.width, canvas.height);
@@ -3055,6 +3062,7 @@ function setDrawColor(c){
   drawColor = c;
   drawErasing = false;
   document.getElementById('drawEraserBtn').classList.remove('active');
+  hideDrawCursorPreview();
   document.querySelectorAll('.draw-color-swatch').forEach(el=>{
     el.classList.toggle('active', el.dataset.color === c);
   });
@@ -3063,6 +3071,30 @@ function setDrawColor(c){
 function toggleDrawEraser(){
   drawErasing = !drawErasing;
   document.getElementById('drawEraserBtn').classList.toggle('active', drawErasing);
+  if(!drawErasing) hideDrawCursorPreview();
+}
+
+// Aperçu visuel de la gomme : carré pointillé suivant la souris, à la taille réelle de la zone effacée
+function updateDrawCursorPreview(e){
+  const cursor = document.getElementById('drawCursorPreview');
+  if(!drawErasing){ cursor.style.display = 'none'; return; }
+  const canvas = document.getElementById('drawCanvas');
+  const wrap = canvas.parentElement;
+  const wrapRect = wrap.getBoundingClientRect();
+  const canvasRect = canvas.getBoundingClientRect();
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  const scale = canvasRect.width / canvas.width;
+  const size = drawSize * 3 * scale; // même taille que la gomme réelle (drawSize * 3)
+  cursor.style.width = size + 'px';
+  cursor.style.height = size + 'px';
+  cursor.style.left = (clientX - wrapRect.left) + 'px';
+  cursor.style.top = (clientY - wrapRect.top) + 'px';
+  cursor.style.display = 'block';
+}
+function hideDrawCursorPreview(){
+  const cursor = document.getElementById('drawCursorPreview');
+  if(cursor) cursor.style.display = 'none';
 }
 
 function pushDrawHistory(){
@@ -3136,6 +3168,14 @@ function initDrawCanvasEvents(canvas){
   canvas.addEventListener('touchmove', move, {passive:false});
   canvas.addEventListener('touchend', end);
 
+  // Aperçu du curseur gomme
+  canvas.addEventListener('mousemove', updateDrawCursorPreview);
+  canvas.addEventListener('mouseenter', updateDrawCursorPreview);
+  canvas.addEventListener('mouseleave', hideDrawCursorPreview);
+  canvas.addEventListener('touchmove', updateDrawCursorPreview, {passive:false});
+  canvas.addEventListener('touchstart', updateDrawCursorPreview, {passive:false});
+  canvas.addEventListener('touchend', hideDrawCursorPreview);
+
   // Maj+molette : ajuste l'épaisseur du trait (ou de la gomme)
   canvas.addEventListener('wheel', (e) => {
     if(!e.shiftKey) return;
@@ -3144,6 +3184,7 @@ function initDrawCanvasEvents(canvas){
     drawSize = Math.max(1, Math.min(16, drawSize + delta));
     const input = document.getElementById('drawSizeInput');
     if(input) input.value = drawSize;
+    updateDrawCursorPreview(e);
   }, {passive:false});
 }
 
