@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Éditeur JSON · Patrimoine</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧩</text></svg>">
+<style>
+:root {
+  --bg: #1a1e24;
+  --surface: #22272f;
+  --surface2: #2a3040;
+  --border: #3a4455;
+  --accent: #7eb8d4;
+  --accent2: #5b9fba;
+  --text: #c8cdd8;
+  --muted: #6b7585;
+  --gold: #c8a96e;
+  --green: #5aab7a;
+  --red: #c05a5a;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f3f1ea;
+    --surface: #ffffff;
+    --surface2: #eae6da;
+    --border: #cfc9b8;
+    --accent: #a8601c;
+    --accent2: #8a4d14;
+    --text: #2c2510;
+    --muted: #7a7057;
+    --gold: #a8601c;
+    --green: #3f7350;
+    --red: #a43d3d;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1a1e24; --surface: #22272f; --surface2: #2a3040; --border: #3a4455;
+  --accent: #7eb8d4; --accent2: #5b9fba; --text: #c8cdd8; --muted: #6b7585;
+  --gold: #c8a96e; --green: #5aab7a; --red: #c05a5a;
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Mono','Courier New',monospace;
+  font-size: 13px;
+  min-height: 100vh;
+  padding-bottom: 60px;
+}
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@700;800&display=swap');
+
+.header {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(26,30,36,0.97);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 16px;
+}
+.header-top { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+.logo { font-family:'Syne',sans-serif; font-weight:800; font-size:16px; color:var(--accent); letter-spacing:-0.4px; }
+.logo span { color: var(--muted); font-weight:700; }
+.subtitle { font-size:11px; color:var(--muted); margin-top:2px; }
+.toolbar { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+.btn {
+  background: var(--surface); border:1px solid var(--border); color:var(--text);
+  font-family:'DM Mono',monospace; font-size:11px; padding:7px 11px; border-radius:8px;
+  cursor:pointer; display:flex; align-items:center; gap:5px; white-space:nowrap;
+  transition: all .15s;
+}
+.btn:hover { border-color:var(--accent); color:var(--accent); }
+.btn.primary { background:var(--accent); color:#1a1e24; border-color:var(--accent); font-weight:600; }
+.btn.primary:hover { background:var(--accent2); }
+.btn.danger { border-color:var(--red); color:var(--red); }
+.btn.danger:hover { background: rgba(192,90,90,0.12); }
+.save-flag { font-size:10px; color:var(--green); opacity:0; transition:opacity .5s; margin-left:4px; }
+.save-flag.show { opacity:1; }
+
+.viewtabs { display:flex; gap:6px; margin-top:10px; }
+.viewtab {
+  background:none; border:1px solid var(--border); color:var(--muted);
+  font-family:'DM Mono',monospace; font-size:11px; padding:6px 12px; border-radius:20px; cursor:pointer;
+}
+.viewtab.active { border-color:var(--accent); color:var(--accent); background:rgba(126,184,212,0.1); }
+
+main { max-width: 900px; margin: 0 auto; padding: 16px; }
+
+#treeRoot { display:flex; flex-direction:column; gap:4px; }
+.jrow { }
+.jdetails { border-left:2px solid var(--border); padding-left:10px; margin:3px 0; }
+.jdetails > summary { list-style:none; cursor:pointer; display:flex; align-items:center; gap:8px; padding:6px 4px; border-radius:6px; }
+.jdetails > summary::-webkit-details-marker { display:none; }
+.jdetails > summary:hover { background: var(--surface); }
+.jdetails > summary::before {
+  content:'▸'; color:var(--muted); font-size:10px; width:10px; flex-shrink:0; transition: transform .15s;
+}
+.jdetails[open] > summary::before { transform: rotate(90deg); }
+.jkey { color: var(--text); font-weight:500; }
+.jtype { color: var(--muted); font-size:10px; background:var(--surface2); padding:2px 7px; border-radius:10px; }
+.jctrl { margin-left:auto; display:flex; gap:5px; flex-shrink:0; }
+.jctrl .btn { padding:4px 9px; font-size:10px; }
+.jchildren { padding: 2px 0 4px 6px; }
+.jempty { color:var(--muted); font-size:11px; font-style:italic; padding:4px 0 4px 2px; }
+
+.jprim { display:flex; align-items:center; gap:8px; padding:5px 4px; border-radius:6px; flex-wrap:wrap; }
+.jprim:hover { background: var(--surface); }
+.jprim .jkey { min-width: 140px; flex-shrink:0; }
+.jval { display:flex; align-items:center; gap:6px; flex:1; min-width:180px; }
+.jtypesel {
+  background:var(--surface2); border:1px solid var(--border); color:var(--muted);
+  font-family:'DM Mono',monospace; font-size:10px; border-radius:5px; padding:3px 4px;
+}
+.jinput {
+  background: var(--surface2); border:1px solid var(--border); color:var(--text);
+  font-family:'DM Mono',monospace; font-size:12px; padding:5px 8px; border-radius:6px;
+  flex:1; min-width:120px;
+}
+.jinput:focus { outline:none; border-color:var(--accent); }
+.jinput[type="checkbox"] { flex:none; width:16px; height:16px; }
+.jdel {
+  background:none; border:1px solid var(--border); color:var(--muted);
+  font-size:11px; width:24px; height:24px; border-radius:6px; cursor:pointer; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+}
+.jdel:hover { border-color:var(--red); color:var(--red); }
+
+#rawView { display:none; }
+#rawView.active { display:block; }
+#treeView.hidden { display:none; }
+#rawTextarea {
+  width:100%; min-height: 60vh; background:var(--surface); border:1px solid var(--border);
+  color:var(--text); font-family:'DM Mono',monospace; font-size:12px; border-radius:10px;
+  padding:14px; resize:vertical; line-height:1.5;
+}
+#rawTextarea:focus { outline:none; border-color:var(--accent); }
+.raw-actions { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+.raw-msg { font-size:11px; margin-top:8px; min-height:16px; }
+.raw-msg.err { color: var(--red); }
+.raw-msg.ok { color: var(--green); }
+
+.hint {
+  font-size:11px; color:var(--muted); background:var(--surface); border:1px solid var(--border);
+  border-radius:10px; padding:10px 12px; margin-bottom:14px; line-height:1.5;
+}
+.hint b { color: var(--accent); }
+
+.toast {
+  position: fixed; bottom: 18px; left:50%; transform: translateX(-50%);
+  background: var(--surface2); border:1px solid var(--border); color:var(--text);
+  font-size:12px; padding:9px 16px; border-radius:10px; opacity:0; pointer-events:none;
+  transition: opacity .3s, transform .3s; z-index:100;
+}
+.toast.show { opacity:1; transform: translateX(-50%) translateY(-4px); }
+
+#fileInput { display:none; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="logo">JSON<span>·ÉDITEUR</span> Patrimoine</div>
+      <div class="subtitle">Édite les données, sans le code de l'appli — export compatible avec patrimoine_saisie.html</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="save-flag" id="saveFlag">✓ enregistré (brouillon local)</span>
+      <button class="btn" id="themeBtn" onclick="toggleTheme()" title="Changer de thème">🌗</button>
+    </div>
+  </div>
+  <div class="toolbar">
+    <button class="btn" onclick="document.getElementById('fileInput').click()">📂 Importer un .json</button>
+    <button class="btn primary" onclick="exportJSON()">⬇ Exporter .json</button>
+    <button class="btn" onclick="copyJSON()">📋 Copier</button>
+    <button class="btn" onclick="expandAll()">Tout déplier</button>
+    <button class="btn" onclick="collapseAll()">Tout replier</button>
+    <button class="btn danger" onclick="resetTemplate()">↺ Modèle par défaut</button>
+    <input type="file" id="fileInput" accept="application/json" onchange="handleFile(event)">
+  </div>
+  <div class="viewtabs">
+    <button class="viewtab active" id="tabTree" onclick="switchView('tree')">Vue arbre</button>
+    <button class="viewtab" id="tabRaw" onclick="switchView('raw')">Vue texte (JSON brut)</button>
+  </div>
+</div>
+
+<main>
+  <div class="hint">
+    Clique sur une section pour la déplier. <b>+ champ</b> / <b>+</b> ajoute une entrée (un nouvel élément de liste recopie le dernier, à toi de changer les valeurs). Le sélecteur avant chaque valeur change son type. Rien n'est envoyé nulle part : tout reste dans ton navigateur jusqu'à l'export.
+  </div>
+
+  <div id="treeView">
+    <div id="treeRoot"></div>
+  </div>
+
+  <div id="rawView">
+    <textarea id="rawTextarea" spellcheck="false"></textarea>
+    <div class="raw-actions">
+      <button class="btn primary" onclick="applyRaw()">✓ Appliquer au modèle</button>
+      <button class="btn" onclick="formatRaw()">Reformater</button>
+      <button class="btn" onclick="syncRawFromData()">↺ Recharger depuis l'arbre</button>
+    </div>
+    <div class="raw-msg" id="rawMsg"></div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── MODÈLE PAR DÉFAUT (schéma repris de patrimoine_saisie.html, sans le code) ──
+function defaultTemplate() {
+  return {
+    boursorama: [
+      {label:"Compte courant",val:0,liq:0,risk:1},{label:"Livret A",val:0,liq:1,risk:1},
+      {label:"Livret B+",val:0,liq:1,risk:1},{label:"CTO",val:0,liq:1,risk:4},
+      {label:"CTO Liquidités",val:0,liq:0,risk:1},{label:"PEA",val:0,liq:1,risk:4},
+      {label:"PEA Liquidités",val:0,liq:0,risk:1},{label:"Assurance Vie",val:0,liq:1,risk:3}
+    ],
+    fortuneo: [
+      {label:"Compte Courant",val:0,liq:0,risk:1},{label:"Livret+",val:0,liq:1,risk:1},
+      {label:"LDDS",val:0,liq:1,risk:1},{label:"Assurance Vie",val:0,liq:1,risk:3},
+      {label:"CTO Liquidités",val:0,liq:0,risk:1},{label:"CTO",val:0,liq:1,risk:4},
+      {label:"PEA Liquidités",val:0,liq:0,risk:1},{label:"PEA",val:0,liq:1,risk:4}
+    ],
+    revolut: [
+      {label:"Compte Courant",val:0,liq:0,risk:1},{label:"€ster (€)",val:0,liq:0,risk:1},
+      {label:"$ster (USD)",val:0,liq:0,risk:2},{label:"Gold (or)",val:0,liq:1,risk:3},
+      {label:"Actions US",val:0,liq:1,risk:5},{label:"Obligations",val:0,liq:1,risk:2},
+      {label:"REITs",val:0,liq:1,risk:4},{label:"Crypto",val:0,liq:1,risk:7}
+    ],
+    natixis: [{label:"Placement",val:0,liq:1,risk:2}],
+    liens: {
+      boursorama:"https://clients.boursobank.com/",
+      fortuneo:"https://clients.fortuneo.fr/index.php",
+      revolut:"https://app.revolut.com/home",
+      natixis:"https://www.assurances.natixis.fr/espaceClient/login.do",
+      carburant:"https://www.e.leclerc/mag/e-leclerc-bourg-les-valence"
+    },
+    scpi: [
+      {gestionnaire:"ALDERAN",produit:"Activimmo Falcon",parts:0,pxAchat:0,pxActuel:0,totalActuel:0,montantPlace:0,url:"https://www.alderan-re.com/activimmo/"},
+      {gestionnaire:"ATLAND VOISIN",produit:"Epargne Pierre",parts:0,pxAchat:0,pxActuel:0,totalActuel:0,montantPlace:0,url:""},
+      {gestionnaire:"NORMACAPITAL",produit:"Vendome Région",parts:0,pxAchat:0,pxActuel:0,totalActuel:0,montantPlace:0,url:""},
+      {gestionnaire:"PERIAL",produit:"PFO Perial",parts:0,pxAchat:0,pxActuel:0,totalActuel:0,montantPlace:0,url:""}
+    ],
+    maison: 0,
+    especeCache: 0,
+    revenuMensuelNet: 0,
+    impotAnnee: 0,
+    hypotheses: { rendement:4, inflation:2.5 },
+    ath: [],
+    heritage: [],
+    dca: [],
+    immobilier: {
+      p1: { valeur:0, items:[{label:"Appartement 1",loyer:0},{label:"Appartement 2",loyer:0}] },
+      p2: { valeur:0, items:[{label:"Appartement 1",loyer:0},{label:"Appartement 2",loyer:0},{label:"Local commercial",loyer:0}] },
+      p3: { valeur:0, items:[{label:"Appartement 1",loyer:0}] }
+    },
+    depenses: {
+      categories: [
+        {nom:"Impôts & Taxes",icon:"🏛️",color:"#ef4444",items:[
+          {label:"Impôt sur le revenu",mensuel:0,annuel:0,url:"",note:"mensuel"},
+          {label:"Taxe foncière",mensuel:0,annuel:0,url:"",note:"mensuel"}
+        ]},
+        {nom:"Logement & Énergie",icon:"🏠",color:"#d4875a",items:[
+          {label:"Électricité (Engie)",mensuel:0,annuel:0,url:"",note:"mensuel"},
+          {label:"Eau",mensuel:0,annuel:0,url:"",note:"mensuel"},
+          {label:"Bois chauffage",mensuel:0,annuel:0,url:"",note:"mensuel"},
+          {label:"Ramonage",mensuel:0,annuel:0,url:"",note:"mensuel"}
+        ]},
+        {nom:"Assurances & Santé",icon:"🛡️",color:"#3b82f6",items:[
+          {label:"Assurance auto (AXA)",mensuel:0,annuel:0,url:"",note:"mensuel"},
+          {label:"Assurance responsabilité (AXA)",mensuel:0,annuel:0,url:"",note:"mensuel"},
+          {label:"Assurance habitation (AXA)",mensuel:0,annuel:0,url:"",note:"mensuel"},
+          {label:"Mutuelle",mensuel:0,annuel:0,url:"",note:"mensuel"}
+        ]},
+        {nom:"Télécom",icon:"📡",color:"#7eb8d4",items:[
+          {label:"Téléphone (RED SFR)",mensuel:0,annuel:0,url:"",note:"mensuel"},
+          {label:"Internet (RED SFR)",mensuel:0,annuel:0,url:"",note:"mensuel"}
+        ]},
+        {nom:"Vie Courante",icon:"🛒",color:"#7eb8d4",items:[
+          {label:"Alimentation (E.Leclerc Drive)",mensuel:0,annuel:0,url:"",note:"mensuel"},
+          {label:"Essence (E.Leclerc)",mensuel:0,annuel:0,url:"",note:"mensuel"},
+          {label:"Entretien voiture (Feu Vert)",mensuel:0,annuel:0,url:"",note:"mensuel"},
+          {label:"Crédit immobilier",mensuel:0,annuel:0,url:"",note:"mensuel"},
+          {label:"Chien / Chat",mensuel:0,annuel:0,url:"",note:"mensuel"},
+          {label:"Ménage",mensuel:0,annuel:0,url:"",note:"mensuel"}
+        ]}
+      ]
+    },
+    investissements: {
+      pea: [{nom:"iShares MSCI World Swap PEA UCITS ETF - EUR ACC",ticker:"WPEA",isin:"IE0002XZSHO1",qte:0,pr:0,coursActuel:0,varJour:0,lastUpdate:null,url:""}],
+      cto: [{nom:"iShares MSCI World Swap PEA UCITS ETF - EUR ACC",ticker:"WPEA",isin:"IE0002XZSHO1",qte:0,pr:0,coursActuel:0,varJour:0,lastUpdate:null,url:""}],
+      revolut: [
+        {nom:"Bitcoin",ticker:"BTC",isin:"",qte:0,pr:0,coursActuel:0,varJour:0,lastUpdate:null,url:""},
+        {nom:"Or (XAU/EUR)",ticker:"XAU",isin:"",qte:0,pr:0,coursActuel:0,varJour:0,lastUpdate:null,url:""}
+      ],
+      epargne_entreprise: [{nom:"PEE — Natixis",fonds:"Fonds diversifié",parts:0,pr:0,valeurActuelle:0,tauxRendement:0,url:""}],
+      assurance_vie: [
+        {nom:"Assurance Vie Boursorama",assureur:"Boursorama",contrat:"",versements:0,valeurActuelle:0,tauxRendement:0,url:""},
+        {nom:"Assurance Vie Fortuneo",assureur:"Fortuneo",contrat:"",versements:0,valeurActuelle:0,tauxRendement:0,url:""}
+      ],
+      epargne_bloquee: [
+        {nom:"Livret A — Boursorama",type:"Livret A",banque:"Boursorama",montant:0,tauxAnnuel:0,dateOuverture:"",url:""},
+        {nom:"Livret B+ — Boursorama",type:"Livret B+",banque:"Boursorama",montant:0,tauxAnnuel:0,dateOuverture:"",url:""},
+        {nom:"LDDS — Fortuneo",type:"LDDS",banque:"Fortuneo",montant:0,tauxAnnuel:0,dateOuverture:"",url:""},
+        {nom:"Livret+ — Fortuneo",type:"Livret+",banque:"Fortuneo",montant:0,tauxAnnuel:0,dateOuverture:"",url:""}
+      ]
+    },
+    mobilite: {
+      auto: { odoLog:[{date:"",km:0}], composants:[], entretien:[] },
+      velo: {
+        odoLog:[{date:"",km:0}],
+        batterie:{datePose:"",kmPose:0,cyclesActuels:0,cyclesMax:0,dureeTheoKm:0},
+        moteur:{datePose:"",kmPose:0,kmTotal:0,dureeTheoKm:0}
+      },
+      travail: { trajetAR:0, joursAn:0 },
+      carburant: { essence:0, prixLitre:0, capaciteTank:0, conso100km:0 }
+    }
+  };
+}
+
+const DRAFT_KEY = 'json_editor_patrimoine_draft';
+let data = loadDraft() || defaultTemplate();
+
+function loadDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) { return null; }
+}
+
+let saveTimer = null;
+function markDirty() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(data));
+      flashSaved();
+    } catch(e) {}
+  }, 400);
+}
+function flashSaved() {
+  const el = document.getElementById('saveFlag');
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 1400);
+}
+
+// ─── UTILITAIRES UI ─────────────────────────────────────────────────────────
+function mkBtn(label, onClick, extraClass) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'btn' + (extraClass ? ' ' + extraClass : '');
+  b.textContent = label;
+  b.addEventListener('click', onClick);
+  return b;
+}
+
+function promptType() {
+  const t = (prompt('Type de la nouvelle valeur :\ntexte / nombre / booléen / null / objet / liste', 'texte') || '').trim().toLowerCase();
+  if (t === '') return undefined;
+  if (t.startsWith('texte') || t === 'string') return '';
+  if (t.startsWith('nombre') || t === 'number') return 0;
+  if (t.startsWith('bool')) return false;
+  if (t === 'null') return null;
+  if (t.startsWith('objet') || t === 'object') return {};
+  if (t.startsWith('liste') || t === 'array') return [];
+  return '';
+}
+
+function createInputForValue(value, onChange) {
+  const wrap = document.createElement('span');
+  wrap.className = 'jval';
+  const typeSel = document.createElement('select');
+  typeSel.className = 'jtypesel';
+  const types = ['texte','nombre','booléen','null'];
+  const typeMap = {texte:'string', nombre:'number', 'booléen':'boolean', 'null':'null'};
+  const curType = value === null ? 'null' : typeof value;
+  types.forEach(t => {
+    const o = document.createElement('option');
+    o.value = t;
+    o.textContent = t;
+    if (typeMap[t] === curType) o.selected = true;
+    typeSel.appendChild(o);
+  });
+
+  let valEl;
+  function buildValEl(jsType, initVal) {
+    if (jsType === 'boolean') {
+      valEl = document.createElement('input');
+      valEl.type = 'checkbox';
+      valEl.checked = !!initVal;
+      valEl.addEventListener('change', () => { onChange(valEl.checked); markDirty(); });
+    } else if (jsType === 'number') {
+      valEl = document.createElement('input');
+      valEl.type = 'number';
+      valEl.step = 'any';
+      valEl.value = (typeof initVal === 'number') ? initVal : 0;
+      valEl.addEventListener('input', () => {
+        const n = parseFloat(valEl.value);
+        onChange(isNaN(n) ? 0 : n);
+        markDirty();
+      });
+    } else if (jsType === 'null') {
+      valEl = document.createElement('input');
+      valEl.type = 'text';
+      valEl.value = '';
+      valEl.disabled = true;
+      valEl.placeholder = 'null';
+    } else {
+      valEl = document.createElement('input');
+      valEl.type = 'text';
+      valEl.value = (typeof initVal === 'string') ? initVal : (initVal == null ? '' : String(initVal));
+      valEl.addEventListener('input', () => { onChange(valEl.value); markDirty(); });
+    }
+    valEl.className = 'jinput';
+  }
+  buildValEl(curType, value);
+  wrap.appendChild(typeSel);
+  wrap.appendChild(valEl);
+
+  typeSel.addEventListener('change', () => {
+    const jsType = typeMap[typeSel.value];
+    let defaultVal = jsType === 'number' ? 0 : jsType === 'boolean' ? false : jsType === 'null' ? null : '';
+    valEl.remove();
+    buildValEl(jsType, defaultVal);
+    wrap.insertBefore(valEl, null);
+    onChange(defaultVal);
+    markDirty();
+  });
+
+  return wrap;
+}
+
+// ─── RENDU DE L'ARBRE ───────────────────────────────────────────────────────
+function renderContainer(container, targetEl, path) {
+  targetEl.innerHTML = '';
+  const isArr = Array.isArray(container);
+  const keys = isArr ? container.map((_, i) => i) : Object.keys(container);
+  if (keys.length === 0) {
+    const e = document.createElement('div');
+    e.className = 'jempty';
+    e.textContent = '(vide)';
+    targetEl.appendChild(e);
+    return;
+  }
+  keys.forEach(k => {
+    targetEl.appendChild(renderRow(container, k, path.concat(k), () => renderContainer(container, targetEl, path)));
+  });
+}
+
+function renderRow(container, key, path, notifyDeleted) {
+  const value = container[key];
+  const isParentArr = Array.isArray(container);
+  const displayKey = isParentArr ? ('#' + key) : String(key);
+  const row = document.createElement('div');
+  row.className = 'jrow';
+
+  if (value !== null && typeof value === 'object') {
+    const isArr = Array.isArray(value);
+    const det = document.createElement('details');
+    det.className = 'jdetails';
+    det.open = path.length === 1;
+    const sum = document.createElement('summary');
+
+    const keySpan = document.createElement('span');
+    keySpan.className = 'jkey';
+    keySpan.textContent = displayKey;
+    sum.appendChild(keySpan);
+
+    const typeSpan = document.createElement('span');
+    typeSpan.className = 'jtype';
+    function updateType() { typeSpan.textContent = isArr ? ('liste · ' + value.length) : ('objet · ' + Object.keys(value).length); }
+    updateType();
+    sum.appendChild(typeSpan);
+
+    const ctrl = document.createElement('span');
+    ctrl.className = 'jctrl';
+
+    const childrenEl = document.createElement('div');
+    childrenEl.className = 'jchildren';
+
+    function localRebuild() {
+      renderContainer(value, childrenEl, path);
+      updateType();
+    }
+
+    const addBtn = mkBtn(isArr ? '+ élément' : '+ champ', (ev) => {
+      ev.preventDefault(); ev.stopPropagation();
+      if (isArr) {
+        let item;
+        if (value.length > 0) item = JSON.parse(JSON.stringify(value[value.length - 1]));
+        else { item = promptType(); if (item === undefined) return; }
+        value.push(item);
+      } else {
+        const k = prompt('Nom du nouveau champ :');
+        if (!k) return;
+        if (Object.prototype.hasOwnProperty.call(value, k)) { alert('Ce champ existe déjà.'); return; }
+        const v = promptType();
+        if (v === undefined) return;
+        value[k] = v;
+      }
+      det.open = true;
+      localRebuild();
+      markDirty();
+    });
+    ctrl.appendChild(addBtn);
+
+    if (path.length > 1) {
+      const delBtn = mkBtn('✕', (ev) => {
+        ev.preventDefault(); ev.stopPropagation();
+        if (!confirm('Supprimer « ' + displayKey + ' » et tout son contenu ?')) return;
+        if (isParentArr) container.splice(key, 1); else delete container[key];
+        notifyDeleted();
+        markDirty();
+      }, 'jdel');
+      ctrl.appendChild(delBtn);
+    }
+    sum.appendChild(ctrl);
+
+    det.appendChild(sum);
+    det.appendChild(childrenEl);
+    row.appendChild(det);
+    renderContainer(value, childrenEl, path);
+
+  } else {
+    const line = document.createElement('div');
+    line.className = 'jprim';
+    const keySpan = document.createElement('span');
+    keySpan.className = 'jkey';
+    keySpan.textContent = displayKey;
+    line.appendChild(keySpan);
+
+    const input = createInputForValue(value, (newVal) => { container[key] = newVal; });
+    line.appendChild(input);
+
+    if (path.length > 1) {
+      const delBtn = mkBtn('✕', () => {
+        if (!confirm('Supprimer « ' + displayKey + ' » ?')) return;
+        if (isParentArr) container.splice(key, 1); else delete container[key];
+        notifyDeleted();
+        markDirty();
+      }, 'jdel');
+      line.appendChild(delBtn);
+    }
+    row.appendChild(line);
+  }
+  return row;
+}
+
+function renderRoot() {
+  const rootEl = document.getElementById('treeRoot');
+  renderContainer(data, rootEl, [0]);
+}
+
+function expandAll() { document.querySelectorAll('#treeRoot details').forEach(d => d.open = true); }
+function collapseAll() { document.querySelectorAll('#treeRoot details').forEach(d => d.open = false); }
+
+// ─── IMPORT / EXPORT ────────────────────────────────────────────────────────
+function handleFile(ev) {
+  const file = ev.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const loaded = JSON.parse(e.target.result);
+      data = loaded;
+      renderRoot();
+      markDirty();
+      showToast('✓ JSON importé : ' + file.name);
+    } catch (err) {
+      showToast('❌ Fichier JSON invalide');
+    }
+  };
+  reader.readAsText(file);
+  ev.target.value = '';
+}
+
+function exportJSON() {
+  const out = JSON.parse(JSON.stringify(data));
+  const json = JSON.stringify(out, null, 2);
+  const d = new Date();
+  const fname = `patrimoine_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}.json`;
+  const blob = new Blob([json], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = fname; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  showToast('✓ Exporté : ' + fname);
+}
+
+function copyJSON() {
+  const json = JSON.stringify(data, null, 2);
+  navigator.clipboard.writeText(json).then(() => {
+    showToast('✓ JSON copié dans le presse-papiers');
+  }).catch(() => showToast('❌ Impossible de copier'));
+}
+
+function resetTemplate() {
+  if (!confirm('Repartir du modèle par défaut ? Toutes les valeurs actuelles seront perdues (pense à exporter avant si besoin).')) return;
+  data = defaultTemplate();
+  renderRoot();
+  markDirty();
+  showToast('✓ Modèle par défaut rechargé');
+}
+
+// ─── VUE TEXTE (JSON BRUT) ──────────────────────────────────────────────────
+function switchView(view) {
+  document.getElementById('tabTree').classList.toggle('active', view === 'tree');
+  document.getElementById('tabRaw').classList.toggle('active', view === 'raw');
+  document.getElementById('treeView').classList.toggle('hidden', view !== 'tree');
+  document.getElementById('rawView').classList.toggle('active', view === 'raw');
+  if (view === 'raw') syncRawFromData();
+}
+function syncRawFromData() {
+  document.getElementById('rawTextarea').value = JSON.stringify(data, null, 2);
+  setRawMsg('', '');
+}
+function formatRaw() {
+  try {
+    const parsed = JSON.parse(document.getElementById('rawTextarea').value);
+    document.getElementById('rawTextarea').value = JSON.stringify(parsed, null, 2);
+    setRawMsg('✓ JSON valide, reformaté.', 'ok');
+  } catch (e) {
+    setRawMsg('❌ JSON invalide : ' + e.message, 'err');
+  }
+}
+function applyRaw() {
+  try {
+    const parsed = JSON.parse(document.getElementById('rawTextarea').value);
+    data = parsed;
+    renderRoot();
+    markDirty();
+    setRawMsg('✓ Appliqué à l\'arbre.', 'ok');
+    showToast('✓ Modèle mis à jour depuis le texte');
+  } catch (e) {
+    setRawMsg('❌ JSON invalide : ' + e.message, 'err');
+  }
+}
+function setRawMsg(msg, cls) {
+  const el = document.getElementById('rawMsg');
+  el.textContent = msg;
+  el.className = 'raw-msg' + (cls ? ' ' + cls : '');
+}
+
+// ─── THÈME ──────────────────────────────────────────────────────────────────
+function toggleTheme() {
+  const root = document.documentElement;
+  const current = root.getAttribute('data-theme') === 'dark' ? 'dark' : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  const next = current === 'dark' ? 'light' : 'dark';
+  root.setAttribute('data-theme', next);
+  try { localStorage.setItem('json_editor_theme', next); } catch(e) {}
+}
+(function initTheme() {
+  try {
+    const saved = localStorage.getItem('json_editor_theme');
+    if (saved) document.documentElement.setAttribute('data-theme', saved);
+  } catch(e) {}
+})();
+
+// ─── TOAST ──────────────────────────────────────────────────────────────────
+let toastTimer = null;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+renderRoot();
+</script>
+</body>
+</html>
