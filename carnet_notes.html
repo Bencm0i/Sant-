@@ -180,6 +180,15 @@ input[type=file]{display:none;}
   border:1.5px dashed var(--ink);background:rgba(43,38,32,0.06);
   transform:translate(-50%,-50%);box-sizing:border-box;
 }
+#drawCursorPreview.is-pen{
+  border-radius:50%;border-color:var(--accent);background:rgba(43,38,32,0.04);
+}
+#drawCursorPreview.is-pen::before,
+#drawCursorPreview.is-pen::after{
+  content:'';position:absolute;background:var(--accent);
+}
+#drawCursorPreview.is-pen::before{left:50%;top:-4px;bottom:-4px;width:1px;transform:translateX(-50%);}
+#drawCursorPreview.is-pen::after{top:50%;left:-4px;right:-4px;height:1px;transform:translateY(-50%);}
 .draw-actions-row{display:flex;gap:8px;flex-wrap:wrap;}
 .draw-actions-row .btn{flex:1;min-width:100px;justify-content:center;}
 
@@ -765,7 +774,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
   <div class="help-panel-inner draw-panel-inner">
     <h2>Atelier de dessin</h2>
     <p class="help-panel-note" style="margin-bottom:12px;">Dessine un croquis ou un schéma à la souris, au doigt ou au stylet, puis insère-le dans <span id="drawTargetLabel">le texte</span> comme une image normale.</p>
-    <p class="help-panel-note" style="margin-bottom:12px;">Maj+molette sur le canvas : épaisseur du trait/gomme · Maintenir <strong>H</strong> : ligne horizontale · Maintenir <strong>V</strong> : ligne verticale · Outil 🔤 Texte : clic sur le canvas puis tape au clavier, <strong>Entrée</strong> valide, <strong>Échap</strong> annule</p>
+    <p class="help-panel-note" style="margin-bottom:12px;">Maj+molette sur le canvas : épaisseur du trait/gomme · Maintenir <strong>H</strong> : ligne horizontale · Maintenir <strong>V</strong> : ligne verticale · <strong>C</strong> : outil crayon · <strong>G</strong> : outil gomme · <strong>Ctrl+Z</strong> : annuler · Outil 🔤 Texte : clic sur le canvas puis tape au clavier, <strong>Entrée</strong> valide, <strong>Échap</strong> annule</p>
     <div class="draw-toolbar">
       <div class="draw-colors" id="drawColors">
         <button class="draw-color-swatch active" style="background:#2b2620;" data-color="#2b2620" onclick="setDrawColor('#2b2620')" title="Noir"></button>
@@ -3082,7 +3091,7 @@ function setDrawColor(c){
 function toggleDrawEraser(){
   drawErasing = !drawErasing;
   document.getElementById('drawEraserBtn').classList.toggle('active', drawErasing);
-  if(!drawErasing) hideDrawCursorPreview();
+  refreshDrawCursorMode();
   if(drawErasing && drawTextMode){ drawTextMode = false; document.getElementById('drawTextBtn').classList.remove('active'); document.getElementById('drawCanvas').style.cursor = 'crosshair'; }
 }
 
@@ -3152,10 +3161,11 @@ function startDrawTextInput(canvas, e){
   input.addEventListener('blur', commit);
 }
 
-// Aperçu visuel de la gomme : carré pointillé suivant la souris, à la taille réelle de la zone effacée
+// Aperçu visuel de l'outil actif suivant la souris : carré pointillé à la taille
+// réelle de la zone effacée pour la gomme, réticule (cercle + croix) pour le trait.
 function updateDrawCursorPreview(e){
   const cursor = document.getElementById('drawCursorPreview');
-  if(!drawErasing){ cursor.style.display = 'none'; return; }
+  if(drawTextMode){ cursor.style.display = 'none'; return; }
   const canvas = document.getElementById('drawCanvas');
   const wrap = canvas.parentElement;
   const wrapRect = wrap.getBoundingClientRect();
@@ -3163,7 +3173,9 @@ function updateDrawCursorPreview(e){
   const clientX = e.touches ? e.touches[0].clientX : e.clientX;
   const clientY = e.touches ? e.touches[0].clientY : e.clientY;
   const scale = canvasRect.width / canvas.width;
-  const size = drawSize * 3 * scale; // même taille que la gomme réelle (drawSize * 3)
+  const size = (drawErasing ? drawSize * 3 : drawSize) * scale; // taille réelle du trait ou de la gomme
+  cursor.classList.toggle('is-eraser', drawErasing);
+  cursor.classList.toggle('is-pen', !drawErasing);
   cursor.style.width = size + 'px';
   cursor.style.height = size + 'px';
   cursor.style.left = (clientX - wrapRect.left) + 'px';
@@ -3173,6 +3185,20 @@ function updateDrawCursorPreview(e){
 function hideDrawCursorPreview(){
   const cursor = document.getElementById('drawCursorPreview');
   if(cursor) cursor.style.display = 'none';
+}
+// Rafraîchit le style (cercle/carré) du réticule déjà affiché quand on change d'outil
+// sans bouger la souris (ex: raccourci clavier C/G ou clic sur les boutons).
+function refreshDrawCursorMode(){
+  const cursor = document.getElementById('drawCursorPreview');
+  if(!cursor || cursor.style.display !== 'block') return;
+  const canvas = document.getElementById('drawCanvas');
+  const canvasRect = canvas.getBoundingClientRect();
+  const scale = canvasRect.width / canvas.width;
+  const size = (drawErasing ? drawSize * 3 : drawSize) * scale;
+  cursor.classList.toggle('is-eraser', drawErasing);
+  cursor.classList.toggle('is-pen', !drawErasing);
+  cursor.style.width = size + 'px';
+  cursor.style.height = size + 'px';
 }
 
 function pushDrawHistory(){
@@ -3496,8 +3522,11 @@ document.addEventListener('keydown', (e)=>{
 
   if(drawOpen && !typing){
     const dk = e.key.toLowerCase();
+    if((e.ctrlKey || e.metaKey) && dk === 'z'){ e.preventDefault(); undoDraw(); return; }
     if(dk === 'h'){ drawLockH = true; }
     else if(dk === 'v'){ drawLockV = true; }
+    else if(dk === 'c'){ e.preventDefault(); if(drawErasing) toggleDrawEraser(); }
+    else if(dk === 'g'){ e.preventDefault(); if(!drawErasing) toggleDrawEraser(); }
   }
 
   if(!e.altKey) return;
