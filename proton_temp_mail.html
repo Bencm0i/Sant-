@@ -14,7 +14,7 @@
   *{box-sizing:border-box}
   html{-webkit-text-size-adjust:100%}
   body{
-    margin:0; font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    margin:0 auto; max-width:920px; font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;
     background:var(--bg); color:var(--text); padding:24px;
     overflow-x:hidden;
   }
@@ -71,29 +71,22 @@
   }
   .linkbtn:hover{opacity:.8}
 
-  .split{display:flex; gap:18px; align-items:flex-start}
-  .split .left-col{flex:1 1 420px; min-width:0}
-  .split .right-col{flex:1 1 420px; min-width:0; position:sticky; top:24px}
-  .right-col .card{padding:0; overflow:hidden; height:80vh; display:flex; flex-direction:column}
-  .right-col .card-head{
-    padding:10px 14px; border-bottom:1px solid var(--border); display:flex;
-    justify-content:space-between; align-items:center; flex-shrink:0;
-  }
-  .right-col .card-head strong{font-size:.85rem}
-  .right-col .popup-zone{
-    flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
-    gap:14px; padding:24px; text-align:center;
-  }
-  .popup-zone p{color:var(--muted); font-size:.82rem; margin:0; max-width:280px}
-  .iframe-fallback{
-    padding:14px; font-size:.78rem; color:var(--muted); text-align:center;
-  }
+  /* Mot de passe masqué / affichable */
+  .pwcell{display:inline-flex; align-items:center; gap:8px}
+  .pw{letter-spacing:.08em}
+  .eye{padding:4px 8px; font-size:.8rem; line-height:1}
 
-  @media (max-width: 900px){
-    .split{flex-direction:column}
-    .split .right-col{position:static}
-    .right-col .card{height:70vh}
+  /* Boîte de dialogue phrase secrète */
+  dialog{
+    background:var(--panel); color:var(--text); border:1px solid var(--border);
+    border-radius:10px; padding:20px; width:min(380px, calc(100vw - 32px));
   }
+  dialog::backdrop{background:rgba(0,0,0,.65)}
+  .dlg-title{font-weight:700; font-size:.95rem; margin-bottom:4px}
+  .dlg-hint{color:var(--muted); font-size:.8rem; margin-bottom:12px}
+  dialog input{width:100%; margin-bottom:8px}
+  .dlg-err{color:var(--danger); font-size:.78rem; min-height:1.1em; margin-bottom:8px}
+  .dlg-actions{display:flex; gap:8px; justify-content:flex-end}
 
   @media (max-width: 640px){
     body{padding:14px}
@@ -107,6 +100,7 @@
     select, input{width:100%; padding:11px 10px; font-size:16px} /* 16px avoids iOS zoom-on-focus */
     button{padding:12px 14px; font-size:.9rem; width:100%}
     .row .btn-main{width:100%}
+    .topnav .linkbtn{width:auto; padding:9px 12px}
 
     .field{flex-wrap:wrap}
     .field span.k{width:auto}
@@ -116,6 +110,8 @@
     .footer-row{flex-direction:column; align-items:stretch; gap:10px}
     .footer-row .row{width:100%}
     .footer-row .row button{flex:1 1 auto; width:auto}
+
+    .dlg-actions button{width:auto}
 
     /* Table -> stacked cards on small screens */
     table, thead, tbody, th, td, tr{display:block}
@@ -134,6 +130,7 @@
       text-transform:uppercase; letter-spacing:.05em; flex-shrink:0;
     }
     td code{word-break:break-all; text-align:right}
+    .eye{width:auto; padding:6px 9px}
     .actions-col{justify-content:flex-start !important; flex-wrap:wrap; gap:6px}
     .actions-col::before{display:none}
     .actions-col button{width:auto; padding:7px 10px; font-size:.75rem}
@@ -143,15 +140,12 @@
 <body>
 
 <h1>📧 Générateur d'identités temporaires</h1>
-<div class="sub">Génère une adresse email plausible + mot de passe robuste. Aucune connexion réseau — tout reste dans ce fichier (localStorage) + export JSON.</div>
+<div class="sub">Génère une adresse email plausible + mot de passe robuste. Aucune connexion réseau — tout reste dans ce fichier (localStorage) + export JSON chiffré.</div>
 
 <div class="topnav">
   <a class="linkbtn" href="https://claude.ai" target="_blank" rel="noopener">🤖 Claude</a>
-  <a class="linkbtn" href="https://mail.proton.me" target="_blank" rel="noopener">🔒 Proton Mail</a>
+  <button class="linkbtn" onclick="openProtonPopup()" title="Ouvre Proton Mail dans une fenêtre séparée">🔒 Proton Mail (fenêtre)</button>
 </div>
-
-<div class="split">
-<div class="left-col">
 
 <div class="card">
   <div class="row">
@@ -193,8 +187,9 @@
     </div>
     <div class="field">
       <span class="k">Mot de passe</span>
-      <code id="outPass"></code>
-      <button class="btn-ghost" onclick="copyText('outPass')">Copier</button>
+      <code id="outPass" class="pw"></code>
+      <button class="btn-ghost eye" id="outPassEye" onclick="toggleResultPass()" title="Afficher / masquer" aria-label="Afficher le mot de passe">👁</button>
+      <button class="btn-ghost" onclick="copyRaw(current.password)">Copier</button>
     </div>
     <div class="row">
       <button class="btn-ghost" onclick="saveCurrent()">💾 Sauvegarder</button>
@@ -206,9 +201,9 @@
   <div class="footer-row">
     <strong style="font-size:.9rem">Historique</strong>
     <div class="row">
-      <button class="btn-ghost" onclick="exportJson()">⬇ Exporter JSON</button>
+      <button class="btn-ghost" onclick="exportJson()">🔐 Exporter JSON chiffré</button>
       <button class="btn-ghost" onclick="document.getElementById('importFile').click()">⬆ Importer JSON</button>
-      <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importJson(event)">
+      <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importJson(event)">
       <button class="btn-danger" onclick="clearAll()">🗑 Tout effacer</button>
     </div>
   </div>
@@ -222,33 +217,31 @@
   <div class="count" id="count"></div>
 </div>
 
-</div>
-<div class="right-col">
-  <div class="card">
-    <div class="card-head">
-      <strong>🔒 Proton Mail</strong>
-      <a class="linkbtn" href="https://mail.proton.me" target="_blank" rel="noopener">Ouvrir dans un nouvel onglet ↗</a>
-    </div>
-    <div class="popup-zone">
-      <div style="font-size:2.2rem">🔒</div>
-      <p>Proton bloque l'affichage de son site dans un cadre intégré. Ouvre-le dans une fenêtre séparée, positionnée à côté de celle-ci.</p>
-      <button class="btn-main" onclick="openProtonPopup()">⧉ Ouvrir Proton Mail (fenêtre séparée)</button>
-    </div>
+<dialog id="passDlg">
+  <div class="dlg-title" id="dlgTitle"></div>
+  <div class="dlg-hint" id="dlgHint"></div>
+  <input type="password" id="dlgPass" autocomplete="new-password" placeholder="Phrase secrète">
+  <input type="password" id="dlgPass2" autocomplete="new-password" placeholder="Confirmer la phrase secrète">
+  <div class="dlg-err" id="dlgErr"></div>
+  <div class="dlg-actions">
+    <button class="btn-ghost" id="dlgCancel">Annuler</button>
+    <button class="btn-main" id="dlgOk">Valider</button>
   </div>
-  <div class="iframe-fallback">La fenêtre s'ouvre à la taille de ton écran actuel — repositionne-la manuellement à côté de cet onglet pour un effet côte à côte.</div>
-</div>
-</div>
+</dialog>
 
 <div class="toast" id="toast"></div>
 
 <script>
 const STORE_KEY = 'temp_identities_v1';
+const KDF_ITER = 250000;
 let current = null;
+let resultShown = false;
 
 const WORDS = ['nova','orion','cobalt','ember','quartz','lumen','onyx','drift','pixel','vale',
   'raven','cedar','ionis','flux','nimbus','sable','tundra','opal','vertex','solace'];
 
 function el(id){ return document.getElementById(id); }
+function mask(n){ return '•'.repeat(n); }
 
 el('domain').addEventListener('change', () => {
   el('customDomainWrap').style.display = el('domain').value === 'custom' ? 'block' : 'none';
@@ -307,9 +300,38 @@ function generate(){
   current = { email, password, createdAt: new Date().toISOString() };
 
   el('outEmail').textContent = email;
-  el('outPass').textContent = password;
+  resultShown = false;
+  renderResultPass();
   el('result').style.display = 'block';
 }
+
+/* ---------- Mot de passe masqué / affichable ---------- */
+
+function renderResultPass(){
+  if(!current) return;
+  el('outPass').textContent = resultShown ? current.password : mask(current.password.length);
+  el('outPassEye').textContent = resultShown ? '🙈' : '👁';
+  el('outPassEye').setAttribute('aria-label', resultShown ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
+}
+
+function toggleResultPass(){
+  resultShown = !resultShown;
+  renderResultPass();
+}
+
+// Le mot de passe n'est présent dans le DOM que pendant qu'il est affiché.
+function toggleRowPass(btn, idx){
+  const code = btn.previousElementSibling;
+  const item = loadStore()[idx];
+  if(!item) return;
+  const show = code.dataset.shown !== '1';
+  code.dataset.shown = show ? '1' : '0';
+  code.textContent = show ? item.password : mask(item.password.length);
+  btn.textContent = show ? '🙈' : '👁';
+  btn.setAttribute('aria-label', show ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
+}
+
+/* ---------- Stockage local ---------- */
 
 function loadStore(){
   try{
@@ -342,16 +364,26 @@ function renderTable(){
     const tr = document.createElement('tr');
     const date = new Date(item.createdAt).toLocaleString('fr-FR');
     tr.innerHTML = `
-      <td data-label="Créé le">${date}</td>
+      <td data-label="Créé le">${escapeHtml(date)}</td>
       <td data-label="Email"><code>${escapeHtml(item.email)}</code></td>
-      <td data-label="Mot de passe"><code>${escapeHtml(item.password)}</code></td>
+      <td data-label="Mot de passe">
+        <span class="pwcell">
+          <code class="pw" data-shown="0">${mask(item.password.length)}</code>
+          <button class="btn-ghost eye" onclick="toggleRowPass(this, ${idx})" title="Afficher / masquer" aria-label="Afficher le mot de passe">👁</button>
+        </span>
+      </td>
       <td class="actions-col" data-label="Actions">
-        <button class="btn-ghost" onclick="copyRaw('${escapeAttr(item.email)}')">Copier email</button>
-        <button class="btn-ghost" onclick="copyRaw('${escapeAttr(item.password)}')">Copier mdp</button>
+        <button class="btn-ghost" onclick="copyField(${idx}, 'email')">Copier email</button>
+        <button class="btn-ghost" onclick="copyField(${idx}, 'password')">Copier mdp</button>
         <button class="btn-danger" onclick="deleteItem(${idx})">Suppr</button>
       </td>`;
     tbody.appendChild(tr);
   });
+}
+
+function copyField(idx, field){
+  const item = loadStore()[idx];
+  if(item) copyRaw(item[field]);
 }
 
 function deleteItem(idx){
@@ -368,27 +400,165 @@ function clearAll(){
   toast('Historique effacé');
 }
 
-function exportJson(){
+/* ---------- Chiffrement (PBKDF2 + AES-256-GCM, Web Crypto) ---------- */
+
+const te = new TextEncoder();
+const td = new TextDecoder();
+
+function toB64(buf){
+  const bytes = new Uint8Array(buf);
+  let s = '';
+  for(let i=0;i<bytes.length;i+=0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i+0x8000));
+  return btoa(s);
+}
+function fromB64(str){
+  return Uint8Array.from(atob(str), c => c.charCodeAt(0));
+}
+
+async function deriveKey(pass, salt, iterations){
+  const base = await crypto.subtle.importKey('raw', te.encode(pass), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name:'PBKDF2', salt, iterations, hash:'SHA-256' },
+    base,
+    { name:'AES-GCM', length:256 },
+    false,
+    ['encrypt','decrypt']
+  );
+}
+
+async function encryptJson(obj, pass){
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveKey(pass, salt, KDF_ITER);
+  const ct = await crypto.subtle.encrypt({ name:'AES-GCM', iv }, key, te.encode(JSON.stringify(obj)));
+  return {
+    format:'temp-identities', v:1,
+    kdf:'PBKDF2-SHA256', iter:KDF_ITER, cipher:'AES-256-GCM',
+    salt:toB64(salt), iv:toB64(iv), data:toB64(ct)
+  };
+}
+
+async function decryptJson(env, pass){
+  const key = await deriveKey(pass, fromB64(env.salt), env.iter);
+  const pt = await crypto.subtle.decrypt({ name:'AES-GCM', iv:fromB64(env.iv) }, key, fromB64(env.data));
+  return JSON.parse(td.decode(pt));
+}
+
+function isEnvelope(o){
+  return o && typeof o === 'object' && o.format === 'temp-identities' && o.v === 1
+    && typeof o.salt === 'string' && typeof o.iv === 'string' && typeof o.data === 'string'
+    && Number.isInteger(o.iter) && o.iter >= 100000 && o.iter <= 2000000;
+}
+
+function sanitizeList(arr){
+  return arr
+    .filter(x => x && typeof x.email === 'string' && typeof x.password === 'string')
+    .map(x => ({
+      email: x.email,
+      password: x.password,
+      createdAt: isNaN(new Date(x.createdAt)) ? new Date().toISOString() : x.createdAt
+    }));
+}
+
+/* ---------- Dialogue phrase secrète ---------- */
+
+function askPassphrase(title, hint, confirmField){
+  return new Promise(resolve => {
+    const dlg = el('passDlg');
+    const ac = new AbortController();
+    const opt = { signal: ac.signal };
+    el('dlgTitle').textContent = title;
+    el('dlgHint').textContent = hint;
+    el('dlgPass').value = '';
+    el('dlgPass2').value = '';
+    el('dlgErr').textContent = '';
+    el('dlgPass2').style.display = confirmField ? 'block' : 'none';
+
+    let done = false;
+    const finish = value => {
+      if(done) return;
+      done = true;
+      ac.abort();
+      el('dlgPass').value = '';
+      el('dlgPass2').value = '';
+      dlg.close();
+      resolve(value);
+    };
+    const submit = () => {
+      const p = el('dlgPass').value;
+      if(confirmField){
+        if(p.length < 8){ el('dlgErr').textContent = '8 caractères minimum.'; return; }
+        if(p !== el('dlgPass2').value){ el('dlgErr').textContent = 'Les deux phrases ne correspondent pas.'; return; }
+      }else if(!p){
+        el('dlgErr').textContent = 'Saisis la phrase secrète.'; return;
+      }
+      finish(p);
+    };
+
+    el('dlgOk').addEventListener('click', submit, opt);
+    el('dlgCancel').addEventListener('click', () => finish(null), opt);
+    dlg.addEventListener('cancel', e => { e.preventDefault(); finish(null); }, opt);
+    dlg.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); submit(); } }, opt);
+
+    dlg.showModal();
+    el('dlgPass').focus();
+  });
+}
+
+/* ---------- Export / import JSON chiffré ---------- */
+
+async function exportJson(){
   const list = loadStore();
-  const blob = new Blob([JSON.stringify(list, null, 2)], {type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `temp_identities_${new Date().toISOString().slice(0,10)}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
+  if(!list.length){ toast('Rien à exporter'); return; }
+  if(!(window.crypto && crypto.subtle)){ toast('Chiffrement indisponible dans ce contexte'); return; }
+
+  const pass = await askPassphrase(
+    'Chiffrer l\'export',
+    'Cette phrase secrète sera nécessaire pour réimporter le fichier. Elle ne peut pas être récupérée.',
+    true
+  );
+  if(!pass) return;
+
+  try{
+    const env = await encryptJson(list, pass);
+    const blob = new Blob([JSON.stringify(env, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `temp_identities_${new Date().toISOString().slice(0,10)}.enc.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('Export chiffré téléchargé');
+  }catch(e){
+    toast('Erreur pendant le chiffrement');
+  }
 }
 
 function importJson(evt){
   const file = evt.target.files[0];
   if(!file) return;
   const reader = new FileReader();
-  reader.onload = () => {
+  reader.onload = async () => {
     try{
-      const imported = JSON.parse(reader.result);
-      if(!Array.isArray(imported)) throw new Error('format invalide');
-      const list = loadStore();
-      saveStore(list.concat(imported));
+      let data = JSON.parse(reader.result);
+
+      if(!Array.isArray(data)){
+        if(!isEnvelope(data)) throw new Error('format invalide');
+        if(!(window.crypto && crypto.subtle)){ toast('Déchiffrement indisponible dans ce contexte'); return; }
+        const pass = await askPassphrase('Déchiffrer l\'import', 'Saisis la phrase secrète utilisée à l\'export.', false);
+        if(!pass) return;
+        try{
+          data = await decryptJson(data, pass);
+        }catch(e){
+          toast('Phrase secrète incorrecte ou fichier corrompu');
+          return;
+        }
+        if(!Array.isArray(data)) throw new Error('format invalide');
+      }
+
+      const imported = sanitizeList(data);
+      if(!imported.length){ toast('Aucune identité valide dans ce fichier'); return; }
+      saveStore(loadStore().concat(imported));
       renderTable();
       toast(`${imported.length} identité(s) importée(s)`);
     }catch(e){
@@ -398,6 +568,8 @@ function importJson(evt){
   reader.readAsText(file);
   evt.target.value = '';
 }
+
+/* ---------- Popup Proton ---------- */
 
 function openProtonPopup(){
   const w = Math.round(screen.availWidth / 2);
@@ -410,6 +582,8 @@ function openProtonPopup(){
   );
 }
 
+/* ---------- Utilitaires ---------- */
+
 function copyText(id){
   copyRaw(el(id).textContent);
 }
@@ -419,9 +593,8 @@ function copyRaw(text){
 }
 
 function escapeHtml(s){
-  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
-function escapeAttr(s){ return s.replace(/'/g, "\\'"); }
 
 let toastTimer;
 function toast(msg){
@@ -429,7 +602,7 @@ function toast(msg){
   t.textContent = msg;
   t.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
 }
 
 renderTable();
