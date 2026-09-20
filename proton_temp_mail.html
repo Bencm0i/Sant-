@@ -63,6 +63,38 @@
   .footer-row{display:flex; justify-content:space-between; align-items:center; margin-top:10px}
   .count{color:var(--muted); font-size:.78rem}
 
+  .topnav{display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap}
+  .linkbtn{
+    color:var(--text); text-decoration:none; font-size:.8rem; font-weight:600;
+    padding:7px 12px; border:1px solid var(--border); border-radius:6px;
+    background:var(--panel2); display:inline-flex; align-items:center; gap:6px;
+  }
+  .linkbtn:hover{opacity:.8}
+
+  .split{display:flex; gap:18px; align-items:flex-start}
+  .split .left-col{flex:1 1 420px; min-width:0}
+  .split .right-col{flex:1 1 420px; min-width:0; position:sticky; top:24px}
+  .right-col .card{padding:0; overflow:hidden; height:80vh; display:flex; flex-direction:column}
+  .right-col .card-head{
+    padding:10px 14px; border-bottom:1px solid var(--border); display:flex;
+    justify-content:space-between; align-items:center; flex-shrink:0;
+  }
+  .right-col .card-head strong{font-size:.85rem}
+  .right-col .popup-zone{
+    flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:14px; padding:24px; text-align:center;
+  }
+  .popup-zone p{color:var(--muted); font-size:.82rem; margin:0; max-width:280px}
+  .iframe-fallback{
+    padding:14px; font-size:.78rem; color:var(--muted); text-align:center;
+  }
+
+  @media (max-width: 900px){
+    .split{flex-direction:column}
+    .split .right-col{position:static}
+    .right-col .card{height:70vh}
+  }
+
   @media (max-width: 640px){
     body{padding:14px}
     h1{font-size:1.1rem}
@@ -112,6 +144,14 @@
 
 <h1>📧 Générateur d'identités temporaires</h1>
 <div class="sub">Génère une adresse email plausible + mot de passe robuste. Aucune connexion réseau — tout reste dans ce fichier (localStorage) + export JSON.</div>
+
+<div class="topnav">
+  <a class="linkbtn" href="https://claude.ai" target="_blank" rel="noopener">🤖 Claude</a>
+  <a class="linkbtn" href="https://mail.proton.me" target="_blank" rel="noopener">🔒 Proton Mail</a>
+</div>
+
+<div class="split">
+<div class="left-col">
 
 <div class="card">
   <div class="row">
@@ -180,6 +220,23 @@
   </table>
   <div id="emptyMsg" class="empty" style="display:none">Aucune identité enregistrée pour l'instant.</div>
   <div class="count" id="count"></div>
+</div>
+
+</div>
+<div class="right-col">
+  <div class="card">
+    <div class="card-head">
+      <strong>🔒 Proton Mail</strong>
+      <a class="linkbtn" href="https://mail.proton.me" target="_blank" rel="noopener">Ouvrir dans un nouvel onglet ↗</a>
+    </div>
+    <div class="popup-zone">
+      <div style="font-size:2.2rem">🔒</div>
+      <p>Proton bloque l'affichage de son site dans un cadre intégré. Ouvre-le dans une fenêtre séparée, positionnée à côté de celle-ci.</p>
+      <button class="btn-main" onclick="openProtonPopup()">⧉ Ouvrir Proton Mail (fenêtre séparée)</button>
+    </div>
+  </div>
+  <div class="iframe-fallback">La fenêtre s'ouvre à la taille de ton écran actuel — repositionne-la manuellement à côté de cet onglet pour un effet côte à côte.</div>
+</div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -340,6 +397,17 @@ function importJson(evt){
   };
   reader.readAsText(file);
   evt.target.value = '';
+}
+
+function openProtonPopup(){
+  const w = Math.round(screen.availWidth / 2);
+  const h = screen.availHeight;
+  const left = screen.availWidth - w;
+  window.open(
+    'https://mail.proton.me',
+    'protonMailPopup',
+    `width=${w},height=${h},left=${left},top=0,noopener,noreferrer`
+  );
 }
 
 function copyText(id){
