@@ -51,6 +51,9 @@
   th,td{text-align:left; padding:8px 6px; border-bottom:1px solid var(--border)}
   th{color:var(--muted); font-weight:600; font-size:.72rem; text-transform:uppercase}
   td code{font-family:var(--mono)}
+  .desc-line{color:var(--muted); font-size:.75rem; margin-top:3px; font-style:italic; word-break:break-word}
+  .edit-input{width:100%; font-family:var(--mono); font-size:.85rem; padding:5px 7px}
+  .edit-input.desc{font-family:inherit; font-style:normal}
   tr:hover{background:var(--panel2)}
   .actions-col{white-space:nowrap; text-align:right}
   .empty{color:var(--muted); font-size:.85rem; text-align:center; padding:20px}
@@ -178,6 +181,12 @@
       <button class="btn-main" onclick="generate()">⚡ Générer</button>
     </div>
   </div>
+  <div class="row" style="margin-top:10px">
+    <div style="flex:1 1 100%">
+      <label>Description (à quoi sert cet email ?)</label>
+      <input id="desc" placeholder="ex : inscription forum X, essai gratuit Y...">
+    </div>
+  </div>
 
   <div class="result" id="result" style="display:none">
     <div class="field">
@@ -190,6 +199,10 @@
       <code id="outPass" class="pw"></code>
       <button class="btn-ghost eye" id="outPassEye" onclick="toggleResultPass()" title="Afficher / masquer" aria-label="Afficher le mot de passe">👁</button>
       <button class="btn-ghost" onclick="copyRaw(current.password)">Copier</button>
+    </div>
+    <div class="field" id="outDescWrap" style="display:none">
+      <span class="k">Usage</span>
+      <code id="outDesc"></code>
     </div>
     <div class="row">
       <button class="btn-ghost" onclick="saveCurrent()">💾 Sauvegarder</button>
@@ -205,6 +218,12 @@
       <button class="btn-ghost" onclick="document.getElementById('importFile').click()">⬆ Importer JSON</button>
       <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importJson(event)">
       <button class="btn-danger" onclick="clearAll()">🗑 Tout effacer</button>
+    </div>
+  </div>
+  <div class="row" style="margin-top:12px">
+    <div style="flex:1 1 100%">
+      <label>🔎 Rechercher (par description, email...)</label>
+      <input id="search" placeholder="ex : forum X..." oninput="renderTable()" style="width:100%">
     </div>
   </div>
   <table id="table" style="margin-top:12px">
@@ -236,6 +255,7 @@ const STORE_KEY = 'temp_identities_v1';
 const KDF_ITER = 250000;
 let current = null;
 let resultShown = false;
+let editingIdx = null;
 
 const WORDS = ['nova','orion','cobalt','ember','quartz','lumen','onyx','drift','pixel','vale',
   'raven','cedar','ionis','flux','nimbus','sable','tundra','opal','vertex','solace'];
@@ -297,9 +317,17 @@ function generate(){
   const email = `${local}@${domain}`;
   const password = generatePassword(pwlen);
 
-  current = { email, password, createdAt: new Date().toISOString() };
+  const description = el('desc').value.trim();
+
+  current = { email, password, description, createdAt: new Date().toISOString() };
 
   el('outEmail').textContent = email;
+  if(description){
+    el('outDesc').textContent = description;
+    el('outDescWrap').style.display = 'flex';
+  }else{
+    el('outDescWrap').style.display = 'none';
+  }
   resultShown = false;
   renderResultPass();
   el('result').style.display = 'block';
@@ -349,6 +377,7 @@ function saveCurrent(){
   const list = loadStore();
   list.unshift(current);
   saveStore(list);
+  el('desc').value = '';
   renderTable();
   toast('Identité sauvegardée');
 }
@@ -357,15 +386,44 @@ function renderTable(){
   const list = loadStore();
   const tbody = el('tbody');
   tbody.innerHTML = '';
-  el('emptyMsg').style.display = list.length ? 'none' : 'block';
-  el('count').textContent = list.length ? `${list.length} identité(s) enregistrée(s)` : '';
 
-  list.forEach((item, idx) => {
+  const q = (el('search') ? el('search').value : '').trim().toLowerCase();
+  const filtered = list
+    .map((item, idx) => ({ item, idx }))
+    .filter(({item}) => !q || (item.description||'').toLowerCase().includes(q) || item.email.toLowerCase().includes(q));
+
+  el('emptyMsg').textContent = list.length && !filtered.length ? 'Aucun résultat pour cette recherche.' : 'Aucune identité enregistrée pour l\'instant.';
+  el('emptyMsg').style.display = filtered.length ? 'none' : 'block';
+  el('count').textContent = list.length ? `${filtered.length} / ${list.length} identité(s)` : '';
+
+  filtered.forEach(({item, idx}) => {
     const tr = document.createElement('tr');
     const date = new Date(item.createdAt).toLocaleString('fr-FR');
+
+    if(idx === editingIdx){
+      tr.innerHTML = `
+        <td data-label="Créé le">${escapeHtml(date)}</td>
+        <td data-label="Email">
+          <input class="edit-input" id="editEmail_${idx}" value="${escapeHtml(item.email)}">
+        </td>
+        <td data-label="Mot de passe">
+          <input class="edit-input" id="editPass_${idx}" value="${escapeHtml(item.password)}">
+        </td>
+        <td class="actions-col" data-label="Actions">
+          <button class="btn-main" onclick="saveEdit(${idx})">✔ Valider</button>
+          <button class="btn-ghost" onclick="cancelEdit()">Annuler</button>
+        </td>`;
+      tr.querySelector('td[data-label="Email"]').innerHTML += `<input class="edit-input desc" id="editDesc_${idx}" placeholder="Description" value="${escapeHtml(item.description||'')}" style="margin-top:6px">`;
+      tbody.appendChild(tr);
+      return;
+    }
+
     tr.innerHTML = `
       <td data-label="Créé le">${escapeHtml(date)}</td>
-      <td data-label="Email"><code>${escapeHtml(item.email)}</code></td>
+      <td data-label="Email">
+        <code>${escapeHtml(item.email)}</code>
+        ${item.description ? `<div class="desc-line">${escapeHtml(item.description)}</div>` : ''}
+      </td>
       <td data-label="Mot de passe">
         <span class="pwcell">
           <code class="pw" data-shown="0">${mask(item.password.length)}</code>
@@ -375,10 +433,36 @@ function renderTable(){
       <td class="actions-col" data-label="Actions">
         <button class="btn-ghost" onclick="copyField(${idx}, 'email')">Copier email</button>
         <button class="btn-ghost" onclick="copyField(${idx}, 'password')">Copier mdp</button>
+        <button class="btn-ghost" onclick="startEdit(${idx})">✏ Éditer</button>
         <button class="btn-danger" onclick="deleteItem(${idx})">Suppr</button>
       </td>`;
     tbody.appendChild(tr);
   });
+}
+
+function startEdit(idx){
+  editingIdx = idx;
+  renderTable();
+}
+
+function cancelEdit(){
+  editingIdx = null;
+  renderTable();
+}
+
+function saveEdit(idx){
+  const list = loadStore();
+  const item = list[idx];
+  if(!item) return;
+  const email = el(`editEmail_${idx}`).value.trim();
+  const password = el(`editPass_${idx}`).value;
+  const description = el(`editDesc_${idx}`).value.trim();
+  if(!email || !password){ toast('Email et mot de passe requis'); return; }
+  list[idx] = { ...item, email, password, description };
+  saveStore(list);
+  editingIdx = null;
+  renderTable();
+  toast('Identité mise à jour');
 }
 
 function copyField(idx, field){
@@ -456,6 +540,7 @@ function sanitizeList(arr){
     .map(x => ({
       email: x.email,
       password: x.password,
+      description: typeof x.description === 'string' ? x.description : '',
       createdAt: isNaN(new Date(x.createdAt)) ? new Date().toISOString() : x.createdAt
     }));
 }
