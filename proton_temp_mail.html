@@ -89,6 +89,7 @@
   .dlg-hint{color:var(--muted); font-size:.8rem; margin-bottom:12px}
   dialog input{width:100%; margin-bottom:8px}
   .dlg-err{color:var(--danger); font-size:.78rem; min-height:1.1em; margin-bottom:8px}
+  .dlg-savedhint{background:var(--panel2); border:1px solid var(--border); border-radius:6px; padding:8px 10px; font-size:.82rem; margin-bottom:10px; color:var(--text)}
   .dlg-actions{display:flex; gap:8px; justify-content:flex-end}
 
   @media (max-width: 640px){
@@ -239,8 +240,10 @@
 <dialog id="passDlg">
   <div class="dlg-title" id="dlgTitle"></div>
   <div class="dlg-hint" id="dlgHint"></div>
+  <div class="dlg-savedhint" id="dlgSavedHint" style="display:none"></div>
   <input type="password" id="dlgPass" autocomplete="new-password" placeholder="Phrase secrète">
   <input type="password" id="dlgPass2" autocomplete="new-password" placeholder="Confirmer la phrase secrète">
+  <input type="text" id="dlgHintInput" placeholder="Indice pour t'en souvenir (optionnel, visible en clair)" style="display:none">
   <div class="dlg-err" id="dlgErr"></div>
   <div class="dlg-actions">
     <button class="btn-ghost" id="dlgCancel">Annuler</button>
@@ -510,16 +513,18 @@ async function deriveKey(pass, salt, iterations){
   );
 }
 
-async function encryptJson(obj, pass){
+async function encryptJson(obj, pass, hint){
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const key = await deriveKey(pass, salt, KDF_ITER);
   const ct = await crypto.subtle.encrypt({ name:'AES-GCM', iv }, key, te.encode(JSON.stringify(obj)));
-  return {
+  const env = {
     format:'temp-identities', v:1,
     kdf:'PBKDF2-SHA256', iter:KDF_ITER, cipher:'AES-256-GCM',
     salt:toB64(salt), iv:toB64(iv), data:toB64(ct)
   };
+  if(hint) env.hint = hint;
+  return env;
 }
 
 async function decryptJson(env, pass){
@@ -531,7 +536,8 @@ async function decryptJson(env, pass){
 function isEnvelope(o){
   return o && typeof o === 'object' && o.format === 'temp-identities' && o.v === 1
     && typeof o.salt === 'string' && typeof o.iv === 'string' && typeof o.data === 'string'
-    && Number.isInteger(o.iter) && o.iter >= 100000 && o.iter <= 2000000;
+    && Number.isInteger(o.iter) && o.iter >= 100000 && o.iter <= 2000000
+    && (o.hint === undefined || typeof o.hint === 'string');
 }
 
 function sanitizeList(arr){
@@ -547,7 +553,7 @@ function sanitizeList(arr){
 
 /* ---------- Dialogue phrase secrète ---------- */
 
-function askPassphrase(title, hint, confirmField){
+function askPassphrase(title, hint, confirmField, existingHint){
   return new Promise(resolve => {
     const dlg = el('passDlg');
     const ac = new AbortController();
@@ -556,8 +562,16 @@ function askPassphrase(title, hint, confirmField){
     el('dlgHint').textContent = hint;
     el('dlgPass').value = '';
     el('dlgPass2').value = '';
+    el('dlgHintInput').value = '';
     el('dlgErr').textContent = '';
     el('dlgPass2').style.display = confirmField ? 'block' : 'none';
+    el('dlgHintInput').style.display = confirmField ? 'block' : 'none';
+    if(existingHint){
+      el('dlgSavedHint').textContent = `💡 Indice : ${existingHint}`;
+      el('dlgSavedHint').style.display = 'block';
+    }else{
+      el('dlgSavedHint').style.display = 'none';
+    }
 
     let done = false;
     const finish = value => {
@@ -566,6 +580,7 @@ function askPassphrase(title, hint, confirmField){
       ac.abort();
       el('dlgPass').value = '';
       el('dlgPass2').value = '';
+      el('dlgHintInput').value = '';
       dlg.close();
       resolve(value);
     };
@@ -574,10 +589,12 @@ function askPassphrase(title, hint, confirmField){
       if(confirmField){
         if(p.length < 8){ el('dlgErr').textContent = '8 caractères minimum.'; return; }
         if(p !== el('dlgPass2').value){ el('dlgErr').textContent = 'Les deux phrases ne correspondent pas.'; return; }
+        finish({ password: p, hint: el('dlgHintInput').value.trim() });
+        return;
       }else if(!p){
         el('dlgErr').textContent = 'Saisis la phrase secrète.'; return;
       }
-      finish(p);
+      finish({ password: p });
     };
 
     el('dlgOk').addEventListener('click', submit, opt);
@@ -597,15 +614,15 @@ async function exportJson(){
   if(!list.length){ toast('Rien à exporter'); return; }
   if(!(window.crypto && crypto.subtle)){ toast('Chiffrement indisponible dans ce contexte'); return; }
 
-  const pass = await askPassphrase(
+  const res = await askPassphrase(
     'Chiffrer l\'export',
     'Cette phrase secrète sera nécessaire pour réimporter le fichier. Elle ne peut pas être récupérée.',
     true
   );
-  if(!pass) return;
+  if(!res) return;
 
   try{
-    const env = await encryptJson(list, pass);
+    const env = await encryptJson(list, res.password, res.hint);
     const blob = new Blob([JSON.stringify(env, null, 2)], {type:'application/json'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -630,10 +647,10 @@ function importJson(evt){
       if(!Array.isArray(data)){
         if(!isEnvelope(data)) throw new Error('format invalide');
         if(!(window.crypto && crypto.subtle)){ toast('Déchiffrement indisponible dans ce contexte'); return; }
-        const pass = await askPassphrase('Déchiffrer l\'import', 'Saisis la phrase secrète utilisée à l\'export.', false);
+        const pass = await askPassphrase('Déchiffrer l\'import', 'Saisis la phrase secrète utilisée à l\'export.', false, data.hint);
         if(!pass) return;
         try{
-          data = await decryptJson(data, pass);
+          data = await decryptJson(data, pass.password);
         }catch(e){
           toast('Phrase secrète incorrecte ou fichier corrompu');
           return;
