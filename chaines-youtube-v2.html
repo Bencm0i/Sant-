@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mes chaînes YouTube</title>
+<style>
+  :root{
+    --bg:#0f0f0f; --card:#1a1a1a; --card-hover:#232323;
+    --text:#f1f1f1; --muted:#9a9a9a; --accent:#3ea6ff;
+    --border:#2a2a2a; --danger:#ff5c5c; --tag:#263140;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);padding:24px;}
+  h1{font-size:22px;margin:0 0 4px;}
+  p.sub{color:var(--muted);margin:0 0 20px;font-size:14px;}
+
+  #toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;max-width:760px;}
+  #search{flex:1 1 220px;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;}
+  #category-filter{padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;}
+
+  #add-form{display:flex;gap:8px;flex-wrap:wrap;background:var(--card);border:1px solid var(--border);padding:14px;border-radius:10px;margin-bottom:24px;max-width:760px;}
+  #add-form input, #add-form select{flex:1 1 160px;min-width:130px;padding:9px 10px;background:#0f0f0f;border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;}
+  #add-form button{padding:9px 16px;border:none;border-radius:6px;background:var(--accent);color:#08101a;font-weight:600;cursor:pointer;font-size:14px;}
+  #add-form button:hover{opacity:.9;}
+
+  #groups{max-width:760px;}
+  .group{margin-bottom:18px;}
+  .group-title{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:0 0 6px;padding:0 8px;}
+  ul.list{list-style:none;margin:0;padding:0;}
+  li.item{display:flex;align-items:center;gap:12px;padding:10px 8px;border-bottom:1px solid var(--border);border-radius:8px;}
+  li.item:hover{background:var(--card-hover);}
+
+  .favicon-wrap{position:relative;width:28px;height:28px;flex:0 0 28px;}
+  .favicon-wrap img{width:28px;height:28px;border-radius:50%;object-fit:cover;background:#333;display:block;}
+  .favicon-edit-btn{position:absolute;bottom:-4px;right:-4px;width:14px;height:14px;border-radius:50%;background:var(--accent);border:2px solid var(--bg);cursor:pointer;font-size:9px;line-height:10px;text-align:center;color:#08101a;padding:0;}
+
+  .link-name{flex:1;color:var(--accent);text-decoration:none;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .link-name:hover{text-decoration:underline;}
+  .tag{font-size:11px;background:var(--tag);color:#9fc7ec;padding:2px 8px;border-radius:20px;flex:0 0 auto;white-space:nowrap;}
+
+  .row-actions{display:flex;gap:6px;flex:0 0 auto;}
+  .row-actions button{background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:5px 9px;cursor:pointer;font-size:12px;}
+  .row-actions button:hover{color:var(--text);border-color:var(--accent);}
+  .row-actions button.del:hover{color:var(--danger);border-color:var(--danger);}
+
+  .edit-fields{display:flex;gap:6px;flex:1;flex-wrap:wrap;}
+  .edit-fields input, .edit-fields select{flex:1 1 110px;padding:6px 8px;background:#0f0f0f;border:1px solid var(--accent);border-radius:6px;color:var(--text);font-size:13px;}
+
+  #empty{color:var(--muted);font-size:14px;padding:20px 8px;}
+  #reset{margin-top:22px;background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;}
+  #count{color:var(--muted);font-size:12px;margin:-8px 0 16px;}
+
+  #kpis{display:flex;gap:10px;flex-wrap:wrap;max-width:760px;margin-bottom:20px;}
+  .kpi{flex:1 1 130px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
+  .kpi .kpi-value{font-size:22px;font-weight:700;color:var(--accent);}
+  .kpi .kpi-label{font-size:12px;color:var(--muted);margin-top:2px;}
+  #kpi-breakdown{max-width:760px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:22px;font-size:13px;}
+  #kpi-breakdown .bd-row{display:flex;align-items:center;gap:8px;margin:6px 0;}
+  #kpi-breakdown .bd-name{flex:0 0 170px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #kpi-breakdown .bd-bar-wrap{flex:1;background:#0f0f0f;border-radius:6px;overflow:hidden;height:8px;}
+  #kpi-breakdown .bd-bar{height:100%;background:var(--accent);}
+  #kpi-breakdown .bd-count{flex:0 0 24px;text-align:right;color:var(--muted);}
+
+  #io-bar{display:flex;gap:8px;flex-wrap:wrap;max-width:760px;margin-bottom:22px;}
+  #io-bar button, #io-bar label{padding:8px 14px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);font-size:13px;cursor:pointer;}
+  #io-bar button:hover, #io-bar label:hover{border-color:var(--accent);}
+  #import-input{display:none;}
+
+  .fav-btn{background:none;border:none;cursor:pointer;font-size:17px;flex:0 0 auto;color:var(--muted);padding:0 2px;line-height:1;}
+  .fav-btn.active{color:#ffcc4d;}
+  .fav-btn:hover{color:#ffcc4d;}
+
+  .stars{display:flex;flex:0 0 auto;gap:1px;}
+  .stars button{background:none;border:none;cursor:pointer;font-size:14px;color:var(--muted);padding:0 1px;line-height:1;}
+  .stars button.filled{color:#ffcc4d;}
+  .stars button:hover{color:#ffcc4d;}
+
+  #fav-filter.active{border-color:#ffcc4d;color:#ffcc4d;}
+</style>
+</head>
+<body>
+
+<h1>Mes chaînes YouTube</h1>
+<p class="sub">Recherche, filtre par catégorie, clique un nom pour ouvrir le lien. Édite l'icône (✎ bleu), le lien ou la catégorie (✎ Éditer). Tout est sauvegardé dans ce navigateur.</p>
+
+<div id="kpis"></div>
+<div id="kpi-breakdown"></div>
+
+<div id="io-bar">
+  <button id="export-json">⬇ Exporter en JSON</button>
+  <label for="import-input">⬆ Importer un JSON</label>
+  <input type="file" id="import-input" accept="application/json">
+</div>
+
+<div id="toolbar">
+  <input type="text" id="search" placeholder="Rechercher une chaîne...">
+  <select id="category-filter"><option value="">Toutes les catégories</option></select>
+  <button type="button" id="fav-filter" style="padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;cursor:pointer;">★ Favoris uniquement</button>
+</div>
+
+<form id="add-form">
+  <input type="text" id="new-name" placeholder="Nom de la chaîne" required>
+  <input type="url" id="new-url" placeholder="https://..." required>
+  <input type="url" id="new-favicon" placeholder="URL favicon (optionnel)">
+  <input list="cat-list" id="new-category" placeholder="Catégorie">
+  <datalist id="cat-list"></datalist>
+  <button type="submit">Ajouter</button>
+</form>
+
+<div id="count"></div>
+<div id="groups"></div>
+<div id="empty" style="display:none;">Aucun lien ne correspond.</div>
+
+<button id="reset">Réinitialiser la liste par défaut</button>
+
+<script>
+const STORAGE_KEY = "yt-links-v2";
+const YT_FAV = "https://www.google.com/s2/favicons?domain=youtube.com&sz=64";
+
+// [nom, catégorie]
+const RAW = [
+["Nicolas Popovitch","Finance & Économie"],["Finary","Finance & Économie"],
+["Voitures & Ingéniosité","Auto & Moto"],["DME En Direct","Auto & Moto"],
+["Poisson Fécond","Sciences & Tech"],["Xavier Delmas","Auto & Moto"],
+["Jensky","Sciences & Tech"],["Altis play","Autres"],
+["ÉLUCID","Finance & Économie"],["PI-WAN","Autres"],
+["Velo2max","Vélo & Sport"],["Xavier Tytelman","Autres"],
+["Cédric Froment","Autres"],["Guillaume Cassar","Finance & Économie"],
+["Caroline Rogers","Autres"],["Arkeo Toys","Autres"],
+["DirtyBiology","Sciences & Tech"],["FabienOlicard","Humour & Divertissement"],
+["G Milgram","Autres"],["Nicolas Chéron","Auto & Moto"],
+["Matthieu Louvet","Autres"],["BFM Tech","Actu & Médias"],
+["Aldo Sterone","Finance & Économie"],["Metamorphose 47","Autres"],
+["Christophe Pauly","Autres"],["Trouble Fait","Humour & Divertissement"],
+["Tatiana Ventôse","Actu & Médias"],["tradosaure","Autres"],
+["Le Vendeur Auto","Auto & Moto"],["Le Point Genius","Humour & Divertissement"],
+["Cult'N'Click","Sciences & Tech"],["Bricolage c'est ça","Bricolage & Maison"],
+["Balade Mentale","Sciences & Tech"],["Underscore_","Sciences & Tech"],
+["Book Club Radio","Autres"],["Mécanique Sport","Vélo & Sport"],
+["Thibaut Dcode","Sciences & Tech"],["e-penser 2.0","Sciences & Tech"],
+["Adrien Linuxtricks","Sciences & Tech"],["AlterHis","Histoire"],
+["1,2,3... Richesse","Finance & Économie"],["ScienceClic","Sciences & Tech"],
+["Thomas l'Ingénieux","Sciences & Tech"],["Dirty Tommy","Humour & Divertissement"],
+["EducationFinance","Finance & Économie"],["Léo - TechMaker","Sciences & Tech"],
+["BOURDIN","Actu & Médias"],["NCT - La Chaîne","Autres"],
+["Numerama","Actu & Médias"],["Relax Massage T","Musique & Ambiance"],
+["Lexa Moon Crypto","Finance & Économie"],["Le Petit Astronome","Sciences & Tech"],
+["Frandroid","Sciences & Tech"],["Jojol","Humour & Divertissement"],
+["obiyann","Autres"],["VA Plus","Autres"],
+["Clubic","Actu & Médias"],["Captain Popcorn","Humour & Divertissement"],
+["Thibault DIRING","Autres"],["Vincent VinTech","Sciences & Tech"],
+["Crypto Analyse","Finance & Économie"],["Veritasium en Français","Sciences & Tech"],
+["Cyber City Moods","Musique & Ambiance"],["Petites Observations","Autres"],
+["Radio Maudin","Musique & Ambiance"],["Les Freres Poulain","Humour & Divertissement"],
+["LEGEND","Actu & Médias"],["Draw my economy","Finance & Économie"],
+["ATE CHUET","Autres"],["Virginie Hocq","Humour & Divertissement"],
+["TheiCollection","Autres"],["GCN en Français","Vélo & Sport"],
+["Curiosités","Sciences & Tech"],["Gribouillis","Autres"],
+["ARTE Concert","Musique & Ambiance"],["Trucs De Fou","Sciences & Tech"],
+["Le Collimateur","Actu & Médias"],["Europe 1","Actu & Médias"],
+["Ambience","Musique & Ambiance"],["Benjamin","Autres"],
+["Le Monopole Niel","Finance & Économie"],["OK Podcast","Humour & Divertissement"],
+["SAFA Brian","Autres"],["Histoire Appliquée","Histoire"],
+["ASMR Coiffeuse","Musique & Ambiance"],["David Castello-Lopes","Humour & Divertissement"],
+["ElecTruc","Sciences & Tech"],["Plomb, Poudre & Lardons","Autres"],
+["Le Grenier de l'éco","Finance & Économie"],["Romulus Music","Musique & Ambiance"],
+["Calming Ambience","Musique & Ambiance"],["Durendal1","Autres"],
+["Romain Lanéry","Autres"],["12 Parsecs","Sciences & Tech"],
+["Yvan Casta","Autres"],["Grand Angle Bitcoin","Finance & Économie"],
+["Laura Laune","Humour & Divertissement"],["Mozinor","Humour & Divertissement"]
+];
+
+const DEFAULT_LINKS = RAW.map(([name, category]) => ({
+  id: crypto.randomUUID(),
+  name, category,
+  url: "https://www.youtube.com/results?search_query=" + encodeURIComponent(name),
+  favicon: YT_FAV,
+  favorite: false,
+  rating: 0
+}));
+
+function load(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  save(DEFAULT_LINKS);
+  return DEFAULT_LINKS;
+}
+function save(links){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(links)); }catch(e){} }
+
+let links = load();
+let editingId = null;
+
+const groupsEl = document.getElementById("groups");
+const emptyEl = document.getElementById("empty");
+const countEl = document.getElementById("count");
+const searchEl = document.getElementById("search");
+const catFilterEl = document.getElementById("category-filter");
+const favFilterEl = document.getElementById("fav-filter");
+const catListEl = document.getElementById("cat-list");
+
+function escapeHtml(str){
+  return (str || "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+}
+function escapeAttr(str){ return escapeHtml(str); }
+function faviconForUrl(url){
+  try{ return "https://www.google.com/s2/favicons?domain=" + new URL(url).hostname + "&sz=64"; }
+  catch(e){ return YT_FAV; }
+}
+
+function refreshCategoryOptions(){
+  const cats = [...new Set(links.map(l => l.category || "Autres"))].sort((a,b)=>a.localeCompare(b,'fr'));
+  const current = catFilterEl.value;
+  catFilterEl.innerHTML = '<option value="">Toutes les catégories</option>' +
+    cats.map(c => `<option value="${escapeAttr(c)}">${escapeHtml(c)}</option>`).join("");
+  if(cats.includes(current)) catFilterEl.value = current;
+  catListEl.innerHTML = cats.map(c => `<option value="${escapeAttr(c)}">`).join("");
+}
+
+function renderKpis(){
+  const kpisEl = document.getElementById("kpis");
+  const breakdownEl = document.getElementById("kpi-breakdown");
+
+  const total = links.length;
+  const byCat = {};
+  links.forEach(l => { const c = l.category || "Autres"; byCat[c] = (byCat[c]||0)+1; });
+  const catEntries = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+  const nbCategories = catEntries.length;
+  const topCat = catEntries[0] ? catEntries[0][0] : "-";
+  const topCatCount = catEntries[0] ? catEntries[0][1] : 0;
+  const customFavicons = links.filter(l => l.favicon && l.favicon !== YT_FAV).length;
+  const favCount = links.filter(l => l.favorite).length;
+  const rated = links.filter(l => l.rating > 0);
+  const avgRating = rated.length ? (rated.reduce((s,l)=>s+l.rating,0) / rated.length).toFixed(1) : "-";
+
+  kpisEl.innerHTML = `
+    <div class="kpi"><div class="kpi-value">${total}</div><div class="kpi-label">Chaînes au total</div></div>
+    <div class="kpi"><div class="kpi-value">${nbCategories}</div><div class="kpi-label">Catégories</div></div>
+    <div class="kpi"><div class="kpi-value">${topCatCount}</div><div class="kpi-label">Plus grande catégorie<br>${escapeHtml(topCat)}</div></div>
+    <div class="kpi"><div class="kpi-value">${favCount}</div><div class="kpi-label">★ Favoris</div></div>
+    <div class="kpi"><div class="kpi-value">${avgRating}${avgRating !== "-" ? "/5" : ""}</div><div class="kpi-label">Note moyenne (${rated.length} notées)</div></div>
+    <div class="kpi"><div class="kpi-value">${customFavicons}</div><div class="kpi-label">Favicons personnalisés</div></div>
+  `;
+
+  const maxCount = catEntries.length ? catEntries[0][1] : 1;
+  breakdownEl.innerHTML = catEntries.map(([cat, count]) => `
+    <div class="bd-row">
+      <div class="bd-name">${escapeHtml(cat)}</div>
+      <div class="bd-bar-wrap"><div class="bd-bar" style="width:${(count/maxCount*100).toFixed(0)}%"></div></div>
+      <div class="bd-count">${count}</div>
+    </div>
+  `).join("");
+}
+
+function render(){
+  refreshCategoryOptions();
+  renderKpis();
+
+  const q = searchEl.value.trim().toLowerCase();
+  const catFilter = catFilterEl.value;
+  const favOnly = favFilterEl.classList.contains("active");
+
+  const filtered = links.filter(l => {
+    const matchesSearch = !q || l.name.toLowerCase().includes(q);
+    const matchesCat = !catFilter || (l.category || "Autres") === catFilter;
+    const matchesFav = !favOnly || l.favorite;
+    return matchesSearch && matchesCat && matchesFav;
+  });
+
+  countEl.textContent = filtered.length + " chaîne" + (filtered.length > 1 ? "s" : "");
+  groupsEl.innerHTML = "";
+  emptyEl.style.display = filtered.length ? "none" : "block";
+
+  const byCategory = {};
+  filtered.forEach(l => {
+    const c = l.category || "Autres";
+    (byCategory[c] = byCategory[c] || []).push(l);
+  });
+
+  Object.keys(byCategory).sort((a,b)=>a.localeCompare(b,'fr')).forEach(cat => {
+    const groupDiv = document.createElement("div");
+    groupDiv.className = "group";
+    const title = document.createElement("p");
+    title.className = "group-title";
+    title.textContent = cat + " (" + byCategory[cat].length + ")";
+    const ul = document.createElement("ul");
+    ul.className = "list";
+    groupDiv.appendChild(title);
+    groupDiv.appendChild(ul);
+
+    byCategory[cat].sort((a,b)=>a.name.localeCompare(b.name,'fr')).forEach(link => {
+      const li = document.createElement("li");
+      li.className = "item";
+
+      if(editingId === link.id){
+        li.innerHTML = `
+          <div class="favicon-wrap"><img src="${escapeAttr(link.favicon)}" onerror="this.src='${YT_FAV}'"></div>
+          <div class="edit-fields">
+            <input type="text" class="e-name" value="${escapeAttr(link.name)}" placeholder="Nom">
+            <input type="url" class="e-url" value="${escapeAttr(link.url)}" placeholder="URL">
+            <input type="url" class="e-favicon" value="${escapeAttr(link.favicon)}" placeholder="URL favicon">
+            <input list="cat-list" class="e-category" value="${escapeAttr(link.category || 'Autres')}" placeholder="Catégorie">
+          </div>
+          <div class="row-actions">
+            <button class="save">✔ OK</button>
+            <button class="cancel">✕</button>
+          </div>`;
+        li.querySelector(".save").onclick = () => {
+          link.name = li.querySelector(".e-name").value.trim() || link.name;
+          link.url = li.querySelector(".e-url").value.trim() || link.url;
+          link.favicon = li.querySelector(".e-favicon").value.trim() || link.favicon;
+          link.category = li.querySelector(".e-category").value.trim() || "Autres";
+          editingId = null; save(links); render();
+        };
+        li.querySelector(".cancel").onclick = () => { editingId = null; render(); };
+      } else {
+        const starsHtml = [1,2,3,4,5].map(n =>
+          `<button data-n="${n}" class="${(link.rating||0) >= n ? 'filled' : ''}">★</button>`
+        ).join("");
+        li.innerHTML = `
+          <button class="fav-btn ${link.favorite ? 'active' : ''}" title="Favori">${link.favorite ? '★' : '☆'}</button>
+          <div class="favicon-wrap">
+            <img src="${escapeAttr(link.favicon)}" onerror="this.src='${YT_FAV}'">
+            <button class="favicon-edit-btn" title="Changer l'icône">✎</button>
+          </div>
+          <a class="link-name" href="${escapeAttr(link.url)}" target="_blank" rel="noopener">${escapeHtml(link.name)}</a>
+          <div class="stars" title="Note">${starsHtml}</div>
+          <div class="row-actions">
+            <button class="edit">✎ Éditer</button>
+            <button class="del">Suppr.</button>
+          </div>`;
+        li.querySelector(".fav-btn").onclick = () => {
+          link.favorite = !link.favorite; save(links); render();
+        };
+        li.querySelectorAll(".stars button").forEach(btn => {
+          btn.onclick = () => {
+            const n = Number(btn.dataset.n);
+            link.rating = (link.rating === n) ? 0 : n; // recliquer la même étoile remet à 0
+            save(links); render();
+          };
+        });
+        li.querySelector(".favicon-edit-btn").onclick = () => {
+          const val = prompt("URL de la nouvelle icône pour \"" + link.name + "\" :", link.favicon || "");
+          if(val !== null && val.trim()){ link.favicon = val.trim(); save(links); render(); }
+        };
+        li.querySelector(".edit").onclick = () => { editingId = link.id; render(); };
+        li.querySelector(".del").onclick = () => {
+          if(confirm("Supprimer \"" + link.name + "\" ?")){
+            links = links.filter(l => l.id !== link.id); save(links); render();
+          }
+        };
+      }
+      ul.appendChild(li);
+    });
+
+    groupsEl.appendChild(groupDiv);
+  });
+}
+
+document.getElementById("add-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const nameEl = document.getElementById("new-name");
+  const urlEl = document.getElementById("new-url");
+  const favEl = document.getElementById("new-favicon");
+  const catEl = document.getElementById("new-category");
+
+  const name = nameEl.value.trim();
+  const url = urlEl.value.trim();
+  const favicon = favEl.value.trim() || faviconForUrl(url);
+  const category = catEl.value.trim() || "Autres";
+
+  if(!name || !url) return;
+
+  links.push({ id: crypto.randomUUID(), name, url, favicon, category, favorite: false, rating: 0 });
+  save(links);
+  nameEl.value = ""; urlEl.value = ""; favEl.value = ""; catEl.value = "";
+  render();
+});
+
+document.getElementById("reset").addEventListener("click", () => {
+  if(confirm("Remettre la liste par défaut (les modifications seront perdues) ?")){
+    links = DEFAULT_LINKS.map(l => ({...l, id: crypto.randomUUID()}));
+    save(links); render();
+  }
+});
+
+searchEl.addEventListener("input", render);
+catFilterEl.addEventListener("change", render);
+favFilterEl.addEventListener("click", () => {
+  favFilterEl.classList.toggle("active");
+  render();
+});
+
+document.getElementById("export-json").addEventListener("click", () => {
+  const data = JSON.stringify(links, null, 2);
+  const blob = new Blob([data], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "chaines-youtube-" + new Date().toISOString().slice(0,10) + ".json";
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById("import-input").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const parsed = JSON.parse(reader.result);
+      if(!Array.isArray(parsed)) throw new Error("Le fichier doit contenir une liste.");
+      const cleaned = parsed
+        .filter(l => l && l.name && l.url)
+        .map(l => ({
+          id: l.id || crypto.randomUUID(),
+          name: String(l.name),
+          url: String(l.url),
+          favicon: l.favicon ? String(l.favicon) : faviconForUrl(l.url),
+          category: l.category ? String(l.category) : "Autres",
+          favorite: !!l.favorite,
+          rating: Number.isFinite(l.rating) ? Math.max(0, Math.min(5, l.rating)) : 0
+        }));
+      if(!cleaned.length) throw new Error("Aucun lien valide trouvé dans le fichier.");
+
+      const mode = confirm(
+        cleaned.length + " lien(s) trouvé(s).\n" +
+        "OK = remplacer toute la liste actuelle.\n" +
+        "Annuler = ajouter à la liste existante."
+      );
+      if(mode){
+        links = cleaned;
+      } else {
+        const existingKeys = new Set(links.map(l => l.name.toLowerCase() + "|" + l.url));
+        cleaned.forEach(l => {
+          const key = l.name.toLowerCase() + "|" + l.url;
+          if(!existingKeys.has(key)){ links.push(l); existingKeys.add(key); }
+        });
+      }
+      save(links);
+      render();
+      alert("Import réussi.");
+    }catch(err){
+      alert("Fichier JSON invalide : " + err.message);
+    }finally{
+      e.target.value = "";
+    }
+  };
+  reader.readAsText(file);
+});
+
+render();
+</script>
+
+</body>
+</html>
