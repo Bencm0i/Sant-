@@ -152,6 +152,18 @@
   /* ---------- Quick add (compteur journalier) ---------- */
   .quick{ margin-top:16px; }
   .quick label{ display:block; font-size:0.72rem; color:var(--text-soft); margin-bottom:6px; }
+  .quick-label-row{
+    display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px;
+  }
+  .quick-label-row label{ margin-bottom:0; }
+  .mode-switch{
+    flex:none;
+    background:var(--panel-dark-2); border:1px solid var(--panel-dark-line);
+    color:var(--text-soft); font-family:var(--sans); font-size:0.66rem; font-weight:600;
+    padding:5px 10px; border-radius:999px; cursor:pointer; white-space:nowrap;
+  }
+  .mode-switch[aria-pressed="true"]{ background:var(--accent-dim); border-color:var(--accent); color:var(--accent); }
+  .mode-switch:active{ opacity:0.8; }
   .quick-row{ display:flex; gap:8px; }
   .quick-row input{
     flex:1; min-width:0;
@@ -433,12 +445,15 @@
     </div>
 
     <form class="quick" id="quickForm" autocomplete="off">
-      <label for="quickKm">Compteur journalier (km)</label>
+      <div class="quick-label-row">
+        <label for="quickKm" id="quickKmLabel">Compteur journalier (km)</label>
+        <button type="button" class="mode-switch" id="counterModeBtn" aria-pressed="false">Mode trajet</button>
+      </div>
       <div class="quick-row">
         <input id="quickKm" type="text" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" placeholder="ex. 12,4">
         <button type="submit" class="quick-btn">Ajouter</button>
       </div>
-      <div class="quick-hint">Les km s'ajoutent au total. Remets ton compteur journalier à zéro après chaque saisie.</div>
+      <div class="quick-hint" id="quickKmHint">Les km s'ajoutent au total. Remets ton compteur journalier à zéro après chaque saisie.</div>
     </form>
   </header>
 
@@ -614,6 +629,11 @@
       <input type="text" id="set-startkm" inputmode="decimal">
       <div class="hint">Le total affiché = ce nombre + tous les km saisis avec le compteur journalier.</div>
     </div>
+    <div class="field">
+      <label for="set-lastreading">Référence compteur cumulé (km)</label>
+      <input type="text" id="set-lastreading" inputmode="decimal" placeholder="vide = pas de référence">
+      <div class="hint">Utilisé uniquement en mode cumulé. Vide le champ pour forcer une nouvelle référence à la prochaine saisie.</div>
+    </div>
 
     <div class="settings-group">Électricité</div>
     <div class="field">
@@ -689,7 +709,9 @@
     rides: [],
     recharges: [],
     maintenance: [],
-    lastExportAt: null
+    lastExportAt: null,
+    counterMode: "trip",
+    lastCounterReading: null
   };
 
   var state = loadState();
@@ -721,6 +743,8 @@
     });
     s.maintenance = Array.isArray(p.maintenance) ? p.maintenance : [];
     s.lastExportAt = typeof p.lastExportAt === "string" ? p.lastExportAt : null;
+    s.counterMode = p.counterMode === "cumulative" ? "cumulative" : "trip";
+    s.lastCounterReading = isNum(p.lastCounterReading) && p.lastCounterReading >= 0 ? p.lastCounterReading : null;
     return s;
   }
 
@@ -926,6 +950,7 @@
     $("vehicleName").value = state.vehicle.name;
     setOdometer(totalKm(), !!animateOdo);
     syncSettingsFields();
+    syncQuickCounterUI();
 
     var c = cur();
     var k = computeKPIs();
@@ -1161,17 +1186,83 @@
   });
 
   /* ---------- Quick add (compteur journalier) ---------- */
+  function syncQuickCounterUI(){
+    var cumulative = state.counterMode === "cumulative";
+    var btn = $("counterModeBtn");
+    btn.setAttribute("aria-pressed", cumulative ? "true" : "false");
+    btn.textContent = cumulative ? "Mode cumulé" : "Mode trajet";
+    $("quickKmLabel").textContent = cumulative ? "Compteur cumulé (km)" : "Compteur journalier (km)";
+    $("quickKm").placeholder = cumulative ? "ex. 1245,7" : "ex. 12,4";
+    if(cumulative){
+      $("quickKmHint").textContent = state.lastCounterReading === null
+        ? "Saisis la valeur actuelle du compteur (jamais remis à zéro). La 1ʳᵉ saisie sert de référence, sans ajout au total."
+        : "Dernière lecture enregistrée : "+fmt(state.lastCounterReading,1)+" km. Saisis la valeur actuelle, le trajet est calculé automatiquement.";
+    } else {
+      $("quickKmHint").textContent = "Les km s'ajoutent au total. Remets ton compteur journalier à zéro après chaque saisie.";
+    }
+  }
+  $("counterModeBtn").addEventListener("click", function(){
+    state.counterMode = state.counterMode === "cumulative" ? "trip" : "cumulative";
+    if(state.counterMode === "cumulative") state.lastCounterReading = null;
+    saveState();
+    $("quickKm").value = "";
+    syncQuickCounterUI();
+    showToast(state.counterMode === "cumulative" ? "Mode compteur cumulé activé" : "Mode trajet activé");
+  });
+
   $("quickForm").addEventListener("submit", function(e){
     e.preventDefault();
-    var km = toNum($("quickKm").value);
-    if(isNaN(km) || km <= 0){ showToast("Entre les km du compteur journalier"); return; }
-    if(km > 300){ showToast("Plus de 300 km en un jour : vérifie la valeur"); return; }
-    km = Math.round(km*100)/100;
-    state.rides.push({ id:newId(), date:todayISO(), km:km, ts:Date.now() });
+    var val = toNum($("quickKm").value);
+    if(isNaN(val) || val <= 0){ showToast("Entre les km du compteur"); return; }
+    val = Math.round(val*100)/100;
+
+    if(state.counterMode === "cumulative"){
+      if(state.lastCounterReading === null){
+        state.lastCounterReading = val;
+        saveState();
+        $("quickKm").value = "";
+        syncQuickCounterUI();
+        showToast("Référence enregistrée : "+fmt(val,1)+" km");
+        $("quickKm").blur();
+        return;
+      }
+      var delta = val - state.lastCounterReading;
+      if(delta < 0){
+        // Le compteur a été remis à zéro (ou a tourné) malgré le mode cumulé :
+        // on considère la valeur saisie comme le trajet parcouru depuis la remise à zéro.
+        if(val > 300){ showToast("Plus de 300 km en un jour : vérifie la valeur"); return; }
+        state.rides.push({ id:newId(), date:todayISO(), km:val, ts:Date.now() });
+        state.lastCounterReading = val;
+        saveState();
+        $("quickKm").value = "";
+        render(true);
+        showToast("Compteur remis à zéro détecté · +"+fmt(val,1)+" km · total "+fmt(Math.floor(totalKm()),0)+" km");
+        $("quickKm").blur();
+        return;
+      }
+      if(delta === 0){
+        showToast("Aucun km depuis la dernière saisie");
+        $("quickKm").value = "";
+        return;
+      }
+      if(delta > 300){ showToast("Plus de 300 km en un jour : vérifie la valeur"); return; }
+      state.rides.push({ id:newId(), date:todayISO(), km:delta, ts:Date.now() });
+      state.lastCounterReading = val;
+      saveState();
+      $("quickKm").value = "";
+      render(true);
+      showToast("+"+fmt(delta,1)+" km · total "+fmt(Math.floor(totalKm()),0)+" km");
+      $("quickKm").blur();
+      return;
+    }
+
+    // Mode trajet (comportement historique) : la valeur saisie EST le km parcouru.
+    if(val > 300){ showToast("Plus de 300 km en un jour : vérifie la valeur"); return; }
+    state.rides.push({ id:newId(), date:todayISO(), km:val, ts:Date.now() });
     saveState();
     $("quickKm").value = "";
     render(true);
-    showToast("+"+fmt(km,1)+" km · total "+fmt(Math.floor(totalKm()),0)+" km");
+    showToast("+"+fmt(val,1)+" km · total "+fmt(Math.floor(totalKm()),0)+" km");
     $("quickKm").blur();
   });
 
@@ -1453,6 +1544,7 @@
     { id:"set-range",     get:function(){ return state.vehicle.fullRangeKm; },   set:function(v){ state.vehicle.fullRangeKm = v; },   min:0, strict:true },
     { id:"set-startrange",get:function(){ return state.vehicle.startRangeKm; },  set:function(v){ state.vehicle.startRangeKm = v; },  min:0, emptyNull:true },
     { id:"set-startkm",   get:function(){ return state.startKm; },               set:function(v){ state.startKm = v; },               min:0 },
+    { id:"set-lastreading", get:function(){ return state.lastCounterReading; },  set:function(v){ state.lastCounterReading = v; },    min:0, emptyNull:true },
     { id:"set-kwhprice",  get:function(){ return state.vehicle.kwhPrice; },      set:function(v){ state.vehicle.kwhPrice = v; },      min:0 },
     { id:"set-loss",      get:function(){ return state.vehicle.chargeLossPct; }, set:function(v){ state.vehicle.chargeLossPct = v; }, min:0, max:90 },
     { id:"set-yconso",    get:function(){ return state.yaris.conso; },            set:function(v){ state.yaris.conso = v; },           min:0 },
