@@ -755,7 +755,7 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
 .mosaic-card{
   display:flex;flex-direction:column;gap:8px;text-align:left;cursor:default;
   background:#fff;border:1.5px solid var(--line);border-top:6px solid var(--card-color,#8a8272);border-radius:10px;
-  padding:12px 14px 12px;min-height:190px;
+  padding:12px 14px 12px;align-self:start;
   font-family:'Inter',sans-serif;color:var(--ink);transition:transform .15s,box-shadow .15s,border-color .15s;
 }
 .mosaic-card:hover{box-shadow:var(--shadow);border-color:var(--accent);}
@@ -765,11 +765,13 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
 .mosaic-parent{font-family:'IBM Plex Mono',monospace;font-size:0.64rem;color:var(--ink-soft);}
 .mosaic-summary{
   font-family:'Inter',sans-serif;font-size:0.8rem;line-height:1.5;color:var(--ink);
-  width:100%;flex:1;min-height:calc(10 * 1.5em + 16px);resize:none;overflow:hidden;box-sizing:border-box;
+  width:100%;flex:none;resize:none;overflow:hidden;box-sizing:border-box;display:block;
   background:var(--paper-dim);border:1.5px solid var(--line);border-radius:8px;padding:7px 9px;outline:none;
 }
 .mosaic-summary:focus{border-color:var(--accent);background:#fff;}
 .mosaic-summary::placeholder{color:#b3a996;font-style:italic;}
+.mosaic-more{align-self:flex-start;font-family:'IBM Plex Mono',monospace;font-size:0.68rem;color:var(--ink-soft);background:var(--paper-dim);border:1px solid var(--line);border-radius:999px;padding:2px 10px;cursor:pointer;}
+.mosaic-more:hover{border-color:var(--accent);color:var(--accent);}
 .mosaic-open{align-self:flex-start;font-family:'IBM Plex Mono',monospace;font-size:0.68rem;color:var(--accent);background:none;border:none;padding:0;cursor:pointer;}
 .mosaic-open:hover{text-decoration:underline;}
 .mosaic-foot{display:flex;gap:6px;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:0.64rem;color:var(--ink-soft);}
@@ -4754,10 +4756,22 @@ function mosaicGo(id){
   selectTab(id);
 }
 
-// Le résumé s'affiche en entier : 10 lignes minimum, puis la zone grandit avec le texte (pas de barre de défilement).
+// Résumé replié sur 8 lignes (lecture rapide). Si le texte est plus long, un bouton permet de le déployer.
+const MOSAIC_LINES = 8;
 function mosaicFit(ta){
+  const card = ta.closest('.mosaic-card');
+  const btn = card && card.querySelector('.mosaic-more');
+  const open = ta.dataset.open === '1';
   ta.style.height = 'auto';
-  ta.style.height = ta.scrollHeight + 2 + 'px';
+  const full = ta.scrollHeight + 2;
+  const lh = parseFloat(getComputedStyle(ta).lineHeight) || 19;
+  const collapsed = Math.round(lh * MOSAIC_LINES + 18);
+  const long = full > collapsed + 4;
+  ta.style.height = ((long && !open) ? collapsed : Math.max(full, collapsed)) + 'px';
+  if(btn){
+    btn.style.display = long ? '' : 'none';
+    btn.textContent = open ? 'Réduire ▴' : 'Déployer ▾';
+  }
 }
 function mosaicFitAll(){
   document.querySelectorAll('#mosaicGrid .mosaic-summary').forEach(mosaicFit);
@@ -4807,9 +4821,17 @@ function renderMosaic(){
     sum.className = 'mosaic-summary';
     sum.placeholder = 'Colle ici ton résumé…';
     sum.value = t.resume || '';
-    sum.rows = 10;
+    sum.rows = MOSAIC_LINES;
     sum.oninput = ()=>{ state.tabs[id].resume = sum.value; persist(); mosaicFit(sum); };
+    sum.onfocus = ()=>{ if(sum.dataset.open !== '1'){ sum.dataset.open = '1'; mosaicFit(sum); } }; // on déploie pour éditer
     card.appendChild(sum);
+
+    const more = document.createElement('button');
+    more.type = 'button';
+    more.className = 'mosaic-more';
+    more.style.display = 'none';
+    more.onclick = ()=>{ sum.dataset.open = (sum.dataset.open === '1') ? '0' : '1'; mosaicFit(sum); };
+    card.appendChild(more);
 
     const foot = document.createElement('div');
     foot.className = 'mosaic-foot';
