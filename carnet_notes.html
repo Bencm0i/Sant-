@@ -449,6 +449,17 @@ textarea.note-area{
 }
 textarea.note-area:focus{background-color:#fffceb;box-shadow:inset 3px 0 0 var(--accent), inset 0 0 0 2px var(--accent);}
 textarea.note-area::placeholder{color:#b0a695;}
+
+/* SURBRILLANCE DES MOTS CHERCHÉS (recherche d'onglets) */
+.area-wrap{position:relative;flex:1;display:flex;flex-direction:column;min-height:0;}
+.hit-overlay{
+  display:none;position:absolute;top:0;left:0;pointer-events:none;overflow:hidden;
+  font-family:'IBM Plex Mono',monospace;font-size:0.86rem;line-height:1.65;
+  padding:18px 20px;white-space:pre-wrap;overflow-wrap:break-word;word-wrap:break-word;
+  color:transparent;mix-blend-mode:multiply;
+}
+.hit-overlay mark{color:transparent;background:#f3d98a;border-radius:2px;}
+mark.search-hit{background:#f3d98a;color:var(--ink);border-radius:2px;}
 #rawArea{
   background-color:#fffdf7;
   background-image:
@@ -884,7 +895,10 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
       <input type="file" id="rawImageInput" accept="image/*" style="display:none;" onchange="onImageFileSelected(event,'raw')">
       <button class="md-btn" onclick="openDrawModal('raw')" title="Ouvrir l'atelier de dessin et insérer un croquis">✏️</button>
     </div>
-    <textarea class="note-area" id="rawArea" placeholder="Écris ton texte brut ici… (markdown supporté)" oninput="onEdit('raw')"></textarea>
+    <div class="area-wrap" id="rawWrap">
+      <textarea class="note-area" id="rawArea" placeholder="Écris ton texte brut ici… (markdown supporté)" oninput="onEdit('raw')"></textarea>
+      <div class="hit-overlay" id="rawHits" aria-hidden="true"></div>
+    </div>
     <div class="note-preview" id="rawPreview" style="display:none;"></div>
     <div class="note-preview" id="rawAccordionView" style="display:none;"></div>
     <div class="char-count" id="rawCount">0 caractère</div>
@@ -928,7 +942,10 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
       <input type="file" id="iaImageInput" accept="image/*" style="display:none;" onchange="onImageFileSelected(event,'ia')">
       <button class="md-btn" onclick="openDrawModal('ia')" title="Ouvrir l'atelier de dessin et insérer un croquis">✏️</button>
     </div>
-    <textarea class="note-area" id="iaArea" placeholder="Colle ici le texte retravaillé par une IA… (markdown supporté)" oninput="onEdit('ia')"></textarea>
+    <div class="area-wrap" id="iaWrap">
+      <textarea class="note-area" id="iaArea" placeholder="Colle ici le texte retravaillé par une IA… (markdown supporté)" oninput="onEdit('ia')"></textarea>
+      <div class="hit-overlay" id="iaHits" aria-hidden="true"></div>
+    </div>
     <div class="note-preview" id="iaPreview" style="display:none;"></div>
     <div class="note-preview" id="iaAccordionView" style="display:none;"></div>
     <div class="char-count" id="iaCount">0 caractère</div>
@@ -1462,7 +1479,19 @@ function recolorTab(id, val){
 function togglePin(id){
   const t = state.tabs[id];
   if(!t) return;
+  const wasPinned = !!t.pinned;
   t.pinned = !t.pinned;
+  if(wasPinned){
+    // Désépinglé : l'onglet redescend dans la liste normale, tout en haut du groupe
+    // des onglets non épinglés (juste sous les épinglés), au lieu de reprendre une
+    // ancienne position arbitraire.
+    const isRoot = (x)=>{ const tt = state.tabs[x]; return !!tt && !(tt.parentId && state.tabs[tt.parentId]); };
+    const cur = state.order.indexOf(id);
+    if(cur > -1) state.order.splice(cur, 1);
+    let idx = state.order.findIndex(x=> x !== BROUILLON_ID && isRoot(x) && !state.tabs[x].pinned);
+    if(idx === -1) idx = state.order.length;
+    state.order.splice(idx, 0, id);
+  }
   persist();
   renderTabs();
   updateActiveRow();
@@ -1921,6 +1950,7 @@ function onEdit(which){
   else t.ia = document.getElementById('iaArea').value;
   updateCounts();
   renderContentTagsBar();
+  updateHitOverlay(which);
   persist();
 }
 
@@ -1928,6 +1958,8 @@ function onSearch(){
   const q = document.getElementById('searchInput').value;
   document.getElementById('searchClear').style.display = q ? 'flex' : 'none';
   renderTabs();
+  refreshSearchHits('raw');
+  refreshSearchHits('ia');
 }
 
 function clearSearch(){
@@ -1936,6 +1968,97 @@ function clearSearch(){
   document.getElementById('searchClear').style.display = 'none';
   input.focus();
   renderTabs();
+  refreshSearchHits('raw');
+  refreshSearchHits('ia');
+}
+
+// ── SURBRILLANCE DES MOTS CHERCHÉS DANS L'ONGLET ACTIF ──────────────────────
+function currentSearchQuery(){
+  return document.getElementById('searchInput').value.trim();
+}
+
+// Mode édition : un calque transparent (texte identique, mots surlignés) est posé sur le textarea.
+function updateHitOverlay(which){
+  const area = document.getElementById(which==='raw' ? 'rawArea' : 'iaArea');
+  const ov = document.getElementById(which==='raw' ? 'rawHits' : 'iaHits');
+  if(!area || !ov) return;
+  const q = currentSearchQuery();
+  const text = area.value;
+  if(!q || !text || area.style.display === 'none'){ ov.style.display = 'none'; ov.innerHTML = ''; return; }
+  const re = new RegExp(escapeRegex(q), 'gi');
+  let html = '', last = 0, m, n = 0;
+  while((m = re.exec(text))){
+    html += escapeHtml(text.slice(last, m.index)) + '<mark>' + escapeHtml(m[0]) + '</mark>';
+    last = m.index + m[0].length;
+    n++;
+    if(!m[0].length) re.lastIndex++;
+  }
+  if(!n){ ov.style.display = 'none'; ov.innerHTML = ''; return; }
+  ov.innerHTML = html + escapeHtml(text.slice(last)) + '\u200b';
+  ov.style.display = 'block';
+  syncHitOverlay(which);
+}
+
+function syncHitOverlay(which){
+  const area = document.getElementById(which==='raw' ? 'rawArea' : 'iaArea');
+  const ov = document.getElementById(which==='raw' ? 'rawHits' : 'iaHits');
+  if(!area || !ov || ov.style.display === 'none') return;
+  ov.style.width = area.clientWidth + 'px';   // largeur utile identique (sans barre de défilement)
+  ov.style.height = area.clientHeight + 'px';
+  ov.scrollTop = area.scrollTop;
+}
+
+// Aperçu / accordéon : les occurrences sont enveloppées dans <mark class="search-hit">.
+function highlightInContainer(container, q){
+  container.querySelectorAll('mark.search-hit').forEach(mk=>{ mk.replaceWith(document.createTextNode(mk.textContent)); });
+  container.normalize();
+  if(!q) return;
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  while(walker.nextNode()){
+    const n = walker.currentNode;
+    if(n.parentElement && n.parentElement.closest('button,script,style')) continue;
+    nodes.push(n);
+  }
+  nodes.forEach(node=>{
+    const text = node.nodeValue;
+    const re = new RegExp(escapeRegex(q), 'gi');
+    let m, last = 0, found = false;
+    const frag = document.createDocumentFragment();
+    while((m = re.exec(text))){
+      found = true;
+      if(m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+      const mk = document.createElement('mark');
+      mk.className = 'search-hit';
+      mk.textContent = m[0];
+      frag.appendChild(mk);
+      last = m.index + m[0].length;
+      if(!m[0].length) re.lastIndex++;
+    }
+    if(!found) return;
+    if(last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+    node.parentNode.replaceChild(frag, node);
+  });
+  // Ouvre les sections repliées qui contiennent une occurrence
+  container.querySelectorAll('mark.search-hit').forEach(mk=>{
+    let d = mk.closest('details');
+    while(d){ d.open = true; d = d.parentElement ? d.parentElement.closest('details') : null; }
+  });
+}
+
+function refreshSearchHits(which){
+  const mode = which==='raw' ? rawViewMode : iaViewMode;
+  const q = currentSearchQuery();
+  if(mode === 'edit'){
+    updateHitOverlay(which);
+    return;
+  }
+  const ov = document.getElementById(which==='raw' ? 'rawHits' : 'iaHits');
+  if(ov){ ov.style.display = 'none'; ov.innerHTML = ''; }
+  const cid = which==='raw' ? (mode==='preview' ? 'rawPreview' : 'rawAccordionView')
+                            : (mode==='preview' ? 'iaPreview' : 'iaAccordionView');
+  const c = document.getElementById(cid);
+  if(c) highlightInContainer(c, q);
 }
 
 function renderTagsBar(){
@@ -2836,6 +2959,8 @@ function renderViewState(which){
   if(col) col.dataset.mode = mode;
   if(badge) badge.textContent = mode === 'edit' ? '✎ Édition' : (mode === 'preview' ? '👁 Lecture' : '📑 Accordéon');
 
+  const wrap = document.getElementById(which==='raw' ? 'rawWrap' : 'iaWrap');
+  if(wrap) wrap.style.display = mode === 'edit' ? '' : 'none';
   area.style.display = mode === 'edit' ? '' : 'none';
   prev.style.display = mode === 'preview' ? 'block' : 'none';
   acc.style.display = mode === 'accordion' ? 'block' : 'none';
@@ -2852,6 +2977,8 @@ function renderViewState(which){
     wireCheckboxes(acc, which);
     wireImages(acc);
   }
+
+  refreshSearchHits(which);
 
   if(previewBtn) previewBtn.textContent = mode === 'preview' ? '✎ Éditer' : '👁 Aperçu';
   if(accordionBtn) accordionBtn.textContent = mode === 'accordion' ? '✎ Éditer' : '📑 Accordéon';
@@ -3451,6 +3578,12 @@ function handleAreaPaste(e){
   const file = imageItem.getAsFile();
   if(file) insertImageFile(file, which);
 }
+['raw','ia'].forEach(which=>{
+  const area = document.getElementById(which==='raw' ? 'rawArea' : 'iaArea');
+  area.addEventListener('scroll', ()=> syncHitOverlay(which));
+  if(window.ResizeObserver) new ResizeObserver(()=> syncHitOverlay(which)).observe(area);
+});
+window.addEventListener('resize', ()=>{ syncHitOverlay('raw'); syncHitOverlay('ia'); });
 document.getElementById('rawArea').addEventListener('paste', handleAreaPaste);
 document.getElementById('iaArea').addEventListener('paste', handleAreaPaste);
 
