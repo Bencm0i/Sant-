@@ -473,7 +473,7 @@ textarea.note-area::placeholder{color:#b0a695;}
 
 /* SURBRILLANCE DES MOTS CHERCHÉS (recherche d'onglets) */
 .area-wrap{position:relative;flex:1;display:flex;flex-direction:column;min-height:0;}
-.hit-overlay{
+.hit-overlay,.hl-overlay{
   display:none;position:absolute;top:0;left:0;pointer-events:none;overflow:hidden;
   font-family:'IBM Plex Mono',monospace;font-size:0.86rem;line-height:1.65;
   padding:18px 20px;white-space:pre-wrap;overflow-wrap:break-word;word-wrap:break-word;
@@ -707,6 +707,29 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
   .search-wrap{min-width:120px;}
   .header-actions .btn{padding:6px 8px;font-size:0.68rem;}
 }
+
+/* SURLIGNAGE (2 colonnes) */
+:root{ --hl-jaune:#f7e27a; --hl-vert:#bfe6b8; --hl-rose:#f6bccb; --hl-bleu:#b7d7f0; }
+mark.hl{color:inherit;border-radius:3px;padding:0 .12em;-webkit-box-decoration-break:clone;box-decoration-break:clone;}
+mark.hl.hl-jaune{background:var(--hl-jaune);}
+mark.hl.hl-vert{background:var(--hl-vert);}
+mark.hl.hl-rose{background:var(--hl-rose);}
+mark.hl.hl-bleu{background:var(--hl-bleu);}
+.hl-overlay mark{border-radius:2px;}
+.hl-overlay mark.hl-jaune{background:var(--hl-jaune);}
+.hl-overlay mark.hl-vert{background:var(--hl-vert);}
+.hl-overlay mark.hl-rose{background:var(--hl-rose);}
+.hl-overlay mark.hl-bleu{background:var(--hl-bleu);}
+.hl-group{display:inline-flex;align-items:center;gap:4px;margin-left:6px;padding-left:10px;border-left:1.5px solid var(--line);}
+.hl-label{font-size:0.85rem;line-height:1;}
+.md-btn.hl-swatch{width:26px;}
+.hl-dot{width:14px;height:14px;border-radius:50%;border:1.5px solid rgba(43,38,32,0.28);display:block;}
+.hl-toast{
+  display:none;position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:90;
+  background:var(--ink);color:#fff;font-family:'Inter',sans-serif;font-size:0.78rem;font-weight:600;
+  padding:9px 16px;border-radius:8px;box-shadow:var(--shadow);max-width:90vw;text-align:center;
+}
+
 </style>
 </head>
 <body>
@@ -773,6 +796,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
       <li><code>Ctrl+I</code><span>Italique</span></li>
       <li><code>Ctrl+F</code><span>Rechercher / remplacer dans la colonne active</span></li>
       <li><code>Tab</code> / <code>Shift+Tab</code><span>Indenter / désindenter</span></li>
+      <li><code>==texte==</code><span>Surlignage (aussi <code>=={vert}</code>, <code>{rose}</code>, <code>{bleu}</code>) — boutons 🖍 de la barre</span></li>
       <li><code>Ctrl+clic</code><span>Suivre/créer un <code>[[lien]]</code></span></li>
       <li><code>?</code><span>Afficher cette aide</span></li>
     </ul>
@@ -943,9 +967,18 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
       <button class="md-btn" onclick="document.getElementById('rawImageInput').click()" title="Insérer une image (ou colle-la directement avec Ctrl+V)">🖼</button>
       <input type="file" id="rawImageInput" accept="image/*" style="display:none;" onchange="onImageFileSelected(event,'raw')">
       <button class="md-btn" onclick="openDrawModal('raw')" title="Ouvrir l'atelier de dessin et insérer un croquis">✏️</button>
+      <span class="hl-group" title="Surligner la sélection (re-clic sur la même couleur = retirer)">
+        <span class="hl-label">🖍</span>
+        <button class="md-btn hl-swatch" onmousedown="event.preventDefault()" onclick="hlApply('raw','jaune')" title="Surligner en jaune"><span class="hl-dot" style="background:var(--hl-jaune)"></span></button>
+        <button class="md-btn hl-swatch" onmousedown="event.preventDefault()" onclick="hlApply('raw','vert')" title="Surligner en vert"><span class="hl-dot" style="background:var(--hl-vert)"></span></button>
+        <button class="md-btn hl-swatch" onmousedown="event.preventDefault()" onclick="hlApply('raw','rose')" title="Surligner en rose"><span class="hl-dot" style="background:var(--hl-rose)"></span></button>
+        <button class="md-btn hl-swatch" onmousedown="event.preventDefault()" onclick="hlApply('raw','bleu')" title="Surligner en bleu"><span class="hl-dot" style="background:var(--hl-bleu)"></span></button>
+        <button class="md-btn hl-swatch" onmousedown="event.preventDefault()" onclick="hlApply('raw',null)" title="Retirer le surlignage">⌫</button>
+      </span>
     </div>
     <div class="area-wrap" id="rawWrap">
       <textarea class="note-area" id="rawArea" placeholder="Écris ton texte brut ici… (markdown supporté)" oninput="onEdit('raw')"></textarea>
+      <div class="hl-overlay" id="rawHl" aria-hidden="true"></div>
       <div class="hit-overlay" id="rawHits" aria-hidden="true"></div>
     </div>
     <div class="note-preview" id="rawPreview" style="display:none;"></div>
@@ -990,9 +1023,18 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
       <button class="md-btn" onclick="document.getElementById('iaImageInput').click()" title="Insérer une image (ou colle-la directement avec Ctrl+V)">🖼</button>
       <input type="file" id="iaImageInput" accept="image/*" style="display:none;" onchange="onImageFileSelected(event,'ia')">
       <button class="md-btn" onclick="openDrawModal('ia')" title="Ouvrir l'atelier de dessin et insérer un croquis">✏️</button>
+      <span class="hl-group" title="Surligner la sélection (re-clic sur la même couleur = retirer)">
+        <span class="hl-label">🖍</span>
+        <button class="md-btn hl-swatch" onmousedown="event.preventDefault()" onclick="hlApply('ia','jaune')" title="Surligner en jaune"><span class="hl-dot" style="background:var(--hl-jaune)"></span></button>
+        <button class="md-btn hl-swatch" onmousedown="event.preventDefault()" onclick="hlApply('ia','vert')" title="Surligner en vert"><span class="hl-dot" style="background:var(--hl-vert)"></span></button>
+        <button class="md-btn hl-swatch" onmousedown="event.preventDefault()" onclick="hlApply('ia','rose')" title="Surligner en rose"><span class="hl-dot" style="background:var(--hl-rose)"></span></button>
+        <button class="md-btn hl-swatch" onmousedown="event.preventDefault()" onclick="hlApply('ia','bleu')" title="Surligner en bleu"><span class="hl-dot" style="background:var(--hl-bleu)"></span></button>
+        <button class="md-btn hl-swatch" onmousedown="event.preventDefault()" onclick="hlApply('ia',null)" title="Retirer le surlignage">⌫</button>
+      </span>
     </div>
     <div class="area-wrap" id="iaWrap">
       <textarea class="note-area" id="iaArea" placeholder="Colle ici le texte retravaillé par une IA… (markdown supporté)" oninput="onEdit('ia')"></textarea>
+      <div class="hl-overlay" id="iaHl" aria-hidden="true"></div>
       <div class="hit-overlay" id="iaHits" aria-hidden="true"></div>
     </div>
     <div class="note-preview" id="iaPreview" style="display:none;"></div>
@@ -1020,6 +1062,269 @@ let saveTimer = null;
 let selectedTagKey = null;
 let rawViewMode = 'edit'; // 'edit' | 'preview' | 'accordion'
 let iaViewMode = 'edit';
+
+// ── SURLIGNAGE (2 colonnes) ──────────────────────────────────────────────────
+// Syntaxe dans le texte : ==texte== (jaune) ou =={vert}texte== / =={rose}texte== / =={bleu}texte==.
+// Édition : un calque coloré est posé sur le textarea. Aperçu/accordéon : rendu en <mark>.
+// En aperçu, la sélection est retrouvée dans le texte source puis entourée de ==…==.
+const HL_COLORS = ['jaune','vert','rose','bleu'];
+const HL_RE_SRC = '==(?:\\{(jaune|vert|rose|bleu)\\})?(?=\\S)([^\\n]*?\\S)==(?!=)';
+const HL_MARKERS = '\\*\\*|__|\\*|_|~~|`|==(?:\\{(?:jaune|vert|rose|bleu)\\})?|\\[|\\]';
+
+// Repère tous les surlignages du texte (hors blocs de code et code inline), sur une seule ligne chacun.
+function findHighlights(text){
+  const out = [];
+  if(!text || text.indexOf('==') < 0) return out;
+  let inFence = false, pos = 0;
+  const lines = text.split('\n');
+  for(let li = 0; li < lines.length; li++){
+    const line = lines[li];
+    const lineStart = pos;
+    pos += line.length + 1;
+    if(/^\s*(```|~~~)/.test(line)){ inFence = !inFence; continue; }
+    if(inFence || line.indexOf('==') < 0 || /^\s*=+\s*$/.test(line)) continue; // ligne « ==== » = soulignement de titre
+    let off = 0;
+    const parts = line.split(/(`[^`\n]*`)/);
+    for(let i = 0; i < parts.length; i++){
+      const seg = parts[i];
+      if(i % 2 === 0 && seg.indexOf('==') >= 0){
+        const re = new RegExp(HL_RE_SRC, 'g');
+        let m;
+        while((m = re.exec(seg))){
+          const start = lineStart + off + m.index;
+          const end = start + m[0].length;
+          const open = 2 + (m[1] ? m[1].length + 2 : 0);
+          out.push({ start, end, innerStart: start + open, innerEnd: end - 2, color: m[1] || 'jaune' });
+        }
+      }
+      off += seg.length;
+    }
+  }
+  return out;
+}
+
+// Pour le rendu markdown : ==texte== → <mark class="hl hl-couleur">texte</mark>
+function applyHighlightMarkup(text){
+  const hs = findHighlights(text);
+  if(!hs.length) return text;
+  let out = '', last = 0;
+  hs.forEach(h=>{
+    out += text.slice(last, h.start) + '<mark class="hl hl-' + h.color + '">' + text.slice(h.innerStart, h.innerEnd) + '</mark>';
+    last = h.end;
+  });
+  return out + text.slice(last);
+}
+
+function hlOpenTag(color){ return color === 'jaune' ? '==' : '=={' + color + '}'; }
+
+// Retire les marqueurs des surlignages `list` ; renvoie le nouveau texte et une fonction de conversion des positions.
+function hlUnwrap(text, list){
+  let out = '', last = 0;
+  list.forEach(h=>{ out += text.slice(last, h.start) + text.slice(h.innerStart, h.innerEnd); last = h.end; });
+  out += text.slice(last);
+  const map = p => {
+    let q = p;
+    list.forEach(h=>{
+      const open = h.innerStart - h.start, close = h.end - h.innerEnd;
+      if(p >= h.end) q -= open + close;
+      else if(p > h.innerEnd) q -= open + (p - h.innerEnd);
+      else if(p > h.innerStart) q -= open;
+      else if(p > h.start) q -= (p - h.start);
+    });
+    return q;
+  };
+  return { text: out, map };
+}
+
+// Entoure [s,e[ de ==…==, ligne par ligne (un surlignage ne traverse pas les retours à la ligne),
+// en laissant dehors les puces, numéros, titres, citations et cases à cocher en début de ligne.
+function hlWrapRange(text, s, e, color){
+  const tag = hlOpenTag(color);
+  const PREFIX = /^\s*(?:>\s*)*(?:[-*+]\s+(?:\[[ xX]\]\s+)?|\d+[.)]\s+|#{1,6}\s+)?/;
+  let out = text.slice(0, s), firstStart = -1, lastEnd = s, pos = s;
+  const segs = text.slice(s, e).split('\n');
+  segs.forEach((seg, i)=>{
+    const absStart = pos; pos += seg.length + 1;
+    const atLineStart = absStart === 0 || text[absStart - 1] === '\n';
+    const lead = atLineStart ? seg.match(PREFIX)[0].length : seg.length - seg.replace(/^\s+/, '').length;
+    const core = seg.slice(lead).replace(/\s+$/, '');
+    if(!core){ out += seg; }
+    else {
+      const wrapStart = out.length + lead;
+      out += seg.slice(0, lead) + tag + core + '==' + seg.slice(lead + core.length);
+      if(firstStart < 0) firstStart = wrapStart;
+      lastEnd = wrapStart + tag.length + core.length + 2;
+    }
+    if(i < segs.length - 1) out += '\n';
+  });
+  out += text.slice(e);
+  if(firstStart < 0) return { text, s, e };
+  return { text: out, s: firstStart, e: lastEnd };
+}
+
+// Cœur de l'outil. color = 'jaune'|'vert'|'rose'|'bleu' pour surligner, null pour retirer le surlignage.
+//  · sélection contenue dans un surlignage : même couleur → on le retire ; autre couleur → il change de couleur ;
+//  · sinon : les surlignages touchés sont fusionnés dans la nouvelle sélection.
+function hlTransform(text, s, e, color){
+  const hs = findHighlights(text);
+  const over = hs.filter(h => (s === e) ? (h.start <= s && s <= h.end) : (h.start < e && h.end > s));
+  if(over.length === 1 && s >= over[0].start && e <= over[0].end){
+    const h = over[0];
+    if(!color || h.color === color){
+      const u = hlUnwrap(text, [h]);
+      return { text: u.text, s: u.map(h.start), e: u.map(h.end) };
+    }
+    const tag = hlOpenTag(color);
+    const t2 = text.slice(0, h.start) + tag + text.slice(h.innerStart, h.innerEnd) + '==' + text.slice(h.end);
+    return { text: t2, s: h.start, e: h.start + tag.length + (h.innerEnd - h.innerStart) + 2 };
+  }
+  const u = hlUnwrap(text, over);
+  let ns = u.map(s), ne = u.map(e);
+  over.forEach(h=>{ ns = Math.min(ns, u.map(h.start)); ne = Math.max(ne, u.map(h.end)); });
+  if(!color) return { text: u.text, s: ns, e: ne };
+  return hlWrapRange(u.text, ns, ne, color);
+}
+
+function hlWordAt(text, pos){
+  const isW = ch => !!ch && /[\p{L}\p{N}_'’-]/u.test(ch);
+  let a = pos, b = pos;
+  while(a > 0 && isW(text[a - 1])) a--;
+  while(b < text.length && isW(text[b])) b++;
+  return a < b ? [a, b] : null;
+}
+
+function hlNotice(msg){
+  let t = document.getElementById('hlToast');
+  if(!t){ t = document.createElement('div'); t.id = 'hlToast'; t.className = 'hl-toast'; document.body.appendChild(t); }
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=>{ t.style.display = 'none'; }, 2600);
+}
+
+function hlApply(which, color){
+  if(!activeId) return;
+  const mode = which === 'raw' ? rawViewMode : iaViewMode;
+  if(mode === 'edit') hlApplyInArea(which, color);
+  else hlApplyFromPreview(which, color);
+}
+
+// Mode édition : on agit sur la sélection du textarea (ou le mot sous le curseur).
+function hlApplyInArea(which, color){
+  const area = document.getElementById(which === 'raw' ? 'rawArea' : 'iaArea');
+  const text = area.value;
+  let s = area.selectionStart, e = area.selectionEnd;
+  if(s === e){
+    const inHl = findHighlights(text).some(h => h.start <= s && s <= h.end);
+    if(!inHl){
+      const w = color ? hlWordAt(text, s) : null;
+      if(!w){ hlNotice(color ? 'Sélectionne du texte à surligner.' : 'Sélectionne un passage surligné à nettoyer.'); return; }
+      s = w[0]; e = w[1];
+    }
+  }
+  const r = hlTransform(text, s, e, color);
+  if(r.text === text){ hlNotice(color ? 'Sélectionne du texte à surligner.' : 'Aucun surlignage dans la sélection.'); return; }
+  const st = area.scrollTop;
+  area.value = r.text;
+  area.focus();
+  area.setSelectionRange(r.s, r.e);
+  area.scrollTop = st;
+  onEdit(which);
+  flash(which === 'raw' ? 'rawCol' : 'iaCol');
+}
+
+// Aperçu / accordéon : on retrouve dans le texte source les passages sélectionnés (la mise en forme
+// gras/italique/[[liens]] au milieu d'un passage est tolérée), puis on applique le surlignage.
+function hlPlainRe(piece){
+  return new RegExp(piece.split(/\s+/).map(escapeRegex).join('\\s+'), 'g');
+}
+function hlSourceRe(piece){
+  const word = w => w.split('').map(escapeRegex).join('(?:' + HL_MARKERS + ')*');
+  return new RegExp(piece.split(/\s+/).map(word).join('(?:\\s|' + HL_MARKERS + ')+'), 'g');
+}
+
+function hlApplyFromPreview(which, color){
+  const mode = which === 'raw' ? rawViewMode : iaViewMode;
+  const container = document.getElementById(which === 'raw' ? (mode === 'preview' ? 'rawPreview' : 'rawAccordionView')
+                                                              : (mode === 'preview' ? 'iaPreview' : 'iaAccordionView'));
+  const area = document.getElementById(which === 'raw' ? 'rawArea' : 'iaArea');
+  const sel = window.getSelection();
+  if(!sel || !sel.rangeCount || sel.isCollapsed){ hlNotice(color ? 'Sélectionne du texte à surligner.' : 'Sélectionne un passage surligné à nettoyer.'); return; }
+  const range = sel.getRangeAt(0);
+  if(!container || !container.contains(range.commonAncestorContainer)){ hlNotice('Sélectionne du texte dans cette colonne.'); return; }
+  const pieces = sel.toString().replace(/\u00a0/g, ' ').split(/\n+/).map(x => x.trim()).filter(Boolean);
+  if(!pieces.length || pieces.some(p => p.length > 3000)){ hlNotice('Sélection vide ou trop longue.'); return; }
+
+  // Combien de fois ce passage apparaît-il avant la sélection ? (pour viser la bonne occurrence)
+  const pre = document.createRange();
+  pre.selectNodeContents(container);
+  pre.setEnd(range.startContainer, range.startOffset);
+  const before = pre.toString().replace(/\u00a0/g, ' ');
+  const text = area.value;
+  const ranges = [];
+  let from = 0;
+  for(let i = 0; i < pieces.length; i++){
+    const re = hlSourceRe(pieces[i]);
+    let found = null, m;
+    if(i === 0){
+      const n = (before.match(hlPlainRe(pieces[0])) || []).length;
+      let k = 0;
+      while((m = re.exec(text))){
+        found = m;
+        if(k === n) break;
+        k++;
+        if(!m[0].length) re.lastIndex++;
+      }
+    } else {
+      re.lastIndex = from;
+      found = re.exec(text);
+    }
+    if(!found){ hlNotice('Passage introuvable dans le texte source : passe en mode édition.'); return; }
+    ranges.push([found.index, found.index + found[0].length]);
+    from = found.index + found[0].length;
+  }
+
+  let newText = text;
+  for(let i = ranges.length - 1; i >= 0; i--){
+    newText = hlTransform(newText, ranges[i][0], ranges[i][1], color).text;
+  }
+  if(newText === text){ hlNotice(color ? 'Rien à surligner ici.' : 'Aucun surlignage dans la sélection.'); return; }
+  const st = container.scrollTop;
+  area.value = newText;
+  onEdit(which);
+  renderViewState(which);
+  container.scrollTop = st;
+  sel.removeAllRanges();
+}
+
+// Calque coloré posé sur le textarea (mode édition), même principe que les mots cherchés.
+function updateHlOverlay(which){
+  const area = document.getElementById(which === 'raw' ? 'rawArea' : 'iaArea');
+  const ov = document.getElementById(which === 'raw' ? 'rawHl' : 'iaHl');
+  if(!area || !ov) return;
+  const text = area.value;
+  const hs = (text && area.style.display !== 'none') ? findHighlights(text) : [];
+  if(!hs.length){ ov.style.display = 'none'; ov.innerHTML = ''; return; }
+  let html = '', last = 0;
+  hs.forEach(h=>{
+    html += escapeHtml(text.slice(last, h.start)) + '<mark class="hl-' + h.color + '">' + escapeHtml(text.slice(h.start, h.end)) + '</mark>';
+    last = h.end;
+  });
+  ov.innerHTML = html + escapeHtml(text.slice(last)) + '\u200b';
+  ov.style.display = 'block';
+  syncHlOverlay(which);
+}
+
+function syncHlOverlay(which){
+  const area = document.getElementById(which === 'raw' ? 'rawArea' : 'iaArea');
+  const ov = document.getElementById(which === 'raw' ? 'rawHl' : 'iaHl');
+  if(!area || !ov || ov.style.display === 'none') return;
+  ov.style.width = area.clientWidth + 'px';
+  ov.style.height = area.clientHeight + 'px';
+  ov.scrollTop = area.scrollTop;
+}
+
+
 const MOBILE_COL_KEY = 'carnet_notes_mobile_col';
 let mobileActiveCol = localStorage.getItem(MOBILE_COL_KEY) || 'raw'; // 'raw' | 'ia' — colonne visible en dessous de 820px
 
@@ -2016,6 +2321,7 @@ function onEdit(which){
   updateCounts();
   renderContentTagsBar();
   updateHitOverlay(which);
+  updateHlOverlay(which);
   persist();
 }
 
@@ -2651,11 +2957,12 @@ function renderMarkdown(text){
     return '§§WIKILINK' + (links.length - 1) + '§§';
   });
 
-  const { preamble, blocks } = splitTagSections(withTokens);
+  const hlTokens = applyHighlightMarkup(withTokens);
+  const { preamble, blocks } = splitTagSections(hlTokens);
   let html = '';
   if(!blocks.length){
     // Aucune balise "#nom: description" utilisée : rendu classique, inchangé.
-    html = marked.parse(withTokens, { breaks:true, gfm:true });
+    html = marked.parse(hlTokens, { breaks:true, gfm:true });
   } else {
     if(preamble.trim()){
       html += marked.parse(preamble, { breaks:true, gfm:true });
@@ -3096,6 +3403,7 @@ function renderViewState(which){
   }
 
   refreshSearchHits(which);
+  updateHlOverlay(which);
 
   if(previewBtn) previewBtn.textContent = mode === 'preview' ? '✎ Éditer' : '👁 Aperçu';
   if(accordionBtn) accordionBtn.textContent = mode === 'accordion' ? '✎ Éditer' : '📑 Accordéon';
@@ -3701,10 +4009,10 @@ function handleAreaPaste(e){
 }
 ['raw','ia'].forEach(which=>{
   const area = document.getElementById(which==='raw' ? 'rawArea' : 'iaArea');
-  area.addEventListener('scroll', ()=> syncHitOverlay(which));
-  if(window.ResizeObserver) new ResizeObserver(()=> syncHitOverlay(which)).observe(area);
+  area.addEventListener('scroll', ()=>{ syncHitOverlay(which); syncHlOverlay(which); });
+  if(window.ResizeObserver) new ResizeObserver(()=>{ syncHitOverlay(which); syncHlOverlay(which); }).observe(area);
 });
-window.addEventListener('resize', ()=>{ syncHitOverlay('raw'); syncHitOverlay('ia'); });
+window.addEventListener('resize', ()=>{ syncHitOverlay('raw'); syncHitOverlay('ia'); syncHlOverlay('raw'); syncHlOverlay('ia'); });
 document.getElementById('rawArea').addEventListener('paste', handleAreaPaste);
 document.getElementById('iaArea').addEventListener('paste', handleAreaPaste);
 
