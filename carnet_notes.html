@@ -2439,7 +2439,8 @@ async function exportJSON(){
   const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'carnet_' + new Date().toISOString().slice(0,10) + '.json';
+  const ts = new Date().toISOString().slice(0,16).replace(':','h').replace('T','_');
+  a.download = 'carnet_' + ts + '.json';
   a.click();
   try{ localStorage.setItem(EXPORT_KEY, String(Date.now())); }catch(e){}
   checkBackupReminder();
