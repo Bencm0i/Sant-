@@ -2725,9 +2725,27 @@ function replaceAll(which){
   findInArea(which);
 }
 
+// Raccourcit l'affichage d'un chemin long : C:\…\dossier\fichier.pdf (le chemin complet reste copié)
+function shortenPath(path){
+  if(path.length <= 46) return path;
+  const sep = path.includes('\\') ? '\\' : '/';
+  const unc = path.startsWith('\\\\');
+  const parts = path.replace(/^\\\\/, '').split(/[\\/]/).filter(Boolean);
+  if(parts.length < 4) return path;
+  const head = unc ? '\\\\' + parts[0] : parts[0];
+  return head + sep + '…' + sep + parts.slice(-2).join(sep);
+}
+
 function addInlineCopyButtons(container){
   container.querySelectorAll('code').forEach(code=>{
     if(code.closest('pre')) return; // bloc de code multi-lignes, pas concerné
+    if(!code.dataset.fullPath && extractFilePath(code.textContent)){
+      const full = code.textContent;
+      const short = shortenPath(full);
+      code.dataset.fullPath = full;
+      if(short !== full){ code.textContent = short; }
+      code.title = full;
+    }
     const next = code.nextSibling;
     if(next && next.nodeType===1 && next.classList && next.classList.contains('inline-copy-btn')) return; // déjà fait
     const btn = document.createElement('button');
@@ -2738,7 +2756,7 @@ function addInlineCopyButtons(container){
     btn.addEventListener('click', (e)=>{
       e.preventDefault();
       e.stopPropagation();
-      copyTextToClipboard(code.textContent).then(()=>{
+      copyTextToClipboard(code.dataset.fullPath || code.textContent).then(()=>{
         btn.textContent = '✓';
         btn.classList.add('copied');
         setTimeout(()=>{ btn.textContent = '📋'; btn.classList.remove('copied'); }, 1200);
