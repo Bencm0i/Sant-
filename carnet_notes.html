@@ -443,13 +443,14 @@ input[type=file]{display:none;}
 textarea.note-area{
   flex:1;width:100%;border:none;outline:none;resize:none;
   font-family:'IBM Plex Mono',monospace;font-size:0.86rem;line-height:1.65;
-  padding:18px 20px;color:var(--ink);background:transparent;
-  transition:background-color .15s;
+  padding:18px 20px;color:var(--ink);background-color:#fffdf7;
+  box-shadow:inset 3px 0 0 var(--accent);caret-color:var(--accent);
+  transition:background-color .15s, box-shadow .15s;
 }
-textarea.note-area:focus{background-color:#fffceb;box-shadow:inset 0 0 0 2px var(--accent);}
+textarea.note-area:focus{background-color:#fffceb;box-shadow:inset 3px 0 0 var(--accent), inset 0 0 0 2px var(--accent);}
 textarea.note-area::placeholder{color:#b0a695;}
 #rawArea{
-  background-color:var(--paper);
+  background-color:#fffdf7;
   background-image:
     repeating-linear-gradient(to bottom, rgba(47,93,98,0.10) 0, rgba(47,93,98,0.10) 1px, transparent 1px, transparent 8px),
     repeating-linear-gradient(to right,  rgba(47,93,98,0.10) 0, rgba(47,93,98,0.10) 1px, transparent 1px, transparent 8px),
@@ -470,6 +471,21 @@ textarea.note-area::placeholder{color:#b0a695;}
   color:var(--ink-soft);border-top:1.5px solid var(--line);flex-shrink:0;
 }
 mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
+
+/* INDICATEUR DE MODE (édition / lecture / accordéon) */
+.mode-badge{
+  font-family:'IBM Plex Mono',monospace;font-size:0.64rem;font-weight:600;letter-spacing:0.03em;
+  padding:2px 9px;border-radius:999px;border:1.5px solid var(--line);
+  color:var(--ink-soft);white-space:nowrap;transition:all .15s;
+}
+.text-col[data-mode="edit"] .mode-badge{
+  color:var(--accent);border-color:rgba(47,93,98,0.45);background:rgba(47,93,98,0.10);
+}
+.text-col[data-mode="edit"] .col-head{
+  background:rgba(47,93,98,0.06);border-bottom-color:rgba(47,93,98,0.35);
+}
+.md-toolbar{transition:opacity .15s;}
+.text-col:not([data-mode="edit"]) .md-toolbar{opacity:0.4;}
 
 /* MARKDOWN TOOLBAR */
 .md-toolbar{display:flex;gap:4px;padding:6px 16px;border-bottom:1.5px solid var(--line);flex-shrink:0;flex-wrap:wrap;}
@@ -818,7 +834,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
 
   <div class="text-col" id="rawCol">
     <div class="col-head">
-      <span class="col-label"><span class="active-dot" id="rawDot"></span><span id="rawLabel">Texte brut</span></span>
+      <span class="col-label"><span class="active-dot" id="rawDot"></span><span id="rawLabel">Texte brut</span><span class="mode-badge" id="rawModeBadge"></span></span>
       <div class="col-tools">
         <button id="rawFindBtn" onclick="toggleFindBar('raw')" title="Rechercher / remplacer dans ce texte">🔍 Chercher</button>
         <button id="rawPreviewBtn" onclick="togglePreview('raw')" title="Basculer entre édition et aperçu markdown">👁 Aperçu</button>
@@ -878,7 +894,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
 
   <div class="text-col" id="iaCol">
     <div class="col-head">
-      <span class="col-label"><span class="active-dot" id="iaDot"></span>Retravaillé (IA)</span>
+      <span class="col-label"><span class="active-dot" id="iaDot"></span>Retravaillé (IA)<span class="mode-badge" id="iaModeBadge"></span></span>
       <div class="col-tools">
         <button id="iaFindBtn" onclick="toggleFindBar('ia')" title="Rechercher / remplacer dans ce texte">🔍 Chercher</button>
         <button id="iaPreviewBtn" onclick="togglePreview('ia')" title="Basculer entre édition et aperçu markdown">👁 Aperçu</button>
@@ -2779,6 +2795,11 @@ function renderViewState(which){
   const previewBtn = document.getElementById(which==='raw' ? 'rawPreviewBtn' : 'iaPreviewBtn');
   const accordionBtn = document.getElementById(which==='raw' ? 'rawAccordionBtn' : 'iaAccordionBtn');
   const mode = which==='raw' ? rawViewMode : iaViewMode;
+
+  const col = document.getElementById(which==='raw' ? 'rawCol' : 'iaCol');
+  const badge = document.getElementById(which==='raw' ? 'rawModeBadge' : 'iaModeBadge');
+  if(col) col.dataset.mode = mode;
+  if(badge) badge.textContent = mode === 'edit' ? '✎ Édition' : (mode === 'preview' ? '👁 Lecture' : '📑 Accordéon');
 
   area.style.display = mode === 'edit' ? '' : 'none';
   prev.style.display = mode === 'preview' ? 'block' : 'none';
