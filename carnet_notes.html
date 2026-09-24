@@ -70,6 +70,8 @@ h1 .spine{width:9px;height:22px;border-radius:2px;background:var(--accent);displ
 }
 .btn:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-1px);box-shadow:var(--shadow);}
 .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+.btn.attn{background:#fbf1da;border-color:#c98a2c;color:#7a5a1f;}
+.btn:disabled{opacity:0.5;cursor:not-allowed;transform:none;box-shadow:none;}
 .btn.primary:hover{opacity:0.9;color:#fff;}
 input[type=file]{display:none;}
 
@@ -708,6 +710,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
       <button class="btn" onclick="toggleSidebar()" title="Afficher/masquer la liste des onglets (Alt+S)">☰ Onglets</button>
       <button class="btn" onclick="toggleHelp()" title="Raccourcis clavier (touche ?)">⌨</button>
       <button class="btn" onclick="toggleHistory()" title="Historique des sauvegardes automatiques">🕘 Historique</button>
+      <button class="btn" id="fileLinkBtn" onclick="toggleFilePanel()" title="Lier un fichier JSON : le carnet s'y enregistre automatiquement et s'en recharge à l'ouverture">🔗 Fichier JSON</button>
       <button class="btn" onclick="document.getElementById('importInput').click()">⬆ Importer JSON</button>
       <input type="file" id="importInput" accept=".json" onchange="importJSON(event)">
       <button class="btn primary" onclick="exportJSON()">⬇ Exporter JSON</button>
@@ -722,6 +725,11 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
   ⚠ Ça fait un moment que tu n'as pas exporté de sauvegarde — tout est en local sur cet appareil uniquement.
   <button class="link-hint-btn" onclick="exportJSON()">⬇ Exporter maintenant</button>
   <button class="backup-banner-dismiss" onclick="dismissBackupBanner()" title="Me le redemander plus tard">✕</button>
+</div>
+
+<div class="backup-banner" id="fileBanner" style="display:none;">
+  🔗 Fichier lié « <span id="fileBannerName"></span> » : autorisation à redonner pour le recharger et le tenir à jour.
+  <button class="link-hint-btn" onclick="fileResync()">🔄 Synchroniser</button>
 </div>
 
 <div class="mobile-col-toggle">
@@ -782,10 +790,25 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
   </div>
 </div>
 
+<div class="help-panel" id="filePanel" style="display:none;">
+  <div class="help-panel-inner">
+    <h2>Fichier JSON lié</h2>
+    <p class="help-panel-note" id="fileStatusLine" style="font-style:normal;margin-bottom:8px;"></p>
+    <p class="help-panel-note" style="margin-bottom:12px;">Le carnet s'enregistre automatiquement dans ce fichier (en plus du navigateur) et s'en recharge à l'ouverture s'il est plus récent. Chrome ou Edge requis ; le navigateur peut redemander l'autorisation d'accès au fichier d'une session à l'autre (un clic sur « Synchroniser »). Les images restent dans le navigateur : « Exporter JSON » les inclut.</p>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;">
+      <button class="btn" id="fileCreateBtn" onclick="fileCreateLink()">📄 Créer un fichier avec le carnet actuel…</button>
+      <button class="btn" id="fileOpenBtn" onclick="fileOpenLink()">📂 Choisir un fichier existant…</button>
+      <button class="btn" id="fileSyncBtn" onclick="fileResync()">🔄 Synchroniser maintenant</button>
+      <button class="btn" id="fileUnlinkBtn" onclick="fileUnlink()">✕ Délier le fichier</button>
+    </div>
+    <button class="btn primary" onclick="toggleFilePanel()">Fermer</button>
+  </div>
+</div>
+
 <div class="help-panel" id="storagePanel" style="display:none;">
   <div class="help-panel-inner storage-panel-inner">
     <h2>Mémoire de sauvegarde</h2>
-    <p class="help-panel-note" style="margin-bottom:10px;">Tout est stocké en local dans ce navigateur, sur cet appareil uniquement — rien n'est envoyé ailleurs. Le carnet (notes, historique, tags) utilise le localStorage, limité (souvent ≈5 Mo par site). Les images, elles, sont stockées à part dans IndexedDB, avec un quota bien plus large — elles n'entament donc pas la barre ci-dessous.</p>
+    <p class="help-panel-note" style="margin-bottom:10px;">Tout est stocké en local dans ce navigateur, sur cet appareil uniquement — rien n'est envoyé ailleurs. Le carnet et son historique sont stockés dans IndexedDB (quota très large) ; la barre ci-dessous ne mesure plus que le localStorage (tags, préférences d'affichage), limité à ≈5 Mo. Les images sont aussi dans IndexedDB.</p>
     <div class="storage-total-line"><span id="storageTotalLabel">…</span><span id="storageTotalPct"></span></div>
     <div class="storage-bar-track"><div class="storage-bar-fill" id="storageBarFill" style="width:0%;"></div></div>
     <ul class="storage-breakdown" id="storageBreakdown"></ul>
@@ -995,6 +1018,7 @@ function loadTags(){
 
 function saveTags(){
   try{ localStorage.setItem(TAGS_KEY, JSON.stringify(TAGS)); }catch(e){}
+  scheduleFileSync();
   updateStorageBadge();
 }
 
@@ -1027,18 +1051,20 @@ function persist(){
   clearTimeout(saveTimer);
   const status = document.getElementById('saveStatus');
   if(status) status.textContent = '● modifications…';
-  saveTimer = setTimeout(()=>{
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  saveTimer = setTimeout(async ()=>{
+    saveTimer = null;
+    const ok = await saveStateStore();
     try{
       if(activeId) localStorage.setItem(ACTIVE_KEY, activeId);
       else localStorage.removeItem(ACTIVE_KEY);
     }catch(e){}
     snapshotHistory('auto');
     if(status){
-      status.textContent = '✓ enregistré';
+      status.textContent = ok ? '✓ enregistré' : '⚠ non enregistré — stockage plein';
       clearTimeout(status._fadeTimer);
-      status._fadeTimer = setTimeout(()=>{ status.textContent = ''; }, 1500);
+      if(ok) status._fadeTimer = setTimeout(()=>{ status.textContent = ''; }, 1500);
     }
+    scheduleFileSync();
     updateStorageBadge();
     updateTasksBadge();
   }, 250);
@@ -1153,20 +1179,17 @@ const HISTORY_KEY = 'carnet_notes_history';
 const HISTORY_MAX = 25;
 const HISTORY_MIN_GAP_MS = 3 * 60 * 1000; // au moins 3 min entre deux snapshots automatiques
 
+// L'historique vit dans IndexedDB (cache mémoire `historyCache`, chargé au démarrage).
 function loadHistory(){
-  try{
-    const raw = localStorage.getItem(HISTORY_KEY);
-    return raw ? JSON.parse(raw) : [];
-  }catch(e){ return []; }
+  return historyCache;
 }
 
 function saveHistoryList(list){
-  try{
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
-  }catch(e){
-    // Quota localStorage dépassé : on réduit l'historique et on retente
+  historyCache = list;
+  kvSet('history', list).catch(()=>{
+    // IndexedDB indisponible : repli sur un historique réduit dans le localStorage
     try{ localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(-8))); }catch(e2){}
-  }
+  });
   updateStorageBadge();
 }
 
@@ -1254,7 +1277,19 @@ function restoreHistorySnapshotTabOnly(ts){
 window.addEventListener('beforeunload', ()=>{
   if(saveTimer){
     clearTimeout(saveTimer);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    saveTimer = null;
+    // Copie de secours synchrone (l'écriture IndexedDB est asynchrone) : reprise au prochain démarrage si besoin
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(LS_TS_KEY, String(Date.now()));
+    }catch(e){}
+    saveStateStore();
+  }
+});
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'hidden' && fileSyncTimer){
+    clearTimeout(fileSyncTimer); fileSyncTimer = null;
+    writeLinkedFile();
   }
 });
 
@@ -2417,6 +2452,7 @@ async function exportJSON(){
 function checkBackupReminder(){
   const banner = document.getElementById('backupBanner');
   if(!banner) return;
+  if(fileHandle && fileSyncState === 'ok'){ banner.style.display = 'none'; return; }
   const last = Number(localStorage.getItem(EXPORT_KEY) || 0);
   const dismissed = Number(localStorage.getItem(BACKUP_DISMISS_KEY) || 0);
   const now = Date.now();
@@ -3121,8 +3157,12 @@ function openImageDB(){
   if(idbPromise) return idbPromise;
   idbPromise = new Promise((resolve, reject)=>{
     if(!window.indexedDB){ reject(new Error('IndexedDB indisponible sur ce navigateur')); return; }
-    const req = indexedDB.open(IDB_NAME, 1);
-    req.onupgradeneeded = ()=>{ req.result.createObjectStore(IDB_STORE); };
+    const req = indexedDB.open(IDB_NAME, 2);
+    req.onupgradeneeded = ()=>{
+      const db = req.result;
+      if(!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE);
+      if(!db.objectStoreNames.contains(KV_STORE)) db.createObjectStore(KV_STORE); // carnet, historique, fichier lié
+    };
     req.onsuccess = ()=> resolve(req.result);
     req.onerror = ()=> reject(req.error || new Error('ouverture IndexedDB échouée'));
   });
@@ -3674,7 +3714,8 @@ async function migrateInlineImagesToIDB(){
     }
   }
   if(changed){
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    await saveStateStore();
+    scheduleFileSync();
     if(activeId){ renderColumns(); }
     renderTabs();
     updateStorageBadge();
@@ -3886,21 +3927,338 @@ function initColResizer(){
   });
 }
 
+// ── STOCKAGE PRINCIPAL : IndexedDB + FICHIER JSON LIÉ ───────────────────────
+// Le carnet et son historique ne vivent plus dans le localStorage (≈5 Mo, vite plein) mais
+// dans IndexedDB (quota très large). Un fichier JSON peut en plus être lié (Chrome/Edge) :
+// il est réécrit à chaque enregistrement et rechargé à l'ouverture s'il est plus récent
+// que la copie du navigateur.
+const KV_STORE = 'kv';
+const LS_TS_KEY = 'carnet_notes_ls_ts';
+const FILE_HANDLE_KEY = 'fileHandle';
+const FS_SUPPORTED = !!(window.showSaveFilePicker && window.showOpenFilePicker);
+const FILE_TYPES = [{ description:'Carnet JSON', accept:{ 'application/json':['.json'] } }];
+let idbStateOK = true;      // false : IndexedDB inutilisable → repli sur le localStorage
+let stateSavedAt = 0;
+let historyCache = [];
+let fileHandle = null;
+let fileSyncState = 'none'; // 'none' | 'ok' | 'pending' (autorisation à redonner) | 'error'
+let fileSyncTimer = null;
+let fileWriteChain = Promise.resolve();
+
+async function kvGet(key){
+  const db = await openImageDB();
+  return new Promise((resolve, reject)=>{
+    const tx = db.transaction(KV_STORE, 'readonly');
+    const req = tx.objectStore(KV_STORE).get(key);
+    req.onsuccess = ()=> resolve(req.result === undefined ? null : req.result);
+    req.onerror = ()=> reject(req.error);
+  });
+}
+async function kvSet(key, value){
+  const db = await openImageDB();
+  return new Promise((resolve, reject)=>{
+    const tx = db.transaction(KV_STORE, 'readwrite');
+    tx.objectStore(KV_STORE).put(value, key);
+    tx.oncomplete = ()=> resolve();
+    tx.onerror = ()=> reject(tx.error);
+    tx.onabort = ()=> reject(tx.error || new Error('écriture annulée'));
+  });
+}
+async function kvDelete(key){
+  const db = await openImageDB();
+  return new Promise((resolve, reject)=>{
+    const tx = db.transaction(KV_STORE, 'readwrite');
+    tx.objectStore(KV_STORE).delete(key);
+    tx.oncomplete = ()=> resolve();
+    tx.onerror = ()=> reject(tx.error);
+  });
+}
+
+async function saveStateStore(ts){
+  const savedAt = ts || Date.now();
+  if(idbStateOK){
+    try{
+      await kvSet('state', { savedAt, state });
+      stateSavedAt = savedAt;
+      return true;
+    }catch(e){ idbStateOK = false; }
+  }
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(LS_TS_KEY, String(savedAt));
+    stateSavedAt = savedAt;
+    return true;
+  }catch(e){ return false; }
+}
+
+function isValidState(d){ return !!(d && d.tabs && d.order && Array.isArray(d.order)); }
+
+async function loadStoredState(){
+  let idbRec = null, hist = null;
+  try{
+    idbRec = await kvGet('state');
+    hist = await kvGet('history');
+    fileHandle = await kvGet(FILE_HANDLE_KEY);
+  }catch(e){ idbStateOK = false; }
+
+  // localStorage : ancienne version de la page, ou copie de secours écrite à la fermeture
+  let lsState = null;
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){ const d = JSON.parse(raw); if(isValidState(d)) lsState = d; }
+  }catch(e){}
+  const lsTs = Number(localStorage.getItem(LS_TS_KEY) || 0);
+
+  let chosen = null, chosenTs = 0;
+  if(idbRec && isValidState(idbRec.state)){ chosen = idbRec.state; chosenTs = idbRec.savedAt || 0; }
+  if(lsState && (!chosen || lsTs > chosenTs)){ chosen = lsState; chosenTs = lsTs || Date.now(); }
+
+  if(chosen){
+    state = chosen;
+    ensureBrouillon();
+  } else {
+    const id = uid();
+    state = { order:[id], tabs:{ [id]: { name:'Notes', color:PALETTE[0], raw:'', ia:'', parentId:null } } };
+    ensureBrouillon();
+  }
+  stateSavedAt = chosenTs;
+
+  if(Array.isArray(hist)) historyCache = hist;
+  else {
+    try{ const raw = localStorage.getItem(HISTORY_KEY); historyCache = raw ? JSON.parse(raw) : []; }
+    catch(e){ historyCache = []; }
+  }
+
+  // Migration localStorage → IndexedDB (libère le quota du localStorage)
+  if(idbStateOK && (lsState || !idbRec || !Array.isArray(hist))){
+    try{
+      if(!stateSavedAt) stateSavedAt = Date.now();
+      await kvSet('state', { savedAt: stateSavedAt, state });
+      await kvSet('history', historyCache);
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(LS_TS_KEY);
+      localStorage.removeItem(HISTORY_KEY);
+    }catch(e){ idbStateOK = false; }
+  }
+
+  fileSyncState = fileHandle ? 'pending' : 'none';
+}
+
+// ── FICHIER JSON LIÉ ────────────────────────────────────────────────────────
+async function fsPermission(handle, request){
+  const opts = { mode:'readwrite' };
+  try{
+    if((await handle.queryPermission(opts)) === 'granted') return true;
+    if(request && (await handle.requestPermission(opts)) === 'granted') return true;
+  }catch(e){}
+  return false;
+}
+
+function buildFilePayload(){
+  return JSON.stringify({ type:'carnet_notes', v:1, savedAt: stateSavedAt || Date.now(), state, tags: TAGS }, null, 1);
+}
+
+function writeLinkedFile(){
+  if(!fileHandle || fileSyncState !== 'ok') return Promise.resolve();
+  fileWriteChain = fileWriteChain.then(async ()=>{
+    try{
+      const w = await fileHandle.createWritable();
+      await w.write(buildFilePayload());
+      await w.close();
+    }catch(e){
+      fileSyncState = 'error';
+      updateFileButton();
+    }
+  });
+  return fileWriteChain;
+}
+
+function scheduleFileSync(){
+  if(!fileHandle || fileSyncState !== 'ok') return;
+  clearTimeout(fileSyncTimer);
+  fileSyncTimer = setTimeout(()=>{ fileSyncTimer = null; writeLinkedFile(); }, 1200);
+}
+
+function rerenderAll(){
+  activeId = (activeId && state.tabs[activeId]) ? activeId : (state.order[0] || null);
+  renderTabs();
+  renderColumns();
+  renderTagsBar();
+  updateStorageBadge();
+  updateTasksBadge();
+  checkBackupReminder();
+}
+
+// Compare le fichier lié et la copie du navigateur : le plus récent l'emporte
+// (l'autre version est gardée dans l'historique avant tout remplacement).
+async function syncWithLinkedFile(interactive){
+  if(!fileHandle) return;
+  const granted = await fsPermission(fileHandle, interactive);
+  if(!granted){
+    fileSyncState = 'pending';
+    updateFileButton();
+    return;
+  }
+  try{
+    const file = await fileHandle.getFile();
+    const text = await file.text();
+    let data = null;
+    if(text.trim()) data = JSON.parse(text);
+    const incoming = data ? (data.state || data) : null;
+    const fileTs = (data && data.savedAt) || 0;
+    if(data && !isValidState(incoming)) throw new Error('format invalide');
+    fileSyncState = 'ok';
+    if(incoming && fileTs > stateSavedAt){
+      snapshotHistory('avant chargement du fichier lié', true);
+      state = incoming;
+      ensureBrouillon();
+      if(Array.isArray(data.tags) && data.tags.length){
+        TAGS = data.tags;
+        try{ localStorage.setItem(TAGS_KEY, JSON.stringify(TAGS)); }catch(e){}
+      }
+      await saveStateStore(fileTs);
+      rerenderAll();
+      migrateInlineImagesToIDB();
+    } else if(!incoming || fileTs < stateSavedAt){
+      await writeLinkedFile();
+    }
+    updateFileButton();
+  }catch(e){
+    fileSyncState = 'error';
+    updateFileButton();
+    if(interactive) alert('❌ Fichier lié illisible : ' + e.message + '\nLe fichier n\'a pas été modifié.');
+  }
+}
+
+function updateFileButton(){
+  const btn = document.getElementById('fileLinkBtn');
+  if(!btn) return;
+  const name = fileHandle ? fileHandle.name : '';
+  btn.classList.remove('attn');
+  if(!fileHandle) btn.textContent = '🔗 Fichier JSON';
+  else if(fileSyncState === 'ok') btn.textContent = '🔗 ' + name + ' ✓';
+  else if(fileSyncState === 'pending'){ btn.textContent = '🔗 ' + name + ' — reconnecter'; btn.classList.add('attn'); }
+  else { btn.textContent = '🔗 ' + name + ' — erreur'; btn.classList.add('attn'); }
+  const banner = document.getElementById('fileBanner');
+  if(banner){
+    document.getElementById('fileBannerName').textContent = name;
+    banner.style.display = (fileHandle && fileSyncState === 'pending') ? 'flex' : 'none';
+  }
+  const panel = document.getElementById('filePanel');
+  if(panel && panel.style.display === 'flex') renderFilePanel();
+  checkBackupReminder();
+}
+
+function toggleFilePanel(){
+  const p = document.getElementById('filePanel');
+  const opening = p.style.display !== 'flex';
+  p.style.display = opening ? 'flex' : 'none';
+  if(opening) renderFilePanel();
+}
+document.getElementById('filePanel').addEventListener('click', (e)=>{
+  if(e.target.id === 'filePanel') toggleFilePanel();
+});
+
+function renderFilePanel(){
+  const line = document.getElementById('fileStatusLine');
+  const name = fileHandle ? fileHandle.name : '';
+  let msg;
+  if(!FS_SUPPORTED) msg = 'Ce navigateur ne permet pas de lier un fichier (Chrome ou Edge requis). Le carnet reste enregistré dans le navigateur (IndexedDB).';
+  else if(!fileHandle) msg = 'Aucun fichier lié.';
+  else if(fileSyncState === 'ok') msg = '✓ Lié à « ' + name + ' » — enregistrement automatique actif.';
+  else if(fileSyncState === 'pending') msg = '⚠ Lié à « ' + name + ' » — autorisation à redonner (Synchroniser).';
+  else msg = '⚠ Lié à « ' + name + ' » — dernière opération en erreur (fichier déplacé, supprimé ou verrouillé ?).';
+  line.textContent = msg;
+  document.getElementById('fileCreateBtn').disabled = !FS_SUPPORTED;
+  document.getElementById('fileOpenBtn').disabled = !FS_SUPPORTED;
+  document.getElementById('fileSyncBtn').style.display = fileHandle ? '' : 'none';
+  document.getElementById('fileUnlinkBtn').style.display = fileHandle ? '' : 'none';
+}
+
+async function fileCreateLink(){
+  if(!FS_SUPPORTED) return;
+  try{
+    const h = await window.showSaveFilePicker({ suggestedName:'carnet_notes.json', types: FILE_TYPES });
+    fileHandle = h;
+    await kvSet(FILE_HANDLE_KEY, h);
+    fileSyncState = 'ok';
+    await saveStateStore();
+    await writeLinkedFile();
+    updateFileButton();
+    if(fileSyncState === 'ok') alert('✅ Fichier lié : le carnet s\'enregistre maintenant aussi dans « ' + h.name + ' ».');
+  }catch(e){
+    if(e && e.name !== 'AbortError') alert('❌ Impossible de lier le fichier : ' + e.message);
+  }
+}
+
+async function fileOpenLink(){
+  if(!FS_SUPPORTED) return;
+  try{
+    const picked = await window.showOpenFilePicker({ types: FILE_TYPES, multiple:false });
+    const h = picked[0];
+    const file = await h.getFile();
+    const data = JSON.parse(await file.text());
+    const incoming = data.state || data;
+    if(!isValidState(incoming)) throw new Error('format invalide');
+    if(!confirm('Charger « ' + h.name + ' » et remplacer le carnet actuel ? (une version de sécurité est gardée dans l\'historique)')) return;
+    if(!(await fsPermission(h, true))) throw new Error('accès en écriture refusé');
+    snapshotHistory('avant liaison du fichier', true);
+    state = incoming;
+    ensureBrouillon();
+    activeId = state.order.find(id => id !== BROUILLON_ID) || state.order[0] || null;
+    if(Array.isArray(data.tags) && data.tags.length){
+      TAGS = data.tags;
+      try{ localStorage.setItem(TAGS_KEY, JSON.stringify(TAGS)); }catch(e){}
+    }
+    fileHandle = h;
+    await kvSet(FILE_HANDLE_KEY, h);
+    fileSyncState = 'ok';
+    await saveStateStore();
+    await writeLinkedFile();
+    rerenderAll();
+    migrateInlineImagesToIDB();
+    updateFileButton();
+    if(fileSyncState === 'ok') alert('✅ Fichier lié et chargé : « ' + h.name + ' ».');
+  }catch(e){
+    if(e && e.name !== 'AbortError') alert('❌ Impossible de charger ce fichier : ' + e.message);
+  }
+}
+
+async function fileResync(){
+  await syncWithLinkedFile(true);
+}
+
+async function fileUnlink(){
+  if(!fileHandle) return;
+  if(!confirm('Délier « ' + fileHandle.name + ' » ? Le fichier reste sur ton disque, tel quel ; le carnet continue d\'être enregistré dans le navigateur.')) return;
+  fileHandle = null;
+  fileSyncState = 'none';
+  clearTimeout(fileSyncTimer);
+  try{ await kvDelete(FILE_HANDLE_KEY); }catch(e){}
+  updateFileButton();
+}
+
 // INIT
-load();
-loadTags();
-restoreActiveId();
-applySavedSidebarState();
-applySavedTagsAccordionState();
-applyMobileColView();
-initColResizer();
-renderTabs();
-renderColumns();
-renderTagsBar();
-updateStorageBadge();
-updateTasksBadge();
-checkBackupReminder();
-migrateInlineImagesToIDB(); // convertit les images collées par une version antérieure (base64 inline → IndexedDB)
+async function initApp(){
+  try{ await loadStoredState(); }
+  catch(e){ console.error(e); idbStateOK = false; load(); }
+  loadTags();
+  restoreActiveId();
+  applySavedSidebarState();
+  applySavedTagsAccordionState();
+  applyMobileColView();
+  initColResizer();
+  renderTabs();
+  renderColumns();
+  renderTagsBar();
+  updateStorageBadge();
+  updateTasksBadge();
+  checkBackupReminder();
+  updateFileButton();
+  migrateInlineImagesToIDB(); // convertit les images collées par une version antérieure (base64 inline → IndexedDB)
+  if(fileHandle) syncWithLinkedFile(false); // recharge le fichier lié s'il est plus récent (si l'autorisation est encore valide)
+}
+initApp();
 </script>
 </body>
 </html>
