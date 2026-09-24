@@ -2383,10 +2383,27 @@ function splitTagSections(text){
   };
 }
 
+// ── CHEMINS DE FICHIERS ──────────────────────────────────────────────────────
+// Repère les chemins Windows (C:\..., \\serveur\partage\...) écrits « nus » dans le texte
+// et les met entre backticks pour que le markdown ne mange pas les \ et que le bouton 📋
+// apparaisse en aperçu. Ignore les blocs de code et le code inline déjà présents.
+function autoWrapPaths(text){
+  const TOKEN = /(^|\s)((?:[A-Za-z]:[\\/]|\\\\[^\\\s`]+\\)[^\s`<>"|*?]*[^\s`<>"|*?.,;:!)\]])/g;
+  let inFence = false;
+  return text.split('\n').map(line=>{
+    if(/^\s*(```|~~~)/.test(line)){ inFence = !inFence; return line; }
+    if(inFence) return line;
+    return line.split(/(`[^`\n]*`)/).map((seg,i)=>
+      i % 2 ? seg : seg.replace(TOKEN, (m, pre, path)=> pre + '`' + path + '`')
+    ).join('');
+  }).join('\n');
+}
+
 function renderMarkdown(text){
   if(!text || !text.trim()){
     return '<p style="opacity:.55;font-style:italic;">Rien à prévisualiser…</p>';
   }
+  text = autoWrapPaths(text);
   // Protège temporairement les [[liens]] pour que le parseur markdown ne les touche pas
   const links = [];
   const withTokens = text.replace(/\[\[([^\[\]]+)\]\]/g, (m, name)=>{
@@ -3375,6 +3392,29 @@ function insertDrawing(){
   }, 'image/png');
 }
 
+function extractFilePath(txt){
+  if(!txt) return null;
+  let t = txt.trim();
+  if(!t || t.includes('\n')) return null;
+  t = t.replace(/^["']+|["']+$/g, ''); // « Copier en tant que chemin » ajoute des guillemets
+  return /^(?:[A-Za-z]:[\\/]|\\\\[^\\\s]+\\)[^<>"|*?\t]+$/.test(t) ? t : null;
+}
+
+function insertPathWithDescription(area, which, path){
+  const label = 'descriptif';
+  const ins = '`' + path + '` — ' + label;
+  const s0 = area.selectionStart, e0 = area.selectionEnd;
+  area.focus();
+  let ok = false;
+  try{ ok = document.execCommand('insertText', false, ins); }catch(_){ ok = false; }
+  if(!ok){
+    area.setRangeText(ins, s0, e0, 'end');
+    onEdit(which);
+  }
+  const end = area.selectionEnd;
+  area.setSelectionRange(end - label.length, end); // « descriptif » sélectionné : il suffit de taper par-dessus
+}
+
 function handleAreaPaste(e){
   const areaId = e.target.id;
   const which = areaId === 'rawArea' ? 'raw' : 'ia';
@@ -3383,7 +3423,12 @@ function handleAreaPaste(e){
   for(const item of items){
     if(item.kind === 'file' && item.type && item.type.startsWith('image/')){ imageItem = item; break; }
   }
-  if(!imageItem) return; // texte normal : on laisse le comportement natif du navigateur
+  if(!imageItem){
+    // Chemin de fichier collé : mis entre backticks, suivi d'un descriptif à compléter
+    const path = extractFilePath(e.clipboardData ? e.clipboardData.getData('text') : '');
+    if(path){ e.preventDefault(); insertPathWithDescription(e.target, which, path); }
+    return; // texte normal : on laisse le comportement natif du navigateur
+  }
   e.preventDefault();
   const file = imageItem.getAsFile();
   if(file) insertImageFile(file, which);
