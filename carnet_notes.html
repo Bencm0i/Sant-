@@ -100,6 +100,25 @@ input[type=file]{display:none;}
   margin-left:auto;font-size:0.8rem;padding:0 2px;
 }
 .backup-banner-dismiss:hover{opacity:1;}
+.backup-banner-settings{
+  background:transparent;border:none;color:#7a5a1f;cursor:pointer;opacity:0.7;
+  margin-left:auto;font-size:0.85rem;padding:0 2px;
+}
+.backup-banner-settings:hover{opacity:1;}
+.backup-banner-settings + .backup-banner-dismiss{margin-left:0;}
+.backup-settings{
+  margin:14px 0;padding:12px 14px;border:1.5px solid var(--line);border-radius:var(--radius);
+  background:var(--paper-dim);display:flex;flex-direction:column;gap:9px;font-size:0.82rem;
+}
+.backup-settings-title{color:var(--ink);font-weight:600;}
+.backup-setting-row{display:flex;align-items:center;gap:8px;color:var(--ink);cursor:pointer;}
+.backup-setting-row input[type=checkbox]{accent-color:var(--accent);width:15px;height:15px;}
+.backup-setting-row input[type=number]{
+  width:68px;padding:4px 6px;border:1.5px solid var(--line);border-radius:6px;
+  font-family:'IBM Plex Mono',monospace;font-size:0.8rem;background:var(--paper);color:var(--ink);
+}
+.backup-setting-row input[type=number]:disabled{opacity:0.45;}
+.backup-settings .help-panel-note{margin-bottom:0;}
 
 .help-panel{
   position:fixed;inset:0;background:rgba(43,38,32,0.4);z-index:50;
@@ -722,8 +741,9 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
 <div class="breadcrumb-bar" id="breadcrumbBar" style="display:none;">↳ sous-onglet de <button class="breadcrumb-link" id="breadcrumbBtn" onclick="goToParent()" title="Retourner à l'onglet parent"></button></div>
 
 <div class="backup-banner" id="backupBanner" style="display:none;">
-  ⚠ Ça fait un moment que tu n'as pas exporté de sauvegarde — tout est en local sur cet appareil uniquement.
+  <span id="backupBannerText">⚠ Pense à sauvegarder — tout est en local sur cet appareil uniquement.</span>
   <button class="link-hint-btn" onclick="exportJSON()">⬇ Exporter maintenant</button>
+  <button class="backup-banner-settings" onclick="openBackupSettings()" title="Régler la fréquence du rappel">⚙</button>
   <button class="backup-banner-dismiss" onclick="dismissBackupBanner()" title="Me le redemander plus tard">✕</button>
 </div>
 
@@ -815,6 +835,12 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
     <div class="storage-images-block">
       <span class="storage-images-label">🖼 Images (stockage séparé)</span>
       <span id="storageImagesLine">…</span>
+    </div>
+    <div class="backup-settings">
+      <span class="backup-settings-title">⏰ Rappel de sauvegarde</span>
+      <label class="backup-setting-row"><input type="checkbox" id="backupReminderOn" onchange="onBackupSettingsChange()"> Me rappeler d'exporter une sauvegarde</label>
+      <label class="backup-setting-row">Toutes les <input type="number" id="backupIntervalInput" min="1" max="1440" step="1" onchange="onBackupSettingsChange()"> minutes</label>
+      <p class="help-panel-note">Le bandeau apparaît quand des modifications restent non exportées depuis ce délai, puis se répète à la même fréquence si tu le fermes. Il reste masqué tant qu'un fichier JSON lié est à jour.</p>
     </div>
     <button class="btn primary" onclick="toggleStoragePanel()">Fermer</button>
   </div>
@@ -981,8 +1007,11 @@ const SIDEBAR_KEY = 'carnet_notes_sidebar_collapsed';
 const ACTIVE_KEY = 'carnet_notes_active_id';
 const EXPORT_KEY = 'carnet_notes_last_export_ts';
 const BACKUP_DISMISS_KEY = 'carnet_notes_backup_dismiss_ts';
-const BACKUP_REMINDER_MS = 7 * 24 * 60 * 60 * 1000; // relance si aucun export depuis 7 jours
-const BACKUP_DISMISS_MS = 24 * 60 * 60 * 1000; // ré-affiche le bandeau 24h après un "plus tard"
+const BACKUP_ENABLED_KEY = 'carnet_notes_backup_reminder_on';
+const BACKUP_INTERVAL_KEY = 'carnet_notes_backup_reminder_min';
+const BACKUP_DEFAULT_MIN = 5;      // fréquence du rappel par défaut (minutes)
+const BACKUP_MAX_MIN = 1440;       // 24 h
+let backupDirtySince = 0;          // horodatage de la 1re modification non exportée (0 = rien à sauvegarder)
 const PALETTE = ['#2f5d62','#b5573f','#c98a2c','#6b4a6b','#5c6b3f','#45566b','#7a3b46','#3d5a73'];
 
 let state = { order: [], tabs: {} };
@@ -1048,6 +1077,7 @@ function load(){
 }
 
 function persist(){
+  if(!backupDirtySince) backupDirtySince = Date.now();
   clearTimeout(saveTimer);
   const status = document.getElementById('saveStatus');
   if(status) status.textContent = '● modifications…';
@@ -1130,7 +1160,7 @@ function toggleStoragePanel(){
   const panel = document.getElementById('storagePanel');
   const isHidden = panel.style.display === 'none';
   panel.style.display = isHidden ? 'flex' : 'none';
-  if(isHidden) renderStoragePanel();
+  if(isHidden){ renderStoragePanel(); syncBackupSettingsUI(); }
 }
 
 async function renderStoragePanel(){
@@ -2443,29 +2473,79 @@ async function exportJSON(){
   a.download = 'carnet_' + ts + '.json';
   a.click();
   try{ localStorage.setItem(EXPORT_KEY, String(Date.now())); }catch(e){}
+  backupDirtySince = 0;
   checkBackupReminder();
 }
 
 // ── RAPPEL DE SAUVEGARDE ─────────────────────────────────────────────────────
 // Tout est en local (localStorage/IndexedDB) : un vidage de cache ou un souci
-// navigateur peut tout emporter. Ce bandeau rappelle d'exporter un JSON de temps
-// en temps, sans bloquer le travail — "plus tard" le fait taire pendant 24h.
+// navigateur peut tout emporter. Ce bandeau rappelle d'exporter un JSON quand des
+// modifications restent non exportées depuis N minutes (réglable, 5 par défaut).
+// « ✕ » le fait taire pendant N minutes, puis il revient tant que rien n'est exporté.
+function getBackupIntervalMin(){
+  const n = Math.round(Number(localStorage.getItem(BACKUP_INTERVAL_KEY)));
+  return (n >= 1 && n <= BACKUP_MAX_MIN) ? n : BACKUP_DEFAULT_MIN;
+}
+
+function isBackupReminderOn(){
+  return localStorage.getItem(BACKUP_ENABLED_KEY) !== '0';
+}
+
 function checkBackupReminder(){
   const banner = document.getElementById('backupBanner');
   if(!banner) return;
-  if(fileHandle && fileSyncState === 'ok'){ banner.style.display = 'none'; return; }
-  const last = Number(localStorage.getItem(EXPORT_KEY) || 0);
-  const dismissed = Number(localStorage.getItem(BACKUP_DISMISS_KEY) || 0);
-  const now = Date.now();
-  const dueForReminder = (now - last) > BACKUP_REMINDER_MS;
-  const recentlyDismissed = (now - dismissed) < BACKUP_DISMISS_MS;
+  const hide = ()=>{ banner.style.display = 'none'; };
+  if(!isBackupReminderOn()) return hide();
+  if(fileHandle && fileSyncState === 'ok') return hide();
   const hasContent = state.order.some(id => state.tabs[id] && ((state.tabs[id].raw||'').trim() || (state.tabs[id].ia||'').trim()));
-  banner.style.display = (dueForReminder && !recentlyDismissed && hasContent) ? 'flex' : 'none';
+  if(!hasContent || !backupDirtySince) return hide();
+
+  const intervalMs = getBackupIntervalMin() * 60000;
+  const now = Date.now();
+  const dismissed = Number(localStorage.getItem(BACKUP_DISMISS_KEY) || 0);
+  const due = (now - backupDirtySince) >= intervalMs;
+  const snoozed = (now - dismissed) < intervalMs;
+  if(!due || snoozed) return hide();
+
+  const mins = Math.max(1, Math.floor((now - backupDirtySince) / 60000));
+  const txt = document.getElementById('backupBannerText');
+  if(txt) txt.textContent = '⚠ Pense à sauvegarder — modifications non exportées depuis ' + mins + ' min (rappel toutes les ' + getBackupIntervalMin() + ' min).';
+  banner.style.display = 'flex';
 }
 
 function dismissBackupBanner(){
   try{ localStorage.setItem(BACKUP_DISMISS_KEY, String(Date.now())); }catch(e){}
   checkBackupReminder();
+}
+
+function syncBackupSettingsUI(){
+  const on = document.getElementById('backupReminderOn');
+  const input = document.getElementById('backupIntervalInput');
+  if(!on || !input) return;
+  on.checked = isBackupReminderOn();
+  input.value = getBackupIntervalMin();
+  input.disabled = !on.checked;
+}
+
+function onBackupSettingsChange(){
+  const on = document.getElementById('backupReminderOn');
+  const input = document.getElementById('backupIntervalInput');
+  let n = Math.round(Number(input.value));
+  if(!(n >= 1)) n = BACKUP_DEFAULT_MIN;
+  if(n > BACKUP_MAX_MIN) n = BACKUP_MAX_MIN;
+  try{
+    localStorage.setItem(BACKUP_ENABLED_KEY, on.checked ? '1' : '0');
+    localStorage.setItem(BACKUP_INTERVAL_KEY, String(n));
+    localStorage.removeItem(BACKUP_DISMISS_KEY); // le nouveau réglage s'applique tout de suite
+  }catch(e){}
+  syncBackupSettingsUI();
+  checkBackupReminder();
+}
+
+function openBackupSettings(){
+  const panel = document.getElementById('storagePanel');
+  if(panel.style.display === 'none') toggleStoragePanel();
+  else syncBackupSettingsUI();
 }
 
 async function exportTabAsMarkdown(which){
@@ -4254,7 +4334,12 @@ async function initApp(){
   renderTagsBar();
   updateStorageBadge();
   updateTasksBadge();
+  // Au chargement : si le carnet a changé depuis le dernier export, le compteur repart d'ici
+  if(stateSavedAt > Number(localStorage.getItem(EXPORT_KEY) || 0)) backupDirtySince = Date.now();
+  syncBackupSettingsUI();
   checkBackupReminder();
+  setInterval(checkBackupReminder, 15000);
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) checkBackupReminder(); });
   updateFileButton();
   migrateInlineImagesToIDB(); // convertit les images collées par une version antérieure (base64 inline → IndexedDB)
   if(fileHandle) syncWithLinkedFile(false); // recharge le fichier lié s'il est plus récent (si l'autorisation est encore valide)
