@@ -22,6 +22,7 @@
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; }
   body {
+    position: relative;
     min-height: 100%;
     display: flex;
     flex-direction: column;
@@ -33,6 +34,21 @@
       radial-gradient(120% 90% at 50% -10%, #171b22 0%, var(--bg-1) 45%, var(--bg-0) 100%);
     background-attachment: fixed;
     overflow-x: hidden;
+    isolation: isolate;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.55;
+    background:
+      radial-gradient(38vw 38vw at 8% 12%, rgba(63,109,255,0.35), transparent 70%),
+      radial-gradient(42vw 42vw at 95% 10%, rgba(255,138,43,0.28), transparent 70%),
+      radial-gradient(46vw 46vw at 15% 100%, rgba(139,107,255,0.30), transparent 70%),
+      radial-gradient(40vw 40vw at 100% 95%, rgba(45,212,191,0.22), transparent 70%);
+    filter: blur(40px);
   }
 
   header {
@@ -123,7 +139,8 @@
     display: flex;
     align-items: stretch;
     height: clamp(120px, 16vh, 160px);
-    background: var(--panel);
+    background: rgba(18,21,27,0.72);
+    backdrop-filter: blur(6px);
     border: 1px solid var(--line);
     border-radius: 10px;
     text-decoration: none;
@@ -185,6 +202,7 @@
   .tile-rmc        { --accent: #f7a933; }
   .tile-jellyfin   { --accent: #8b6bff; }
   .tile-bookmarks  { --accent: #2dd4bf; }
+  .tile-guide      { --accent: #a3e635; }
 
   footer {
     margin-top: 3.5vh;
@@ -355,6 +373,15 @@
       <span class="ch-num">08</span>
       <span class="ch-name">Signets</span>
       <span class="ch-sub">Marque-pages</span>
+    </span>
+  </a>
+
+  <a class="tile tile-guide" href="https://www.programme-tv.net" target="_blank" rel="noopener">
+    <span class="bar"></span>
+    <span class="tile-body">
+      <span class="ch-num">09</span>
+      <span class="ch-name">Programme TV</span>
+      <span class="ch-sub">Grille des programmes</span>
     </span>
   </a>
 </main>
