@@ -212,6 +212,7 @@
   .tile-bookmarks  { --accent: #2dd4bf; }
   .tile-guide      { --accent: #a3e635; }
   .tile-screensaver{ --accent: #38bdf8; }
+  .tile-ha         { --accent: #60a5fa; }
 
   .tile-icon {
     position: absolute;
@@ -239,6 +240,7 @@
     color: var(--text-dim);
     font-size: 0.85rem;
   }
+
   .settings-btn {
     background: transparent;
     border: 1px solid var(--line);
@@ -446,6 +448,17 @@
       <span class="ch-sub">Valence</span>
     </span>
   </a>
+
+  <a class="tile tile-ha" href="http://192.168.50.234:8123/lovelace/0" target="_blank" rel="noopener">
+    <span class="bar"></span>
+    <svg class="tile-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/><line x1="10" y1="19" x2="10" y2="14" />
+    </svg>
+    <span class="tile-body">
+      <span class="ch-name">Home Assistant</span>
+      <span class="ch-sub">Domotique</span>
+    </span>
+  </a>
 </main>
 
 <footer>
@@ -564,6 +577,38 @@
 
   refreshWeather();
   setInterval(refreshWeather, 15 * 60 * 1000); // toutes les 15 minutes
+
+  // Navigation clavier (flèches) dans la grille de tuiles
+  function getColumnCount() {
+    const style = window.getComputedStyle(document.querySelector('.grid'));
+    return style.gridTemplateColumns.split(' ').filter(Boolean).length || 1;
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (dialog.open) return;
+    const active = document.activeElement;
+    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
+
+    const arrowKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+    if (!arrowKeys.includes(e.key)) return;
+
+    const tiles = Array.from(document.querySelectorAll('.tile'));
+    let idx = tiles.indexOf(active);
+    if (idx === -1) idx = 0;
+
+    const cols = getColumnCount();
+    let target = idx;
+
+    if (e.key === 'ArrowRight') target = idx + 1;
+    else if (e.key === 'ArrowLeft') target = idx - 1;
+    else if (e.key === 'ArrowDown') target = idx + cols;
+    else if (e.key === 'ArrowUp') target = idx - cols;
+
+    if (target >= 0 && target < tiles.length) {
+      e.preventDefault();
+      tiles[target].focus();
+    }
+  });
 
   // Raccourcis clavier : 1-9 puis 0 pour lancer les tuiles dans l'ordre
   document.addEventListener('keydown', (e) => {
