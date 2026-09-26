@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Guide TV</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-0: #05060a;
+    --bg-1: #0c0f14;
+    --panel: #12151b;
+    --text: #eef1f5;
+    --text-dim: #7d8590;
+    --line: #23272f;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 4.5vh 4.5vw;
+    color: var(--text);
+    font-family: "Inter", "Segoe UI", Arial, sans-serif;
+    background:
+      repeating-linear-gradient(180deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 3px),
+      radial-gradient(120% 90% at 50% -10%, #171b22 0%, var(--bg-1) 45%, var(--bg-0) 100%);
+    background-attachment: fixed;
+    overflow-x: hidden;
+  }
+
+  header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 4vh;
+    padding-bottom: 2vh;
+    border-bottom: 1px solid var(--line);
+  }
+  .title-block h1 {
+    font-family: "Space Grotesk", "Inter", sans-serif;
+    font-weight: 700;
+    font-size: clamp(1.7rem, 3.2vw, 2.6rem);
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .title-block p {
+    margin: 6px 0 0;
+    color: var(--text-dim);
+    font-size: clamp(0.85rem, 1.1vw, 0.95rem);
+  }
+  .clock {
+    font-family: "Space Grotesk", monospace;
+    font-size: clamp(1.6rem, 3vw, 2.3rem);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+    line-height: 1;
+  }
+  .clock span {
+    display: block;
+    text-align: right;
+    font-family: "Inter", sans-serif;
+    font-weight: 400;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-top: 4px;
+    text-transform: capitalize;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: flex-end;
+    gap: clamp(16px, 2.4vw, 30px);
+  }
+  .weather {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-right: clamp(16px, 2.4vw, 30px);
+    border-right: 1px solid var(--line);
+  }
+  .weather .icon {
+    font-size: clamp(1.8rem, 2.6vw, 2.3rem);
+    line-height: 1;
+  }
+  .weather .figures {
+    display: flex;
+    flex-direction: column;
+  }
+  .weather .temp {
+    font-family: "Space Grotesk", monospace;
+    font-weight: 700;
+    font-size: clamp(1.3rem, 2vw, 1.7rem);
+    line-height: 1.1;
+  }
+  .weather .place {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+  }
+  .weather .range {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: clamp(12px, 1.6vw, 20px);
+    flex: 1;
+  }
+
+  a.tile, button.tile {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    height: clamp(120px, 16vh, 160px);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    text-decoration: none;
+    color: var(--text);
+    font-family: inherit;
+    cursor: pointer;
+    overflow: hidden;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    outline: none;
+  }
+  a.tile:hover, a.tile:focus,
+  button.tile:hover, button.tile:focus {
+    transform: translateY(-3px);
+    border-color: var(--accent, #666);
+    box-shadow: 0 0 0 1px var(--accent, #666), 0 16px 32px -10px rgba(0,0,0,0.6), 0 0 28px -6px var(--accent, transparent);
+    z-index: 2;
+  }
+  .bar {
+    width: 6px;
+    background: var(--accent, #444);
+    flex-shrink: 0;
+  }
+  .tile-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 16px 18px;
+    min-width: 0;
+  }
+  .ch-num {
+    font-family: "Space Grotesk", monospace;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    letter-spacing: 0.02em;
+  }
+  .ch-name {
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: 700;
+    font-size: clamp(1.15rem, 1.7vw, 1.4rem);
+    line-height: 1.15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .ch-sub {
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .tile-lci        { --accent: #3f6dff; }
+  .tile-francetv   { --accent: #2f8fe0; }
+  .tile-arte       { --accent: #ff8a2b; }
+  .tile-franceinfo { --accent: #ef3b4a; }
+  .tile-youtube    { --accent: #ff3b3b; }
+  .tile-rmc        { --accent: #f7a933; }
+  .tile-jellyfin   { --accent: #8b6bff; }
+
+  footer {
+    margin-top: 3.5vh;
+    padding-top: 2vh;
+    border-top: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+  .settings-btn {
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--text-dim);
+    border-radius: 8px;
+    padding: 9px 16px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-family: inherit;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+  .settings-btn:focus, .settings-btn:hover {
+    color: var(--text);
+    border-color: #8b6bff;
+    outline: none;
+  }
+
+  dialog {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 26px;
+    width: min(90vw, 420px);
+  }
+  dialog::backdrop { background: rgba(0,0,0,0.65); }
+  dialog h2 {
+    margin: 0 0 4px;
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 1.15rem;
+  }
+  dialog p.hint { margin: 0 0 16px; color: var(--text-dim); font-size: 0.85rem; }
+  dialog label { display: block; margin: 10px 0 6px; font-size: 0.85rem; color: var(--text-dim); }
+  dialog input {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--bg-0);
+    color: var(--text);
+    font-size: 0.95rem;
+    font-family: inherit;
+  }
+  dialog input:focus { outline: none; border-color: #8b6bff; }
+  dialog .actions {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  dialog button {
+    padding: 9px 18px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-family: inherit;
+  }
+  dialog button.primary { background: #8b6bff; border-color: #8b6bff; color: #fff; }
+
+  @media (prefers-reduced-motion: reduce) {
+    a.tile, button.tile { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title-block">
+    <h1>Guide TV</h1>
+    <p>Sept chaînes, un seul point d'entrée</p>
+  </div>
+  <div class="header-right">
+    <div class="weather">
+      <span class="icon">🌙</span>
+      <div class="figures">
+        <span class="temp">10°</span>
+        <span class="place">Valence</span>
+        <span class="range">29° / 10° aujourd'hui</span>
+      </div>
+    </div>
+    <div class="clock" id="clockTime">00:00<span id="clockDate"></span></div>
+  </div>
+</header>
+
+<main class="grid">
+  <a class="tile tile-lci" href="https://www.tf1info.fr/direct/" target="_blank" rel="noopener">
+    <span class="bar"></span>
+    <span class="tile-body">
+      <span class="ch-num">01</span>
+      <span class="ch-name">LCI</span>
+      <span class="ch-sub">Direct info</span>
+    </span>
+  </a>
+
+  <a class="tile tile-francetv" href="https://www.france.tv" target="_blank" rel="noopener">
+    <span class="bar"></span>
+    <span class="tile-body">
+      <span class="ch-num">02</span>
+      <span class="ch-name">France·tv</span>
+      <span class="ch-sub">France Télévisions</span>
+    </span>
+  </a>
+
+  <a class="tile tile-arte" href="https://www.arte.tv/fr/direct/" target="_blank" rel="noopener">
+    <span class="bar"></span>
+    <span class="tile-body">
+      <span class="ch-num">03</span>
+      <span class="ch-name">Arte</span>
+      <span class="ch-sub">Direct</span>
+    </span>
+  </a>
+
+  <a class="tile tile-franceinfo" href="https://www.francetvinfo.fr/en-direct/tv.html" target="_blank" rel="noopener">
+    <span class="bar"></span>
+    <span class="tile-body">
+      <span class="ch-num">04</span>
+      <span class="ch-name">France Info</span>
+      <span class="ch-sub">Chaîne en direct</span>
+    </span>
+  </a>
+
+  <a class="tile tile-youtube" href="https://www.youtube.com" target="_blank" rel="noopener">
+    <span class="bar"></span>
+    <span class="tile-body">
+      <span class="ch-num">05</span>
+      <span class="ch-name">YouTube</span>
+      <span class="ch-sub">Vidéos</span>
+    </span>
+  </a>
+
+  <a class="tile tile-rmc" href="https://rmcdecouverte.bfmtv.com/mediaplayer-direct/" target="_blank" rel="noopener">
+    <span class="bar"></span>
+    <span class="tile-body">
+      <span class="ch-num">06</span>
+      <span class="ch-name">RMC Découverte</span>
+      <span class="ch-sub">Direct</span>
+    </span>
+  </a>
+
+  <a class="tile tile-jellyfin" id="jellyfinTile" href="#" target="_blank" rel="noopener">
+    <span class="bar"></span>
+    <span class="tile-body">
+      <span class="ch-num">07</span>
+      <span class="ch-name">Jellyfin</span>
+      <span class="ch-sub" id="jellyfinSub">Configurer l'adresse</span>
+    </span>
+  </a>
+</main>
+
+<footer>
+  <span>Flèches ou télécommande pour naviguer, validez pour lancer.</span>
+  <button class="settings-btn" id="openSettings" type="button">Configurer Jellyfin</button>
+</footer>
+
+<dialog id="settingsDialog">
+  <h2>Serveur Jellyfin</h2>
+  <p class="hint">Adresse locale de votre serveur</p>
+  <label for="jfUrl">URL</label>
+  <input id="jfUrl" type="text" placeholder="http://192.168.1.20:8096" autocomplete="off">
+  <div class="actions">
+    <button type="button" id="cancelBtn">Annuler</button>
+    <button type="button" class="primary" id="saveBtn">Enregistrer</button>
+  </div>
+</dialog>
+
+<script>
+  function tick() {
+    const now = new Date();
+    document.getElementById('clockTime').firstChild.textContent =
+      now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('clockDate').textContent =
+      now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  }
+  tick();
+  setInterval(tick, 15000);
+
+  const jfTile = document.getElementById('jellyfinTile');
+  const jfSub = document.getElementById('jellyfinSub');
+  const dialog = document.getElementById('settingsDialog');
+  const jfInput = document.getElementById('jfUrl');
+
+  function loadJellyfinUrl() {
+    try { return localStorage.getItem('jellyfin-url') || ''; }
+    catch (e) { return ''; }
+  }
+
+  function applyJellyfinUrl(url) {
+    if (url) {
+      jfTile.href = url;
+      jfSub.textContent = url.replace(/^https?:\/\//, '');
+    } else {
+      jfTile.href = '#';
+      jfSub.textContent = "Configurer l'adresse";
+    }
+  }
+
+  applyJellyfinUrl(loadJellyfinUrl());
+
+  jfTile.addEventListener('click', (e) => {
+    if (!jfTile.getAttribute('href') || jfTile.getAttribute('href') === '#') {
+      e.preventDefault();
+      openDialog();
+    }
+  });
+
+  function openDialog() {
+    jfInput.value = loadJellyfinUrl();
+    dialog.showModal();
+    jfInput.focus();
+  }
+
+  document.getElementById('openSettings').addEventListener('click', openDialog);
+  document.getElementById('cancelBtn').addEventListener('click', () => dialog.close());
+  document.getElementById('saveBtn').addEventListener('click', () => {
+    const url = jfInput.value.trim();
+    try {
+      if (url) localStorage.setItem('jellyfin-url', url);
+      else localStorage.removeItem('jellyfin-url');
+    } catch (e) {}
+    applyJellyfinUrl(url);
+    dialog.close();
+  });
+
+  document.querySelector('.tile').focus();
+
+  // Météo en direct (Valence, France) via Open-Meteo, sans clé requise
+  const WMO_ICONS = {
+    0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️',
+    45: '🌫️', 48: '🌫️',
+    51: '🌦️', 53: '🌦️', 55: '🌦️',
+    61: '🌧️', 63: '🌧️', 65: '🌧️',
+    71: '🌨️', 73: '🌨️', 75: '🌨️',
+    80: '🌦️', 81: '🌧️', 82: '⛈️',
+    95: '⛈️', 96: '⛈️', 99: '⛈️'
+  };
+  const WMO_ICONS_NIGHT = { 0: '🌙', 1: '🌙', 2: '☁️' };
+
+  async function refreshWeather() {
+    const url = 'https://api.open-meteo.com/v1/forecast'
+      + '?latitude=44.9333&longitude=4.8924'
+      + '&current=temperature_2m,weather_code,is_day'
+      + '&daily=temperature_2m_max,temperature_2m_min'
+      + '&timezone=Europe%2FParis';
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('reseau');
+      const data = await res.json();
+      const cur = data.current;
+      const day = data.daily;
+      const isDay = cur.is_day === 1;
+      const icon = (!isDay && WMO_ICONS_NIGHT[cur.weather_code])
+        ? WMO_ICONS_NIGHT[cur.weather_code]
+        : (WMO_ICONS[cur.weather_code] || '🌡️');
+
+      document.querySelector('.weather .icon').textContent = icon;
+      document.querySelector('.weather .temp').textContent = Math.round(cur.temperature_2m) + '°';
+      document.querySelector('.weather .range').textContent =
+        Math.round(day.temperature_2m_max[0]) + '° / ' + Math.round(day.temperature_2m_min[0]) + '° aujourd\'hui';
+    } catch (e) {
+      // pas de connexion : on garde le dernier affichage
+    }
+  }
+
+  refreshWeather();
+  setInterval(refreshWeather, 15 * 60 * 1000); // toutes les 15 minutes
+</script>
+
+</body>
+</html>
