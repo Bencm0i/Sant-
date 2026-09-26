@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>%F0%9F%93%B7</text></svg>">
+<title>Photos</title>
+<style>
+:root{
+  --bg:#f4f3f0; --panel:#fff; --text:#1c1a17; --muted:#8a8378;
+  --accent:#b5622e; --border:#e6e1d8; --hover:#eeebe4;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --bg:#151311; --panel:#1e1b18; --text:#f1ede6; --muted:#a39a8c; --accent:#e08a52; --border:#332e28; --hover:#28241f; }
+}
+:root[data-theme="dark"]{ --bg:#151311; --panel:#1e1b18; --text:#f1ede6; --muted:#a39a8c; --accent:#e08a52; --border:#332e28; --hover:#28241f; }
+*{box-sizing:border-box}
+html,body{height:100%; margin:0}
+body{ background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; display:flex; }
+#sidebar{
+  width:220px; flex:none; background:var(--panel); border-right:1px solid var(--border);
+  padding:16px 12px; padding-top:calc(16px + env(safe-area-inset-top,0px));
+  display:flex; flex-direction:column; gap:2px; height:100vh; position:sticky; top:0; overflow-y:auto;
+}
+#sidebar h1{font-size:1.05rem; margin:0 0 14px 4px}
+.nav-item{padding:9px 10px; border-radius:8px; cursor:pointer; font-size:0.9rem; display:flex; align-items:center; gap:8px; user-select:none;}
+.nav-item:hover{background:var(--hover)}
+.nav-item.active{background:var(--accent); color:#fff}
+.sec-label{font-size:0.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin:14px 8px 4px}
+#albumList{display:flex; flex-direction:column; gap:2px; max-height:30vh; overflow-y:auto}
+.album-row .nav-item{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.album-row{display:flex; align-items:center; gap:2px}
+.album-del{flex:none; background:none; border:none; color:var(--muted); cursor:pointer; font-size:0.85rem; padding:4px 6px; border-radius:6px;}
+.album-del:hover{color:var(--accent); background:var(--hover)}
+#newAlbumBtn{margin-top:6px}
+#storageInfo{font-size:0.72rem; color:var(--muted); margin-top:auto; padding:8px 6px}
+#main{flex:1; min-width:0; display:flex; flex-direction:column; height:100vh; overflow-y:auto}
+header{
+  position:sticky; top:0; background:var(--bg); z-index:5; padding:16px 22px;
+  padding-top:calc(16px + env(safe-area-inset-top,0px));
+  border-bottom:1px solid var(--border); display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+}
+header h2{margin:0; font-size:1.1rem; margin-right:auto}
+input[type=text], select{padding:8px 11px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--text); font-size:0.87rem;}
+button, label.btn{padding:8px 13px; border-radius:8px; border:1px solid var(--border); background:var(--panel); color:var(--text); cursor:pointer; font-size:0.87rem; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;}
+button.primary, label.btn.primary{background:var(--accent); color:#fff; border-color:var(--accent)}
+input[type=file]{display:none}
+#content{padding:20px 22px; flex:1}
+.date-group{margin-bottom:26px}
+.date-title{font-size:0.85rem; color:var(--muted); margin:0 0 10px 2px; font-weight:600}
+.grid{display:grid; gap:6px; grid-template-columns:repeat(auto-fill, minmax(150px,1fr))}
+.thumb-wrap{position:relative; aspect-ratio:1; border-radius:8px; overflow:hidden; cursor:pointer; background:var(--panel)}
+.thumb-wrap img{width:100%; height:100%; object-fit:cover; display:block}
+.fav-badge{position:absolute; top:6px; right:6px; font-size:0.95rem; text-shadow:0 1px 3px #0008; opacity:0; transition:opacity .15s;}
+.thumb-wrap:hover .fav-badge, .thumb-wrap .fav-badge.active{opacity:1}
+#dropzone{border:2px dashed var(--border); border-radius:14px; padding:60px 20px; text-align:center; color:var(--muted); margin-top:10px;}
+#dropzone.drag{border-color:var(--accent); color:var(--accent)}
+#empty{text-align:center; color:var(--muted); padding:60px 20px}
+#lightbox{position:fixed; inset:0; background:#000e; display:none; z-index:100; flex-direction:column}
+#lightbox.open{display:flex}
+.lb-top{display:flex; align-items:center; gap:10px; padding:14px 18px; color:#fff}
+.lb-top .name-input{flex:1; background:transparent; border:none; color:#fff; font-size:1rem; outline:none}
+.lb-top button{background:#ffffff22; color:#fff; border:none}
+.lb-body{flex:1; display:flex; align-items:center; justify-content:center; position:relative; min-height:0}
+.lb-body img{max-width:92%; max-height:88%; object-fit:contain; border-radius:6px}
+.lb-nav{position:absolute; top:50%; transform:translateY(-50%); background:#ffffff22; color:#fff; border:none; width:44px; height:44px; border-radius:50%; font-size:1.3rem; cursor:pointer;}
+.lb-nav.prev{left:16px} .lb-nav.next{right:16px}
+.lb-bottom{padding:14px 18px 20px; padding-bottom:calc(20px + env(safe-area-inset-bottom,0px)); color:#fff}
+.lb-tags{display:flex; flex-wrap:wrap; gap:6px; margin:8px 0}
+.lb-tags .tag{background:#ffffff22; padding:3px 9px; border-radius:999px; font-size:0.78rem; cursor:pointer}
+.lb-albums{display:flex; flex-wrap:wrap; gap:6px; margin:8px 0; font-size:0.8rem}
+.lb-albums label{background:#ffffff15; padding:4px 9px; border-radius:8px; display:flex; gap:5px; align-items:center; cursor:pointer}
+.lb-row{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:6px}
+.lb-row input[type=text]{background:#ffffff18; border:1px solid #ffffff33; color:#fff; padding:6px 9px; border-radius:7px; font-size:0.82rem}
+#count{color:var(--muted); font-size:0.8rem}
+#tagCloud{display:flex; flex-wrap:wrap; gap:8px 16px; align-items:baseline; padding:20px 6px; max-width:900px}
+.cloud-tag{cursor:pointer; color:var(--accent); border:none; background:none; font-family:inherit; padding:0; line-height:1.3; font-weight:600}
+.cloud-tag:hover{text-decoration:underline}
+.cloud-empty{color:var(--muted); padding:50px 20px; text-align:center}
+.toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--panel); border:1px solid var(--border); color:var(--text); padding:10px 16px; border-radius:8px; font-size:0.85rem; z-index:200; box-shadow:0 4px 14px #0003;}
+</style>
+</head>
+<body>
+<div id="sidebar">
+  <h1>📷 Photos</h1>
+  <div class="nav-item active" data-view="all">🖼️ Toutes les photos</div>
+  <div class="nav-item" data-view="fav">⭐ Favoris</div>
+  <div class="nav-item" data-view="tagcloud">🏷️ Nuage de tags</div>
+  <div class="sec-label">Albums</div>
+  <div id="albumList"></div>
+  <button id="newAlbumBtn">+ Nouvel album</button>
+  <div id="storageInfo"></div>
+</div>
+
+<div id="main">
+  <header>
+    <h2 id="viewTitle">Toutes les photos</h2>
+    <input type="text" id="search" placeholder="Rechercher...">
+    <select id="sortSel">
+      <option value="date_desc">Plus récentes</option>
+      <option value="date_asc">Plus anciennes</option>
+      <option value="name">Nom (A-Z)</option>
+    </select>
+    <label class="btn primary">+ Ajouter
+      <input type="file" id="fileInput" accept="image/*" multiple>
+    </label>
+    <span id="count"></span>
+  </header>
+  <div id="content">
+    <div id="dropzone">Glisse des photos ici, ou clique sur « + Ajouter »</div>
+    <div id="empty" style="display:none">Aucune photo dans cette vue.</div>
+    <div id="groups"></div>
+    <div id="tagCloud" style="display:none"></div>
+  </div>
+</div>
+
+<div id="lightbox">
+  <div class="lb-top">
+    <button id="lbClose">✕</button>
+    <input class="name-input" id="lbName">
+    <button id="lbFav">⭐</button>
+    <button id="lbDelete">🗑️</button>
+  </div>
+  <div class="lb-body">
+    <button class="lb-nav prev" id="lbPrev">‹</button>
+    <img id="lbImg">
+    <button class="lb-nav next" id="lbNext">›</button>
+  </div>
+  <div class="lb-bottom">
+    <div class="lb-row"><input type="text" id="lbTagInput" placeholder="+ tag (Entrée)"></div>
+    <div class="lb-tags" id="lbTags"></div>
+    <div class="lb-albums" id="lbAlbums"></div>
+  </div>
+</div>
+
+<script>
+/* ---------- Stockage IndexedDB (Blobs natifs, pas de limite ~5Mo comme localStorage) ---------- */
+const DB_NAME='PhotoManagerDB', DB_VERSION=1;
+let dbP = new Promise((resolve,reject)=>{
+  const req = indexedDB.open(DB_NAME, DB_VERSION);
+  req.onupgradeneeded = e=>{
+    const d = e.target.result;
+    if(!d.objectStoreNames.contains('photos')) d.createObjectStore('photos',{keyPath:'id'});
+    if(!d.objectStoreNames.contains('albums')) d.createObjectStore('albums',{keyPath:'id'});
+  };
+  req.onsuccess = ()=>resolve(req.result);
+  req.onerror = ()=>reject(req.error);
+});
+async function tx(store, mode, fn){
+  const d = await dbP;
+  return new Promise((resolve,reject)=>{
+    const t = d.transaction(store, mode);
+    const s = t.objectStore(store);
+    const r = fn(s);
+    t.oncomplete = ()=>resolve(r && r.result!==undefined ? r.result : undefined);
+    t.onerror = ()=>reject(t.error);
+  });
+}
+const savePhoto  = p => tx('photos','readwrite', s=>s.put(p));
+const delPhoto   = id => tx('photos','readwrite', s=>s.delete(id));
+const allPhotos  = () => tx('photos','readonly', s=>s.getAll());
+const saveAlbum  = a => tx('albums','readwrite', s=>s.put(a));
+const delAlbumDB = id => tx('albums','readwrite', s=>s.delete(id));
+const allAlbums  = () => tx('albums','readonly', s=>s.getAll());
+
+/* ---------- État en mémoire ---------- */
+let photos = [];   // {id,name,tags,albums,favorite,addedAt,blob}
+let albums = [];   // {id,name}
+let view = {mode:'all', albumId:null};
+let lbIndex=-1, lbList=[];
+const urlCache = new Map();
+function urlOf(p){
+  if(!urlCache.has(p.id)) urlCache.set(p.id, URL.createObjectURL(p.blob));
+  return urlCache.get(p.id);
+}
+
+async function boot(){
+  photos = await allPhotos();
+  albums = await allAlbums();
+  renderAlbums(); renderGrid(); updateStorageInfo();
+}
+async function updateStorageInfo(){
+  try{
+    if(navigator.storage && navigator.storage.estimate){
+      const {usage, quota} = await navigator.storage.estimate();
+      const mb = b => (b/1024/1024).toFixed(0);
+      document.getElementById('storageInfo').textContent = `${mb(usage)} Mo utilisés / ${mb(quota)} Mo dispo`;
+    }
+  }catch(e){}
+}
+function toast(msg){
+  const t=document.createElement('div'); t.className='toast'; t.textContent=msg;
+  document.body.appendChild(t); setTimeout(()=>t.remove(),3000);
+}
+
+async function addFiles(files){
+  for(const f of files){
+    if(!f.type || !f.type.startsWith('image/')) continue;
+    const rec = {id:Date.now()+'-'+Math.random().toString(36).slice(2,8), name:f.name.replace(/\.[^/.]+$/,''), tags:[], albums:[], favorite:false, addedAt:new Date().toISOString(), blob:f};
+    try{ await savePhoto(rec); photos.unshift(rec); }
+    catch(e){ toast("Espace disque insuffisant pour enregistrer une photo."); break; }
+  }
+  renderGrid(); updateStorageInfo();
+}
+
+document.getElementById('fileInput').addEventListener('change', e=>{ addFiles(Array.from(e.target.files||[])); e.target.value=''; });
+const dz = document.getElementById('dropzone');
+['dragenter','dragover'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault(); dz.classList.add('drag');}));
+['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault(); dz.classList.remove('drag');}));
+dz.addEventListener('drop', e=>addFiles(Array.from(e.dataTransfer.files||[])));
+document.body.addEventListener('dragover', e=>e.preventDefault());
+document.body.addEventListener('drop', e=>{ e.preventDefault(); if(e.target.id!=='dropzone') addFiles(Array.from(e.dataTransfer.files||[])); });
+
+document.getElementById('newAlbumBtn').addEventListener('click', async ()=>{
+  const name = prompt('Nom du nouvel album :');
+  if(name && name.trim()){
+    const a = {id:Date.now()+'', name:name.trim()};
+    await saveAlbum(a); albums.push(a); renderAlbums();
+  }
+});
+
+document.querySelectorAll('#sidebar .nav-item[data-view]').forEach(el=>el.addEventListener('click', ()=>setView(el.dataset.view, null)));
+document.getElementById('search').addEventListener('input', renderGrid);
+document.getElementById('sortSel').addEventListener('change', renderGrid);
+
+function setView(mode, albumId){
+  view = {mode, albumId};
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  if(mode==='all') document.querySelector('[data-view=all]').classList.add('active');
+  else if(mode==='fav') document.querySelector('[data-view=fav]').classList.add('active');
+  else if(mode==='tagcloud') document.querySelector('[data-view=tagcloud]').classList.add('active');
+  else if(mode==='album'){ const el=document.getElementById('album-'+albumId); if(el) el.classList.add('active'); }
+  document.getElementById('viewTitle').textContent =
+    mode==='all' ? 'Toutes les photos' : mode==='fav' ? 'Favoris' : mode==='tagcloud' ? 'Nuage de tags' : (albums.find(a=>a.id===albumId)||{}).name || 'Album';
+  renderGrid();
+}
+
+function renderAlbums(){
+  const c = document.getElementById('albumList'); c.innerHTML='';
+  albums.forEach(a=>{
+    const row=document.createElement('div'); row.className='album-row';
+    const item=document.createElement('div'); item.className='nav-item'; item.id='album-'+a.id; item.textContent='📁 '+a.name;
+    item.addEventListener('click', ()=>setView('album', a.id));
+    const del=document.createElement('button'); del.className='album-del'; del.textContent='✕'; del.title='Supprimer l\'album';
+    del.addEventListener('click', e=>{ e.stopPropagation(); deleteAlbum(a.id, a.name); });
+    row.appendChild(item); row.appendChild(del); c.appendChild(row);
+  });
+}
+
+async function deleteAlbum(id, name){
+  if(!confirm(`Supprimer l'album « ${name} » ? Les photos qu'il contient ne seront pas supprimées.`)) return;
+  await delAlbumDB(id);
+  albums = albums.filter(a=>a.id!==id);
+  const affected = photos.filter(p=>p.albums.includes(id));
+  for(const p of affected){ p.albums = p.albums.filter(x=>x!==id); await savePhoto(p); }
+  renderAlbums();
+  if(view.mode==='album' && view.albumId===id) setView('all', null);
+  else renderGrid();
+}
+
+function fmtDate(iso){
+  const d=new Date(iso), today=new Date(), yest=new Date(Date.now()-86400000);
+  const same=(a,b)=>a.toDateString()===b.toDateString();
+  if(same(d,today)) return "Aujourd'hui";
+  if(same(d,yest)) return "Hier";
+  return d.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});
+}
+
+function getFiltered(){
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  let list = photos.filter(p=>{
+    if(view.mode==='fav' && !p.favorite) return false;
+    if(view.mode==='album' && !p.albums.includes(view.albumId)) return false;
+    if(q && !(p.name.toLowerCase().includes(q) || p.tags.some(t=>t.toLowerCase().includes(q)))) return false;
+    return true;
+  });
+  const sort = document.getElementById('sortSel').value;
+  if(sort==='date_asc') list.sort((a,b)=>new Date(a.addedAt)-new Date(b.addedAt));
+  else if(sort==='name') list.sort((a,b)=>a.name.localeCompare(b.name));
+  else list.sort((a,b)=>new Date(b.addedAt)-new Date(a.addedAt));
+  return list;
+}
+
+function renderTagCloud(){
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const freq = {};
+  photos.forEach(p=>p.tags.forEach(t=>{ freq[t]=(freq[t]||0)+1; }));
+  let entries = Object.entries(freq);
+  if(q) entries = entries.filter(([t])=>t.toLowerCase().includes(q));
+  entries.sort((a,b)=>b[1]-a[1]);
+  const el = document.getElementById('tagCloud');
+  el.innerHTML = '';
+  if(entries.length===0){
+    el.innerHTML = '<div class="cloud-empty">Aucun tag trouvé. Ajoute des tags à tes photos depuis la visionneuse.</div>';
+    return;
+  }
+  const counts = entries.map(e=>e[1]);
+  const max = Math.max(...counts), min = Math.min(...counts);
+  entries.forEach(([t,count])=>{
+    const scale = max===min ? 1 : (count-min)/(max-min);
+    const btn = document.createElement('button');
+    btn.className = 'cloud-tag';
+    btn.style.fontSize = (0.85 + scale*1.75).toFixed(2)+'rem';
+    btn.style.opacity = (0.55 + scale*0.45).toFixed(2);
+    btn.textContent = t;
+    btn.title = count+' photo(s)';
+    btn.addEventListener('click', ()=>{
+      document.getElementById('search').value = t;
+      setView('all', null);
+    });
+    el.appendChild(btn);
+  });
+}
+
+function renderGrid(){
+  if(view.mode==='tagcloud'){
+    document.getElementById('dropzone').style.display='none';
+    document.getElementById('empty').style.display='none';
+    document.getElementById('groups').style.display='none';
+    document.getElementById('tagCloud').style.display='flex';
+    document.getElementById('count').textContent='';
+    renderTagCloud();
+    return;
+  }
+  document.getElementById('tagCloud').style.display='none';
+  document.getElementById('groups').style.display='';
+  const list = getFiltered(); lbList = list;
+  document.getElementById('count').textContent = list.length ? list.length+' photo(s)' : '';
+  document.getElementById('empty').style.display = list.length ? 'none' : 'block';
+  document.getElementById('dropzone').style.display = (view.mode==='all' && !document.getElementById('search').value) ? 'block' : 'none';
+
+  const groupsEl = document.getElementById('groups'); groupsEl.innerHTML='';
+  const groups={}, order=[];
+  list.forEach(p=>{ const k=fmtDate(p.addedAt); if(!groups[k]){groups[k]=[]; order.push(k);} groups[k].push(p); });
+  order.forEach(key=>{
+    const gDiv=document.createElement('div'); gDiv.className='date-group';
+    gDiv.innerHTML = `<div class="date-title">${key}</div>`;
+    const grid=document.createElement('div'); grid.className='grid';
+    groups[key].forEach(p=>{
+      const w=document.createElement('div'); w.className='thumb-wrap';
+      w.innerHTML = `<img src="${urlOf(p)}" loading="lazy"><span class="fav-badge ${p.favorite?'active':''}">⭐</span>`;
+      w.addEventListener('click', ()=>openLightbox(p.id));
+      grid.appendChild(w);
+    });
+    gDiv.appendChild(grid); groupsEl.appendChild(gDiv);
+  });
+}
+
+function openLightbox(id){
+  lbIndex = lbList.findIndex(p=>p.id===id);
+  if(lbIndex<0) return;
+  document.getElementById('lightbox').classList.add('open');
+  renderLightbox();
+}
+function renderLightbox(){
+  const p = lbList[lbIndex];
+  if(!p){ closeLightbox(); return; }
+  document.getElementById('lbImg').src = urlOf(p);
+  document.getElementById('lbName').value = p.name;
+  document.getElementById('lbFav').style.opacity = p.favorite ? '1' : '0.5';
+  const tagsEl=document.getElementById('lbTags'); tagsEl.innerHTML='';
+  p.tags.forEach(t=>{
+    const s=document.createElement('span'); s.className='tag'; s.textContent=t+' ✕';
+    s.addEventListener('click', async ()=>{ p.tags=p.tags.filter(x=>x!==t); await savePhoto(p); renderLightbox(); renderGrid(); });
+    tagsEl.appendChild(s);
+  });
+  const albEl=document.getElementById('lbAlbums'); albEl.innerHTML='';
+  albums.forEach(a=>{
+    const lab=document.createElement('label');
+    lab.innerHTML = `<input type="checkbox" ${p.albums.includes(a.id)?'checked':''}> ${a.name}`;
+    lab.querySelector('input').addEventListener('change', async e=>{
+      if(e.target.checked){ if(!p.albums.includes(a.id)) p.albums.push(a.id); }
+      else p.albums = p.albums.filter(x=>x!==a.id);
+      await savePhoto(p); renderGrid();
+    });
+    albEl.appendChild(lab);
+  });
+}
+function closeLightbox(){ document.getElementById('lightbox').classList.remove('open'); }
+document.getElementById('lbClose').addEventListener('click', closeLightbox);
+document.getElementById('lbPrev').addEventListener('click', ()=>{ if(lbIndex>0){lbIndex--; renderLightbox();} });
+document.getElementById('lbNext').addEventListener('click', ()=>{ if(lbIndex<lbList.length-1){lbIndex++; renderLightbox();} });
+document.getElementById('lbFav').addEventListener('click', async ()=>{ const p=lbList[lbIndex]; p.favorite=!p.favorite; await savePhoto(p); renderLightbox(); renderGrid(); });
+document.getElementById('lbDelete').addEventListener('click', async ()=>{
+  if(!confirm('Supprimer cette photo ?')) return;
+  const p = lbList[lbIndex];
+  await delPhoto(p.id);
+  photos = photos.filter(x=>x.id!==p.id);
+  URL.revokeObjectURL(urlCache.get(p.id)); urlCache.delete(p.id);
+  lbList = getFiltered();
+  if(lbList.length===0) closeLightbox();
+  else { lbIndex = Math.min(lbIndex, lbList.length-1); renderLightbox(); }
+  renderGrid(); updateStorageInfo();
+});
+document.getElementById('lbName').addEventListener('change', async e=>{ const p=lbList[lbIndex]; p.name=e.target.value; await savePhoto(p); renderGrid(); });
+document.getElementById('lbTagInput').addEventListener('keydown', async e=>{
+  if(e.key==='Enter'){
+    e.preventDefault();
+    const val = e.target.value.trim();
+    if(val){ const p=lbList[lbIndex]; if(!p.tags.includes(val)) p.tags.push(val); await savePhoto(p); e.target.value=''; renderLightbox(); }
+  }
+});
+document.addEventListener('keydown', e=>{
+  if(!document.getElementById('lightbox').classList.contains('open')) return;
+  if(e.key==='Escape') closeLightbox();
+  else if(e.key==='ArrowLeft') document.getElementById('lbPrev').click();
+  else if(e.key==='ArrowRight') document.getElementById('lbNext').click();
+});
+
+boot();
+</script>
+</body>
+</html>
