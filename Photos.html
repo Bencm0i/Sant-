@@ -90,6 +90,11 @@ input[type=file]{display:none}
   <div class="sec-label">Albums</div>
   <div id="albumList"></div>
   <button id="newAlbumBtn">+ Nouvel album</button>
+  <div class="sec-label">Sauvegarde</div>
+  <div class="nav-item" id="exportBtn">⬇️ Exporter (JSON)</div>
+  <label class="nav-item" id="importLabel" style="margin:0">⬆️ Importer
+    <input type="file" id="importInput" accept="application/json" style="display:none">
+  </label>
   <div id="storageInfo"></div>
 </div>
 
@@ -174,6 +179,69 @@ function urlOf(p){
   if(!urlCache.has(p.id)) urlCache.set(p.id, URL.createObjectURL(p.blob));
   return urlCache.get(p.id);
 }
+
+/* ---------- Sauvegarde JSON (export / import) ---------- */
+function blobToDataURL(blob){
+  return new Promise((resolve,reject)=>{
+    const r = new FileReader();
+    r.onload = ()=>resolve(r.result);
+    r.onerror = reject;
+    r.readAsDataURL(blob);
+  });
+}
+async function dataURLToBlob(dataUrl){
+  const res = await fetch(dataUrl);
+  return res.blob();
+}
+async function triggerDownload(filename, blob){
+  try{
+    if(window.claude && window.claude.use){
+      const downloads = await window.claude.use('downloads').catch(()=>null);
+      if(downloads){ await downloads.save({filename, data: blob}); return; }
+    }
+  }catch(e){}
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download=filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 4000);
+}
+async function exportBackup(){
+  if(photos.length===0 && albums.length===0){ toast('Rien à exporter pour le moment.'); return; }
+  toast('Préparation de la sauvegarde...');
+  const photosOut = [];
+  for(const p of photos){
+    const dataUrl = await blobToDataURL(p.blob);
+    photosOut.push({id:p.id, name:p.name, tags:p.tags, albums:p.albums, favorite:p.favorite, addedAt:p.addedAt, dataUrl});
+  }
+  const payload = {version:1, exportedAt:new Date().toISOString(), albums, photos:photosOut};
+  const blob = new Blob([JSON.stringify(payload)], {type:'application/json'});
+  const stamp = new Date().toISOString().slice(0,10);
+  await triggerDownload(`photos-sauvegarde-${stamp}.json`, blob);
+  toast('Sauvegarde téléchargée.');
+}
+async function importBackup(file){
+  toast('Import en cours...');
+  try{
+    const text = await file.text();
+    const data = JSON.parse(text);
+    if(!data || !Array.isArray(data.photos)) throw new Error('format invalide');
+    for(const a of (data.albums||[])){ await saveAlbum(a); }
+    for(const p of data.photos){
+      const blob = await dataURLToBlob(p.dataUrl);
+      await savePhoto({id:p.id, name:p.name, tags:p.tags||[], albums:p.albums||[], favorite:!!p.favorite, addedAt:p.addedAt, blob});
+    }
+    await boot();
+    toast(`Import terminé : ${data.photos.length} photo(s), ${(data.albums||[]).length} album(s).`);
+  }catch(e){
+    toast("Échec de l'import : fichier invalide.");
+  }
+}
+document.getElementById('exportBtn').addEventListener('click', exportBackup);
+document.getElementById('importInput').addEventListener('change', e=>{
+  const f = e.target.files && e.target.files[0];
+  if(f) importBackup(f);
+  e.target.value = '';
+});
 
 async function boot(){
   photos = await allPhotos();
