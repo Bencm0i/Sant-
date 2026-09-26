@@ -74,6 +74,15 @@ input[type=file]{display:none}
 .lb-row{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:6px}
 .lb-row input[type=text]{background:#ffffff18; border:1px solid #ffffff33; color:#fff; padding:6px 9px; border-radius:7px; font-size:0.82rem}
 #count{color:var(--muted); font-size:0.8rem}
+#selectionBar{display:none; gap:10px; align-items:center; padding:10px 22px; background:var(--panel); border-bottom:1px solid var(--border); flex-wrap:wrap;}
+.select-check{
+  position:absolute; top:6px; left:6px; width:20px; height:20px; border-radius:50%;
+  border:2px solid #fff; background:#0006; display:none; align-items:center; justify-content:center;
+  color:#fff; font-size:0.72rem; font-weight:700;
+}
+.thumb-wrap.selectable .select-check{display:flex}
+.thumb-wrap.selected{outline:3px solid var(--accent); outline-offset:-3px}
+.thumb-wrap.selected .select-check{background:var(--accent); border-color:var(--accent)}
 #tagCloud{display:flex; flex-wrap:wrap; gap:8px 16px; align-items:baseline; padding:20px 6px; max-width:900px}
 .cloud-tag{cursor:pointer; color:var(--accent); border:none; background:none; font-family:inherit; padding:0; line-height:1.3; font-weight:600}
 .cloud-tag:hover{text-decoration:underline}
@@ -91,7 +100,7 @@ input[type=file]{display:none}
   <div id="albumList"></div>
   <button id="newAlbumBtn">+ Nouvel album</button>
   <div class="sec-label">Sauvegarde</div>
-  <div class="nav-item" id="exportBtn">⬇️ Exporter (JSON)</div>
+  <div class="nav-item" id="exportBtn">⬇️ Exporter config (JSON)</div>
   <label class="nav-item" id="importLabel" style="margin:0">⬆️ Importer
     <input type="file" id="importInput" accept="application/json" style="display:none">
   </label>
@@ -110,8 +119,18 @@ input[type=file]{display:none}
     <label class="btn primary">+ Ajouter
       <input type="file" id="fileInput" accept="image/*" multiple>
     </label>
+    <button id="selectModeBtn">☑️ Sélectionner</button>
     <span id="count"></span>
   </header>
+  <div id="selectionBar">
+    <span id="selCount"></span>
+    <button id="selAll">Tout sélectionner</button>
+    <button id="selNone">Aucune</button>
+    <select id="selAlbumSel"><option value="">+ Ajouter à un album...</option></select>
+    <button id="selFav">⭐ Favori</button>
+    <button id="selDelete">🗑️ Supprimer</button>
+    <button id="selDone">Terminé</button>
+  </div>
   <div id="content">
     <div id="dropzone">Glisse des photos ici, ou clique sur « + Ajouter »</div>
     <div id="empty" style="display:none">Aucune photo dans cette vue.</div>
@@ -174,25 +193,37 @@ let photos = [];   // {id,name,tags,albums,favorite,addedAt,blob}
 let albums = [];   // {id,name}
 let view = {mode:'all', albumId:null};
 let lbIndex=-1, lbList=[];
-const urlCache = new Map();
-function urlOf(p){
-  if(!urlCache.has(p.id)) urlCache.set(p.id, URL.createObjectURL(p.blob));
-  return urlCache.get(p.id);
+const thumbCache = new Map();
+const fullCache = new Map();
+function thumbUrlOf(p){
+  if(!thumbCache.has(p.id)) thumbCache.set(p.id, URL.createObjectURL(p.thumb || p.blob));
+  return thumbCache.get(p.id);
 }
-
-/* ---------- Sauvegarde JSON (export / import) ---------- */
-function blobToDataURL(blob){
-  return new Promise((resolve,reject)=>{
-    const r = new FileReader();
-    r.onload = ()=>resolve(r.result);
-    r.onerror = reject;
-    r.readAsDataURL(blob);
+function fullUrlOf(p){
+  if(!fullCache.has(p.id)) fullCache.set(p.id, URL.createObjectURL(p.blob));
+  return fullCache.get(p.id);
+}
+function revokeCaches(id){
+  if(thumbCache.has(id)){ URL.revokeObjectURL(thumbCache.get(id)); thumbCache.delete(id); }
+  if(fullCache.has(id)){ URL.revokeObjectURL(fullCache.get(id)); fullCache.delete(id); }
+}
+function makeThumbnail(file, maxSize=440, quality=0.75){
+  return new Promise((resolve)=>{
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = ()=>{
+      const scale = Math.min(1, maxSize/Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width*scale)), h = Math.max(1, Math.round(img.height*scale));
+      const canvas = document.createElement('canvas'); canvas.width=w; canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      canvas.toBlob(b=>{ URL.revokeObjectURL(url); resolve(b || file); }, 'image/jpeg', quality);
+    };
+    img.onerror = ()=>{ URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
   });
 }
-async function dataURLToBlob(dataUrl){
-  const res = await fetch(dataUrl);
-  return res.blob();
-}
+
+/* ---------- Sauvegarde JSON (export / import) — config uniquement, pas les images ---------- */
 async function triggerDownload(filename, blob){
   try{
     if(window.claude && window.claude.use){
@@ -207,17 +238,12 @@ async function triggerDownload(filename, blob){
 }
 async function exportBackup(){
   if(photos.length===0 && albums.length===0){ toast('Rien à exporter pour le moment.'); return; }
-  toast('Préparation de la sauvegarde...');
-  const photosOut = [];
-  for(const p of photos){
-    const dataUrl = await blobToDataURL(p.blob);
-    photosOut.push({id:p.id, name:p.name, tags:p.tags, albums:p.albums, favorite:p.favorite, addedAt:p.addedAt, dataUrl});
-  }
-  const payload = {version:1, exportedAt:new Date().toISOString(), albums, photos:photosOut};
+  const photosOut = photos.map(p=>({id:p.id, name:p.name, tags:p.tags, albums:p.albums, favorite:p.favorite, addedAt:p.addedAt}));
+  const payload = {version:2, kind:'config-only', exportedAt:new Date().toISOString(), albums, photos:photosOut};
   const blob = new Blob([JSON.stringify(payload)], {type:'application/json'});
   const stamp = new Date().toISOString().slice(0,10);
-  await triggerDownload(`photos-sauvegarde-${stamp}.json`, blob);
-  toast('Sauvegarde téléchargée.');
+  await triggerDownload(`photos-config-${stamp}.json`, blob);
+  toast('Sauvegarde (config) téléchargée.');
 }
 async function importBackup(file){
   toast('Import en cours...');
@@ -226,12 +252,19 @@ async function importBackup(file){
     const data = JSON.parse(text);
     if(!data || !Array.isArray(data.photos)) throw new Error('format invalide');
     for(const a of (data.albums||[])){ await saveAlbum(a); }
-    for(const p of data.photos){
-      const blob = await dataURLToBlob(p.dataUrl);
-      await savePhoto({id:p.id, name:p.name, tags:p.tags||[], albums:p.albums||[], favorite:!!p.favorite, addedAt:p.addedAt, blob});
+    let matched = 0, skipped = 0;
+    for(const meta of data.photos){
+      const p = photos.find(x=>x.id===meta.id);
+      if(!p){ skipped++; continue; }
+      p.name = meta.name ?? p.name;
+      p.tags = meta.tags || p.tags;
+      p.albums = meta.albums || p.albums;
+      p.favorite = !!meta.favorite;
+      await savePhoto(p);
+      matched++;
     }
     await boot();
-    toast(`Import terminé : ${data.photos.length} photo(s), ${(data.albums||[]).length} album(s).`);
+    toast(`Config restaurée : ${matched} photo(s) mise(s) à jour${skipped ? `, ${skipped} ignorée(s) (photo absente)` : ''}.`);
   }catch(e){
     toast("Échec de l'import : fichier invalide.");
   }
@@ -241,6 +274,69 @@ document.getElementById('importInput').addEventListener('change', e=>{
   const f = e.target.files && e.target.files[0];
   if(f) importBackup(f);
   e.target.value = '';
+});
+
+/* ---------- Sélection multiple ---------- */
+let selectMode = false;
+let selected = new Set();
+
+function toggleSelect(id){
+  if(selected.has(id)) selected.delete(id); else selected.add(id);
+  updateSelectionBar(); renderGrid();
+}
+function updateSelectionBar(){
+  const bar = document.getElementById('selectionBar');
+  bar.style.display = selectMode ? 'flex' : 'none';
+  document.getElementById('selCount').textContent = selected.size+' sélectionnée(s)';
+}
+function populateSelAlbumSel(){
+  const sel = document.getElementById('selAlbumSel');
+  sel.innerHTML = '<option value="">+ Ajouter à un album...</option>';
+  albums.forEach(a=>{ const o=document.createElement('option'); o.value=a.id; o.textContent=a.name; sel.appendChild(o); });
+}
+document.getElementById('selectModeBtn').addEventListener('click', ()=>{
+  selectMode = !selectMode;
+  if(!selectMode) selected.clear();
+  document.getElementById('selectModeBtn').textContent = selectMode ? '✕ Annuler' : '☑️ Sélectionner';
+  updateSelectionBar(); renderGrid();
+});
+document.getElementById('selDone').addEventListener('click', ()=>document.getElementById('selectModeBtn').click());
+document.getElementById('selAll').addEventListener('click', ()=>{
+  getFiltered().forEach(p=>selected.add(p.id));
+  updateSelectionBar(); renderGrid();
+});
+document.getElementById('selNone').addEventListener('click', ()=>{ selected.clear(); updateSelectionBar(); renderGrid(); });
+document.getElementById('selAlbumSel').addEventListener('change', async e=>{
+  const albumId = e.target.value;
+  if(!albumId) return;
+  for(const id of selected){
+    const p = photos.find(x=>x.id===id);
+    if(p && !p.albums.includes(albumId)){ p.albums.push(albumId); await savePhoto(p); }
+  }
+  e.target.value = '';
+  toast('Ajouté à l\'album.');
+  renderGrid();
+});
+document.getElementById('selFav').addEventListener('click', async ()=>{
+  const ids = [...selected];
+  const allFav = ids.every(id=>{ const p=photos.find(x=>x.id===id); return p && p.favorite; });
+  for(const id of ids){
+    const p = photos.find(x=>x.id===id);
+    if(p){ p.favorite = !allFav; await savePhoto(p); }
+  }
+  renderGrid();
+});
+document.getElementById('selDelete').addEventListener('click', async ()=>{
+  const ids = [...selected];
+  if(ids.length===0) return;
+  if(!confirm(`Supprimer ${ids.length} photo(s) ?`)) return;
+  for(const id of ids){
+    await delPhoto(id);
+    photos = photos.filter(x=>x.id!==id);
+    revokeCaches(id);
+  }
+  selected.clear();
+  updateSelectionBar(); renderGrid(); updateStorageInfo();
 });
 
 async function boot(){
@@ -265,7 +361,8 @@ function toast(msg){
 async function addFiles(files){
   for(const f of files){
     if(!f.type || !f.type.startsWith('image/')) continue;
-    const rec = {id:Date.now()+'-'+Math.random().toString(36).slice(2,8), name:f.name.replace(/\.[^/.]+$/,''), tags:[], albums:[], favorite:false, addedAt:new Date().toISOString(), blob:f};
+    const thumb = await makeThumbnail(f);
+    const rec = {id:Date.now()+'-'+Math.random().toString(36).slice(2,8), name:f.name.replace(/\.[^/.]+$/,''), tags:[], albums:[], favorite:false, addedAt:new Date().toISOString(), blob:f, thumb};
     try{ await savePhoto(rec); photos.unshift(rec); }
     catch(e){ toast("Espace disque insuffisant pour enregistrer une photo."); break; }
   }
@@ -314,6 +411,7 @@ function renderAlbums(){
     del.addEventListener('click', e=>{ e.stopPropagation(); deleteAlbum(a.id, a.name); });
     row.appendChild(item); row.appendChild(del); c.appendChild(row);
   });
+  populateSelAlbumSel();
 }
 
 async function deleteAlbum(id, name){
@@ -407,8 +505,10 @@ function renderGrid(){
     const grid=document.createElement('div'); grid.className='grid';
     groups[key].forEach(p=>{
       const w=document.createElement('div'); w.className='thumb-wrap';
-      w.innerHTML = `<img src="${urlOf(p)}" loading="lazy"><span class="fav-badge ${p.favorite?'active':''}">⭐</span>`;
-      w.addEventListener('click', ()=>openLightbox(p.id));
+      if(selectMode) w.classList.add('selectable');
+      if(selected.has(p.id)) w.classList.add('selected');
+      w.innerHTML = `<img src="${thumbUrlOf(p)}" loading="lazy"><span class="fav-badge ${p.favorite?'active':''}">⭐</span><span class="select-check">${selected.has(p.id)?'✓':''}</span>`;
+      w.addEventListener('click', ()=>{ selectMode ? toggleSelect(p.id) : openLightbox(p.id); });
       grid.appendChild(w);
     });
     gDiv.appendChild(grid); groupsEl.appendChild(gDiv);
@@ -424,7 +524,7 @@ function openLightbox(id){
 function renderLightbox(){
   const p = lbList[lbIndex];
   if(!p){ closeLightbox(); return; }
-  document.getElementById('lbImg').src = urlOf(p);
+  document.getElementById('lbImg').src = fullUrlOf(p);
   document.getElementById('lbName').value = p.name;
   document.getElementById('lbFav').style.opacity = p.favorite ? '1' : '0.5';
   const tagsEl=document.getElementById('lbTags'); tagsEl.innerHTML='';
@@ -455,7 +555,7 @@ document.getElementById('lbDelete').addEventListener('click', async ()=>{
   const p = lbList[lbIndex];
   await delPhoto(p.id);
   photos = photos.filter(x=>x.id!==p.id);
-  URL.revokeObjectURL(urlCache.get(p.id)); urlCache.delete(p.id);
+  revokeCaches(p.id);
   lbList = getFiltered();
   if(lbList.length===0) closeLightbox();
   else { lbIndex = Math.min(lbIndex, lbList.length-1); renderLightbox(); }
