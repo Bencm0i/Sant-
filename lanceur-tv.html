@@ -16,11 +16,36 @@
     --text: #eef1f5;
     --text-dim: #7d8590;
     --line: #23272f;
+    --bg-dim: 0.45;
     box-sizing: border-box;
     padding-top: env(safe-area-inset-top, 0px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
   * { box-sizing: border-box; }
+  #bgLayer {
+    position: fixed;
+    inset: 0;
+    z-index: -3;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    pointer-events: none;
+  }
+  #bgScrim {
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    background: rgba(0, 0, 0, var(--bg-dim));
+    pointer-events: none;
+    transition: background 0.2s ease;
+  }
+  /* Quand un fond perso est actif : on adoucit les halos de couleur et on
+     renforce légèrement l'opacité des vignettes pour garder graphiques et
+     textes bien lisibles par-dessus l'image. */
+  body.has-wallpaper::before { opacity: 0.28; }
+  body.has-wallpaper a.tile, body.has-wallpaper button.tile {
+    background: rgba(10, 12, 16, 0.84);
+  }
   html, body { height: 100%; margin: 0; }
   body {
     position: relative;
@@ -295,7 +320,42 @@
     font-family: "Space Grotesk", sans-serif;
     font-size: 1.15rem;
   }
+  dialog h3 {
+    margin: 18px 0 4px;
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 0.92rem;
+    color: var(--text);
+  }
+  dialog hr.settings-sep {
+    border: none;
+    border-top: 1px solid var(--line);
+    margin: 18px 0 0;
+  }
   dialog p.hint { margin: 0 0 16px; color: var(--text-dim); font-size: 0.85rem; }
+  .wallpaper-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 4px 0 14px;
+  }
+  .file-btn {
+    padding: 9px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-family: inherit;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+  .file-btn:hover, .file-btn:focus { color: #fff; border-color: #8b6bff; }
+  dialog input[type="range"] {
+    width: 100%;
+    margin-top: 6px;
+    accent-color: #8b6bff;
+  }
   dialog label { display: block; margin: 10px 0 6px; font-size: 0.85rem; color: var(--text-dim); }
   dialog input {
     width: 100%;
@@ -332,6 +392,8 @@
 </style>
 </head>
 <body>
+<div id="bgLayer" aria-hidden="true"></div>
+<div id="bgScrim" aria-hidden="true"></div>
 
 <header>
   <div class="title-block">
@@ -490,12 +552,26 @@
 </footer>
 
 <dialog id="settingsDialog">
-  <h2>Serveur Jellyfin</h2>
+  <h2>Réglages</h2>
+
+  <h3>Serveur Jellyfin</h3>
   <p class="hint">Adresse locale de votre serveur</p>
   <label for="jfUrl">URL</label>
   <input id="jfUrl" type="text" placeholder="http://192.168.1.20:8096" autocomplete="off">
+
+  <hr class="settings-sep">
+  <h3>Fond d'écran</h3>
+  <p class="hint">Une image en fond, sans gêner la lecture des vignettes et de leur graphique.</p>
+  <div class="wallpaper-row">
+    <label class="file-btn" for="wallpaperInput">Choisir une image</label>
+    <input id="wallpaperInput" type="file" accept="image/*" style="display:none">
+    <button type="button" id="removeWallpaperBtn">Retirer le fond</button>
+  </div>
+  <label for="dimRange">Assombrir le fond</label>
+  <input id="dimRange" type="range" min="0" max="90" step="5" value="45">
+
   <div class="actions">
-    <button type="button" id="cancelBtn">Annuler</button>
+    <button type="button" id="cancelBtn">Fermer</button>
     <button type="button" class="primary" id="saveBtn">Enregistrer</button>
   </div>
 </dialog>
@@ -559,6 +635,97 @@
   });
 
   document.querySelector('.tile').focus();
+
+  // Fond d'écran personnalisé (image stockée en local, redimensionnée pour
+  // rester légère) + assombrissement réglable pour garder une bonne lisibilité.
+  const WALLPAPER_KEY = 'wallpaper-url';
+  const WALLPAPER_DIM_KEY = 'wallpaper-dim';
+  const bgLayer = document.getElementById('bgLayer');
+  const wallpaperInput = document.getElementById('wallpaperInput');
+  const removeWallpaperBtn = document.getElementById('removeWallpaperBtn');
+  const dimRange = document.getElementById('dimRange');
+
+  function loadWallpaper() {
+    try { return localStorage.getItem(WALLPAPER_KEY) || ''; }
+    catch (e) { return ''; }
+  }
+  function loadDim() {
+    try {
+      const v = localStorage.getItem(WALLPAPER_DIM_KEY);
+      return v !== null ? Number(v) : 45;
+    } catch (e) { return 45; }
+  }
+  function applyWallpaper(url) {
+    if (url) {
+      bgLayer.style.backgroundImage = 'url("' + url + '")';
+      document.body.classList.add('has-wallpaper');
+    } else {
+      bgLayer.style.backgroundImage = 'none';
+      document.body.classList.remove('has-wallpaper');
+    }
+  }
+  function applyDim(value) {
+    document.documentElement.style.setProperty('--bg-dim', (value / 100));
+  }
+
+  applyWallpaper(loadWallpaper());
+  const initialDim = loadDim();
+  dimRange.value = initialDim;
+  applyDim(initialDim);
+
+  // Redimensionne l'image côté client avant stockage pour rester sous les
+  // limites de localStorage, quelle que soit la taille du fichier d'origine.
+  function resizeImageFile(file, maxW, quality) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const scale = Math.min(1, maxW / img.width);
+          const w = Math.max(1, Math.round(img.width * scale));
+          const h = Math.max(1, Math.round(img.height * scale));
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = () => reject(new Error('image'));
+        img.src = e.target.result;
+      };
+      reader.onerror = () => reject(new Error('lecture'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  wallpaperInput.addEventListener('change', async () => {
+    const file = wallpaperInput.files && wallpaperInput.files[0];
+    if (!file) return;
+    try {
+      const dataUrl = await resizeImageFile(file, 1920, 0.82);
+      try {
+        localStorage.setItem(WALLPAPER_KEY, dataUrl);
+      } catch (e) {
+        alert("Image trop volumineuse pour être enregistrée. Essayez une image plus légère.");
+        return;
+      }
+      applyWallpaper(dataUrl);
+    } catch (e) {
+      alert("Impossible de charger cette image.");
+    } finally {
+      wallpaperInput.value = '';
+    }
+  });
+
+  removeWallpaperBtn.addEventListener('click', () => {
+    try { localStorage.removeItem(WALLPAPER_KEY); } catch (e) {}
+    applyWallpaper('');
+  });
+
+  dimRange.addEventListener('input', () => {
+    applyDim(dimRange.value);
+    try { localStorage.setItem(WALLPAPER_DIM_KEY, dimRange.value); } catch (e) {}
+  });
 
   // Graphique d'usage en fond de chaque tuile (basé sur les clics réels, 14 derniers jours)
   const USAGE_KEY = 'tile-usage-v1';
