@@ -2828,7 +2828,10 @@ async function exportJSON() {
   }
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = fname; a.click();
+  a.href = url; a.download = fname;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 2000);
   showToast('✓ JSON exporté : ' + fname);
   setLastJsonUsed('export', fname);
@@ -2862,7 +2865,10 @@ async function exportRapportIA() {
   }
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = fname; a.click();
+  a.href = url; a.download = fname;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 2000);
   showToast('✓ Rapport IA téléchargé : ' + fname);
 }
@@ -3010,7 +3016,10 @@ async function exportKPI() {
     }
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = fname; a.click();
+    a.href = url; a.download = fname;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 2000);
     closeKpiModal();
     showToast('✓ KPI exporté : ' + fname);
