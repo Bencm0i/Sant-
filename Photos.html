@@ -88,6 +88,31 @@ input[type=file]{display:none}
 .cloud-tag:hover{text-decoration:underline}
 .cloud-empty{color:var(--muted); padding:50px 20px; text-align:center}
 .toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--panel); border:1px solid var(--border); color:var(--text); padding:10px 16px; border-radius:8px; font-size:0.85rem; z-index:200; box-shadow:0 4px 14px #0003;}
+
+/* ---- Menu radial (touche S, façon SolidWorks) ---- */
+#rmOverlay{position:fixed; inset:0; z-index:299; display:none; cursor:default;}
+#rmOverlay.open{display:block}
+#radialMenu{position:fixed; z-index:300; width:200px; height:200px; margin-left:-100px; margin-top:-100px; display:none; pointer-events:none;}
+#radialMenu.open{display:block}
+#radialMenu .rm-center{position:absolute; left:50%; top:50%; width:10px; height:10px; margin:-5px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 4px #0002;}
+.rm-item{position:absolute; width:62px; height:62px; margin:-31px; border-radius:50%; background:var(--panel); border:1px solid var(--border); display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:1.25rem; line-height:1; cursor:pointer; pointer-events:auto; box-shadow:0 4px 14px #0004; transition:transform .1s ease, background .1s ease;}
+.rm-item .rm-label{font-size:0.6rem; color:var(--muted); margin-top:3px}
+.rm-item:hover{background:var(--accent); color:#fff; transform:scale(1.1)}
+.rm-item:hover .rm-label{color:#fff}
+.rm-item.rm-top{left:50%; top:2%}
+.rm-item.rm-right{left:98%; top:50%}
+.rm-item.rm-bottom{left:50%; top:98%}
+.rm-item.rm-left{left:2%; top:50%}
+.thumb-wrap.rm-target{outline:3px dashed var(--accent); outline-offset:-3px}
+.search-wrap{position:relative; display:inline-flex; align-items:center;}
+.search-wrap input{padding-right:26px;}
+.search-wrap button{position:absolute; right:3px; background:none; border:none; color:var(--muted); cursor:pointer; font-size:0.78rem; padding:3px 6px; border-radius:50%; line-height:1;}
+.search-wrap button:hover{color:var(--accent); background:var(--hover)}
+#rmAlbumPop{position:fixed; z-index:301; background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:8px; box-shadow:0 6px 20px #0005; display:none; min-width:180px; max-height:240px; overflow-y:auto}
+#rmAlbumPop.open{display:block}
+#rmAlbumPop .rm-pop-title{font-size:0.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; padding:2px 6px 6px}
+#rmAlbumPop label{display:flex; gap:6px; align-items:center; padding:5px 6px; border-radius:6px; font-size:0.85rem; cursor:pointer}
+#rmAlbumPop label:hover{background:var(--hover)}
 </style>
 </head>
 <body>
@@ -110,7 +135,10 @@ input[type=file]{display:none}
 <div id="main">
   <header>
     <h2 id="viewTitle">Toutes les photos</h2>
-    <input type="text" id="search" placeholder="Rechercher...">
+    <div class="search-wrap">
+      <input type="text" id="search" placeholder="Rechercher...">
+      <button id="searchClear" title="Effacer" type="button" style="display:none">✕</button>
+    </div>
     <select id="sortSel">
       <option value="date_desc">Plus récentes</option>
       <option value="date_asc">Plus anciennes</option>
@@ -157,6 +185,16 @@ input[type=file]{display:none}
     <div class="lb-albums" id="lbAlbums"></div>
   </div>
 </div>
+
+<div id="rmOverlay"></div>
+<div id="radialMenu">
+  <div class="rm-center"></div>
+  <div class="rm-item rm-top" data-action="fav" title="Favori (S)"><span>⭐</span><span class="rm-label">Favori</span></div>
+  <div class="rm-item rm-right" data-action="tag" title="Tag (S)"><span>🏷️</span><span class="rm-label">Tag</span></div>
+  <div class="rm-item rm-bottom" data-action="delete" title="Supprimer (S)"><span>🗑️</span><span class="rm-label">Suppr.</span></div>
+  <div class="rm-item rm-left" data-action="album" title="Dossier (S)"><span>📁</span><span class="rm-label">Dossier</span></div>
+</div>
+<div id="rmAlbumPop"></div>
 
 <script>
 /* ---------- Stockage IndexedDB (Blobs natifs, pas de limite ~5Mo comme localStorage) ---------- */
@@ -386,7 +424,12 @@ document.getElementById('newAlbumBtn').addEventListener('click', async ()=>{
 });
 
 document.querySelectorAll('#sidebar .nav-item[data-view]').forEach(el=>el.addEventListener('click', ()=>setView(el.dataset.view, null)));
-document.getElementById('search').addEventListener('input', renderGrid);
+const searchInput = document.getElementById('search');
+const searchClearBtn = document.getElementById('searchClear');
+function updateSearchClear(){ searchClearBtn.style.display = searchInput.value ? 'inline-flex' : 'none'; }
+searchInput.addEventListener('input', ()=>{ updateSearchClear(); renderGrid(); });
+searchClearBtn.addEventListener('click', ()=>{ searchInput.value=''; updateSearchClear(); renderGrid(); searchInput.focus(); });
+updateSearchClear();
 document.getElementById('sortSel').addEventListener('change', renderGrid);
 
 function setView(mode, albumId){
@@ -504,11 +547,13 @@ function renderGrid(){
     gDiv.innerHTML = `<div class="date-title">${key}</div>`;
     const grid=document.createElement('div'); grid.className='grid';
     groups[key].forEach(p=>{
-      const w=document.createElement('div'); w.className='thumb-wrap';
+      const w=document.createElement('div'); w.className='thumb-wrap'; w.dataset.id=p.id;
       if(selectMode) w.classList.add('selectable');
       if(selected.has(p.id)) w.classList.add('selected');
       w.innerHTML = `<img src="${thumbUrlOf(p)}" loading="lazy"><span class="fav-badge ${p.favorite?'active':''}">⭐</span><span class="select-check">${selected.has(p.id)?'✓':''}</span>`;
       w.addEventListener('click', ()=>{ selectMode ? toggleSelect(p.id) : openLightbox(p.id); });
+      w.addEventListener('mouseenter', ()=>{ hoveredPhotoId = p.id; });
+      w.addEventListener('mouseleave', ()=>{ if(hoveredPhotoId===p.id && !document.getElementById('radialMenu').classList.contains('open')) hoveredPhotoId=null; });
       grid.appendChild(w);
     });
     gDiv.appendChild(grid); groupsEl.appendChild(gDiv);
@@ -574,6 +619,140 @@ document.addEventListener('keydown', e=>{
   if(e.key==='Escape') closeLightbox();
   else if(e.key==='ArrowLeft') document.getElementById('lbPrev').click();
   else if(e.key==='ArrowRight') document.getElementById('lbNext').click();
+});
+
+/* ---------- Menu radial (touche S) + navigation molette ---------- */
+let mouseX=0, mouseY=0, hoveredPhotoId=null, rmWheelLock=false;
+document.addEventListener('mousemove', e=>{ mouseX=e.clientX; mouseY=e.clientY; });
+
+function isTypingContext(){
+  const el = document.activeElement;
+  if(!el) return false;
+  const tag = el.tagName;
+  return tag==='INPUT' || tag==='TEXTAREA' || tag==='SELECT' || el.isContentEditable;
+}
+function currentRmTarget(){
+  if(document.getElementById('lightbox').classList.contains('open')){
+    const p = lbList[lbIndex];
+    return p ? p.id : null;
+  }
+  return hoveredPhotoId;
+}
+function highlightHovered(){
+  document.querySelectorAll('.thumb-wrap.rm-target').forEach(el=>el.classList.remove('rm-target'));
+  if(!hoveredPhotoId) return;
+  const el = document.querySelector('.thumb-wrap[data-id="'+hoveredPhotoId+'"]');
+  if(el){ el.classList.add('rm-target'); el.scrollIntoView({block:'nearest', behavior:'smooth'}); }
+}
+function rmNavigate(delta){
+  if(document.getElementById('lightbox').classList.contains('open')){
+    let ni = Math.max(0, Math.min(lbList.length-1, lbIndex+delta));
+    if(ni!==lbIndex){ lbIndex=ni; renderLightbox(); }
+    return;
+  }
+  if(lbList.length===0) return;
+  let idx = lbList.findIndex(p=>p.id===hoveredPhotoId);
+  if(idx===-1) idx = delta>0 ? -1 : 0;
+  const ni = Math.max(0, Math.min(lbList.length-1, idx+delta));
+  hoveredPhotoId = lbList[ni].id;
+  highlightHovered();
+}
+function onWheelNav(e){
+  const lightboxOpen = document.getElementById('lightbox').classList.contains('open');
+  const menuOpen = document.getElementById('radialMenu').classList.contains('open');
+  if(!lightboxOpen && !menuOpen) return;
+  e.preventDefault();
+  if(rmWheelLock) return;
+  rmWheelLock = true; setTimeout(()=>rmWheelLock=false, 140);
+  rmNavigate(e.deltaY>0 ? 1 : -1);
+}
+document.getElementById('lightbox').addEventListener('wheel', onWheelNav, {passive:false});
+document.getElementById('content').addEventListener('wheel', onWheelNav, {passive:false});
+
+function openRadialMenu(x,y){
+  if(!currentRmTarget()) return;
+  const menu = document.getElementById('radialMenu');
+  menu.style.left = x+'px'; menu.style.top = y+'px';
+  menu.classList.add('open');
+  document.getElementById('rmOverlay').classList.add('open');
+}
+function closeRadialMenu(){
+  document.getElementById('radialMenu').classList.remove('open');
+  document.getElementById('rmOverlay').classList.remove('open');
+  document.getElementById('rmAlbumPop').classList.remove('open');
+  document.querySelectorAll('.thumb-wrap.rm-target').forEach(el=>el.classList.remove('rm-target'));
+}
+document.addEventListener('keydown', e=>{
+  if(e.key!=='s' && e.key!=='S') return;
+  if(isTypingContext()) return;
+  if(document.getElementById('radialMenu').classList.contains('open')) return;
+  if(!currentRmTarget()) return;
+  e.preventDefault();
+  openRadialMenu(mouseX, mouseY);
+});
+document.getElementById('rmOverlay').addEventListener('click', closeRadialMenu);
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape' && document.getElementById('radialMenu').classList.contains('open')) closeRadialMenu();
+});
+
+async function rmToggleFav(p){ p.favorite=!p.favorite; await savePhoto(p); renderGrid(); if(document.getElementById('lightbox').classList.contains('open')) renderLightbox(); }
+async function rmAddTag(p){
+  const val = prompt('Ajouter un tag à « '+p.name+' » :');
+  if(val && val.trim()){
+    if(!p.tags.includes(val.trim())) p.tags.push(val.trim());
+    await savePhoto(p);
+    renderGrid(); if(document.getElementById('lightbox').classList.contains('open')) renderLightbox();
+  }
+}
+async function rmDelete(p){
+  if(!confirm('Supprimer cette photo ?')) return;
+  await delPhoto(p.id);
+  photos = photos.filter(x=>x.id!==p.id);
+  revokeCaches(p.id);
+  if(document.getElementById('lightbox').classList.contains('open')){
+    lbList = getFiltered();
+    if(lbList.length===0) closeLightbox();
+    else { lbIndex = Math.min(lbIndex, lbList.length-1); renderLightbox(); }
+  }
+  renderGrid(); updateStorageInfo();
+}
+function rmShowAlbumPicker(p, x, y){
+  const pop = document.getElementById('rmAlbumPop');
+  pop.innerHTML = '<div class="rm-pop-title">Dossiers</div>';
+  if(albums.length===0){
+    pop.innerHTML += '<div style="padding:6px; font-size:0.82rem; color:var(--muted)">Aucun album. Crée-en un depuis la barre latérale.</div>';
+  }
+  albums.forEach(a=>{
+    const lab=document.createElement('label');
+    lab.innerHTML = `<input type="checkbox" ${p.albums.includes(a.id)?'checked':''}> ${a.name}`;
+    lab.querySelector('input').addEventListener('change', async e=>{
+      if(e.target.checked){ if(!p.albums.includes(a.id)) p.albums.push(a.id); }
+      else p.albums = p.albums.filter(x=>x!==a.id);
+      await savePhoto(p); renderGrid();
+    });
+    pop.appendChild(lab);
+  });
+  pop.style.left = Math.min(x, window.innerWidth-200)+'px';
+  pop.style.top = Math.min(y, window.innerHeight-40)+'px';
+  pop.classList.add('open');
+}
+document.querySelectorAll('.rm-item').forEach(item=>{
+  item.addEventListener('click', async e=>{
+    e.stopPropagation();
+    const id = currentRmTarget();
+    const p = photos.find(x=>x.id===id);
+    if(!p) { closeRadialMenu(); return; }
+    const action = item.dataset.action;
+    if(action==='album'){
+      const rect = item.getBoundingClientRect();
+      rmShowAlbumPicker(p, rect.left, rect.top);
+      return;
+    }
+    closeRadialMenu();
+    if(action==='fav') await rmToggleFav(p);
+    else if(action==='tag') await rmAddTag(p);
+    else if(action==='delete') await rmDelete(p);
+  });
 });
 
 boot();
