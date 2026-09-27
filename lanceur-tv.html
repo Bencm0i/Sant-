@@ -797,6 +797,20 @@
 
   renderAllUsage();
 
+  // Pointeur télécommande : le bouton "clic gauche" émule un clic à la
+  // position physique du curseur système, qui ne correspond pas forcément
+  // à la tuile mise en focus via les flèches directionnelles (le focus
+  // logique se déplace, mais le curseur réel reste où il était). Si le
+  // clic tombe en dehors de toute tuile alors qu'une tuile a le focus,
+  // on active cette tuile à la place.
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('.tile')) return;
+    const active = document.activeElement;
+    if (active && active.classList.contains('tile')) {
+      active.click();
+    }
+  }, true);
+
   // Météo en direct (Valence, France) via Open-Meteo, sans clé requise
   const WMO_ICONS = {
     0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️',
