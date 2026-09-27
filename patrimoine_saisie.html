@@ -2696,7 +2696,12 @@ function updateVersionBadge() {
   if (el) el.textContent = 'v' + (DATA._version || 0);
 }
 function persistData() {
-  localStorage.setItem('patrimoine_saisie', JSON.stringify(DATA));
+  try {
+    localStorage.setItem('patrimoine_saisie', JSON.stringify(DATA));
+  } catch(e) {
+    console.warn('persistData: quota localStorage dépassé, sauvegarde locale ignorée', e);
+    flashSaveStatus('⚠ Stockage local plein — pensez à exporter en JSON');
+  }
   updateVersionBadge();
 }
 // N'incrémente la version que lors d'un export réel (bouton "Enregistrer JSON"), pas à chaque autosave.
