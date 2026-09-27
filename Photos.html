@@ -189,10 +189,10 @@ input[type=file]{display:none}
 <div id="rmOverlay"></div>
 <div id="radialMenu">
   <div class="rm-center"></div>
-  <div class="rm-item rm-top" data-action="fav" title="Favori (S)"><span>⭐</span><span class="rm-label">Favori</span></div>
-  <div class="rm-item rm-right" data-action="tag" title="Tag (S)"><span>🏷️</span><span class="rm-label">Tag</span></div>
-  <div class="rm-item rm-bottom" data-action="delete" title="Supprimer (S)"><span>🗑️</span><span class="rm-label">Suppr.</span></div>
-  <div class="rm-item rm-left" data-action="album" title="Dossier (S)"><span>📁</span><span class="rm-label">Dossier</span></div>
+  <div class="rm-item rm-top" data-action="fav" title="Favori (Alt+S)"><span>⭐</span><span class="rm-label">Favori</span></div>
+  <div class="rm-item rm-right" data-action="tag" title="Tag (Alt+S)"><span>🏷️</span><span class="rm-label">Tag</span></div>
+  <div class="rm-item rm-bottom" data-action="delete" title="Supprimer (Alt+S)"><span>🗑️</span><span class="rm-label">Suppr.</span></div>
+  <div class="rm-item rm-left" data-action="album" title="Dossier (Alt+S)"><span>📁</span><span class="rm-label">Dossier</span></div>
 </div>
 <div id="rmAlbumPop"></div>
 
@@ -683,7 +683,7 @@ function closeRadialMenu(){
   document.querySelectorAll('.thumb-wrap.rm-target').forEach(el=>el.classList.remove('rm-target'));
 }
 document.addEventListener('keydown', e=>{
-  if(e.key!=='s' && e.key!=='S') return;
+  if(!e.altKey || (e.key!=='s' && e.key!=='S')) return;
   if(isTypingContext()) return;
   if(document.getElementById('radialMenu').classList.contains('open')) return;
   if(!currentRmTarget()) return;
