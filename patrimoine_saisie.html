@@ -1411,6 +1411,15 @@ button, input, select { touch-action: manipulation; }
       <p style="font-size:11px;color:var(--muted);">Planifiez vos versements programmés (date, montant, support). Une alerte s'affiche quand la date est atteinte.</p>
     </div>
   </div>
+  <div class="section accent-blue">
+    <div class="section-head">
+      <div class="section-title">💧 Règle poche cash (déclenchement)</div>
+    </div>
+    <div class="section-body" id="body-dca-regle">
+      <p style="font-size:11px;color:var(--muted);margin-bottom:8px;">Règle écrite à froid pour piloter l'usage de la poche cash en cas de choc de marché (ex: rupture de confiance sectorielle IA). Combine seuil de baisse, confirmation de tendance et filtre narratif — l'activation reste au jugement, mais guidée par ces repères plutôt qu'au pur feeling.</p>
+    </div>
+  </div>
+
   <datalist id="dcaSupportsList">
     <option value="PEA"></option>
     <option value="CTO"></option>
@@ -1623,6 +1632,19 @@ let DATA = {
   ath:[],
   heritage:[],
   dca:[],
+  dcaRegleCash:{
+    actif:true,
+    indiceRef:"ETF World",
+    seuilBaisse:15,
+    joursConfirmation:15,
+    filtreNarratif:true,
+    paliers:[
+      {seuil:15,pct:25},
+      {seuil:25,pct:50},
+      {seuil:35,pct:100},
+    ],
+    notes:"Activation au feeling, mais guidée : baisse ≥ seuil depuis le plus haut récent, confirmée par une tendance sous la moyenne mobile 200j depuis plusieurs semaines (pas un creux d'un jour), ET baisse concentrée sur tech/IA (comparer à un indice moins pondéré tech). Décidé à froid, pas au moment du choc."
+  },
   immobilier:{
     p1:{
       valeur:0,
@@ -1733,7 +1755,7 @@ function switchTab(name) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-'+name).classList.add('active');
   if (name === 'kpi') { if (typeof renderKPIPanel === 'function') renderKPIPanel(); }
-  if (name === 'dca') { if (typeof renderDCA === 'function') renderDCA(); }
+  if (name === 'dca') { if (typeof renderDCA === 'function') renderDCA(); if (typeof renderDcaRegleCash === 'function') renderDcaRegleCash(); }
   if (name === 'poches') { if (typeof renderPoches === 'function') renderPoches(); }
 }
 
@@ -2321,6 +2343,80 @@ function renderDCA() {
     </div>`;
     }).join('') || '<p style="color:var(--muted);font-size:11px;">Aucun DCA planifié. Cliquez ＋ DCA pour ajouter.</p>');
   updateDcaAlerts();
+}
+
+// ─── RÈGLE POCHE CASH (déclenchement) ──────────────────────────────────────
+function ensureDcaRegleCash() {
+  if (!DATA.dcaRegleCash) {
+    DATA.dcaRegleCash = { actif:true, indiceRef:'ETF World', seuilBaisse:15, joursConfirmation:15, filtreNarratif:true, paliers:[{seuil:15,pct:25},{seuil:25,pct:50},{seuil:35,pct:100}], notes:'' };
+  }
+  if (!Array.isArray(DATA.dcaRegleCash.paliers)) DATA.dcaRegleCash.paliers = [];
+}
+
+function renderDcaRegleCash() {
+  const c = document.getElementById('body-dca-regle');
+  if (!c) return;
+  ensureDcaRegleCash();
+  const r = DATA.dcaRegleCash;
+  const paliersHtml = r.paliers.map((p,i) => `
+    <div class="log-card">
+      <div class="log-card-fields">
+        <div class="log-card-field">
+          <label>Seuil de baisse (%)</label>
+          <input type="number" value="${p.seuil ?? ''}" step="1" min="0" inputmode="decimal" style="text-align:right" oninput="DATA.dcaRegleCash.paliers[${i}].seuil=parseFloat(this.value)||0;autoSave()">
+        </div>
+        <div class="log-card-field">
+          <label>% de la poche déployé</label>
+          <input type="number" value="${p.pct ?? ''}" step="5" min="0" max="100" inputmode="decimal" style="text-align:right" oninput="DATA.dcaRegleCash.paliers[${i}].pct=parseFloat(this.value)||0;autoSave()">
+        </div>
+      </div>
+      <div class="log-card-del">
+        <button class="del-btn" onclick="deleteWithUndo(DATA.dcaRegleCash.paliers,${i},()=>{renderDcaRegleCash();},'Palier supprimé')">✕</button>
+      </div>
+    </div>`).join('') || '<p style="color:var(--muted);font-size:11px;">Aucun palier défini.</p>';
+
+  c.innerHTML = `
+    <p style="font-size:11px;color:var(--muted);margin-bottom:10px;">Règle écrite à froid pour piloter l'usage de la poche cash en cas de choc de marché (ex: rupture de confiance sectorielle IA). Combine seuil de baisse, confirmation de tendance et filtre narratif — l'activation reste au jugement, mais guidée par ces repères plutôt qu'au pur feeling.</p>
+
+    <div class="log-card">
+      <div class="log-card-fields">
+        <div class="log-card-field">
+          <label>Indice de référence suivi</label>
+          <input type="text" value="${(r.indiceRef||'').replace(/"/g,'&quot;')}" placeholder="Ex: ETF World" oninput="DATA.dcaRegleCash.indiceRef=this.value;autoSave()">
+        </div>
+        <div class="log-card-field">
+          <label>Seuil de baisse déclenchant (% depuis le + haut)</label>
+          <input type="number" value="${r.seuilBaisse ?? ''}" step="1" min="0" inputmode="decimal" style="text-align:right" oninput="DATA.dcaRegleCash.seuilBaisse=parseFloat(this.value)||0;autoSave()">
+        </div>
+        <div class="log-card-field">
+          <label>Confirmation tendance (jours sous MM200)</label>
+          <input type="number" value="${r.joursConfirmation ?? ''}" step="1" min="0" inputmode="decimal" style="text-align:right" oninput="DATA.dcaRegleCash.joursConfirmation=parseFloat(this.value)||0;autoSave()">
+        </div>
+        <div class="log-card-field" style="min-width:88px;flex:0 0 auto;">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+            <input type="checkbox" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;" ${r.filtreNarratif?'checked':''} onchange="DATA.dcaRegleCash.filtreNarratif=this.checked;autoSave()">
+            Filtre narratif (tech/IA)
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-head" style="margin-top:14px;">
+      <div class="section-title" style="font-size:12px;">Paliers de déploiement</div>
+      <button class="mini-btn" style="width:auto;margin:0;padding:5px 12px;" onclick="addDcaRegleCashPalier()">＋ Palier</button>
+    </div>
+    ${paliersHtml}
+
+    <div style="margin-top:10px;">
+      <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px;">Notes / conditions complètes</label>
+      <textarea rows="4" style="width:100%;font-family:inherit;font-size:12px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px;" oninput="DATA.dcaRegleCash.notes=this.value;autoSave()">${(r.notes||'').replace(/</g,'&lt;')}</textarea>
+    </div>`;
+}
+
+function addDcaRegleCashPalier() {
+  ensureDcaRegleCash();
+  DATA.dcaRegleCash.paliers.push({seuil:0,pct:0});
+  renderDcaRegleCash(); autoSave();
 }
 
 function addDcaRow() {
@@ -3030,6 +3126,7 @@ function renderAll() {
   renderATH();
   renderHeritage();
   renderDCA();
+  renderDcaRegleCash();
   renderImmobilier();
   renderPoches();
   renderDepenses();
