@@ -825,8 +825,8 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
 </div>
 
 <div class="mobile-col-toggle">
-  <button id="mobileColBrut" onclick="setMobileCol('raw')" title="Affiche la colonne texte brut (le texte IA reste intact, juste masqué)">👁 Brut</button>
-  <button id="mobileColIA" onclick="setMobileCol('ia')" title="Affiche la colonne IA (le texte brut reste intact, juste masqué)">👁 IA</button>
+  <button id="mobileColBrut" onclick="setMobileCol('raw')" title="Affiche la colonne Marge (la colonne Texte reste intacte, juste masquée)">👁 Marge</button>
+  <button id="mobileColIA" onclick="setMobileCol('ia')" title="Affiche la colonne Texte (la colonne Marge reste intacte, juste masquée)">👁 Texte</button>
 </div>
 
 <span style="position:fixed;bottom:4px;right:8px;font-size:9px;color:#c7bfae;z-index:1;pointer-events:none;font-family:monospace;">build 2026-09-04-fix6</span>
@@ -851,8 +851,8 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
       <li><code>Alt+M</code><span>Mosaïque des onglets (résumés cliquables)</span></li>
       <li><code>Alt+S</code><span>Afficher/masquer les onglets</span></li>
       <li><code>Alt+F</code><span>Aller à la recherche</span></li>
-      <li><code>Alt+P</code><span>Aperçu du texte brut</span></li>
-      <li><code>Alt+I</code><span>Aperçu du texte IA</span></li>
+      <li><code>Alt+P</code><span>Aperçu de la marge</span></li>
+      <li><code>Alt+I</code><span>Aperçu du texte</span></li>
       <li><code>Alt+E</code><span>Basculer Aperçu/Édition (colonne active)</span></li>
       <li><code>Ctrl+B</code><span>Gras</span></li>
       <li><code>Ctrl+I</code><span>Italique</span></li>
@@ -879,7 +879,7 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
 <div class="help-panel" id="tagsPanel" style="display:none;">
   <div class="help-panel-inner tags-panel-inner">
     <h2>Tags IA</h2>
-    <p class="help-panel-note" style="margin-bottom:12px;">Ces tags s'insèrent dans le texte brut et servent de consigne quand tu envoies vers ChatGPT/Claude. Modifie le nom ou la consigne, ajoutes-en ou supprimes-en — c'est sauvegardé automatiquement sur cet appareil.</p>
+    <p class="help-panel-note" style="margin-bottom:12px;">Ces tags servent de consigne quand tu envoies un texte vers ChatGPT/Claude. Modifie le nom ou la consigne, ajoutes-en ou supprimes-en — c'est sauvegardé automatiquement sur cet appareil.</p>
     <div class="tags-edit-list" id="tagsEditList"></div>
     <button class="btn" onclick="addTagPrompt()" style="margin-bottom:10px;width:100%;justify-content:center;">＋ Ajouter un tag</button>
     <button class="btn primary" onclick="toggleTagsPanel()">Fermer</button>
@@ -980,14 +980,14 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
 
   <div class="text-col" id="rawCol">
     <div class="col-head">
-      <span class="col-label"><span class="active-dot" id="rawDot"></span><span id="rawLabel">Texte brut</span><span class="mode-badge" id="rawModeBadge"></span></span>
+      <span class="col-label"><span class="active-dot" id="rawDot"></span><span id="rawLabel">Marge</span><span class="mode-badge" id="rawModeBadge"></span></span>
       <div class="col-tools">
         <button id="rawFindBtn" onclick="toggleFindBar('raw')" title="Rechercher / remplacer dans ce texte">🔍 Chercher</button>
         <button id="rawPreviewBtn" onclick="togglePreview('raw')" title="Basculer entre édition et aperçu markdown">👁 Aperçu</button>
         <button id="rawAccordionBtn" onclick="toggleAccordion('raw')" title="Regrouper le texte en accordéon, une section par horodatage">📑 Accordéon</button>
-        <button onclick="insertTimestamp()" title="Insérer la date et l'heure actuelles dans le texte brut">🕒 Horodatage</button>
-        <button onclick="insertTagSection()" title="Insérer une section à balise (repliable automatiquement dans l'aperçu, pas besoin de bouton accordéon)">🏷 Section</button>
-        <select onchange="insertTemplateFromSelect(this)" title="Insérer un modèle de note pré-rempli">
+        <button onclick="insertTimestamp('raw')" title="Insérer la date et l'heure actuelles dans la marge">🕒 Horodatage</button>
+        <button onclick="insertTagSection('raw')" title="Insérer une section à balise (repliable automatiquement dans l'aperçu, pas besoin de bouton accordéon)">🏷 Section</button>
+        <select onchange="insertTemplateFromSelect(this,'raw')" title="Insérer un modèle de note pré-rempli">
           <option value="">🧩 Modèle…</option>
           <option value="reunion">Réunion</option>
           <option value="projet">Point projet</option>
@@ -995,11 +995,10 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
           <option value="action">Action rapide</option>
           <option value="decision">Décision</option>
         </select>
-        <button onclick="copyRawToClipboard()" title="Copier le texte brut dans le presse-papiers">📋 Copier</button>
+        <button onclick="copyRawToClipboard()" title="Copier la marge dans le presse-papiers">📋 Copier</button>
         <button onclick="exportTabAsMarkdown('raw')" title="Télécharger ce texte en fichier .md">⬇ .md</button>
-        <button onclick="copyRawToIA()" title="Déplacer ce texte vers la colonne IA (vide la colonne brut)">✂ → IA</button>
-        <button class="ai-link chatgpt" onclick="sendToAI('chatgpt')" title="Copier le texte (+ tag choisi) et ouvrir ChatGPT"><span class="dot"></span>ChatGPT ↗</button>
-        <button class="ai-link claude" onclick="sendToAI('claude')" title="Copier le texte (+ tag choisi) et ouvrir Claude"><span class="dot"></span>Claude ↗</button>
+        <button class="ai-link chatgpt" onclick="sendToAI('chatgpt','raw')" title="Copier le texte (+ tag choisi) et ouvrir ChatGPT"><span class="dot"></span>ChatGPT ↗</button>
+        <button class="ai-link claude" onclick="sendToAI('claude','raw')" title="Copier le texte (+ tag choisi) et ouvrir Claude"><span class="dot"></span>Claude ↗</button>
       </div>
     </div>
     <div class="find-bar" id="rawFindBar" style="display:none;">
@@ -1039,7 +1038,7 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
       </span>
     </div>
     <div class="area-wrap" id="rawWrap">
-      <textarea class="note-area" id="rawArea" placeholder="Écris ton texte brut ici… (markdown supporté)" oninput="onEdit('raw')"></textarea>
+      <textarea class="note-area" id="rawArea" placeholder="Écris ici tes notes de marge… (markdown supporté)" oninput="onEdit('raw')"></textarea>
       <div class="hl-overlay" id="rawHl" aria-hidden="true"></div>
       <div class="hit-overlay" id="rawHits" aria-hidden="true"></div>
     </div>
@@ -1048,18 +1047,29 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
     <div class="char-count" id="rawCount">0 caractère</div>
   </div>
 
-  <div class="col-resizer" id="colResizer" title="Glisser pour redimensionner la colonne IA"></div>
+  <div class="col-resizer" id="colResizer" title="Glisser pour redimensionner la colonne Texte"></div>
 
   <div class="text-col" id="iaCol">
     <div class="col-head">
-      <span class="col-label"><span class="active-dot" id="iaDot"></span>Retravaillé (IA)<span class="mode-badge" id="iaModeBadge"></span></span>
+      <span class="col-label"><span class="active-dot" id="iaDot"></span>Texte<span class="mode-badge" id="iaModeBadge"></span></span>
       <div class="col-tools">
         <button id="iaFindBtn" onclick="toggleFindBar('ia')" title="Rechercher / remplacer dans ce texte">🔍 Chercher</button>
         <button id="iaPreviewBtn" onclick="togglePreview('ia')" title="Basculer entre édition et aperçu markdown">👁 Aperçu</button>
         <button id="iaAccordionBtn" onclick="toggleAccordion('ia')" title="Regrouper le texte en accordéon, une section par horodatage">📑 Accordéon</button>
-        <button onclick="copyIAToClipboard()" title="Copier le texte IA dans le presse-papiers">📋 Copier</button>
+        <button onclick="insertTimestamp('ia')" title="Insérer la date et l'heure actuelles dans le texte">🕒 Horodatage</button>
+        <button onclick="insertTagSection('ia')" title="Insérer une section à balise (repliable automatiquement dans l'aperçu, pas besoin de bouton accordéon)">🏷 Section</button>
+        <select onchange="insertTemplateFromSelect(this,'ia')" title="Insérer un modèle de note pré-rempli">
+          <option value="">🧩 Modèle…</option>
+          <option value="reunion">Réunion</option>
+          <option value="projet">Point projet</option>
+          <option value="appel">Appel</option>
+          <option value="action">Action rapide</option>
+          <option value="decision">Décision</option>
+        </select>
+        <button onclick="copyIAToClipboard()" title="Copier le texte dans le presse-papiers">📋 Copier</button>
         <button onclick="exportTabAsMarkdown('ia')" title="Télécharger ce texte en fichier .md">⬇ .md</button>
-        <button onclick="copyIAToRaw()" title="Copier vers la colonne texte brut">← Brut</button>
+        <button class="ai-link chatgpt" onclick="sendToAI('chatgpt','ia')" title="Copier le texte (+ tag choisi) et ouvrir ChatGPT"><span class="dot"></span>ChatGPT ↗</button>
+        <button class="ai-link claude" onclick="sendToAI('claude','ia')" title="Copier le texte (+ tag choisi) et ouvrir Claude"><span class="dot"></span>Claude ↗</button>
       </div>
     </div>
     <div class="find-bar" id="iaFindBar" style="display:none;">
@@ -1095,7 +1105,7 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
       </span>
     </div>
     <div class="area-wrap" id="iaWrap">
-      <textarea class="note-area" id="iaArea" placeholder="Colle ici le texte retravaillé par une IA… (markdown supporté)" oninput="onEdit('ia')"></textarea>
+      <textarea class="note-area" id="iaArea" placeholder="Écris ton texte ici… (markdown supporté)" oninput="onEdit('ia')"></textarea>
       <div class="hl-overlay" id="iaHl" aria-hidden="true"></div>
       <div class="hit-overlay" id="iaHits" aria-hidden="true"></div>
     </div>
@@ -2633,9 +2643,10 @@ function insertTagText(label){
   flash('rawCol');
 }
 
-function sendToAI(target){
-  const raw = plainizeImageRefs(document.getElementById('rawArea').value);
-  if(!raw.trim()){ alert('Le texte brut est vide.'); return; }
+function sendToAI(target, which){
+  which = which || 'raw';
+  const raw = plainizeImageRefs(document.getElementById(which + 'Area').value);
+  if(!raw.trim()){ alert(which === 'raw' ? 'La marge est vide.' : 'Le texte est vide.'); return; }
   const tag = TAGS.find(t=>t.key===selectedTagKey);
   const payload = tag ? (tag.prompt + '\n\n' + raw) : raw;
 
@@ -2643,15 +2654,16 @@ function sendToAI(target){
 
   const openAndNotify = ()=>{
     window.open(url, '_blank', 'noopener');
-    flash('rawCol');
+    flash(which + 'Col');
   };
 
   copyTextToClipboard(payload).then(openAndNotify).catch(openAndNotify);
 }
 
-function insertTimestamp(){
+function insertTimestamp(which){
+  which = which || 'raw';
   if(!activeId) return;
-  const area = document.getElementById('rawArea');
+  const area = document.getElementById(which + 'Area');
   const now = new Date();
   const pad = n => String(n).padStart(2,'0');
   const stamp = '[' + pad(now.getDate()) + '/' + pad(now.getMonth()+1) + '/' + now.getFullYear()
@@ -2671,11 +2683,12 @@ function insertTimestamp(){
   area.focus();
   area.setSelectionRange(caret, caret);
 
-  onEdit('raw');
-  flash('rawCol');
+  onEdit(which);
+  flash(which + 'Col');
 }
 
-function insertTagSection(){
+function insertTagSection(which){
+  which = which || 'raw';
   if(!activeId) return;
   const rawTag = prompt('Nom court de la balise (sans espace ni #) :', '');
   if(rawTag === null) return; // annulé
@@ -2683,7 +2696,7 @@ function insertTagSection(){
   if(!tag){ alert('Nom de balise vide, rien n\'a été inséré.'); return; }
   const desc = prompt('Description de cette section :', '') || '';
 
-  const area = document.getElementById('rawArea');
+  const area = document.getElementById(which + 'Area');
   const start = area.selectionStart ?? area.value.length;
   const end = area.selectionEnd ?? area.value.length;
   const before = area.value.slice(0, start);
@@ -2697,8 +2710,8 @@ function insertTagSection(){
   area.focus();
   area.setSelectionRange(caret, caret);
 
-  onEdit('raw');
-  flash('rawCol');
+  onEdit(which);
+  flash(which + 'Col');
 }
 
 // ── MODÈLES RAPIDES (structure de note prête à l'emploi, pour aller plus vite) ──
@@ -2710,14 +2723,15 @@ const TEMPLATES = {
   decision:'**Décision :** '
 };
 
-function insertTemplateFromSelect(sel){
+function insertTemplateFromSelect(sel, which){
   const key = sel.value;
   sel.selectedIndex = 0;
   if(!key) return;
-  insertTemplateText(key);
+  insertTemplateText(key, which);
 }
 
-function insertTemplateText(key){
+function insertTemplateText(key, which){
+  which = which || 'raw'; 
   if(!activeId) return;
   const tpl = TEMPLATES[key];
   if(!tpl) return;
@@ -2726,7 +2740,7 @@ function insertTemplateText(key){
   const dateStr = pad(now.getDate()) + '/' + pad(now.getMonth()+1) + '/' + now.getFullYear();
   const text = tpl.replace('{date}', dateStr);
 
-  const area = document.getElementById('rawArea');
+  const area = document.getElementById(which + 'Area');
   const start = area.selectionStart ?? area.value.length;
   const end = area.selectionEnd ?? area.value.length;
   const before = area.value.slice(0, start);
@@ -2739,8 +2753,8 @@ function insertTemplateText(key){
   area.focus();
   area.setSelectionRange(caret, caret);
 
-  onEdit('raw');
-  flash('rawCol');
+  onEdit(which);
+  flash(which + 'Col');
 }
 
 function copyTextToClipboard(text){
@@ -2786,36 +2800,6 @@ function copyIAToClipboard(){
   copyTextToClipboard(val)
     .then(()=>flash('iaCol'))
     .catch(()=>alert('❌ La copie a échoué. Sélectionnez le texte manuellement (Ctrl+A puis Ctrl+C) dans la zone de texte.'));
-}
-function copyRawToIA(){
-  if(!activeId) return;
-  const t = state.tabs[activeId];
-  if(!t.raw || !t.raw.trim()){ alert('La colonne brut est vide, rien à déplacer.'); return; }
-  if(t.ia && t.ia.trim() && t.ia !== t.raw){
-    if(!confirm('La colonne IA contient déjà du texte : le remplacer par le texte brut ?')) return;
-  }
-  t.ia = t.raw;
-  t.raw = '';
-  document.getElementById('rawArea').value = t.raw;
-  document.getElementById('iaArea').value = t.ia;
-  updateCounts();
-  persist();
-  renderViewState('raw');
-  renderViewState('ia');
-  flash('iaCol');
-}
-function copyIAToRaw(){
-  if(!activeId) return;
-  const t = state.tabs[activeId];
-  if(t.raw && t.raw.trim() && t.raw !== t.ia){
-    if(!confirm('La colonne texte brut contient déjà du texte : le remplacer par le texte IA ?')) return;
-  }
-  t.raw = t.ia;
-  document.getElementById('rawArea').value = t.raw;
-  updateCounts();
-  persist();
-  renderViewState('raw');
-  flash('rawCol');
 }
 function flash(colId){
   const el = document.getElementById(colId);
@@ -2923,7 +2907,7 @@ async function exportTabAsMarkdown(which){
   if(!content || !content.trim()){ alert('Rien à exporter : ce texte est vide.'); return; }
   content = await resolveImageRefsToDataUrls(content);
   const safeName = (t.name || 'note').trim().replace(/[\\/:*?"<>|]/g, '-') || 'note';
-  const filename = safeName + (which==='ia' ? ' (IA)' : '') + '.md';
+  const filename = safeName + (which==='ia' ? ' (Texte)' : ' (Marge)') + '.md';
   const blob = new Blob([content], {type:'text/markdown'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -3163,7 +3147,7 @@ function renderTasksPanel(){
     meta.appendChild(dot);
     const tabName = document.createElement('span');
     tabName.className = 'task-item-tab';
-    tabName.textContent = task.tabName + (task.field === 'ia' ? ' · IA' : '');
+    tabName.textContent = task.tabName + (task.field === 'ia' ? ' · Texte' : ' · Marge');
     meta.appendChild(tabName);
     body.appendChild(meta);
 
@@ -3765,7 +3749,7 @@ let drawTextMode = false;
 
 function openDrawModal(which){
   drawTargetWhich = which === 'raw' ? 'raw' : 'ia';
-  document.getElementById('drawTargetLabel').textContent = drawTargetWhich === 'raw' ? 'le texte brut' : 'la colonne IA';
+  document.getElementById('drawTargetLabel').textContent = drawTargetWhich === 'raw' ? 'la marge' : 'le texte';
   const panel = document.getElementById('drawPanel');
   const canvas = document.getElementById('drawCanvas');
   if(!drawCtx){
