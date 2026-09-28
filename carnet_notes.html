@@ -884,6 +884,26 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
   </div>
 </div>
 
+<div class="help-panel" id="tasksPanel" style="display:none;">
+  <div class="help-panel-inner tasks-panel-inner">
+    <h2 id="tasksTitle">Tâches</h2>
+    <p class="help-panel-note" style="margin-bottom:12px;">Toutes les cases à cocher de tous les onglets, au même endroit. Clique le texte pour ouvrir l'onglet, ou coche directement ici sans y aller.</p>
+    <div class="tasks-list" id="tasksList"></div>
+    <button class="btn" id="tasksShowDoneBtn" onclick="toggleShowDoneTasks()" style="margin-bottom:10px;width:100%;justify-content:center;">☐ Afficher les tâches faites</button>
+    <button class="btn primary" onclick="toggleTasksPanel()">Fermer</button>
+  </div>
+</div>
+
+<div class="help-panel" id="margesPanel" style="display:none;">
+  <div class="help-panel-inner tasks-panel-inner">
+    <h2 id="margesTitle">Marges</h2>
+    <p class="help-panel-note" style="margin-bottom:12px;">Toutes les lignes balisées de tous les onglets. Filtre par tag, puis clique une ligne pour aller à l'endroit.</p>
+    <div class="marges-filters" id="margesFilters"></div>
+    <div class="tasks-list" id="margesList"></div>
+    <button class="btn primary" onclick="toggleMargesPanel()">Fermer</button>
+  </div>
+</div>
+
 <div class="help-panel" id="mtagsPanel" style="display:none;">
   <div class="help-panel-inner tags-panel-inner">
     <h2>Tags de marge</h2>
