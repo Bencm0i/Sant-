@@ -336,7 +336,7 @@ input[type=file]{display:none;}
 }
 .tab-snippet mark{background:#f3d98a;color:var(--ink);border-radius:2px;padding:0 1px;font-weight:600;}
 
-/* AI LINKS + TAG BUBBLES */
+/* AI LINKS */
 .ai-link{
   font-family:'IBM Plex Mono',monospace;font-size:0.68rem;font-weight:600;
   padding:5px 9px;border-radius:6px;border:1.5px solid var(--line);background:#fff;
@@ -347,33 +347,6 @@ input[type=file]{display:none;}
 .ai-link .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
 .ai-link.chatgpt .dot{background:#10a37f;}
 .ai-link.claude .dot{background:#c96442;}
-.tags-bar{
-  display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px 12px;
-  flex-shrink:0;
-}
-.tags-accordion{border-bottom:1.5px solid var(--line);flex-shrink:0;}
-.tags-accordion summary{
-  cursor:pointer;padding:8px 16px;list-style:none;user-select:none;
-  display:flex;align-items:center;gap:8px;
-  font-family:'IBM Plex Mono',monospace;font-size:0.74rem;font-weight:600;color:var(--ink-soft);
-  transition:color .15s;
-}
-.tags-accordion summary::-webkit-details-marker{display:none;}
-.tags-accordion summary::before{content:'▸';display:inline-block;transition:transform .15s;color:var(--accent);flex-shrink:0;}
-.tags-accordion[open] summary::before{transform:rotate(90deg);}
-.tags-accordion summary:hover{color:var(--accent);}
-.tags-accordion-count{
-  font-family:'IBM Plex Mono',monospace;font-size:0.64rem;font-weight:700;color:#fff;background:var(--accent);
-  border-radius:999px;padding:1px 7px;
-}
-.tags-accordion-hint{font-weight:400;opacity:0.7;font-size:0.7rem;}
-.tag-bubble{
-  font-family:'IBM Plex Mono',monospace;font-size:0.72rem;font-weight:600;
-  padding:5px 12px;border-radius:999px;border:1.5px solid var(--line);
-  background:var(--paper-dim);color:var(--ink-soft);cursor:pointer;transition:all .15s;
-}
-.tag-bubble:hover{border-color:var(--accent);color:var(--accent);}
-.tag-bubble.active{background:var(--accent);border-color:var(--accent);color:#fff;}
 .add-tab-wrap{padding:10px 12px 14px;}
 .add-tab-btn{
   width:100%;font-family:'IBM Plex Mono',monospace;font-size:0.78rem;font-weight:600;
@@ -911,36 +884,6 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
   </div>
 </div>
 
-<div class="help-panel" id="tagsPanel" style="display:none;">
-  <div class="help-panel-inner tags-panel-inner">
-    <h2>Tags IA</h2>
-    <p class="help-panel-note" style="margin-bottom:12px;">Ces tags servent de consigne quand tu envoies un texte vers ChatGPT/Claude. Modifie le nom ou la consigne, ajoutes-en ou supprimes-en — c'est sauvegardé automatiquement sur cet appareil.</p>
-    <div class="tags-edit-list" id="tagsEditList"></div>
-    <button class="btn" onclick="addTagPrompt()" style="margin-bottom:10px;width:100%;justify-content:center;">＋ Ajouter un tag</button>
-    <button class="btn primary" onclick="toggleTagsPanel()">Fermer</button>
-  </div>
-</div>
-
-<div class="help-panel" id="tasksPanel" style="display:none;">
-  <div class="help-panel-inner tasks-panel-inner">
-    <h2 id="tasksTitle">Tâches</h2>
-    <p class="help-panel-note" style="margin-bottom:12px;">Toutes les cases à cocher de tous les onglets, au même endroit. Clique le texte pour ouvrir l'onglet, ou coche directement ici sans y aller.</p>
-    <div class="tasks-list" id="tasksList"></div>
-    <button class="btn" id="tasksShowDoneBtn" onclick="toggleShowDoneTasks()" style="margin-bottom:10px;width:100%;justify-content:center;">☐ Afficher les tâches faites</button>
-    <button class="btn primary" onclick="toggleTasksPanel()">Fermer</button>
-  </div>
-</div>
-
-<div class="help-panel" id="margesPanel" style="display:none;">
-  <div class="help-panel-inner tasks-panel-inner">
-    <h2 id="margesTitle">Marges</h2>
-    <p class="help-panel-note" style="margin-bottom:12px;">Toutes les lignes balisées de tous les onglets. Filtre par tag, puis clique une ligne pour aller à l'endroit.</p>
-    <div class="marges-filters" id="margesFilters"></div>
-    <div class="tasks-list" id="margesList"></div>
-    <button class="btn primary" onclick="toggleMargesPanel()">Fermer</button>
-  </div>
-</div>
-
 <div class="help-panel" id="mtagsPanel" style="display:none;">
   <div class="help-panel-inner tags-panel-inner">
     <h2>Tags de marge</h2>
@@ -1053,8 +996,8 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
         </select>
         <button onclick="copyRawToClipboard()" title="Copier la marge dans le presse-papiers">📋 Copier</button>
         <button onclick="exportTabAsMarkdown('raw')" title="Télécharger ce texte en fichier .md">⬇ .md</button>
-        <button class="ai-link chatgpt" onclick="sendToAI('chatgpt','raw')" title="Copier le texte (+ tag choisi) et ouvrir ChatGPT"><span class="dot"></span>ChatGPT ↗</button>
-        <button class="ai-link claude" onclick="sendToAI('claude','raw')" title="Copier le texte (+ tag choisi) et ouvrir Claude"><span class="dot"></span>Claude ↗</button>
+        <button class="ai-link chatgpt" onclick="sendToAI('chatgpt','raw')" title="Copier le texte et ouvrir ChatGPT"><span class="dot"></span>ChatGPT ↗</button>
+        <button class="ai-link claude" onclick="sendToAI('claude','raw')" title="Copier le texte et ouvrir Claude"><span class="dot"></span>Claude ↗</button>
       </div>
     </div>
     <div class="find-bar" id="rawFindBar" style="display:none;">
@@ -1067,10 +1010,6 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
       <button onclick="replaceAll('raw')">Tout remplacer</button>
       <button onclick="closeFindBar('raw')" title="Fermer">✕</button>
     </div>
-    <details class="tags-accordion" id="tagsAccordion">
-      <summary>🏷 Tags IA <span class="tags-accordion-count" id="tagsBarCount">0</span><span class="tags-accordion-hint">— consignes pour ChatGPT/Claude</span></summary>
-      <div class="tags-bar" id="tagsBar"></div>
-    </details>
     <div class="mtags-bar" id="mtagsBar"></div>
     <div class="md-toolbar">
       <button class="md-btn" onclick="mdWrap('rawArea','**','**','gras')" title="Gras (Ctrl+B)"><b>B</b></button>
@@ -1125,8 +1064,8 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
         </select>
         <button onclick="copyIAToClipboard()" title="Copier le texte dans le presse-papiers">📋 Copier</button>
         <button onclick="exportTabAsMarkdown('ia')" title="Télécharger ce texte en fichier .md">⬇ .md</button>
-        <button class="ai-link chatgpt" onclick="sendToAI('chatgpt','ia')" title="Copier le texte (+ tag choisi) et ouvrir ChatGPT"><span class="dot"></span>ChatGPT ↗</button>
-        <button class="ai-link claude" onclick="sendToAI('claude','ia')" title="Copier le texte (+ tag choisi) et ouvrir Claude"><span class="dot"></span>Claude ↗</button>
+        <button class="ai-link chatgpt" onclick="sendToAI('chatgpt','ia')" title="Copier le texte et ouvrir ChatGPT"><span class="dot"></span>ChatGPT ↗</button>
+        <button class="ai-link claude" onclick="sendToAI('claude','ia')" title="Copier le texte et ouvrir Claude"><span class="dot"></span>Claude ↗</button>
       </div>
     </div>
     <div class="find-bar" id="iaFindBar" style="display:none;">
@@ -1188,7 +1127,6 @@ const PALETTE = ['#2f5d62','#b5573f','#c98a2c','#6b4a6b','#5c6b3f','#45566b','#7
 let state = { order: [], tabs: {} };
 let activeId = null;
 let saveTimer = null;
-let selectedTagKey = null;
 let rawViewMode = 'edit'; // 'edit' | 'preview' | 'accordion'
 let iaViewMode = 'edit';
 
@@ -1457,34 +1395,6 @@ function syncHlOverlay(which){
 const MOBILE_COL_KEY = 'carnet_notes_mobile_col';
 let mobileActiveCol = localStorage.getItem(MOBILE_COL_KEY) || 'raw'; // 'raw' | 'ia' — colonne visible en dessous de 820px
 
-const TAGS_KEY = 'carnet_notes_tags';
-const DEFAULT_TAGS = [
-  { key:'traduis-eng-fr', label:'#traduis-eng-fr', prompt:'Traduis ce texte de l\'anglais vers le français :' },
-  { key:'traduis-fr-eng', label:'#traduis-fr-eng', prompt:'Traduis ce texte du français vers l\'anglais :' },
-  { key:'corrige',        label:'#corrige',        prompt:'Corrige l\'orthographe et la grammaire de ce texte, sans en changer le sens :' },
-  { key:'reformule',      label:'#reformule',      prompt:'Reformule ce texte pour qu\'il soit plus clair et plus fluide :' },
-  { key:'resume',         label:'#resume',         prompt:'Résume ce texte de façon concise :' },
-  { key:'analyse-pro',    label:'#analyse-pro',    prompt:'Analyse ce texte de façon professionnelle et structurée :' }
-];
-let TAGS = [];
-
-function loadTags(){
-  try{
-    const raw = localStorage.getItem(TAGS_KEY);
-    if(raw){
-      const data = JSON.parse(raw);
-      if(Array.isArray(data) && data.length){ TAGS = data; return; }
-    }
-  }catch(e){}
-  TAGS = JSON.parse(JSON.stringify(DEFAULT_TAGS));
-}
-
-function saveTags(){
-  try{ localStorage.setItem(TAGS_KEY, JSON.stringify(TAGS)); }catch(e){}
-  scheduleFileSync();
-  updateStorageBadge();
-}
-
 function uid(){ return 't_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
 // ── ONGLET "BROUILLON" (fixe, non supprimable, toujours en tête) ───────────
@@ -1547,7 +1457,6 @@ function computeStorageUsage(){
   const keys = [
     { key: STORAGE_KEY,   label: 'Carnet de notes' },
     { key: HISTORY_KEY,   label: 'Historique des versions' },
-    { key: TAGS_KEY,      label: 'Tags IA' },
     { key: MTAGS_KEY,     label: 'Tags de marge' },
     { key: SIDEBAR_KEY,   label: 'Préférences d\'affichage' },
     { key: MOBILE_COL_KEY,label: 'Préférences d\'affichage (mobile)' }
@@ -1717,7 +1626,6 @@ function restoreHistorySnapshot(ts){
   persist();
   renderTabs();
   renderColumns();
-  renderTagsBar();
   toggleHistory();
 }
 
@@ -2562,151 +2470,11 @@ function refreshSearchHits(which){
   if(c) highlightInContainer(c, q);
 }
 
-function renderTagsBar(){
-  const bar = document.getElementById('tagsBar');
-  bar.innerHTML = '';
-  TAGS.forEach(tag=>{
-    const b = document.createElement('button');
-    b.className = 'tag-bubble' + (selectedTagKey===tag.key ? ' active' : '');
-    b.textContent = tag.label;
-    b.title = tag.prompt;
-    b.onclick = ()=> toggleTag(tag.key);
-    bar.appendChild(b);
-  });
-  const editBtn = document.createElement('button');
-  editBtn.className = 'tag-bubble tag-edit-toggle';
-  editBtn.textContent = '✎';
-  editBtn.title = 'Modifier les tags IA';
-  editBtn.onclick = ()=> toggleTagsPanel();
-  bar.appendChild(editBtn);
-  const count = document.getElementById('tagsBarCount');
-  if(count) count.textContent = TAGS.length;
-}
-
-// ── ACCORDÉON DES TAGS IA (repliable, état mémorisé) ────────────────────────
-const TAGS_BAR_OPEN_KEY = 'carnet_notes_tagsbar_open';
-function applySavedTagsAccordionState(){
-  const el = document.getElementById('tagsAccordion');
-  if(!el) return;
-  el.open = localStorage.getItem(TAGS_BAR_OPEN_KEY) === '1';
-  el.addEventListener('toggle', ()=>{
-    localStorage.setItem(TAGS_BAR_OPEN_KEY, el.open ? '1' : '0');
-  });
-}
-
-// ── ÉDITION DES TAGS IA (panneau) ───────────────────────────────────────────
-function toggleTagsPanel(){
-  const panel = document.getElementById('tagsPanel');
-  const isHidden = panel.style.display === 'none';
-  panel.style.display = isHidden ? 'flex' : 'none';
-  if(isHidden) renderTagsEditList();
-}
-
-function renderTagsEditList(){
-  const list = document.getElementById('tagsEditList');
-  list.innerHTML = '';
-  if(!TAGS.length){
-    list.innerHTML = '<p class="help-panel-note" style="margin:0;">Aucun tag. Ajoutes-en un ci-dessous.</p>';
-    return;
-  }
-  TAGS.forEach(tag=>{
-    const item = document.createElement('div');
-    item.className = 'tag-edit-item';
-
-    const row1 = document.createElement('div');
-    row1.className = 'tag-edit-row';
-    const labelInput = document.createElement('input');
-    labelInput.value = tag.label;
-    labelInput.placeholder = '#nom-du-tag';
-    labelInput.oninput = (e)=> updateTagField(tag.key, 'label', e.target.value);
-    row1.appendChild(labelInput);
-    const delBtn = document.createElement('button');
-    delBtn.textContent = '✕';
-    delBtn.title = 'Supprimer ce tag';
-    delBtn.onclick = ()=> deleteTagPrompt(tag.key);
-    row1.appendChild(delBtn);
-    item.appendChild(row1);
-
-    const row2 = document.createElement('div');
-    row2.className = 'tag-edit-row';
-    const promptInput = document.createElement('input');
-    promptInput.value = tag.prompt;
-    promptInput.placeholder = 'Consigne envoyée avant le texte…';
-    promptInput.oninput = (e)=> updateTagField(tag.key, 'prompt', e.target.value);
-    row2.appendChild(promptInput);
-    item.appendChild(row2);
-
-    list.appendChild(item);
-  });
-}
-
-function updateTagField(key, field, value){
-  const tag = TAGS.find(t=>t.key===key);
-  if(!tag) return;
-  tag[field] = value;
-  saveTags();
-  renderTagsBar();
-}
-
-function addTagPrompt(){
-  const key = uid();
-  TAGS.push({ key, label:'#nouveau-tag', prompt:'' });
-  saveTags();
-  renderTagsEditList();
-  renderTagsBar();
-  setTimeout(()=>{
-    const inputs = document.querySelectorAll('#tagsEditList .tag-edit-item:last-child input');
-    if(inputs[0]){ inputs[0].focus(); inputs[0].select(); }
-  }, 30);
-}
-
-function deleteTagPrompt(key){
-  const tag = TAGS.find(t=>t.key===key);
-  if(!tag) return;
-  if(!confirm('Supprimer le tag "'+tag.label+'" ?')) return;
-  TAGS = TAGS.filter(t=>t.key!==key);
-  if(selectedTagKey===key) selectedTagKey = null;
-  saveTags();
-  renderTagsEditList();
-  renderTagsBar();
-}
-
-function toggleTag(key){
-  const tag = TAGS.find(t=>t.key===key);
-  const wasSelected = selectedTagKey === key;
-  selectedTagKey = wasSelected ? null : key;
-  renderTagsBar();
-  if(!wasSelected && tag){
-    insertTagText(tag.label);
-  }
-}
-
-function insertTagText(label){
-  if(!activeId){ alert('Sélectionne ou crée un onglet d\'abord.'); return; }
-  const area = document.getElementById('rawArea');
-  const start = area.selectionStart ?? area.value.length;
-  const end = area.selectionEnd ?? area.value.length;
-  const before = area.value.slice(0, start);
-  const after = area.value.slice(end);
-  const needsSpaceBefore = before.length && !/\s$/.test(before);
-  const needsSpaceAfter = after.length && !/^\s/.test(after);
-  const insertion = (needsSpaceBefore ? ' ' : '') + label + (needsSpaceAfter ? ' ' : '');
-
-  area.value = before + insertion + after;
-  const caret = before.length + insertion.length;
-  area.focus();
-  area.setSelectionRange(caret, caret);
-
-  onEdit('raw');
-  flash('rawCol');
-}
-
 function sendToAI(target, which){
   which = which || 'raw';
   const raw = plainizeImageRefs(document.getElementById(which + 'Area').value);
   if(!raw.trim()){ alert(which === 'raw' ? 'La marge est vide.' : 'Le texte est vide.'); return; }
-  const tag = TAGS.find(t=>t.key===selectedTagKey);
-  const payload = tag ? (tag.prompt + '\n\n' + raw) : raw;
+  const payload = raw;
 
   const url = target === 'chatgpt' ? 'https://chatgpt.com/' : 'https://claude.ai/new';
 
@@ -4550,7 +4318,7 @@ async function fsPermission(handle, request){
 }
 
 function buildFilePayload(){
-  return JSON.stringify({ type:'carnet_notes', v:1, savedAt: stateSavedAt || Date.now(), state, tags: TAGS, mtags: MTAGS }, null, 1);
+  return JSON.stringify({ type:'carnet_notes', v:1, savedAt: stateSavedAt || Date.now(), state, mtags: MTAGS }, null, 1);
 }
 
 function writeLinkedFile(){
@@ -4948,7 +4716,6 @@ function rerenderAll(){
   activeId = (activeId && state.tabs[activeId]) ? activeId : (state.order[0] || null);
   renderTabs();
   renderColumns();
-  renderTagsBar();
   renderMtagsBar();
   updateStorageBadge();
   updateTasksBadge();
@@ -4978,10 +4745,6 @@ async function syncWithLinkedFile(interactive){
       snapshotHistory('avant chargement du fichier lié', true);
       state = incoming;
       ensureBrouillon();
-      if(Array.isArray(data.tags) && data.tags.length){
-        TAGS = data.tags;
-        try{ localStorage.setItem(TAGS_KEY, JSON.stringify(TAGS)); }catch(e){}
-      }
       if(Array.isArray(data.mtags) && data.mtags.length){
         MTAGS = data.mtags;
         try{ localStorage.setItem(MTAGS_KEY, JSON.stringify(MTAGS)); }catch(e){}
@@ -5076,10 +4839,6 @@ async function fileOpenLink(){
     state = incoming;
     ensureBrouillon();
     activeId = state.order.find(id => id !== BROUILLON_ID) || state.order[0] || null;
-    if(Array.isArray(data.tags) && data.tags.length){
-      TAGS = data.tags;
-      try{ localStorage.setItem(TAGS_KEY, JSON.stringify(TAGS)); }catch(e){}
-    }
     if(Array.isArray(data.mtags) && data.mtags.length){
       MTAGS = data.mtags;
       try{ localStorage.setItem(MTAGS_KEY, JSON.stringify(MTAGS)); }catch(e){}
@@ -5116,16 +4875,14 @@ async function fileUnlink(){
 async function initApp(){
   try{ await loadStoredState(); }
   catch(e){ console.error(e); idbStateOK = false; load(); }
-  loadTags();
+  try{ localStorage.removeItem('carnet_notes_tags'); localStorage.removeItem('carnet_notes_tagsbar_open'); }catch(e){}
   loadMTags();
   restoreActiveId();
   applySavedSidebarState();
-  applySavedTagsAccordionState();
   applyMobileColView();
   initColResizer();
   renderTabs();
   renderColumns();
-  renderTagsBar();
   renderMtagsBar();
   updateStorageBadge();
   updateTasksBadge();
