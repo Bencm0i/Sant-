@@ -778,6 +778,40 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
 .mosaic-foot span{background:var(--paper-dim);border:1px solid var(--line);border-radius:999px;padding:1px 7px;}
 .mosaic-empty{grid-column:1/-1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:0.8rem;color:var(--ink-soft);padding:30px 0;}
 @media (max-width:820px){ .mosaic-panel{padding:8px;} .mosaic-grid{grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;padding:12px;} }
+
+/* ── MARGES : palette de tags, liseré, panneau ── */
+.mtags-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 16px;border-bottom:1.5px solid var(--line);flex-shrink:0;}
+.mtag-pill{
+  font-family:'Inter',sans-serif;font-size:0.74rem;font-weight:600;color:var(--ink);
+  padding:4px 11px 4px 9px;border-radius:6px;border:1.5px solid var(--line);border-left:4px solid var(--mtag-color,#8a8272);
+  background:#fff;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:5px;
+}
+.mtag-pill:hover{background:color-mix(in srgb,var(--mtag-color,#8a8272) 12%,#fff);transform:translateY(-1px);box-shadow:var(--shadow);}
+.mtag-tool{
+  font-family:'IBM Plex Mono',monospace;font-size:0.72rem;font-weight:600;color:var(--ink-soft);
+  padding:4px 9px;border-radius:6px;border:1.5px solid var(--line);background:var(--paper-dim);cursor:pointer;
+  display:inline-flex;align-items:center;gap:5px;
+}
+.mtag-tool:hover{border-color:var(--accent);color:var(--accent);}
+.mtag-stamp{user-select:none;}
+.mtag-stamp input{accent-color:var(--accent);}
+.mtags-spacer{flex:1;}
+.note-preview .mtag-line{
+  border-left:4px solid var(--mtag-color);background:color-mix(in srgb,var(--mtag-color) 9%,transparent);
+  padding:3px 10px;border-radius:0 6px 6px 0;
+}
+.note-preview li.mtag-line{list-style-position:inside;}
+.note-preview .mtag-flash{animation:mtagflash 1.4s ease-out;}
+@keyframes mtagflash{0%{background:color-mix(in srgb,var(--mtag-color,#c98a2c) 45%,transparent);}100%{}}
+.marges-filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+.marges-filters .mtag-pill{padding:3px 9px;font-size:0.72rem;}
+.marges-filters .mtag-pill.on{background:color-mix(in srgb,var(--mtag-color,#2f5d62) 16%,#fff);border-color:var(--mtag-color,#2f5d62);}
+.marge-item{border-left:4px solid var(--mtag-color,#8a8272);}
+.marge-item .task-item-body{cursor:pointer;}
+.marge-icon{margin-right:6px;}
+.marge-item.done .task-item-text{opacity:0.5;text-decoration:line-through;}
+.mtag-color-input{width:34px;height:28px;padding:0;border:1.5px solid var(--line);border-radius:6px;background:#fff;cursor:pointer;flex-shrink:0;}
+@media (prefers-reduced-motion:reduce){.note-preview .mtag-flash{animation:none;}}
 </style>
 </head>
 <body>
@@ -795,6 +829,7 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
   <div class="header-row header-row-actions">
     <span class="save-status" id="saveStatus"></span>
     <button class="storage-badge" id="tasksBadge" onclick="toggleTasksPanel()" title="Toutes les tâches en cours, tous onglets confondus">✅ …</button>
+    <button class="storage-badge" id="margesBadge" onclick="toggleMargesPanel()" title="Toutes les lignes balisées (★ ❓ 💡…), tous onglets confondus (Alt+G)">🔖 …</button>
     <button class="storage-badge" id="storageBadge" onclick="toggleStoragePanel()" title="État de la mémoire de sauvegarde du carnet (les images sont stockées à part)">💾 …</button>
     <div class="header-actions">
       <button class="btn" onclick="toggleSidebar()" title="Afficher/masquer la liste des onglets (Alt+S)">☰ Onglets</button>
@@ -893,6 +928,27 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
     <div class="tasks-list" id="tasksList"></div>
     <button class="btn" id="tasksShowDoneBtn" onclick="toggleShowDoneTasks()" style="margin-bottom:10px;width:100%;justify-content:center;">☐ Afficher les tâches faites</button>
     <button class="btn primary" onclick="toggleTasksPanel()">Fermer</button>
+  </div>
+</div>
+
+<div class="help-panel" id="margesPanel" style="display:none;">
+  <div class="help-panel-inner tasks-panel-inner">
+    <h2 id="margesTitle">Marges</h2>
+    <p class="help-panel-note" style="margin-bottom:12px;">Toutes les lignes balisées de tous les onglets. Filtre par tag, puis clique une ligne pour aller à l'endroit.</p>
+    <div class="marges-filters" id="margesFilters"></div>
+    <div class="tasks-list" id="margesList"></div>
+    <button class="btn primary" onclick="toggleMargesPanel()">Fermer</button>
+  </div>
+</div>
+
+<div class="help-panel" id="mtagsPanel" style="display:none;">
+  <div class="help-panel-inner tags-panel-inner">
+    <h2>Tags de marge</h2>
+    <p class="help-panel-note" style="margin-bottom:12px;">Symbole, mot court et couleur. Si tu renommes un tag, les lignes déjà écrites avec l'ancien nom ne seront plus reconnues.</p>
+    <div class="tags-edit-list" id="mtagsEditList"></div>
+    <button class="btn" onclick="addMarginTag()" style="margin-bottom:10px;width:100%;justify-content:center;">＋ Ajouter un tag</button>
+    <button class="btn" onclick="resetMarginTags()" style="margin-bottom:10px;width:100%;justify-content:center;">↺ Restaurer les tags par défaut</button>
+    <button class="btn primary" onclick="toggleMtagsPanel()">Fermer</button>
   </div>
 </div>
 
@@ -1015,6 +1071,7 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
       <summary>🏷 Tags IA <span class="tags-accordion-count" id="tagsBarCount">0</span><span class="tags-accordion-hint">— consignes pour ChatGPT/Claude</span></summary>
       <div class="tags-bar" id="tagsBar"></div>
     </details>
+    <div class="mtags-bar" id="mtagsBar"></div>
     <div class="md-toolbar">
       <button class="md-btn" onclick="mdWrap('rawArea','**','**','gras')" title="Gras (Ctrl+B)"><b>B</b></button>
       <button class="md-btn" onclick="mdWrap('rawArea','*','*','italique')" title="Italique (Ctrl+I)"><i>I</i></button>
@@ -1491,6 +1548,7 @@ function computeStorageUsage(){
     { key: STORAGE_KEY,   label: 'Carnet de notes' },
     { key: HISTORY_KEY,   label: 'Historique des versions' },
     { key: TAGS_KEY,      label: 'Tags IA' },
+    { key: MTAGS_KEY,     label: 'Tags de marge' },
     { key: SIDEBAR_KEY,   label: 'Préférences d\'affichage' },
     { key: MOBILE_COL_KEY,label: 'Préférences d\'affichage (mobile)' }
   ];
@@ -2996,6 +3054,7 @@ function renderMarkdown(text){
     return '<p style="opacity:.55;font-style:italic;">Rien à prévisualiser…</p>';
   }
   text = autoWrapPaths(text);
+  text = isolateMarginLines(text);
   // Protège temporairement les [[liens]] pour que le parseur markdown ne les touche pas
   const links = [];
   const withTokens = text.replace(/\[\[([^\[\]]+)\]\]/g, (m, name)=>{
@@ -3028,7 +3087,7 @@ function renderMarkdown(text){
     const exists = !!findTabIdByName(name);
     return '<a href="#" class="wikilink' + (exists?'':' missing') + '" data-wikilink="' + escapeHtml(name) + '">' + escapeHtml(name) + '</a>';
   });
-  return html;
+  return decorateMarginLines(html);
 }
 
 // ── CASES À COCHER INTERACTIVES (listes de tâches) ───────────────────────────
@@ -3095,6 +3154,7 @@ function updateTasksBadge(){
   badge.textContent = '✅ ' + open;
   badge.classList.toggle('has-tasks', open > 0);
   if(document.getElementById('tasksPanel').style.display === 'flex') renderTasksPanel();
+  updateMargesBadge();
 }
 
 function toggleTasksPanel(){
@@ -4490,7 +4550,7 @@ async function fsPermission(handle, request){
 }
 
 function buildFilePayload(){
-  return JSON.stringify({ type:'carnet_notes', v:1, savedAt: stateSavedAt || Date.now(), state, tags: TAGS }, null, 1);
+  return JSON.stringify({ type:'carnet_notes', v:1, savedAt: stateSavedAt || Date.now(), state, tags: TAGS, mtags: MTAGS }, null, 1);
 }
 
 function writeLinkedFile(){
@@ -4514,11 +4574,382 @@ function scheduleFileSync(){
   fileSyncTimer = setTimeout(()=>{ fileSyncTimer = null; writeLinkedFile(); }, 1200);
 }
 
+// ══ MARGES : tags de marge (palette, liseré, panneau global) ═════════════════
+var MTAGS_KEY = 'carnet_notes_mtags';
+var MTAGS_STAMP_KEY = 'carnet_notes_mtags_stamp';
+var DEFAULT_MTAGS = [
+  { key:'important', icon:'★',  label:'Important',   color:'#c98a2c' },
+  { key:'verifier',  icon:'❓', label:'À vérifier',  color:'#3f6fa8' },
+  { key:'afaire',    icon:'☐',  label:'À faire',     color:'#2f5d62', task:true },
+  { key:'retenir',   icon:'📌', label:'À retenir',   color:'#b5573f' },
+  { key:'idee',      icon:'💡', label:'Idée',        color:'#6b8f3a' },
+  { key:'attention', icon:'⚠',  label:'Attention',   color:'#a3402f' },
+  { key:'ref',       icon:'🔗', label:'Réf.',        color:'#7a5a8f' }
+];
+var MTAGS = [];
+var margesFilter = null;
+
+function loadMTags(){
+  try{
+    const raw = localStorage.getItem(MTAGS_KEY);
+    if(raw){
+      const data = JSON.parse(raw);
+      if(Array.isArray(data) && data.length){ MTAGS = data; return; }
+    }
+  }catch(e){}
+  MTAGS = JSON.parse(JSON.stringify(DEFAULT_MTAGS));
+}
+function saveMTags(){
+  try{ localStorage.setItem(MTAGS_KEY, JSON.stringify(MTAGS)); }catch(e){}
+  scheduleFileSync();
+  updateStorageBadge();
+}
+function mtagToken(t){ return t.icon ? (t.icon + ' ' + t.label) : t.label; }
+
+// Reconnaît une ligne de marge balisée (après indentation, citation, puce, case à cocher éventuelles)
+function matchMarginTag(line){
+  let s = line.replace(/^\s*(?:>\s*)*/, '');
+  s = s.replace(/^(?:[-*+]|\d+[.)])\s+/, '');
+  const cb = s.match(/^\[([ xX])\]\s+/);
+  if(cb) s = s.slice(cb[0].length);
+  for(const t of MTAGS){
+    const tok = mtagToken(t);
+    let used = null;
+    if(s.startsWith(tok)) used = tok;
+    else if(t.task && cb && s.startsWith(t.label)) used = t.label;
+    if(used) return { tag:t, rest:s.slice(used.length).trim(), done: !!(cb && cb[1].toLowerCase()==='x') };
+  }
+  return null;
+}
+
+// Une ligne balisée (hors liste) devient son propre paragraphe pour que le liseré ne colore qu'elle
+function isolateMarginLines(text){
+  if(!MTAGS.length) return text;
+  const out = [];
+  let fence = false;
+  text.split('\n').forEach(ln=>{
+    if(/^\s*(```|~~~)/.test(ln)){ fence = !fence; out.push(ln); return; }
+    if(!fence && !/^\s*(?:[-*+]|\d+[.)])\s/.test(ln) && matchMarginTag(ln)){
+      if(out.length && out[out.length-1].trim() !== '') out.push('');
+      out.push(ln, '');
+    } else out.push(ln);
+  });
+  return out.join('\n');
+}
+
+// Ajoute le liseré coloré aux éléments de l'aperçu dont le texte commence par un tag
+function decorateMarginLines(html){
+  if(!MTAGS.length || !html) return html;
+  const tpl = document.createElement('template');
+  tpl.innerHTML = html;
+  let n = 0;
+  tpl.content.querySelectorAll('p, li').forEach(el=>{
+    if(el.closest('pre')) return;
+    if(el.tagName === 'P' && el.parentElement && el.parentElement.tagName === 'LI') return;
+    let txt;
+    if(el.tagName === 'LI'){
+      const c = el.cloneNode(true);
+      c.querySelectorAll('ul, ol').forEach(x=>x.remove());
+      txt = c.textContent;
+    } else txt = el.textContent;
+    txt = txt.replace(/\s+/g, ' ').trim();
+    const hasCb = el.tagName === 'LI' && !!el.querySelector(':scope > input[type=checkbox]');
+    const t = MTAGS.find(t=> txt.startsWith(mtagToken(t)) || (t.task && hasCb && txt.startsWith(t.label)));
+    if(!t) return;
+    el.classList.add('mtag-line');
+    el.style.setProperty('--mtag-color', t.color);
+    el.dataset.mtag = t.key;
+    n++;
+  });
+  return n ? tpl.innerHTML : html;
+}
+
+// ── Palette ──────────────────────────────────────────────────────────────────
+function renderMtagsBar(){
+  const bar = document.getElementById('mtagsBar');
+  if(!bar) return;
+  bar.innerHTML = '';
+  MTAGS.forEach(t=>{
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'mtag-pill';
+    b.style.setProperty('--mtag-color', t.color);
+    b.title = 'Insérer « ' + (t.task ? '- [ ] ' + t.label : mtagToken(t)) + ' » sur la ligne courante de la marge';
+    b.onmousedown = e => e.preventDefault(); // garde le curseur dans la marge
+    b.onclick = ()=> insertMarginTag(t.key);
+    if(t.icon){ const i = document.createElement('span'); i.textContent = t.icon; b.appendChild(i); }
+    const l = document.createElement('span'); l.textContent = t.label; b.appendChild(l);
+    bar.appendChild(b);
+  });
+  const sp = document.createElement('span'); sp.className = 'mtags-spacer'; bar.appendChild(sp);
+
+  const stampLbl = document.createElement('label');
+  stampLbl.className = 'mtag-tool mtag-stamp';
+  stampLbl.title = 'Ajouter automatiquement la date et l\'heure après le tag';
+  const cb = document.createElement('input');
+  cb.type = 'checkbox';
+  cb.checked = localStorage.getItem(MTAGS_STAMP_KEY) === '1';
+  cb.onchange = ()=>{ try{ localStorage.setItem(MTAGS_STAMP_KEY, cb.checked ? '1' : '0'); }catch(e){} };
+  stampLbl.appendChild(cb);
+  stampLbl.appendChild(document.createTextNode('🕒'));
+  bar.appendChild(stampLbl);
+
+  const all = document.createElement('button');
+  all.type = 'button'; all.className = 'mtag-tool';
+  all.textContent = '🔖 Toutes';
+  all.title = 'Voir toutes les lignes balisées, tous onglets confondus (Alt+G)';
+  all.onclick = ()=> toggleMargesPanel();
+  bar.appendChild(all);
+
+  const ed = document.createElement('button');
+  ed.type = 'button'; ed.className = 'mtag-tool';
+  ed.textContent = '✎';
+  ed.title = 'Modifier les tags de marge';
+  ed.onclick = ()=> toggleMtagsPanel();
+  bar.appendChild(ed);
+}
+
+function insertMarginTag(key){
+  const t = MTAGS.find(x=>x.key===key);
+  if(!t) return;
+  if(!activeId){ alert('Sélectionne ou crée un onglet d\'abord.'); return; }
+  if(rawViewMode !== 'edit'){ rawViewMode = 'edit'; renderViewState('raw'); }
+  const area = document.getElementById('rawArea');
+  const v = area.value;
+  const pos = Math.min(area.selectionStart ?? v.length, v.length);
+  const ls = pos > 0 ? v.lastIndexOf('\n', pos - 1) + 1 : 0;
+  let le = v.indexOf('\n', pos); if(le < 0) le = v.length;
+  const line = v.slice(ls, le);
+  if(matchMarginTag(line)){ area.focus(); flash('rawCol'); return; } // ligne déjà balisée
+
+  const pm = line.match(/^(\s*(?:>\s*)*)((?:[-*+]|\d+[.)])\s+)?/);
+  const lead = pm[1], marker = pm[2] || '';
+  const at = ls + lead.length + marker.length;
+
+  let token;
+  if(t.task) token = (marker ? '' : '- ') + '[ ] ' + t.label + ' ';
+  else token = mtagToken(t) + ' ';
+  if(localStorage.getItem(MTAGS_STAMP_KEY) === '1'){
+    const now = new Date(), pad = n => String(n).padStart(2,'0');
+    token += '[' + pad(now.getDate()) + '/' + pad(now.getMonth()+1) + '/' + now.getFullYear()
+      + ' ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + '] ';
+  }
+  area.value = v.slice(0, at) + token + v.slice(at);
+  const caret = at + token.length;
+  area.focus();
+  area.setSelectionRange(caret, caret);
+  onEdit('raw');
+  flash('rawCol');
+}
+
+// ── Édition des tags de marge ────────────────────────────────────────────────
+function toggleMtagsPanel(){
+  const panel = document.getElementById('mtagsPanel');
+  const hidden = panel.style.display === 'none';
+  panel.style.display = hidden ? 'flex' : 'none';
+  if(hidden) renderMtagsEditList();
+}
+function renderMtagsEditList(){
+  const list = document.getElementById('mtagsEditList');
+  list.innerHTML = '';
+  MTAGS.forEach(t=>{
+    const item = document.createElement('div');
+    item.className = 'tag-edit-item';
+    const row = document.createElement('div');
+    row.className = 'tag-edit-row';
+    const icon = document.createElement('input');
+    icon.value = t.icon || ''; icon.placeholder = '★'; icon.maxLength = 4;
+    icon.style.cssText = 'flex:0 0 52px;text-align:center;';
+    icon.oninput = e=>{ t.icon = e.target.value.trim(); saveMTags(); renderMtagsBar(); };
+    row.appendChild(icon);
+    const label = document.createElement('input');
+    label.value = t.label; label.placeholder = 'Mot court';
+    label.oninput = e=>{ t.label = e.target.value; saveMTags(); renderMtagsBar(); };
+    row.appendChild(label);
+    const color = document.createElement('input');
+    color.type = 'color'; color.value = t.color || '#8a8272'; color.className = 'mtag-color-input';
+    color.style.flex = '0 0 34px';
+    color.oninput = e=>{ t.color = e.target.value; saveMTags(); renderMtagsBar(); };
+    row.appendChild(color);
+    const del = document.createElement('button');
+    del.textContent = '✕'; del.title = 'Supprimer ce tag';
+    del.onclick = ()=>{
+      if(!confirm('Supprimer le tag « ' + mtagToken(t) + ' » ? (les lignes déjà écrites restent dans les notes)')) return;
+      MTAGS = MTAGS.filter(x=>x.key!==t.key);
+      if(margesFilter === t.key) margesFilter = null;
+      saveMTags(); renderMtagsEditList(); renderMtagsBar(); updateMargesBadge();
+    };
+    row.appendChild(del);
+    item.appendChild(row);
+    list.appendChild(item);
+  });
+}
+function addMarginTag(){
+  MTAGS.push({ key:uid(), icon:'🔖', label:'Nouveau', color:'#8a8272' });
+  saveMTags(); renderMtagsEditList(); renderMtagsBar();
+  setTimeout(()=>{
+    const ins = document.querySelectorAll('#mtagsEditList .tag-edit-item:last-child input');
+    if(ins[1]){ ins[1].focus(); ins[1].select(); }
+  }, 30);
+}
+function resetMarginTags(){
+  if(!confirm('Remplacer tes tags de marge par les tags par défaut ?')) return;
+  MTAGS = JSON.parse(JSON.stringify(DEFAULT_MTAGS));
+  margesFilter = null;
+  saveMTags(); renderMtagsEditList(); renderMtagsBar(); updateMargesBadge();
+}
+
+// ── Panneau « Marges » global ────────────────────────────────────────────────
+function extractAllMargins(){
+  const out = [];
+  state.order.forEach(id=>{
+    const t = state.tabs[id];
+    if(!t || t.type === 'separator') return;
+    ['raw','ia'].forEach(field=>{
+      const text = t[field] || '';
+      if(!text) return;
+      let fence = false;
+      text.split('\n').forEach((ln, i)=>{
+        if(/^\s*(```|~~~)/.test(ln)){ fence = !fence; return; }
+        if(fence) return;
+        const m = matchMarginTag(ln);
+        if(m) out.push({ tabId:id, tabName: id === BROUILLON_ID ? 'Brouillon' : (t.name || 'Sans titre'),
+          color:t.color, field, line:i, tag:m.tag, rest:m.rest, done:m.done });
+      });
+    });
+  });
+  return out;
+}
+function updateMargesBadge(){
+  const b = document.getElementById('margesBadge');
+  if(!b) return;
+  const n = extractAllMargins().length;
+  b.textContent = '🔖 ' + n;
+  b.classList.toggle('has-tasks', n > 0);
+  if(document.getElementById('margesPanel').style.display === 'flex') renderMargesPanel();
+}
+function toggleMargesPanel(){
+  const panel = document.getElementById('margesPanel');
+  const hidden = panel.style.display === 'none';
+  panel.style.display = hidden ? 'flex' : 'none';
+  if(hidden) renderMargesPanel();
+}
+function renderMargesPanel(){
+  const all = extractAllMargins();
+  const filters = document.getElementById('margesFilters');
+  const list = document.getElementById('margesList');
+  if(margesFilter && !MTAGS.find(t=>t.key===margesFilter)) margesFilter = null;
+  document.getElementById('margesTitle').textContent = 'Marges (' + all.length + ')';
+
+  filters.innerHTML = '';
+  const mk = (key, icon, label, count, color)=>{
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'mtag-pill' + (margesFilter === key ? ' on' : '');
+    b.style.setProperty('--mtag-color', color || '#2f5d62');
+    b.textContent = (icon ? icon + ' ' : '') + label + ' ' + count;
+    b.onclick = ()=>{ margesFilter = key; renderMargesPanel(); };
+    filters.appendChild(b);
+  };
+  mk(null, '', 'Tous', all.length, '#2f5d62');
+  MTAGS.forEach(t=> mk(t.key, t.icon, t.label, all.filter(m=>m.tag.key===t.key).length, t.color));
+
+  const items = margesFilter ? all.filter(m=>m.tag.key===margesFilter) : all;
+  list.innerHTML = '';
+  if(!items.length){
+    list.innerHTML = '<p class="history-empty">' + (all.length ? 'Aucune ligne avec ce tag.' : 'Aucune ligne balisée pour l\'instant. Clique un tag dans la palette de la marge.') + '</p>';
+    return;
+  }
+  items.forEach(m=>{
+    const item = document.createElement('div');
+    item.className = 'task-item marge-item' + (m.done ? ' done' : '');
+    item.style.setProperty('--mtag-color', m.tag.color);
+    const body = document.createElement('div');
+    body.className = 'task-item-body';
+    body.title = 'Aller à cette ligne';
+    body.onclick = ()=> jumpToMargin(m);
+    const meta = document.createElement('div');
+    meta.className = 'task-item-meta';
+    const dot = document.createElement('span');
+    dot.className = 'task-item-dot'; dot.style.background = m.color;
+    meta.appendChild(dot);
+    const tn = document.createElement('span');
+    tn.className = 'task-item-tab';
+    tn.textContent = m.tabName + (m.field === 'ia' ? ' · Texte' : ' · Marge');
+    meta.appendChild(tn);
+    body.appendChild(meta);
+    const tx = document.createElement('div');
+    tx.className = 'task-item-text';
+    if(m.tag.icon){ const ic = document.createElement('span'); ic.className = 'marge-icon'; ic.textContent = m.tag.icon; tx.appendChild(ic); }
+    tx.appendChild(document.createTextNode(m.rest || m.tag.label));
+    body.appendChild(tx);
+    item.appendChild(body);
+    list.appendChild(item);
+  });
+}
+
+function textareaOffsetTop(area, pos){
+  const cs = getComputedStyle(area);
+  const m = document.createElement('div');
+  ['fontFamily','fontSize','fontWeight','lineHeight','letterSpacing','paddingTop','paddingRight','paddingBottom','paddingLeft','tabSize']
+    .forEach(k=>{ m.style[k] = cs[k]; });
+  m.style.cssText += ';position:absolute;visibility:hidden;white-space:pre-wrap;overflow-wrap:break-word;box-sizing:border-box;width:' + area.clientWidth + 'px;';
+  m.textContent = area.value.slice(0, pos);
+  document.body.appendChild(m);
+  const h = m.offsetHeight;
+  m.remove();
+  return h;
+}
+
+function jumpToMargin(m){
+  toggleMargesPanel();
+  if(m.tabId !== activeId) selectTab(m.tabId);
+  setMobileCol(m.field);
+  setTimeout(()=>{
+    const which = m.field;
+    const mode = which === 'raw' ? rawViewMode : iaViewMode;
+    const area = document.getElementById(which + 'Area');
+    if(mode === 'edit'){
+      const lines = area.value.split('\n');
+      let start = 0;
+      for(let i = 0; i < m.line && i < lines.length; i++) start += lines[i].length + 1;
+      const end = start + (lines[m.line] || '').length;
+      area.focus();
+      area.setSelectionRange(start, end);
+      area.scrollTop = Math.max(0, textareaOffsetTop(area, start) - area.clientHeight / 3);
+      flash(which + 'Col');
+      return;
+    }
+    const cont = document.getElementById(mode === 'accordion' ? which + 'AccordionView' : which + 'Preview');
+    if(!cont) return;
+    const els = [...cont.querySelectorAll('.mtag-line')];
+    const snip = (m.rest || '').slice(0, 40);
+    let el = snip ? els.find(e=> e.textContent.replace(/\s+/g,' ').includes(snip)) : null;
+    if(!el) el = els.find(e=> e.dataset.mtag === m.tag.key) || els[0];
+    if(!el) return;
+    let d = el.closest('details');
+    while(d){ d.open = true; d = d.parentElement && d.parentElement.closest('details'); }
+    el.scrollIntoView({ block:'center', behavior:'smooth' });
+    el.classList.remove('mtag-flash'); void el.offsetWidth; el.classList.add('mtag-flash');
+  }, 80);
+}
+
+document.getElementById('margesPanel').addEventListener('click', e=>{ if(e.target.id === 'margesPanel') toggleMargesPanel(); });
+document.getElementById('mtagsPanel').addEventListener('click', e=>{ if(e.target.id === 'mtagsPanel') toggleMtagsPanel(); });
+document.addEventListener('keydown', e=>{
+  if(e.key === 'Escape'){
+    if(document.getElementById('margesPanel').style.display === 'flex') toggleMargesPanel();
+    if(document.getElementById('mtagsPanel').style.display === 'flex') toggleMtagsPanel();
+  }
+  if(e.altKey && !e.ctrlKey && !e.metaKey && e.key.toLowerCase() === 'g'){ e.preventDefault(); toggleMargesPanel(); }
+});
+
 function rerenderAll(){
   activeId = (activeId && state.tabs[activeId]) ? activeId : (state.order[0] || null);
   renderTabs();
   renderColumns();
   renderTagsBar();
+  renderMtagsBar();
   updateStorageBadge();
   updateTasksBadge();
   checkBackupReminder();
@@ -4550,6 +4981,10 @@ async function syncWithLinkedFile(interactive){
       if(Array.isArray(data.tags) && data.tags.length){
         TAGS = data.tags;
         try{ localStorage.setItem(TAGS_KEY, JSON.stringify(TAGS)); }catch(e){}
+      }
+      if(Array.isArray(data.mtags) && data.mtags.length){
+        MTAGS = data.mtags;
+        try{ localStorage.setItem(MTAGS_KEY, JSON.stringify(MTAGS)); }catch(e){}
       }
       await saveStateStore(fileTs);
       rerenderAll();
@@ -4645,6 +5080,10 @@ async function fileOpenLink(){
       TAGS = data.tags;
       try{ localStorage.setItem(TAGS_KEY, JSON.stringify(TAGS)); }catch(e){}
     }
+    if(Array.isArray(data.mtags) && data.mtags.length){
+      MTAGS = data.mtags;
+      try{ localStorage.setItem(MTAGS_KEY, JSON.stringify(MTAGS)); }catch(e){}
+    }
     fileHandle = h;
     await kvSet(FILE_HANDLE_KEY, h);
     fileSyncState = 'ok';
@@ -4678,6 +5117,7 @@ async function initApp(){
   try{ await loadStoredState(); }
   catch(e){ console.error(e); idbStateOK = false; load(); }
   loadTags();
+  loadMTags();
   restoreActiveId();
   applySavedSidebarState();
   applySavedTagsAccordionState();
@@ -4686,6 +5126,7 @@ async function initApp(){
   renderTabs();
   renderColumns();
   renderTagsBar();
+  renderMtagsBar();
   updateStorageBadge();
   updateTasksBadge();
   // Au chargement : si le carnet a changé depuis le dernier export, le compteur repart d'ici
