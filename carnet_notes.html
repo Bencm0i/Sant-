@@ -1001,58 +1001,10 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
     <div class="col-head">
       <span class="col-label"><span class="active-dot" id="rawDot"></span><span id="rawLabel">Marge</span><span class="mode-badge" id="rawModeBadge"></span></span>
       <div class="col-tools">
-        <button id="rawFindBtn" onclick="toggleFindBar('raw')" title="Rechercher / remplacer dans ce texte">🔍 Chercher</button>
         <button id="rawPreviewBtn" onclick="togglePreview('raw')" title="Basculer entre édition et aperçu markdown">👁 Aperçu</button>
-        <button id="rawAccordionBtn" onclick="toggleAccordion('raw')" title="Regrouper le texte en accordéon, une section par horodatage">📑 Accordéon</button>
-        <button onclick="insertTimestamp('raw')" title="Insérer la date et l'heure actuelles dans la marge">🕒 Horodatage</button>
-        <button onclick="insertTagSection('raw')" title="Insérer une section à balise (repliable automatiquement dans l'aperçu, pas besoin de bouton accordéon)">🏷 Section</button>
-        <select onchange="insertTemplateFromSelect(this,'raw')" title="Insérer un modèle de note pré-rempli">
-          <option value="">🧩 Modèle…</option>
-          <option value="reunion">Réunion</option>
-          <option value="projet">Point projet</option>
-          <option value="appel">Appel</option>
-          <option value="action">Action rapide</option>
-          <option value="decision">Décision</option>
-        </select>
-        <button onclick="copyRawToClipboard()" title="Copier la marge dans le presse-papiers">📋 Copier</button>
-        <button onclick="exportTabAsMarkdown('raw')" title="Télécharger ce texte en fichier .md">⬇ .md</button>
-        <button class="ai-link chatgpt" onclick="sendToAI('chatgpt','raw')" title="Copier le texte et ouvrir ChatGPT"><span class="dot"></span>ChatGPT ↗</button>
-        <button class="ai-link claude" onclick="sendToAI('claude','raw')" title="Copier le texte et ouvrir Claude"><span class="dot"></span>Claude ↗</button>
       </div>
     </div>
-    <div class="find-bar" id="rawFindBar" style="display:none;">
-      <input type="text" id="rawFindInput" placeholder="Rechercher…" oninput="findInArea('raw')" onkeydown="findBarKeydown(event,'raw')">
-      <span class="find-count" id="rawFindCount"></span>
-      <button onclick="findPrev('raw')" title="Occurrence précédente">↑</button>
-      <button onclick="findNext('raw')" title="Occurrence suivante">↓</button>
-      <input type="text" id="rawReplaceInput" placeholder="Remplacer par…" onkeydown="findBarKeydown(event,'raw')">
-      <button onclick="replaceOne('raw')">Remplacer</button>
-      <button onclick="replaceAll('raw')">Tout remplacer</button>
-      <button onclick="closeFindBar('raw')" title="Fermer">✕</button>
-    </div>
     <div class="mtags-bar" id="mtagsBar"></div>
-    <div class="md-toolbar">
-      <button class="md-btn" onclick="mdWrap('rawArea','**','**','gras')" title="Gras (Ctrl+B)"><b>B</b></button>
-      <button class="md-btn" onclick="mdWrap('rawArea','*','*','italique')" title="Italique (Ctrl+I)"><i>I</i></button>
-      <button class="md-btn" onclick="mdPrefix('rawArea','## ')" title="Titre">H</button>
-      <button class="md-btn" onclick="mdPrefix('rawArea','- ')" title="Liste à puces">•</button>
-      <button class="md-btn" onclick="mdPrefix('rawArea','- [ ] ')" title="Case à cocher">☑</button>
-      <button class="md-btn" onclick="mdPrefix('rawArea','> ')" title="Citation">❝</button>
-      <button class="md-btn" onclick="mdWrap('rawArea','\`','\`','code')" title="Code">{ }</button>
-      <button class="md-btn" onclick="insertAsciiFlowchart('rawArea')" title="Insérer un gabarit de logigramme ASCII">▭→</button>
-      <button class="md-btn" onclick="mdLink('rawArea')" title="Lien">🔗</button>
-      <button class="md-btn" onclick="document.getElementById('rawImageInput').click()" title="Insérer une image (ou colle-la directement avec Ctrl+V)">🖼</button>
-      <input type="file" id="rawImageInput" accept="image/*" style="display:none;" onchange="onImageFileSelected(event,'raw')">
-      <button class="md-btn" onclick="openDrawModal('raw')" title="Ouvrir l'atelier de dessin et insérer un croquis">✏️</button>
-      <span class="hl-group" title="Surligner la sélection (re-clic sur la même couleur = retirer)">
-        <span class="hl-label">🖍</span>
-        <button class="md-btn hl-swatch" onmousedown="event.preventDefault()" onclick="hlApply('raw','jaune')" title="Surligner en jaune"><span class="hl-dot" style="background:var(--hl-jaune)"></span></button>
-        <button class="md-btn hl-swatch" onmousedown="event.preventDefault()" onclick="hlApply('raw','vert')" title="Surligner en vert"><span class="hl-dot" style="background:var(--hl-vert)"></span></button>
-        <button class="md-btn hl-swatch" onmousedown="event.preventDefault()" onclick="hlApply('raw','rose')" title="Surligner en rose"><span class="hl-dot" style="background:var(--hl-rose)"></span></button>
-        <button class="md-btn hl-swatch" onmousedown="event.preventDefault()" onclick="hlApply('raw','bleu')" title="Surligner en bleu"><span class="hl-dot" style="background:var(--hl-bleu)"></span></button>
-        <button class="md-btn hl-swatch" onmousedown="event.preventDefault()" onclick="hlApply('raw',null)" title="Retirer le surlignage">⌫</button>
-      </span>
-    </div>
     <div class="area-wrap" id="rawWrap">
       <textarea class="note-area" id="rawArea" placeholder="Écris ici tes notes de marge… (markdown supporté)" oninput="onEdit('raw')"></textarea>
       <div class="hl-overlay" id="rawHl" aria-hidden="true"></div>
@@ -1060,7 +1012,6 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
     </div>
     <div class="note-preview" id="rawPreview" style="display:none;"></div>
     <div class="note-preview" id="rawAccordionView" style="display:none;"></div>
-    <div class="char-count" id="rawCount">0 caractère</div>
   </div>
 
   <div class="col-resizer" id="colResizer" title="Glisser pour redimensionner la colonne Texte"></div>
@@ -1074,14 +1025,6 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
         <button id="iaAccordionBtn" onclick="toggleAccordion('ia')" title="Regrouper le texte en accordéon, une section par horodatage">📑 Accordéon</button>
         <button onclick="insertTimestamp('ia')" title="Insérer la date et l'heure actuelles dans le texte">🕒 Horodatage</button>
         <button onclick="insertTagSection('ia')" title="Insérer une section à balise (repliable automatiquement dans l'aperçu, pas besoin de bouton accordéon)">🏷 Section</button>
-        <select onchange="insertTemplateFromSelect(this,'ia')" title="Insérer un modèle de note pré-rempli">
-          <option value="">🧩 Modèle…</option>
-          <option value="reunion">Réunion</option>
-          <option value="projet">Point projet</option>
-          <option value="appel">Appel</option>
-          <option value="action">Action rapide</option>
-          <option value="decision">Décision</option>
-        </select>
         <button onclick="copyIAToClipboard()" title="Copier le texte dans le presse-papiers">📋 Copier</button>
         <button onclick="exportTabAsMarkdown('ia')" title="Télécharger ce texte en fichier .md">⬇ .md</button>
         <button class="ai-link chatgpt" onclick="sendToAI('chatgpt','ia')" title="Copier le texte et ouvrir ChatGPT"><span class="dot"></span>ChatGPT ↗</button>
@@ -2327,7 +2270,7 @@ function renderColumns(){
     iaDot.style.background = 'transparent';
     rawCol.style.borderTopColor = 'transparent';
     iaCol.style.borderTopColor = 'transparent';
-    document.getElementById('rawCount').textContent = '0 caractère · 0 mot';
+    { const rc = document.getElementById('rawCount'); if(rc) rc.textContent = '0 caractère · 0 mot'; }
     document.getElementById('iaCount').textContent = '0 caractère · 0 mot';
     renderViewState('raw');
     renderViewState('ia');
@@ -2367,7 +2310,8 @@ function updateCounts(){
   const iaWords = countWords(iaArea.value);
   const rawTasks = countTasks(rawArea.value);
   const iaTasks = countTasks(iaArea.value);
-  document.getElementById('rawCount').textContent = rawArea.value.length + ' caractère' + (rawArea.value.length!==1?'s':'') + ' · ' + rawWords + ' mot' + (rawWords!==1?'s':'') + (rawTasks.total ? ' · ✓ ' + rawTasks.done + '/' + rawTasks.total : '');
+  const rawCountEl = document.getElementById('rawCount');
+  if(rawCountEl) rawCountEl.textContent = rawArea.value.length + ' caractère' + (rawArea.value.length!==1?'s':'') + ' · ' + rawWords + ' mot' + (rawWords!==1?'s':'') + (rawTasks.total ? ' · ✓ ' + rawTasks.done + '/' + rawTasks.total : '');
   document.getElementById('iaCount').textContent = iaArea.value.length + ' caractère' + (iaArea.value.length!==1?'s':'') + ' · ' + iaWords + ' mot' + (iaWords!==1?'s':'') + (iaTasks.total ? ' · ✓ ' + iaTasks.done + '/' + iaTasks.total : '');
 }
 
@@ -3052,6 +2996,7 @@ function escapeRegex(str){
 
 function toggleFindBar(which){
   const bar = document.getElementById(which==='raw' ? 'rawFindBar' : 'iaFindBar');
+  if(!bar) return;
   const isHidden = !bar.style.display || bar.style.display === 'none';
   bar.style.display = isHidden ? 'flex' : 'none';
   if(isHidden){
@@ -3064,7 +3009,8 @@ function toggleFindBar(which){
 }
 
 function closeFindBar(which){
-  document.getElementById(which==='raw' ? 'rawFindBar' : 'iaFindBar').style.display = 'none';
+  const fb = document.getElementById(which==='raw' ? 'rawFindBar' : 'iaFindBar');
+  if(fb) fb.style.display = 'none';
   findState[which] = { matches: [], idx: -1 };
 }
 
