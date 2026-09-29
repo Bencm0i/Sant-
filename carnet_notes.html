@@ -454,22 +454,20 @@ textarea.note-area::placeholder{color:#b0a695;}
 }
 .hit-overlay mark{color:transparent;background:#f3d98a;border-radius:2px;}
 mark.search-hit{background:#f3d98a;color:var(--ink);border-radius:2px;}
-#rawArea{
-  background-color:#fffdf7;
+/* ÉDITION — papier millimétré teinté, barre latérale épaisse : on sent qu'on est « sur l'établi » */
+textarea.note-area{
+  background-color:#e9f1f0;
   background-image:
-    repeating-linear-gradient(to bottom, rgba(47,93,98,0.02) 0, rgba(47,93,98,0.02) 1px, transparent 1px, transparent 8px),
-    repeating-linear-gradient(to right,  rgba(47,93,98,0.02) 0, rgba(47,93,98,0.02) 1px, transparent 1px, transparent 8px),
-    repeating-linear-gradient(to bottom, rgba(47,93,98,0.05) 0, rgba(47,93,98,0.05) 1px, transparent 1px, transparent 40px),
-    repeating-linear-gradient(to right,  rgba(47,93,98,0.05) 0, rgba(47,93,98,0.05) 1px, transparent 1px, transparent 40px);
+    repeating-linear-gradient(to bottom, rgba(47,93,98,0.06) 0, rgba(47,93,98,0.06) 1px, transparent 1px, transparent 8px),
+    repeating-linear-gradient(to right,  rgba(47,93,98,0.06) 0, rgba(47,93,98,0.06) 1px, transparent 1px, transparent 8px),
+    repeating-linear-gradient(to bottom, rgba(47,93,98,0.13) 0, rgba(47,93,98,0.13) 1px, transparent 1px, transparent 40px),
+    repeating-linear-gradient(to right,  rgba(47,93,98,0.13) 0, rgba(47,93,98,0.13) 1px, transparent 1px, transparent 40px);
   background-attachment:local;
+  box-shadow:inset 6px 0 0 var(--accent);
 }
-#rawArea:focus{
-  background-color:#fffceb;
-  background-image:
-    repeating-linear-gradient(to bottom, rgba(47,93,98,0.028) 0, rgba(47,93,98,0.028) 1px, transparent 1px, transparent 8px),
-    repeating-linear-gradient(to right,  rgba(47,93,98,0.028) 0, rgba(47,93,98,0.028) 1px, transparent 1px, transparent 8px),
-    repeating-linear-gradient(to bottom, rgba(47,93,98,0.06) 0, rgba(47,93,98,0.06) 1px, transparent 1px, transparent 40px),
-    repeating-linear-gradient(to right,  rgba(47,93,98,0.06) 0, rgba(47,93,98,0.06) 1px, transparent 1px, transparent 40px);
+textarea.note-area:focus{
+  background-color:#e0edeb;
+  box-shadow:inset 6px 0 0 var(--accent), inset 0 0 0 2px var(--accent);
 }
 .char-count{
   padding:6px 16px;font-family:'IBM Plex Mono',monospace;font-size:0.65rem;
@@ -479,18 +477,29 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
 
 /* INDICATEUR DE MODE (édition / lecture / accordéon) */
 .mode-badge{
-  font-family:'IBM Plex Mono',monospace;font-size:0.64rem;font-weight:600;letter-spacing:0.03em;
-  padding:2px 9px;border-radius:999px;border:1.5px solid var(--line);
+  font-family:'IBM Plex Mono',monospace;font-size:0.66rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;
+  padding:3px 10px;border-radius:999px;border:1.5px solid var(--line);
   color:var(--ink-soft);white-space:nowrap;transition:all .15s;
 }
-.text-col[data-mode="edit"] .mode-badge{
-  color:var(--accent);border-color:rgba(47,93,98,0.45);background:rgba(47,93,98,0.10);
-}
-.text-col[data-mode="edit"] .col-head{
-  background:rgba(47,93,98,0.06);border-bottom-color:rgba(47,93,98,0.35);
-}
-.md-toolbar{transition:opacity .15s;}
-.text-col:not([data-mode="edit"]) .md-toolbar{opacity:0.4;}
+/* Édition : bandeau teinté, trait accent épais, badge plein */
+.text-col[data-mode="edit"] .mode-badge{color:#fff;border-color:var(--accent);background:var(--accent);}
+.text-col[data-mode="edit"] .col-head{background:rgba(47,93,98,0.16);border-bottom:3px solid var(--accent);}
+.text-col[data-mode="edit"] .md-toolbar{background:rgba(47,93,98,0.09);border-bottom-color:rgba(47,93,98,0.4);}
+/* Lecture / accordéon : page calme, en-tête effacé, badge ocre */
+.text-col:not([data-mode="edit"]){background:var(--paper);}
+.text-col:not([data-mode="edit"]) .col-head{background:transparent;border-bottom-color:transparent;}
+.text-col:not([data-mode="edit"]) .mode-badge{color:#7a5a1f;background:#fbf1da;border-color:#e0c98f;}
+/* Le bouton qui ramène à l'édition ressort */
+.text-col[data-mode="preview"] button[id$="PreviewBtn"],
+.text-col[data-mode="accordion"] button[id$="AccordionBtn"]{background:var(--accent);border-color:var(--accent);color:#fff;}
+.text-col[data-mode="preview"] button[id$="PreviewBtn"]:hover,
+.text-col[data-mode="accordion"] button[id$="AccordionBtn"]:hover{color:#fff;opacity:0.9;}
+/* En lecture : on cache tout ce qui n'a de sens qu'en édition (le surlignage reste, il marche sur l'aperçu) */
+.text-col:not([data-mode="edit"]) .edit-only{display:none !important;}
+.text-col:not([data-mode="edit"]) .find-bar{display:none !important;}
+.text-col:not([data-mode="edit"]) .md-toolbar > :not(.hl-group){display:none;}
+.text-col:not([data-mode="edit"]) .md-toolbar{background:transparent;border-bottom:none;padding:4px 16px;justify-content:flex-end;}
+.text-col:not([data-mode="edit"]) .hl-group{margin-left:0;padding-left:0;border-left:none;}
 
 /* MARKDOWN TOOLBAR */
 .md-toolbar{display:flex;gap:4px;padding:6px 16px;border-bottom:1.5px solid var(--line);flex-shrink:0;flex-wrap:wrap;}
@@ -507,15 +516,7 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
   flex:1;width:100%;overflow-y:auto;padding:18px 20px;
   color:var(--ink);font-family:'Inter',sans-serif;font-size:0.92rem;line-height:1.68;
 }
-#rawPreview,#rawAccordionView{
-  background-color:var(--paper);
-  background-image:
-    repeating-linear-gradient(to bottom, rgba(47,93,98,0.02) 0, rgba(47,93,98,0.02) 1px, transparent 1px, transparent 8px),
-    repeating-linear-gradient(to right,  rgba(47,93,98,0.02) 0, rgba(47,93,98,0.02) 1px, transparent 1px, transparent 8px),
-    repeating-linear-gradient(to bottom, rgba(47,93,98,0.05) 0, rgba(47,93,98,0.05) 1px, transparent 1px, transparent 40px),
-    repeating-linear-gradient(to right,  rgba(47,93,98,0.05) 0, rgba(47,93,98,0.05) 1px, transparent 1px, transparent 40px);
-  background-attachment:local;
-}
+#rawPreview,#rawAccordionView{background-color:var(--paper);}
 .note-preview h1,.note-preview h2,.note-preview h3{font-family:'Lora',serif;font-weight:700;line-height:1.3;margin:0.7em 0 0.35em;}
 .note-preview h1:first-child,.note-preview h2:first-child,.note-preview h3:first-child{margin-top:0;}
 .note-preview h1{font-size:1.5rem;}
@@ -556,6 +557,23 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
 }
 .note-preview .wikilink:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
 .note-preview .wikilink.missing{color:#a3402f;border-style:dashed;}
+
+/* LECTURE — page de livre : serif, colonne centrée, grand interligne, aucun outil */
+.note-preview{
+  padding:40px max(28px, calc((100% - 44rem) / 2)) 64px;
+  font-family:'Lora',Georgia,serif;font-weight:500;font-size:1.05rem;line-height:1.85;
+  background-color:var(--paper);
+  animation:modeIn .22s ease-out;
+}
+.note-preview h1,.note-preview h2,.note-preview h3{margin:1.5em 0 0.5em;}
+.note-preview h1{font-size:2rem;color:var(--accent);padding-bottom:0.25em;border-bottom:2px solid var(--line);}
+.note-preview h2{font-size:1.5rem;}
+.note-preview h3{font-size:1.2rem;color:var(--ink-soft);}
+.note-preview p{margin:0 0 1.15em;}
+.note-preview ul,.note-preview ol{margin:0 0 1.15em;padding-left:1.6em;}
+.note-preview li{margin:0.3em 0;}
+@keyframes modeIn{from{opacity:0;}to{opacity:1;}}
+@media (prefers-reduced-motion:reduce){.note-preview{animation:none;}}
 
 /* ACCORDÉON HORODATAGE */
 .accordion-toolbar{display:flex;gap:8px;margin-bottom:10px;}
@@ -1079,7 +1097,7 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
     <div class="marge-body">
       <div class="marge-side">
         <div class="col-tools">
-          <button id="rawPreviewBtn" onclick="togglePreview('raw')" title="Basculer entre édition et aperçu markdown">👁 Aperçu</button>
+          <button id="rawPreviewBtn" onclick="togglePreview('raw')" title="Basculer entre édition et aperçu markdown">👁 Lecture</button>
         </div>
         <div class="mtags-bar" id="mtagsBar"></div>
       </div>
@@ -1101,12 +1119,12 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
     <div class="col-head">
       <span class="col-label"><span class="active-dot" id="iaDot"></span>Texte<span class="mode-badge" id="iaModeBadge"></span></span>
       <div class="col-tools">
-        <button id="iaFindBtn" onclick="toggleFindBar('ia')" title="Rechercher / remplacer dans ce texte">🔍 Chercher</button>
-        <button id="iaPreviewBtn" onclick="togglePreview('ia')" title="Basculer entre édition et aperçu markdown">👁 Aperçu</button>
+        <button id="iaFindBtn" class="edit-only" onclick="toggleFindBar('ia')" title="Rechercher / remplacer dans ce texte">🔍 Chercher</button>
+        <button id="iaPreviewBtn" onclick="togglePreview('ia')" title="Basculer entre édition et aperçu markdown">👁 Lecture</button>
         <button id="iaAccordionBtn" onclick="toggleAccordion('ia')" title="Regrouper le texte en accordéon, une section par horodatage">📑 Accordéon</button>
         <button id="tlBtn" onclick="toggleTimeline()" title="Afficher/masquer la frise chronologique des horodatages (Alt+T)">🧭 Chronologie</button>
-        <button onclick="insertTimestamp('ia')" title="Insérer la date et l'heure actuelles dans le texte">🕒 Horodatage</button>
-        <button onclick="insertTagSection('ia')" title="Insérer une section à balise (repliable automatiquement dans l'aperçu, pas besoin de bouton accordéon)">🏷 Section</button>
+        <button class="edit-only" onclick="insertTimestamp('ia')" title="Insérer la date et l'heure actuelles dans le texte">🕒 Horodatage</button>
+        <button class="edit-only" onclick="insertTagSection('ia')" title="Insérer une section à balise (repliable automatiquement dans l'aperçu, pas besoin de bouton accordéon)">🏷 Section</button>
         <button onclick="copyIAToClipboard()" title="Copier le texte dans le presse-papiers">📋 Copier</button>
         <button onclick="exportTabAsMarkdown('ia')" title="Télécharger ce texte en fichier .md">⬇ .md</button>
         <button class="ai-link chatgpt" onclick="sendToAI('chatgpt','ia')" title="Copier le texte et ouvrir ChatGPT"><span class="dot"></span>ChatGPT ↗</button>
@@ -3568,7 +3586,7 @@ function renderViewState(which){
   refreshSearchHits(which);
   updateHlOverlay(which);
 
-  if(previewBtn) previewBtn.textContent = mode === 'preview' ? '✎ Éditer' : '👁 Aperçu';
+  if(previewBtn) previewBtn.textContent = mode === 'preview' ? '✎ Éditer' : '👁 Lecture';
   if(accordionBtn) accordionBtn.textContent = mode === 'accordion' ? '✎ Éditer' : '📑 Accordéon';
   tlRefresh(which);
 }
