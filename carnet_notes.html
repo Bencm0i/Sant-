@@ -802,6 +802,61 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
 .marge-item.done .task-item-text{opacity:0.5;text-decoration:line-through;}
 .mtag-color-input{width:34px;height:28px;padding:0;border:1.5px solid var(--line);border-radius:6px;background:#fff;cursor:pointer;flex-shrink:0;}
 @media (prefers-reduced-motion:reduce){.note-preview .mtag-flash{animation:none;}}
+
+/* CHRONOLOGIE : frise latérale des horodatages (colonne Texte) */
+.text-body{flex:1;display:flex;flex-direction:row;min-height:0;}
+.text-main{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0;}
+#tlBtn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.timeline-side{
+  flex:0 0 152px;width:152px;display:flex;flex-direction:column;min-height:0;
+  border-left:1.5px solid var(--line);background:var(--paper-dim);
+}
+.tl-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 8px 8px 10px;border-bottom:1.5px solid var(--line);flex-shrink:0;}
+.tl-title{font-family:'IBM Plex Mono',monospace;font-size:0.68rem;font-weight:700;color:var(--ink-soft);flex:1;white-space:nowrap;}
+.tl-count{font-weight:500;opacity:.7;margin-left:3px;}
+.tl-close{
+  font-family:'IBM Plex Mono',monospace;font-size:0.7rem;line-height:1;padding:3px 6px;border-radius:6px;
+  border:1.5px solid var(--line);background:#fff;color:var(--ink-soft);cursor:pointer;
+}
+.tl-close:hover{border-color:var(--accent);color:var(--accent);}
+.tl-source{display:flex;width:100%;border:1.5px solid var(--line);border-radius:6px;overflow:hidden;}
+.tl-source button{
+  flex:1;font-family:'IBM Plex Mono',monospace;font-size:0.64rem;font-weight:600;padding:3px 6px;
+  border:none;background:#fff;color:var(--ink-soft);cursor:pointer;
+}
+.tl-source button.on{background:var(--accent);color:#fff;}
+.tl-list{flex:1;overflow-y:auto;padding:12px 6px 16px 14px;position:relative;}
+.tl-track{position:relative;border-left:2px solid var(--line);margin-left:4px;}
+.tl-day{
+  font-family:'IBM Plex Mono',monospace;font-size:0.62rem;font-weight:700;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--ink-soft);padding:12px 0 4px 14px;
+}
+.tl-track > .tl-day:first-child{padding-top:0;}
+.tl-item{
+  position:relative;display:block;width:100%;text-align:left;background:none;border:none;
+  border-radius:0 6px 6px 0;padding:5px 6px 5px 14px;cursor:pointer;font:inherit;color:var(--ink);
+}
+.tl-item::before{
+  content:'';position:absolute;left:-6px;top:9px;width:10px;height:10px;border-radius:50%;
+  background:var(--paper-dim);border:2px solid #b8b0a0;transition:all .15s;
+}
+.tl-item:hover{background:rgba(47,93,98,0.08);}
+.tl-item:hover::before{border-color:var(--accent);}
+.tl-item.active{background:rgba(47,93,98,0.12);}
+.tl-item.active::before{background:var(--accent);border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,93,98,0.18);}
+.tl-time{display:block;font-family:'IBM Plex Mono',monospace;font-size:0.72rem;font-weight:700;color:var(--ink-soft);}
+.tl-item.active .tl-time{color:var(--accent);}
+.tl-snip{
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  font-family:'Inter',sans-serif;font-size:0.72rem;line-height:1.35;color:var(--ink-soft);
+}
+.tl-empty{font-family:'Lora',serif;font-style:italic;font-size:0.8rem;line-height:1.45;color:var(--ink-soft);padding:2px 4px;}
+.tl-flash{animation:tlflash 1.4s ease-out;}
+@keyframes tlflash{0%{background:rgba(201,138,44,0.4);}100%{background:transparent;}}
+@media(max-width:820px){
+  .text-body{flex-direction:column;}
+  .timeline-side{flex:0 0 auto;width:auto;max-height:150px;border-left:none;border-top:1.5px solid var(--line);}
+}
 </style>
 </head>
 <body>
@@ -1049,6 +1104,7 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
         <button id="iaFindBtn" onclick="toggleFindBar('ia')" title="Rechercher / remplacer dans ce texte">🔍 Chercher</button>
         <button id="iaPreviewBtn" onclick="togglePreview('ia')" title="Basculer entre édition et aperçu markdown">👁 Aperçu</button>
         <button id="iaAccordionBtn" onclick="toggleAccordion('ia')" title="Regrouper le texte en accordéon, une section par horodatage">📑 Accordéon</button>
+        <button id="tlBtn" onclick="toggleTimeline()" title="Afficher/masquer la frise chronologique des horodatages (Alt+T)">🧭 Chronologie</button>
         <button onclick="insertTimestamp('ia')" title="Insérer la date et l'heure actuelles dans le texte">🕒 Horodatage</button>
         <button onclick="insertTagSection('ia')" title="Insérer une section à balise (repliable automatiquement dans l'aperçu, pas besoin de bouton accordéon)">🏷 Section</button>
         <button onclick="copyIAToClipboard()" title="Copier le texte dans le presse-papiers">📋 Copier</button>
@@ -1089,6 +1145,8 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
         <button class="md-btn hl-swatch" onmousedown="event.preventDefault()" onclick="hlApply('ia',null)" title="Retirer le surlignage">⌫</button>
       </span>
     </div>
+    <div class="text-body">
+    <div class="text-main">
     <div class="area-wrap" id="iaWrap">
       <textarea class="note-area" id="iaArea" placeholder="Écris ton texte ici… (markdown supporté)" oninput="onEdit('ia')"></textarea>
       <div class="hl-overlay" id="iaHl" aria-hidden="true"></div>
@@ -1096,6 +1154,19 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
     </div>
     <div class="note-preview" id="iaPreview" style="display:none;"></div>
     <div class="note-preview" id="iaAccordionView" style="display:none;"></div>
+    </div>
+    <aside class="timeline-side" id="iaTimeline" aria-label="Chronologie des horodatages">
+      <div class="tl-head">
+        <span class="tl-title">🕒 Chronologie<span class="tl-count" id="tlCount"></span></span>
+        <button type="button" class="tl-close" onclick="toggleTimeline()" title="Masquer la chronologie (Alt+T)">✕</button>
+        <span class="tl-source" title="Colonne dont on suit les horodatages">
+          <button type="button" id="tlSrcIa" onclick="tlSetSource('ia')">Texte</button>
+          <button type="button" id="tlSrcRaw" onclick="tlSetSource('raw')">Marge</button>
+        </span>
+      </div>
+      <div class="tl-list" id="tlList"></div>
+    </aside>
+    </div>
     <div class="char-count" id="iaCount">0 caractère</div>
   </div>
 </div>
@@ -2350,6 +2421,7 @@ function onEdit(which){
   renderContentTagsBar();
   updateHitOverlay(which);
   updateHlOverlay(which);
+  tlRefreshSoon(which);
   persist();
 }
 
@@ -3235,6 +3307,231 @@ function handleAccordionToolbarClick(e){
 document.getElementById('rawAccordionView').addEventListener('click', handleAccordionToolbarClick);
 document.getElementById('iaAccordionView').addEventListener('click', handleAccordionToolbarClick);
 
+// ── CHRONOLOGIE : frise latérale des horodatages ─────────────────────────────
+// Liste les horodatages [JJ/MM/AAAA HH:MM] de la colonne suivie (Texte ou Marge),
+// dans l'ordre du texte, et permet de s'y déplacer d'un clic (édition, lecture, accordéon).
+const TL_KEY = 'carnet_notes_timeline';
+var tl = {
+  on: (function(){ try{ return localStorage.getItem(TL_KEY) !== '0'; }catch(_){ return true; } })(),
+  source: 'ia', entries: [], tops: null, topsKey: '', active: -1, lockUntil: 0, timer: null, raf: 0
+};
+
+function tlEl(id){ return document.getElementById(id); }
+function tlMode(){ return tl.source === 'raw' ? rawViewMode : iaViewMode; }
+function tlScroller(){
+  const w = tl.source, m = tlMode();
+  return tlEl(m === 'edit' ? w + 'Area' : (m === 'preview' ? w + 'Preview' : w + 'AccordionView'));
+}
+
+function tlSnippet(s){
+  s = s.replace(/!\[[^\]]*\]\([^)]*\)/g, '🖼')
+       .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+       .replace(/^\s*(?:[-*]\s*(?:\[[ xX]\]\s*)?|#+\s*|>\s*)/gm, ' ')
+       .replace(/[`*_=~]/g, '')
+       .replace(/\s+/g, ' ').trim();
+  return s.length > 70 ? s.slice(0, 70) + '…' : s;
+}
+
+function tlParse(text){
+  const re = new RegExp(TIMESTAMP_RE.source, 'g');
+  const out = [], seen = {};
+  for(const m of text.matchAll(re)){
+    seen[m[1]] = (seen[m[1]] || 0) + 1;
+    const parts = m[1].split(/\s+/);
+    out.push({ stamp: m[1], day: parts[0], time: parts[1], index: m.index, len: m[0].length, occ: seen[m[1]] - 1 });
+  }
+  out.forEach((e, i)=>{
+    const end = i + 1 < out.length ? out[i + 1].index : text.length;
+    e.snippet = tlSnippet(text.slice(e.index + e.len, end));
+  });
+  return out;
+}
+
+function tlDayLabel(d){
+  const p = d.split('/').map(Number);
+  const dt = new Date(p[2], p[1] - 1, p[0]);
+  if(isNaN(dt)) return d;
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diff = Math.round((today - dt) / 86400000);
+  if(diff === 0) return "Aujourd'hui";
+  if(diff === 1) return 'Hier';
+  return dt.toLocaleDateString('fr-FR', { weekday:'short', day:'numeric', month:'short', year: dt.getFullYear() === now.getFullYear() ? undefined : 'numeric' });
+}
+
+function tlRender(){
+  const panel = tlEl('iaTimeline'), list = tlEl('tlList'), btn = tlEl('tlBtn');
+  if(!panel || !list) return;
+  panel.style.display = tl.on ? '' : 'none';
+  if(btn) btn.classList.toggle('active', tl.on);
+  if(!tl.on) return;
+  tlEl('tlSrcIa').classList.toggle('on', tl.source === 'ia');
+  tlEl('tlSrcRaw').classList.toggle('on', tl.source === 'raw');
+  const area = tlEl(tl.source + 'Area');
+  const entries = tl.entries = tlParse(area ? area.value : '');
+  tlEl('tlCount').textContent = entries.length ? '(' + entries.length + ')' : '';
+  tl.tops = null;
+  if(!entries.length){
+    tl.active = -1;
+    list.innerHTML = '<p class="tl-empty">Aucun horodatage <code>[JJ/MM/AAAA HH:MM]</code> ici. Le bouton 🕒 Horodatage en insère un.</p>';
+    return;
+  }
+  let html = '<div class="tl-track">', lastDay = null;
+  entries.forEach((e, i)=>{
+    if(e.day !== lastDay){ html += '<div class="tl-day">' + escapeHtml(tlDayLabel(e.day)) + '</div>'; lastDay = e.day; }
+    html += '<button type="button" class="tl-item" data-k="' + i + '" title="' + escapeHtml(e.stamp) + '">'
+      + '<span class="tl-time">' + escapeHtml(e.time) + '</span>'
+      + '<span class="tl-snip">' + escapeHtml(e.snippet || '—') + '</span></button>';
+  });
+  list.innerHTML = html + '</div>';
+  tlUpdateActive(true);
+}
+
+function tlRefresh(which){
+  if(!tl || !tl.on || (which && which !== tl.source)) return;
+  tlRender();
+}
+function tlRefreshSoon(which){
+  if(!tl || !tl.on || which !== tl.source) return;
+  clearTimeout(tl.timer);
+  tl.timer = setTimeout(tlRender, 250);
+}
+
+// Position verticale (px, dans le contenu défilant) de chaque horodatage
+function tlMeasureEdit(w, es){
+  const area = tlEl(w + 'Area'), cs = getComputedStyle(area);
+  let m = tlEl('tlMirror');
+  if(!m){ m = document.createElement('div'); m.id = 'tlMirror'; m.setAttribute('aria-hidden', 'true'); document.body.appendChild(m); }
+  m.style.cssText = 'position:absolute;left:-99999px;top:0;visibility:hidden;white-space:pre-wrap;overflow-wrap:break-word;word-wrap:break-word;box-sizing:border-box;'
+    + 'width:' + area.clientWidth + 'px;font-family:' + cs.fontFamily + ';font-size:' + cs.fontSize + ';line-height:' + cs.lineHeight + ';letter-spacing:' + cs.letterSpacing + ';'
+    + 'padding:' + cs.paddingTop + ' ' + cs.paddingRight + ' ' + cs.paddingBottom + ' ' + cs.paddingLeft + ';';
+  const text = area.value;
+  let html = '', last = 0;
+  es.forEach(e=>{ html += escapeHtml(text.slice(last, e.index)) + '<span>\u200b</span>'; last = e.index; });
+  m.innerHTML = html + escapeHtml(text.slice(last));
+  const res = Array.from(m.querySelectorAll('span')).map(s=>({ top: s.offsetTop }));
+  m.innerHTML = '';
+  return res;
+}
+
+function tlLocate(w){
+  const es = tl.entries;
+  const mode = w === 'raw' ? rawViewMode : iaViewMode;
+  if(mode === 'edit') return tlMeasureEdit(w, es);
+  const cont = tlEl(w + (mode === 'preview' ? 'Preview' : 'AccordionView'));
+  const base = cont.getBoundingClientRect().top - cont.scrollTop;
+  if(mode === 'accordion'){
+    const items = cont.querySelectorAll('.accordion-item');
+    return es.map((e, i)=> items[i] ? { el: items[i], top: items[i].getBoundingClientRect().top - base } : null);
+  }
+  const found = {};
+  const tw = document.createTreeWalker(cont, NodeFilter.SHOW_TEXT);
+  let n;
+  while((n = tw.nextNode())){
+    const re = new RegExp(TIMESTAMP_RE.source, 'g');
+    let m;
+    while((m = re.exec(n.nodeValue))){
+      const r = document.createRange();
+      r.setStart(n, m.index); r.setEnd(n, m.index + m[0].length);
+      const rect = r.getBoundingClientRect();
+      const hidden = !rect.width && !rect.height;   // dans un bloc replié
+      (found[m[1]] = found[m[1]] || []).push({ el: n.parentElement, hidden, top: hidden ? null : rect.top - base });
+    }
+  }
+  return es.map(e=> (found[e.stamp] || [])[e.occ] || null);
+}
+
+function tlMarkActive(){
+  const list = tlEl('tlList');
+  if(!list) return;
+  list.querySelectorAll('.tl-item').forEach(b=> b.classList.toggle('active', +b.dataset.k === tl.active));
+  const cur = list.querySelector('.tl-item.active');
+  if(cur){
+    const lr = list.getBoundingClientRect(), cr = cur.getBoundingClientRect();
+    if(cr.top < lr.top + 4 || cr.bottom > lr.bottom - 4){
+      list.scrollTop += (cr.top - lr.top) - list.clientHeight / 2 + cr.height / 2;
+    }
+  }
+}
+
+// Met en évidence l'horodatage correspondant à la zone actuellement visible
+function tlUpdateActive(force){
+  if(!tl.on || !tl.entries.length) return;
+  const sc = tlScroller();
+  if(!sc) return;
+  const key = tl.source + tlMode() + ':' + sc.clientWidth + 'x' + sc.scrollHeight;
+  if(!tl.tops || tl.topsKey !== key){
+    tl.tops = tlLocate(tl.source).map(l=> l ? l.top : null);
+    tl.topsKey = key;
+  }
+  const y = sc.scrollTop + 30;
+  let a = -1;
+  tl.tops.forEach((t, i)=>{ if(t != null && t <= y) a = i; });
+  if(sc.scrollHeight > sc.clientHeight + 2 && sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 2) a = tl.entries.length - 1;
+  if(a !== tl.active || force){ tl.active = a; tlMarkActive(); }
+}
+
+function tlOnScroll(){
+  if(!tl.on || Date.now() < tl.lockUntil || tl.raf) return;
+  tl.raf = requestAnimationFrame(()=>{ tl.raf = 0; tlUpdateActive(); });
+}
+
+function tlGo(k){
+  const e = tl.entries[k];
+  if(!e) return;
+  const w = tl.source, mode = tlMode();
+  setMobileCol(w);
+  const sc = tlScroller();
+  if(mode === 'accordion'){
+    const it = sc.querySelectorAll('.accordion-item')[k];
+    if(it) it.open = true;
+  }
+  let loc = tlLocate(w)[k];
+  if(loc && loc.hidden){
+    let d = loc.el.closest('details');
+    while(d){ d.open = true; d = d.parentElement && d.parentElement.closest('details'); }
+    loc = tlLocate(w)[k];
+  }
+  if(!loc || loc.top == null) return;
+  tl.tops = null;
+  if(mode === 'edit'){
+    sc.focus({ preventScroll: true });
+    sc.setSelectionRange(e.index, e.index + e.len);
+    sc.scrollTop = Math.max(0, loc.top - 40);
+    flash(w + 'Col');
+  } else {
+    sc.scrollTo({ top: Math.max(0, loc.top - 16), behavior: 'smooth' });
+    if(loc.el){ loc.el.classList.remove('tl-flash'); void loc.el.offsetWidth; loc.el.classList.add('tl-flash'); }
+  }
+  tl.active = k;
+  tl.lockUntil = Date.now() + 800;
+  tlMarkActive();
+}
+
+function tlSetSource(w){
+  tl.source = w;
+  tlRender();
+}
+function toggleTimeline(){
+  tl.on = !tl.on;
+  try{ localStorage.setItem(TL_KEY, tl.on ? '1' : '0'); }catch(_){}
+  tlRender();
+}
+
+tlEl('tlList').addEventListener('click', (ev)=>{
+  const b = ev.target.closest('.tl-item');
+  if(b) tlGo(+b.dataset.k);
+});
+['rawArea','iaArea','rawPreview','iaPreview','rawAccordionView','iaAccordionView'].forEach(id=>{
+  tlEl(id).addEventListener('scroll', tlOnScroll, { passive: true });
+});
+window.addEventListener('resize', ()=>{ tl.tops = null; });
+document.addEventListener('keydown', (e)=>{
+  if(e.altKey && !e.ctrlKey && !e.metaKey && e.key.toLowerCase() === 't'){ e.preventDefault(); toggleTimeline(); }
+});
+tlRender();
+
+
 // ── ÉTAT D'AFFICHAGE : édition / aperçu / accordéon ──────────────────────────
 function renderViewState(which){
   const area = document.getElementById(which==='raw' ? 'rawArea' : 'iaArea');
@@ -3273,6 +3570,7 @@ function renderViewState(which){
 
   if(previewBtn) previewBtn.textContent = mode === 'preview' ? '✎ Éditer' : '👁 Aperçu';
   if(accordionBtn) accordionBtn.textContent = mode === 'accordion' ? '✎ Éditer' : '📑 Accordéon';
+  tlRefresh(which);
 }
 
 function togglePreview(which){
