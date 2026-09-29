@@ -754,6 +754,21 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
 
 /* ── MARGES : palette de tags, liseré, panneau ── */
 .mtags-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 16px;border-bottom:1.5px solid var(--line);flex-shrink:0;}
+#rawCol .col-tools,#rawCol .mtags-bar{flex-direction:column;align-items:stretch;}
+#rawCol .col-tools button{width:100%;}
+#rawCol .mtags-bar{gap:8px;}
+#rawCol .mtag-pill{width:100%;justify-content:flex-start;}
+/* Marge : boutons en bande verticale à gauche, texte à droite */
+.marge-body{flex:1;display:flex;flex-direction:row;min-height:0;}
+.marge-side{
+  flex:0 0 auto;width:max-content;max-width:150px;display:flex;flex-direction:column;gap:8px;
+  padding:10px 8px;border-right:1.5px solid var(--line);background:var(--paper-dim);overflow-y:auto;
+}
+.marge-side .col-tools{flex-wrap:nowrap;}
+.marge-side .mtags-bar{padding:0;border-bottom:none;flex-wrap:nowrap;}
+.marge-side .mtags-spacer{flex:0 0 4px;}
+.marge-side .mtag-tool{justify-content:center;}
+.marge-main{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0;}
 .mtag-pill{
   font-family:'Inter',sans-serif;font-size:0.74rem;font-weight:600;color:var(--ink);
   padding:4px 11px 4px 9px;border-radius:6px;border:1.5px solid var(--line);border-left:4px solid var(--mtag-color,#8a8272);
@@ -1000,18 +1015,24 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
   <div class="text-col" id="rawCol">
     <div class="col-head">
       <span class="col-label"><span class="active-dot" id="rawDot"></span><span id="rawLabel">Marge</span><span class="mode-badge" id="rawModeBadge"></span></span>
-      <div class="col-tools">
-        <button id="rawPreviewBtn" onclick="togglePreview('raw')" title="Basculer entre édition et aperçu markdown">👁 Aperçu</button>
+    </div>
+    <div class="marge-body">
+      <div class="marge-side">
+        <div class="col-tools">
+          <button id="rawPreviewBtn" onclick="togglePreview('raw')" title="Basculer entre édition et aperçu markdown">👁 Aperçu</button>
+        </div>
+        <div class="mtags-bar" id="mtagsBar"></div>
+      </div>
+      <div class="marge-main">
+        <div class="area-wrap" id="rawWrap">
+          <textarea class="note-area" id="rawArea" placeholder="Écris ici tes notes de marge… (markdown supporté)" oninput="onEdit('raw')"></textarea>
+          <div class="hl-overlay" id="rawHl" aria-hidden="true"></div>
+          <div class="hit-overlay" id="rawHits" aria-hidden="true"></div>
+        </div>
+        <div class="note-preview" id="rawPreview" style="display:none;"></div>
+        <div class="note-preview" id="rawAccordionView" style="display:none;"></div>
       </div>
     </div>
-    <div class="mtags-bar" id="mtagsBar"></div>
-    <div class="area-wrap" id="rawWrap">
-      <textarea class="note-area" id="rawArea" placeholder="Écris ici tes notes de marge… (markdown supporté)" oninput="onEdit('raw')"></textarea>
-      <div class="hl-overlay" id="rawHl" aria-hidden="true"></div>
-      <div class="hit-overlay" id="rawHits" aria-hidden="true"></div>
-    </div>
-    <div class="note-preview" id="rawPreview" style="display:none;"></div>
-    <div class="note-preview" id="rawAccordionView" style="display:none;"></div>
   </div>
 
   <div class="col-resizer" id="colResizer" title="Glisser pour redimensionner la colonne Texte"></div>
