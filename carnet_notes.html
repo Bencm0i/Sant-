@@ -769,6 +769,8 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
 .marge-side .mtags-spacer{flex:0 0 4px;}
 .marge-side .mtag-tool{justify-content:center;}
 .marge-main{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0;}
+.marge-side.tags-hidden{display:none;}
+#mtagsPinBtn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
 .mtag-pill{
   font-family:'Inter',sans-serif;font-size:0.74rem;font-weight:600;color:var(--ink);
   padding:4px 11px 4px 9px;border-radius:6px;border:1.5px solid var(--line);border-left:4px solid var(--mtag-color,#8a8272);
@@ -1015,6 +1017,9 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
   <div class="text-col" id="rawCol">
     <div class="col-head">
       <span class="col-label"><span class="active-dot" id="rawDot"></span><span id="rawLabel">Marge</span><span class="mode-badge" id="rawModeBadge"></span></span>
+      <div class="col-tools">
+        <button id="mtagsPinBtn" onclick="toggleMtagsPin()" title="Afficher/masquer la colonne des tags de marge">☰ Tags</button>
+      </div>
     </div>
     <div class="marge-body">
       <div class="marge-side">
@@ -4420,6 +4425,24 @@ function decorateMarginLines(html){
 }
 
 // ── Palette ──────────────────────────────────────────────────────────────────
+var MTAGS_PIN_KEY = 'carnet_notes_mtags_pinned';
+function applyMtagsPin(){
+  let pinned = true;
+  try{ pinned = localStorage.getItem(MTAGS_PIN_KEY) !== '0'; }catch(e){}
+  const side = document.querySelector('.marge-side');
+  const btn = document.getElementById('mtagsPinBtn');
+  if(side) side.classList.toggle('tags-hidden', !pinned);
+  if(btn){
+    btn.classList.toggle('active', pinned);
+    btn.title = pinned ? 'Masquer la colonne des tags' : 'Afficher la colonne des tags';
+  }
+}
+function toggleMtagsPin(){
+  let pinned = true;
+  try{ pinned = localStorage.getItem(MTAGS_PIN_KEY) !== '0'; }catch(e){}
+  try{ localStorage.setItem(MTAGS_PIN_KEY, pinned ? '0' : '1'); }catch(e){}
+  applyMtagsPin();
+}
 function renderMtagsBar(){
   const bar = document.getElementById('mtagsBar');
   if(!bar) return;
@@ -4462,6 +4485,7 @@ function renderMtagsBar(){
   ed.title = 'Modifier les tags de marge';
   ed.onclick = ()=> toggleMtagsPanel();
   bar.appendChild(ed);
+  applyMtagsPin();
 }
 
 function insertMarginTag(key){
