@@ -62,8 +62,15 @@ input[type=file]{display:none}
 .lb-top{display:flex; align-items:center; gap:10px; padding:14px 18px; color:#fff}
 .lb-top .name-input{flex:1; background:transparent; border:none; color:#fff; font-size:1rem; outline:none}
 .lb-top button{background:#ffffff22; color:#fff; border:none}
-.lb-body{flex:1; display:flex; align-items:center; justify-content:center; position:relative; min-height:0}
-.lb-body img{max-width:92%; max-height:88%; object-fit:contain; border-radius:6px}
+.lb-body{flex:1; display:flex; align-items:center; justify-content:center; position:relative; min-height:0; overflow:hidden}
+.lb-body img{max-width:92%; max-height:88%; object-fit:contain; border-radius:6px; transform-origin:center center; cursor:zoom-in; touch-action:none; user-select:none; -webkit-user-drag:none}
+.lb-body img.zoomed{cursor:grab}
+.lb-body img.dragging{cursor:grabbing}
+.lb-zoom{display:flex; align-items:center; gap:4px}
+.lb-zoom .zlbl{min-width:48px; text-align:center; font-size:0.82rem}
+.lb-info{font-size:0.78rem; color:#ffffffb0; margin-top:8px; line-height:1.5; word-break:break-all}
+.lb-info code{background:#ffffff18; padding:1px 6px; border-radius:5px; color:#fff}
+.lb-row .path-input{flex:1; min-width:220px}
 .lb-nav{position:absolute; top:50%; transform:translateY(-50%); background:#ffffff22; color:#fff; border:none; width:44px; height:44px; border-radius:50%; font-size:1.3rem; cursor:pointer;}
 .lb-nav.prev{left:16px} .lb-nav.next{right:16px}
 .lb-bottom{padding:14px 18px 20px; padding-bottom:calc(20px + env(safe-area-inset-bottom,0px)); color:#fff}
@@ -129,6 +136,7 @@ input[type=file]{display:none}
   <label class="nav-item" id="importLabel" style="margin:0">⬆️ Importer
     <input type="file" id="importInput" accept="application/json" style="display:none">
   </label>
+  <div class="nav-item" id="clearBtn" style="color:#c0392b">🧹 Vider le cache photos</div>
   <div id="storageInfo"></div>
 </div>
 
@@ -146,6 +154,9 @@ input[type=file]{display:none}
     </select>
     <label class="btn primary">+ Ajouter
       <input type="file" id="fileInput" accept="image/*" multiple>
+    </label>
+    <label class="btn" title="Importe un dossier et conserve son chemin relatif">📂 Dossier
+      <input type="file" id="folderInput" webkitdirectory multiple>
     </label>
     <button id="selectModeBtn">☑️ Sélectionner</button>
     <span id="count"></span>
@@ -171,6 +182,11 @@ input[type=file]{display:none}
   <div class="lb-top">
     <button id="lbClose">✕</button>
     <input class="name-input" id="lbName">
+    <div class="lb-zoom">
+      <button id="lbZoomOut" title="Zoom − (touche -)">➖</button>
+      <button id="lbZoomLbl" class="zlbl" title="Réinitialiser (touche 0)">100%</button>
+      <button id="lbZoomIn" title="Zoom + (touche +)">➕</button>
+    </div>
     <button id="lbFav">⭐</button>
     <button id="lbDelete">🗑️</button>
   </div>
@@ -180,7 +196,11 @@ input[type=file]{display:none}
     <button class="lb-nav next" id="lbNext">›</button>
   </div>
   <div class="lb-bottom">
-    <div class="lb-row"><input type="text" id="lbTagInput" placeholder="+ tag (Entrée)"></div>
+    <div class="lb-row">
+      <input type="text" id="lbTagInput" placeholder="+ tag (Entrée)">
+      <input type="text" class="path-input" id="lbPath" placeholder="📍 Chemin d'origine (ex : D:\Photos\Vacances)">
+    </div>
+    <div class="lb-info" id="lbInfo"></div>
     <div class="lb-tags" id="lbTags"></div>
     <div class="lb-albums" id="lbAlbums"></div>
   </div>
@@ -276,7 +296,7 @@ async function triggerDownload(filename, blob){
 }
 async function exportBackup(){
   if(photos.length===0 && albums.length===0){ toast('Rien à exporter pour le moment.'); return; }
-  const photosOut = photos.map(p=>({id:p.id, name:p.name, tags:p.tags, albums:p.albums, favorite:p.favorite, addedAt:p.addedAt}));
+  const photosOut = photos.map(p=>({id:p.id, name:p.name, tags:p.tags, albums:p.albums, favorite:p.favorite, addedAt:p.addedAt, path:p.path||''}));
   const payload = {version:2, kind:'config-only', exportedAt:new Date().toISOString(), albums, photos:photosOut};
   const blob = new Blob([JSON.stringify(payload)], {type:'application/json'});
   const stamp = new Date().toISOString().slice(0,10);
@@ -298,6 +318,7 @@ async function importBackup(file){
       p.tags = meta.tags || p.tags;
       p.albums = meta.albums || p.albums;
       p.favorite = !!meta.favorite;
+      if(meta.path!==undefined) p.path = meta.path;
       await savePhoto(p);
       matched++;
     }
@@ -308,6 +329,32 @@ async function importBackup(file){
   }
 }
 document.getElementById('exportBtn').addEventListener('click', exportBackup);
+
+/* ---------- Vider le cache photos (avec avertissement) ---------- */
+const clearPhotosDB = () => tx('photos','readwrite', s=>s.clear());
+async function clearPhotoCache(){
+  if(photos.length===0){ toast('Le cache est déjà vide.'); return; }
+  const total = photos.reduce((n,p)=>n+(p.blob?p.blob.size:0)+(p.thumb?p.thumb.size:0),0);
+  const mo = (total/1048576).toFixed(1);
+  const ok1 = confirm(
+    `⚠️ ATTENTION — action irréversible\n\n`+
+    `Cela va supprimer définitivement les ${photos.length} photo(s) stockée(s) dans le navigateur (≈ ${mo} Mo), avec leurs miniatures, tags et favoris.\n\n`+
+    `Les albums (noms) sont conservés, mais ils seront vides.\n`+
+    `Tes fichiers originaux sur le disque ne sont PAS touchés.\n\n`+
+    `Conseil : exporte d'abord la config (JSON) pour garder tags, favoris et albums.\n\nContinuer ?`);
+  if(!ok1) return;
+  const ok2 = confirm('Dernière confirmation : vider TOUTES les photos maintenant ?');
+  if(!ok2) return;
+  try{
+    await clearPhotosDB();
+    [...thumbCache.keys(), ...fullCache.keys()].forEach(revokeCaches);
+    photos = []; lbList = []; selected.clear();
+    if(document.getElementById('lightbox').classList.contains('open')) closeLightbox();
+    updateSelectionBar(); renderGrid(); updateStorageInfo();
+    toast('Cache photos vidé.');
+  }catch(e){ toast('Échec : impossible de vider le cache.'); }
+}
+document.getElementById('clearBtn').addEventListener('click', clearPhotoCache);
 document.getElementById('importInput').addEventListener('change', e=>{
   const f = e.target.files && e.target.files[0];
   if(f) importBackup(f);
@@ -400,7 +447,7 @@ async function addFiles(files){
   for(const f of files){
     if(!f.type || !f.type.startsWith('image/')) continue;
     const thumb = await makeThumbnail(f);
-    const rec = {id:Date.now()+'-'+Math.random().toString(36).slice(2,8), name:f.name.replace(/\.[^/.]+$/,''), tags:[], albums:[], favorite:false, addedAt:new Date().toISOString(), blob:f, thumb};
+    const rec = {id:Date.now()+'-'+Math.random().toString(36).slice(2,8), name:f.name.replace(/\.[^/.]+$/,''), tags:[], albums:[], favorite:false, addedAt:new Date().toISOString(), blob:f, thumb, path:f.webkitRelativePath||'', origName:f.name};
     try{ await savePhoto(rec); photos.unshift(rec); }
     catch(e){ toast("Espace disque insuffisant pour enregistrer une photo."); break; }
   }
@@ -408,6 +455,7 @@ async function addFiles(files){
 }
 
 document.getElementById('fileInput').addEventListener('change', e=>{ addFiles(Array.from(e.target.files||[])); e.target.value=''; });
+document.getElementById('folderInput').addEventListener('change', e=>{ addFiles(Array.from(e.target.files||[])); e.target.value=''; });
 const dz = document.getElementById('dropzone');
 ['dragenter','dragover'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault(); dz.classList.add('drag');}));
 ['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault(); dz.classList.remove('drag');}));
@@ -481,7 +529,7 @@ function getFiltered(){
   let list = photos.filter(p=>{
     if(view.mode==='fav' && !p.favorite) return false;
     if(view.mode==='album' && !p.albums.includes(view.albumId)) return false;
-    if(q && !(p.name.toLowerCase().includes(q) || p.tags.some(t=>t.toLowerCase().includes(q)))) return false;
+    if(q && !(p.name.toLowerCase().includes(q) || p.tags.some(t=>t.toLowerCase().includes(q)) || (p.path||'').toLowerCase().includes(q))) return false;
     return true;
   });
   const sort = document.getElementById('sortSel').value;
@@ -569,8 +617,11 @@ function openLightbox(id){
 function renderLightbox(){
   const p = lbList[lbIndex];
   if(!p){ closeLightbox(); return; }
+  if(lbShownId!==p.id){ resetZoom(); lbShownId=p.id; }
   document.getElementById('lbImg').src = fullUrlOf(p);
   document.getElementById('lbName').value = p.name;
+  document.getElementById('lbPath').value = p.path || '';
+  renderLbInfo(p);
   document.getElementById('lbFav').style.opacity = p.favorite ? '1' : '0.5';
   const tagsEl=document.getElementById('lbTags'); tagsEl.innerHTML='';
   p.tags.forEach(t=>{
@@ -590,7 +641,88 @@ function renderLightbox(){
     albEl.appendChild(lab);
   });
 }
-function closeLightbox(){ document.getElementById('lightbox').classList.remove('open'); }
+function closeLightbox(){ document.getElementById('lightbox').classList.remove('open'); lbShownId=null; resetZoom(); }
+
+/* ---------- Infos de stockage / chemin ---------- */
+function fmtSize(b){ return b>=1048576 ? (b/1048576).toFixed(2)+' Mo' : Math.max(1,Math.round(b/1024))+' Ko'; }
+function esc(t){ return String(t).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function renderLbInfo(p){
+  const fileName = p.origName || (p.blob && p.blob.name) || p.name;
+  const img = document.getElementById('lbImg');
+  const info = document.getElementById('lbInfo');
+  const build = ()=>{
+    const dim = img.naturalWidth ? ` · ${img.naturalWidth}×${img.naturalHeight} px` : '';
+    info.innerHTML =
+      `💾 Stockée dans : <code>IndexedDB du navigateur › ${DB_NAME} › photos › ${esc(p.id)}</code><br>`+
+      `📄 Fichier : <code>${esc(fileName)}</code> · ${esc((p.blob&&p.blob.type)||'image')} · ${fmtSize(p.blob?p.blob.size:0)}${dim}`;
+  };
+  build();
+  img.onload = build;
+}
+document.getElementById('lbPath').addEventListener('change', async e=>{
+  const p = lbList[lbIndex]; if(!p) return;
+  p.path = e.target.value.trim(); await savePhoto(p); toast('Chemin enregistré.');
+});
+
+/* ---------- Zoom (molette+Ctrl, pincement, boutons, double-clic, glisser pour déplacer) ---------- */
+let zoom=1, panX=0, panY=0, lbShownId=null;
+const ZMIN=1, ZMAX=8;
+const lbImgEl = document.getElementById('lbImg');
+function applyZoom(){
+  lbImgEl.style.transform = `translate(${panX}px,${panY}px) scale(${zoom})`;
+  lbImgEl.classList.toggle('zoomed', zoom>1);
+  document.getElementById('lbZoomLbl').textContent = Math.round(zoom*100)+'%';
+}
+function resetZoom(){ zoom=1; panX=0; panY=0; applyZoom(); }
+function setZoom(z, cx=0, cy=0){
+  z = Math.min(ZMAX, Math.max(ZMIN, z));
+  if(z===zoom) return;
+  const k = z/zoom;
+  panX = cx - (cx-panX)*k; panY = cy - (cy-panY)*k;
+  zoom = z;
+  if(zoom===1){ panX=0; panY=0; }
+  applyZoom();
+}
+function pointRel(e){
+  const r = document.querySelector('.lb-body').getBoundingClientRect();
+  return {x:e.clientX-(r.left+r.width/2), y:e.clientY-(r.top+r.height/2)};
+}
+document.getElementById('lbZoomIn').addEventListener('click', ()=>setZoom(zoom*1.5));
+document.getElementById('lbZoomOut').addEventListener('click', ()=>setZoom(zoom/1.5));
+document.getElementById('lbZoomLbl').addEventListener('click', resetZoom);
+lbImgEl.addEventListener('dblclick', e=>{ const c=pointRel(e); zoom>1 ? resetZoom() : setZoom(2.5, c.x, c.y); });
+document.querySelector('.lb-body').addEventListener('wheel', e=>{
+  if(!(e.shiftKey||e.ctrlKey||e.metaKey)) return;
+  e.preventDefault(); e.stopPropagation();
+  const c = pointRel(e);
+  const d = e.deltaY || e.deltaX; /* Shift+molette peut arriver en deltaX */
+  setZoom(zoom*Math.exp(-d*0.01), c.x, c.y);
+}, {passive:false, capture:true});
+const ptrs = new Map(); let pinchDist=0;
+lbImgEl.addEventListener('pointerdown', e=>{
+  lbImgEl.setPointerCapture(e.pointerId);
+  ptrs.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  if(ptrs.size===2){ const [a,b]=[...ptrs.values()]; pinchDist=Math.hypot(a.x-b.x,a.y-b.y); }
+  if(zoom>1) lbImgEl.classList.add('dragging');
+});
+lbImgEl.addEventListener('pointermove', e=>{
+  const prev = ptrs.get(e.pointerId); if(!prev) return;
+  const cur = {x:e.clientX, y:e.clientY};
+  if(ptrs.size===2){
+    ptrs.set(e.pointerId, cur);
+    const [a,b]=[...ptrs.values()]; const d=Math.hypot(a.x-b.x,a.y-b.y);
+    if(pinchDist>0){
+      const r=document.querySelector('.lb-body').getBoundingClientRect();
+      setZoom(zoom*d/pinchDist, (a.x+b.x)/2-(r.left+r.width/2), (a.y+b.y)/2-(r.top+r.height/2));
+    }
+    pinchDist=d; return;
+  }
+  if(zoom>1){ panX += cur.x-prev.x; panY += cur.y-prev.y; applyZoom(); }
+  ptrs.set(e.pointerId, cur);
+});
+['pointerup','pointercancel'].forEach(ev=>lbImgEl.addEventListener(ev, e=>{
+  ptrs.delete(e.pointerId); pinchDist=0; lbImgEl.classList.remove('dragging');
+}));
 document.getElementById('lbClose').addEventListener('click', closeLightbox);
 document.getElementById('lbPrev').addEventListener('click', ()=>{ if(lbIndex>0){lbIndex--; renderLightbox();} });
 document.getElementById('lbNext').addEventListener('click', ()=>{ if(lbIndex<lbList.length-1){lbIndex++; renderLightbox();} });
@@ -616,7 +748,11 @@ document.getElementById('lbTagInput').addEventListener('keydown', async e=>{
 });
 document.addEventListener('keydown', e=>{
   if(!document.getElementById('lightbox').classList.contains('open')) return;
+  if(isTypingContext()) { if(e.key==='Escape') e.target.blur(); return; }
   if(e.key==='Escape') closeLightbox();
+  else if(e.key==='+' || e.key==='=') setZoom(zoom*1.5);
+  else if(e.key==='-') setZoom(zoom/1.5);
+  else if(e.key==='0') resetZoom();
   else if(e.key==='ArrowLeft') document.getElementById('lbPrev').click();
   else if(e.key==='ArrowRight') document.getElementById('lbNext').click();
 });
