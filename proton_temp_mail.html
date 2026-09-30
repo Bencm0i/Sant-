@@ -148,7 +148,7 @@
 
 <div class="topnav">
   <a class="linkbtn" href="https://claude.ai" target="_blank" rel="noopener">🤖 Claude</a>
-  <button class="linkbtn" onclick="openProtonPopup()" title="Ouvre Proton Mail dans une fenêtre séparée">🔒 Proton Mail (fenêtre)</button>
+  <a class="linkbtn" href="https://mail.proton.me" target="_blank" rel="noopener">🔒 Proton Mail</a>
 </div>
 
 <div class="card">
@@ -669,19 +669,6 @@ function importJson(evt){
   };
   reader.readAsText(file);
   evt.target.value = '';
-}
-
-/* ---------- Popup Proton ---------- */
-
-function openProtonPopup(){
-  const w = Math.round(screen.availWidth / 2);
-  const h = screen.availHeight;
-  const left = screen.availWidth - w;
-  window.open(
-    'https://mail.proton.me',
-    'protonMailPopup',
-    `width=${w},height=${h},left=${left},top=0,noopener,noreferrer`
-  );
 }
 
 /* ---------- Utilitaires ---------- */
