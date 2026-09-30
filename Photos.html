@@ -120,6 +120,35 @@ input[type=file]{display:none}
 #rmAlbumPop .rm-pop-title{font-size:0.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; padding:2px 6px 6px}
 #rmAlbumPop label{display:flex; gap:6px; align-items:center; padding:5px 6px; border-radius:6px; font-size:0.85rem; cursor:pointer}
 #rmAlbumPop label:hover{background:var(--hover)}
+
+/* ---- Éditeur rotation / recadrage ---- */
+#editor{position:fixed; inset:0; z-index:150; background:#111; display:none; flex-direction:column; color:#fff}
+#editor.open{display:flex}
+.ed-top{display:flex; gap:8px; align-items:center; flex-wrap:wrap; padding:12px 16px; padding-top:calc(12px + env(safe-area-inset-top,0px))}
+.ed-top button, .ed-top select{background:#ffffff22; color:#fff; border:none}
+.ed-top select option{color:#000}
+.ed-top button.primary{background:var(--accent)}
+.ed-spacer{flex:1}
+.ed-stage{flex:1; min-height:0; display:flex; align-items:center; justify-content:center; padding:24px; overflow:hidden}
+#edBox{position:relative; flex:none; user-select:none; -webkit-user-select:none}
+#edCanvas{display:block}
+.ed-clip{position:absolute; inset:0; overflow:hidden; pointer-events:none}
+#edFrame{position:absolute; box-shadow:0 0 0 9999px #000a; outline:1px solid #fff;
+  background-image:
+    linear-gradient(to right, transparent calc(33.333% - .5px), #ffffff55 calc(33.333% - .5px), #ffffff55 calc(33.333% + .5px), transparent calc(33.333% + .5px), transparent calc(66.666% - .5px), #ffffff55 calc(66.666% - .5px), #ffffff55 calc(66.666% + .5px), transparent calc(66.666% + .5px)),
+    linear-gradient(to bottom, transparent calc(33.333% - .5px), #ffffff55 calc(33.333% - .5px), #ffffff55 calc(33.333% + .5px), transparent calc(33.333% + .5px), transparent calc(66.666% - .5px), #ffffff55 calc(66.666% - .5px), #ffffff55 calc(66.666% + .5px), transparent calc(66.666% + .5px));}
+#edCrop{position:absolute; cursor:move; touch-action:none}
+.ed-h{position:absolute; width:30px; height:30px; margin:-15px; touch-action:none}
+.ed-h::after{content:''; position:absolute; left:50%; top:50%; width:12px; height:12px; margin:-6px; background:#fff; border:1px solid #0008; border-radius:2px}
+.ed-h[data-h=nw]{left:0; top:0; cursor:nwse-resize}
+.ed-h[data-h=n]{left:50%; top:0; cursor:ns-resize}
+.ed-h[data-h=ne]{left:100%; top:0; cursor:nesw-resize}
+.ed-h[data-h=e]{left:100%; top:50%; cursor:ew-resize}
+.ed-h[data-h=se]{left:100%; top:100%; cursor:nwse-resize}
+.ed-h[data-h=s]{left:50%; top:100%; cursor:ns-resize}
+.ed-h[data-h=sw]{left:0; top:100%; cursor:nesw-resize}
+.ed-h[data-h=w]{left:0; top:50%; cursor:ew-resize}
+.ed-info{padding:10px 16px; padding-bottom:calc(10px + env(safe-area-inset-bottom,0px)); font-size:0.8rem; color:#ffffffb0; text-align:center}
 </style>
 </head>
 <body>
@@ -187,6 +216,7 @@ input[type=file]{display:none}
       <button id="lbZoomLbl" class="zlbl" title="Réinitialiser (touche 0)">100%</button>
       <button id="lbZoomIn" title="Zoom + (touche +)">➕</button>
     </div>
+    <button id="lbEdit" title="Rotation / recadrage (touche E)">✂️</button>
     <button id="lbFav">⭐</button>
     <button id="lbDelete">🗑️</button>
   </div>
@@ -204,6 +234,39 @@ input[type=file]{display:none}
     <div class="lb-tags" id="lbTags"></div>
     <div class="lb-albums" id="lbAlbums"></div>
   </div>
+</div>
+
+<div id="editor">
+  <div class="ed-top">
+    <button id="edCancel">✕ Annuler</button>
+    <span class="ed-spacer"></span>
+    <button id="edRotL" title="Rotation 90° à gauche">↺</button>
+    <button id="edRotR" title="Rotation 90° à droite">↻</button>
+    <select id="edRatio" title="Proportions du recadrage">
+      <option value="0">Libre</option>
+      <option value="orig">Original</option>
+      <option value="1">1:1</option>
+      <option value="1.3333333">4:3</option>
+      <option value="1.5">3:2</option>
+      <option value="1.7777778">16:9</option>
+      <option value="0.8">4:5</option>
+    </select>
+    <button id="edReset" title="Annuler rotation et recadrage en cours">Réinitialiser</button>
+    <button id="edRestore" title="Revenir à l'image importée" style="display:none">↩︎ Original</button>
+    <button id="edSave" class="primary">✓ Enregistrer</button>
+  </div>
+  <div class="ed-stage" id="edStage">
+    <div id="edBox">
+      <canvas id="edCanvas"></canvas>
+      <div class="ed-clip"><div id="edFrame"></div></div>
+      <div id="edCrop">
+        <div class="ed-h" data-h="nw"></div><div class="ed-h" data-h="n"></div><div class="ed-h" data-h="ne"></div>
+        <div class="ed-h" data-h="e"></div><div class="ed-h" data-h="se"></div><div class="ed-h" data-h="s"></div>
+        <div class="ed-h" data-h="sw"></div><div class="ed-h" data-h="w"></div>
+      </div>
+    </div>
+  </div>
+  <div class="ed-info" id="edInfo"></div>
 </div>
 
 <div id="rmOverlay"></div>
@@ -334,7 +397,7 @@ document.getElementById('exportBtn').addEventListener('click', exportBackup);
 const clearPhotosDB = () => tx('photos','readwrite', s=>s.clear());
 async function clearPhotoCache(){
   if(photos.length===0){ toast('Le cache est déjà vide.'); return; }
-  const total = photos.reduce((n,p)=>n+(p.blob?p.blob.size:0)+(p.thumb?p.thumb.size:0),0);
+  const total = photos.reduce((n,p)=>n+(p.blob?p.blob.size:0)+(p.origBlob?p.origBlob.size:0)+(p.thumb?p.thumb.size:0),0);
   const mo = (total/1048576).toFixed(1);
   const ok1 = confirm(
     `⚠️ ATTENTION — action irréversible\n\n`+
@@ -654,7 +717,7 @@ function renderLbInfo(p){
     const dim = img.naturalWidth ? ` · ${img.naturalWidth}×${img.naturalHeight} px` : '';
     info.innerHTML =
       `💾 Stockée dans : <code>IndexedDB du navigateur › ${DB_NAME} › photos › ${esc(p.id)}</code><br>`+
-      `📄 Fichier : <code>${esc(fileName)}</code> · ${esc((p.blob&&p.blob.type)||'image')} · ${fmtSize(p.blob?p.blob.size:0)}${dim}`;
+      `📄 Fichier : <code>${esc(fileName)}</code> · ${esc((p.blob&&p.blob.type)||'image')} · ${fmtSize(p.blob?p.blob.size:0)}${dim}${p.origBlob?' · ✏️ modifiée':''}`;
   };
   build();
   img.onload = build;
@@ -748,14 +811,210 @@ document.getElementById('lbTagInput').addEventListener('keydown', async e=>{
 });
 document.addEventListener('keydown', e=>{
   if(!document.getElementById('lightbox').classList.contains('open')) return;
+  if(document.getElementById('editor').classList.contains('open')) return;
   if(isTypingContext()) { if(e.key==='Escape') e.target.blur(); return; }
   if(e.key==='Escape') closeLightbox();
   else if(e.key==='+' || e.key==='=') setZoom(zoom*1.5);
   else if(e.key==='-') setZoom(zoom/1.5);
   else if(e.key==='0') resetZoom();
+  else if((e.key==='e'||e.key==='E') && !e.ctrlKey && !e.metaKey && !e.altKey) window.openEditor();
   else if(e.key==='ArrowLeft') document.getElementById('lbPrev').click();
   else if(e.key==='ArrowRight') document.getElementById('lbNext').click();
 });
+
+/* ---------- Éditeur : rotation 90° + recadrage (ré-encode l'image, original conservé pour restauration) ---------- */
+(function(){
+  const edEl=document.getElementById('editor'), cv=document.getElementById('edCanvas'),
+        frame=document.getElementById('edFrame'), crop=document.getElementById('edCrop'),
+        box=document.getElementById('edBox'), stage=document.getElementById('edStage'),
+        info=document.getElementById('edInfo'), ratioSel=document.getElementById('edRatio'),
+        restoreBtn=document.getElementById('edRestore');
+  let ed=null, drag=null;
+  const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+  const MAXPX=16000000; /* limite canvas (iOS ≈ 16,7 Mpx) */
+
+  function loadBase(){
+    let w=ed.img.naturalWidth, h=ed.img.naturalHeight;
+    const k=Math.min(1, Math.sqrt(MAXPX/(w*h)));
+    if(k<1){ w=Math.floor(w*k); h=Math.floor(h*k); }
+    cv.width=w; cv.height=h;
+    cv.getContext('2d').drawImage(ed.img,0,0,w,h);
+    ed.crop={x:0,y:0,w,h}; ed.rotated=0; ed.ratio=0;
+    ratioSel.value='0';
+  }
+  function layout(){
+    if(!ed) return;
+    ed.s = Math.min((stage.clientWidth-48)/cv.width, (stage.clientHeight-48)/cv.height, 4);
+    const dw=cv.width*ed.s, dh=cv.height*ed.s;
+    for(const el of [box,cv]){ el.style.width=dw+'px'; el.style.height=dh+'px'; }
+    drawCrop();
+  }
+  function drawCrop(){
+    const c=ed.crop, s=ed.s;
+    for(const el of [frame,crop]){ el.style.left=c.x*s+'px'; el.style.top=c.y*s+'px'; el.style.width=c.w*s+'px'; el.style.height=c.h*s+'px'; }
+    info.textContent = `${Math.round(c.w)} × ${Math.round(c.h)} px` + (ed.rotated ? ` · rotation ${ed.rotated*90}°` : '');
+  }
+
+  async function openEditor(){
+    const p=lbList[lbIndex]; if(!p||!p.blob) return;
+    const url=URL.createObjectURL(p.blob), img=new Image();
+    try{ await new Promise((res,rej)=>{ img.onload=res; img.onerror=rej; img.src=url; }); }
+    catch(e){ URL.revokeObjectURL(url); toast('Image illisible.'); return; }
+    ed={photo:p, img, url, s:1};
+    loadBase();
+    restoreBtn.style.display = p.origBlob ? '' : 'none';
+    edEl.classList.add('open');
+    layout();
+  }
+  function closeEditor(){
+    edEl.classList.remove('open');
+    if(ed) URL.revokeObjectURL(ed.url);
+    ed=null; drag=null;
+  }
+  function isDirty(){
+    const c=ed.crop;
+    return !!ed.rotated || c.x>0.5 || c.y>0.5 || c.w<cv.width-0.5 || c.h<cv.height-0.5;
+  }
+  function cancel(){
+    if(!ed) return;
+    if(isDirty() && !confirm('Abandonner les modifications ?')) return;
+    closeEditor();
+  }
+
+  function rotate(dir){ /* dir: 1 = horaire, -1 = antihoraire */
+    const W=cv.width, H=cv.height, t=document.createElement('canvas');
+    t.width=H; t.height=W;
+    const c=t.getContext('2d');
+    if(dir>0){ c.translate(H,0); c.rotate(Math.PI/2); } else { c.translate(0,W); c.rotate(-Math.PI/2); }
+    c.drawImage(cv,0,0);
+    cv.width=H; cv.height=W;
+    cv.getContext('2d').drawImage(t,0,0);
+    const r=ed.crop;
+    ed.crop = dir>0 ? {x:H-(r.y+r.h), y:r.x, w:r.h, h:r.w} : {x:r.y, y:W-(r.x+r.w), w:r.h, h:r.w};
+    if(ed.ratio) ed.ratio=1/ed.ratio;
+    ed.rotated=(ed.rotated+dir+4)%4;
+    layout();
+  }
+
+  function setRatio(v){
+    if(v==='0'){ ed.ratio=0; return; }
+    const c=ed.crop;
+    let r = v==='orig' ? cv.width/cv.height : parseFloat(v);
+    /* oriente le ratio (paysage/portrait) comme le cadre actuel, sauf carré */
+    if(v!=='orig' && r!==1 && Math.abs(c.w-c.h)>1 && (c.h>c.w)!==(r<1)) r=1/r;
+    ed.ratio=r;
+    let w=c.w, h=c.h;
+    if(w/h>r) w=h*r; else h=w/r;
+    ed.crop={x:c.x+(c.w-w)/2, y:c.y+(c.h-h)/2, w, h};
+    drawCrop();
+  }
+
+  function resizeRect(hd, r0, dx, dy){
+    const W=cv.width, H=cv.height;
+    const MIN=Math.min(Math.max(16, 28/ed.s), Math.min(W,H)/2);
+    const hasW=hd.includes('w'), hasE=hd.includes('e'), hasN=hd.includes('n'), hasS=hd.includes('s');
+    let L=r0.x, T=r0.y, R=r0.x+r0.w, B=r0.y+r0.h;
+    if(hasW) L=clamp(L+dx,0,R-MIN);
+    if(hasE) R=clamp(R+dx,L+MIN,W);
+    if(hasN) T=clamp(T+dy,0,B-MIN);
+    if(hasS) B=clamp(B+dy,T+MIN,H);
+    let w=R-L, h=B-T, out;
+    const r=ed.ratio;
+    if(!r) return {x:L,y:T,w,h};
+    if((hasW||hasE) && (hasN||hasS)){            /* coin : ancre = coin opposé */
+      const ax = hasW ? r0.x+r0.w : r0.x, ay = hasN ? r0.y+r0.h : r0.y;
+      const maxW = hasW ? ax : W-ax, maxH = hasN ? ay : H-ay;
+      if(w/h>r) h=w/r; else w=h*r;
+      if(w>maxW){ w=maxW; h=w/r; }
+      if(h>maxH){ h=maxH; w=h*r; }
+      out={x: hasW ? ax-w : ax, y: hasN ? ay-h : ay, w, h};
+    } else if(hasW||hasE){                        /* bord gauche/droit : centré verticalement */
+      const cy=r0.y+r0.h/2; h=w/r;
+      const maxH=2*Math.min(cy,H-cy);
+      if(h>maxH){ h=maxH; w=h*r; }
+      out={x: hasW ? r0.x+r0.w-w : r0.x, y:cy-h/2, w, h};
+    } else {                                      /* bord haut/bas : centré horizontalement */
+      const cx=r0.x+r0.w/2; w=h*r;
+      const maxW=2*Math.min(cx,W-cx);
+      if(w>maxW){ w=maxW; h=w/r; }
+      out={x:cx-w/2, y: hasN ? r0.y+r0.h-h : r0.y, w, h};
+    }
+    return (out.w<MIN || out.h<MIN) ? r0 : out;
+  }
+
+  crop.addEventListener('pointerdown', e=>{
+    if(!ed) return;
+    drag={h:e.target.dataset.h||'move', sx:e.clientX, sy:e.clientY, r0:{...ed.crop}};
+    crop.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  crop.addEventListener('pointermove', e=>{
+    if(!drag||!ed) return;
+    const dx=(e.clientX-drag.sx)/ed.s, dy=(e.clientY-drag.sy)/ed.s, r0=drag.r0;
+    ed.crop = drag.h==='move'
+      ? {x:clamp(r0.x+dx,0,cv.width-r0.w), y:clamp(r0.y+dy,0,cv.height-r0.h), w:r0.w, h:r0.h}
+      : resizeRect(drag.h, r0, dx, dy);
+    drawCrop();
+  });
+  ['pointerup','pointercancel'].forEach(ev=>crop.addEventListener(ev, ()=>{ drag=null; }));
+
+  async function save(){
+    if(!ed) return;
+    const p=ed.photo, W=cv.width, H=cv.height, c=ed.crop;
+    const x=Math.max(0,Math.round(c.x)), y=Math.max(0,Math.round(c.y));
+    const w=Math.min(Math.round(c.w),W-x), h=Math.min(Math.round(c.h),H-y);
+    if(!ed.rotated && x===0 && y===0 && w===W && h===H){ toast('Aucune modification.'); closeEditor(); return; }
+    const out=document.createElement('canvas'); out.width=w; out.height=h;
+    const octx=out.getContext('2d');
+    const keep = p.blob.type==='image/png' || p.blob.type==='image/webp';
+    const type = keep ? p.blob.type : 'image/jpeg';
+    if(!keep){ octx.fillStyle='#fff'; octx.fillRect(0,0,w,h); }
+    octx.drawImage(cv,x,y,w,h,0,0,w,h);
+    const blob = await new Promise(r=>out.toBlob(r,type,0.92));
+    if(!blob){ toast("Échec de l'encodage de l'image."); return; }
+    const backup={blob:p.blob, thumb:p.thumb, origBlob:p.origBlob};
+    try{
+      const thumb = await makeThumbnail(blob);
+      if(!p.origBlob) p.origBlob=p.blob;
+      p.blob=blob; p.thumb=thumb;
+      await savePhoto(p);
+    }catch(err){
+      Object.assign(p,backup); if(backup.origBlob===undefined) delete p.origBlob;
+      toast('Espace insuffisant : modification annulée.'); return;
+    }
+    revokeCaches(p.id); resetZoom(); closeEditor();
+    renderLightbox(); renderGrid(); updateStorageInfo();
+    toast('Image modifiée (original conservé).');
+  }
+  async function restore(){
+    if(!ed || !ed.photo.origBlob) return;
+    if(!confirm("Restaurer l'image d'origine ? Les modifications enregistrées seront perdues.")) return;
+    const p=ed.photo, backup={blob:p.blob, thumb:p.thumb, origBlob:p.origBlob};
+    try{
+      p.thumb = await makeThumbnail(p.origBlob);
+      p.blob = p.origBlob; delete p.origBlob;
+      await savePhoto(p);
+    }catch(err){ Object.assign(p,backup); toast('Échec de la restauration.'); return; }
+    revokeCaches(p.id); resetZoom(); closeEditor();
+    renderLightbox(); renderGrid(); updateStorageInfo();
+    toast('Original restauré.');
+  }
+
+  document.getElementById('lbEdit').addEventListener('click', openEditor);
+  document.getElementById('edCancel').addEventListener('click', cancel);
+  document.getElementById('edRotL').addEventListener('click', ()=>ed&&rotate(-1));
+  document.getElementById('edRotR').addEventListener('click', ()=>ed&&rotate(1));
+  ratioSel.addEventListener('change', ()=>ed&&setRatio(ratioSel.value));
+  document.getElementById('edReset').addEventListener('click', ()=>{ if(ed){ loadBase(); layout(); } });
+  restoreBtn.addEventListener('click', restore);
+  document.getElementById('edSave').addEventListener('click', save);
+  window.addEventListener('resize', layout);
+  document.addEventListener('keydown', e=>{
+    if(!ed) return;
+    if(e.key==='Escape'){ e.preventDefault(); cancel(); }
+  });
+  window.openEditor = openEditor;
+})();
 
 /* ---------- Menu radial (touche S) + navigation molette ---------- */
 let mouseX=0, mouseY=0, hoveredPhotoId=null, rmWheelLock=false;
@@ -820,6 +1079,7 @@ function closeRadialMenu(){
 }
 document.addEventListener('keydown', e=>{
   if(!e.altKey || (e.key!=='s' && e.key!=='S')) return;
+  if(document.getElementById('editor').classList.contains('open')) return;
   if(isTypingContext()) return;
   if(document.getElementById('radialMenu').classList.contains('open')) return;
   if(!currentRmTarget()) return;
