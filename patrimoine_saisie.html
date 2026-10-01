@@ -1264,6 +1264,9 @@ button, input, select { touch-action: manipulation; }
 
 <!-- ═══ PANEL : INVESTISSEMENTS ═══ -->
 <div class="panel" id="panel-investissements">
+  <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+    <button class="mini-btn" id="accAllBtn" style="width:auto;margin:0;padding:5px 12px;border-style:solid;font-size:11px;" onclick="toggleAllAccSections()" title="Déplier / replier tous les blocs">▴ Tout replier</button>
+  </div>
   <div class="section accent-blue">
     <div class="section-head">
       <div class="section-title acc-toggle" onclick="toggleAccSection(this)">📈 PEA<span class="acc-chevron">▾</span></div>
@@ -1745,6 +1748,33 @@ function toggleAccSection(titleEl) {
   const collapsed = body.classList.toggle('acc-collapsed');
   const chevron = titleEl.querySelector('.acc-chevron');
   if (chevron) chevron.textContent = collapsed ? '▸' : '▾';
+  updateAccAllBtn();
+}
+
+function getAccSections() {
+  return Array.from(document.querySelectorAll('.section-title.acc-toggle')).map(t => {
+    const head = t.closest('.section-head');
+    const body = head && head.nextElementSibling;
+    return (body && body.classList.contains('section-body')) ? { t, body } : null;
+  }).filter(Boolean);
+}
+
+function updateAccAllBtn() {
+  const btn = document.getElementById('accAllBtn');
+  if (!btn) return;
+  const anyOpen = getAccSections().some(x => !x.body.classList.contains('acc-collapsed'));
+  btn.textContent = anyOpen ? '▴ Tout replier' : '▾ Tout déplier';
+}
+
+function toggleAllAccSections() {
+  const secs = getAccSections();
+  const collapse = secs.some(x => !x.body.classList.contains('acc-collapsed'));
+  secs.forEach(({ t, body }) => {
+    body.classList.toggle('acc-collapsed', collapse);
+    const chevron = t.querySelector('.acc-chevron');
+    if (chevron) chevron.textContent = collapse ? '▸' : '▾';
+  });
+  updateAccAllBtn();
 }
 
 // ─── TAB SWITCHING ─────────────────────────────────────────────────────────
@@ -4489,6 +4519,7 @@ window.addEventListener('DOMContentLoaded', () => {
     { id:'btc',  sym:'BTC/EUR',   gfSym:'CURRENCY:BTCEUR',   yf:'BTC-EUR',   fmt:'eur',  dot:'#f7931a', yfOnly:false },
     { id:'wpea', sym:'WPEA',      gfSym:'EPA:WPEA',           yf:'WPEA.PA',   fmt:'eur',  dot:'#a855f7', yfOnly:false, url:'https://www.boursorama.com/bourse/trackers/cours/1rTWPEA/' },
     { id:'iwda', sym:'IWDA',      gfSym:'AMS:IWDA',           yf:'IWDA.AS',   fmt:'eur',  dot:'#3fa9c9', yfOnly:false, url:'https://www.boursorama.com/bourse/trackers/cours/1rAIWDA/' },
+    { id:'vall', sym:'VALL',      gfSym:'BIT:VALL',           yf:'VALL.MI',   fmt:'eur',  dot:'#e5534b', yfOnly:true, url:'https://www.boursorama.com/bourse/trackers/cours/1gVALL/' },
     { id:'eur',  sym:'EUR/USD',   gfSym:'CURRENCY:EURUSD',    yf:'EURUSD=X',  fmt:'fx',   dot:'#4df0c8', yfOnly:true, hidden:true },
     // { id:'gold' } — supprimé (OR retiré du ticker)
     // { id:'nas' } — supprimé (NASDAQ retiré du ticker)
