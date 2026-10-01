@@ -372,14 +372,21 @@ function loadStore(){
 }
 
 function saveStore(list){
-  localStorage.setItem(STORE_KEY, JSON.stringify(list, null, 2));
+  try{
+    localStorage.setItem(STORE_KEY, JSON.stringify(list));
+    return true;
+  }catch(e){
+    toast('Stockage plein : exporte tes données (JSON) puis libère de la place');
+    console.error('saveStore:', e);
+    return false;
+  }
 }
 
 function saveCurrent(){
   if(!current) return;
   const list = loadStore();
   list.unshift(current);
-  saveStore(list);
+  if(!saveStore(list)) return;
   el('desc').value = '';
   renderTable();
   toast('Identité sauvegardée');
