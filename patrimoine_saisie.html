@@ -343,10 +343,25 @@ a.ticker-item:hover {
 }
 .section-body { padding: 14px 16px; }
 
-/* ═══ ACCORDION (blocs repliables) ═══ */
-.section-title.acc-toggle { cursor: pointer; user-select: none; }
-.acc-chevron { margin-left: 4px; font-size: 10px; color: var(--muted); transition: transform 0.15s; }
+/* ═══ ACCORDION (blocs repliables) — tous les onglets sauf KPI ═══ */
+.section.acc-ready > .section-head { cursor: pointer; user-select: none; }
+.section.acc-ready.acc-closed > .section-head { border-bottom-color: transparent; }
 .section-body.acc-collapsed { display: none; }
+.acc-btn {
+  flex-shrink: 0;
+  width: 22px; height: 22px;
+  margin-right: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--accent);
+  font-size: 11px; line-height: 1;
+  cursor: pointer; padding: 0;
+  transition: transform 0.15s, border-color 0.15s;
+}
+.acc-btn:hover { border-color: var(--accent); }
+.section.acc-closed .acc-btn { transform: rotate(-90deg); }
+.acc-toolbar { display: flex; justify-content: flex-end; margin-bottom: 10px; }
 
 /* ═══ FIELD ROWS ═══ */
 .field-row {
@@ -1264,12 +1279,9 @@ button, input, select { touch-action: manipulation; }
 
 <!-- ═══ PANEL : INVESTISSEMENTS ═══ -->
 <div class="panel" id="panel-investissements">
-  <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
-    <button class="mini-btn" id="accAllBtn" style="width:auto;margin:0;padding:5px 12px;border-style:solid;font-size:11px;" onclick="toggleAllAccSections()" title="Déplier / replier tous les blocs">▴ Tout replier</button>
-  </div>
   <div class="section accent-blue">
     <div class="section-head">
-      <div class="section-title acc-toggle" onclick="toggleAccSection(this)">📈 PEA<span class="acc-chevron">▾</span></div>
+      <div class="section-title">📈 PEA</div>
       <div style="display:flex;gap:6px;">
         <button class="mini-btn" style="width:auto;margin:0;padding:5px 12px;border-style:solid;font-size:11px;" onclick="fetchAllInvPrices('pea')" title="Récupérer tous les cours live">⟳ Cours</button>
         <button class="mini-btn" style="width:auto;margin:0;padding:5px 12px;" onclick="addInvRow('pea')">＋</button>
@@ -1279,7 +1291,7 @@ button, input, select { touch-action: manipulation; }
   </div>
   <div class="section accent-green">
     <div class="section-head">
-      <div class="section-title acc-toggle" onclick="toggleAccSection(this)">📊 CTO<span class="acc-chevron">▾</span></div>
+      <div class="section-title">📊 CTO</div>
       <div style="display:flex;gap:6px;">
         <button class="mini-btn" style="width:auto;margin:0;padding:5px 12px;border-style:solid;font-size:11px;" onclick="fetchAllInvPrices('cto')" title="Récupérer tous les cours live">⟳ Cours</button>
         <button class="mini-btn" style="width:auto;margin:0;padding:5px 12px;" onclick="addInvRow('cto')">＋</button>
@@ -1289,7 +1301,7 @@ button, input, select { touch-action: manipulation; }
   </div>
   <div class="section accent-gold">
     <div class="section-head">
-      <div class="section-title acc-toggle" onclick="toggleAccSection(this)">💳 Revolut Invest.<span class="acc-chevron">▾</span></div>
+      <div class="section-title">💳 Revolut Invest.</div>
       <div style="display:flex;gap:6px;">
         <button class="mini-btn" style="width:auto;margin:0;padding:5px 12px;border-style:solid;font-size:11px;" onclick="fetchAllInvPrices('revolut')" title="Récupérer tous les cours live">⟳ Cours</button>
         <button class="mini-btn" style="width:auto;margin:0;padding:5px 12px;" onclick="addInvRow('revolut')">＋</button>
@@ -1299,21 +1311,21 @@ button, input, select { touch-action: manipulation; }
   </div>
   <div class="section">
     <div class="section-head">
-      <div class="section-title acc-toggle" onclick="toggleAccSection(this)">🏢 Épargne Entreprise (PEE/PERCO)<span class="acc-chevron">▾</span></div>
+      <div class="section-title">🏢 Épargne Entreprise (PEE/PERCO)</div>
       <button class="mini-btn" style="width:auto;margin:0;padding:5px 12px;" onclick="addEERow()">＋</button>
     </div>
     <div class="section-body" id="body-ee"></div>
   </div>
   <div class="section accent-red">
     <div class="section-head">
-      <div class="section-title acc-toggle" onclick="toggleAccSection(this)">🛡️ Assurances Vie<span class="acc-chevron">▾</span></div>
+      <div class="section-title">🛡️ Assurances Vie</div>
       <button class="mini-btn" style="width:auto;margin:0;padding:5px 12px;" onclick="addAVRow()">＋</button>
     </div>
     <div class="section-body" id="body-av"></div>
   </div>
   <div class="section">
     <div class="section-head">
-      <div class="section-title acc-toggle" onclick="toggleAccSection(this)">🔒 Épargne Réglementée<span class="acc-chevron">▾</span></div>
+      <div class="section-title">🔒 Épargne Réglementée</div>
       <button class="mini-btn" style="width:auto;margin:0;padding:5px 12px;" onclick="addEBRow()">＋</button>
     </div>
     <div class="section-body" id="body-eb"></div>
@@ -1740,42 +1752,109 @@ let DATA = {
   },
 };
 
-// ─── ACCORDION (blocs repliables) ──────────────────────────────────────────
-function toggleAccSection(titleEl) {
-  const head = titleEl.closest('.section-head');
-  const body = head && head.nextElementSibling;
-  if (!body || !body.classList.contains('section-body')) return;
-  const collapsed = body.classList.toggle('acc-collapsed');
-  const chevron = titleEl.querySelector('.acc-chevron');
-  if (chevron) chevron.textContent = collapsed ? '▸' : '▾';
-  updateAccAllBtn();
+// ─── ACCORDION (blocs repliables) — tous les onglets sauf KPI ──────────────
+// Chaque bloc .section (en-tête + corps) devient repliable via un bouton ▾ et un
+// clic sur l'en-tête. Un bouton « Tout replier / Tout déplier » est ajouté en haut
+// de chaque onglet. L'état replié est mémorisé pendant la session et réappliqué
+// quand un onglet se re-génère (Immobilier, Dépenses, Poches…).
+const ACC_CLOSED = new Set();
+const ACC_SKIP_PANELS = ['panel-kpi'];
+
+function accPanels() {
+  return Array.from(document.querySelectorAll('.panel')).filter(p => !ACC_SKIP_PANELS.includes(p.id));
+}
+function accSections(panel) {
+  return Array.from(panel.querySelectorAll('.section')).filter(sec => {
+    const h = sec.firstElementChild, b = h && h.nextElementSibling;
+    return h && b && h.classList.contains('section-head') && b.classList.contains('section-body');
+  });
+}
+function accKey(panel, idx) { return panel.id + '#' + idx; }
+
+function accSetState(sec, closed) {
+  sec.classList.toggle('acc-closed', closed);
+  const body = sec.querySelector(':scope > .section-body');
+  if (body) body.classList.toggle('acc-collapsed', closed);
+  const btn = sec.querySelector(':scope > .section-head .acc-btn');
+  if (btn) btn.setAttribute('aria-expanded', closed ? 'false' : 'true');
 }
 
-function getAccSections() {
-  return Array.from(document.querySelectorAll('.section-title.acc-toggle')).map(t => {
-    const head = t.closest('.section-head');
-    const body = head && head.nextElementSibling;
-    return (body && body.classList.contains('section-body')) ? { t, body } : null;
-  }).filter(Boolean);
-}
-
-function updateAccAllBtn() {
-  const btn = document.getElementById('accAllBtn');
+function accUpdateAllBtn(panel) {
+  const btn = panel.querySelector(':scope > .acc-toolbar .acc-all-btn');
   if (!btn) return;
-  const anyOpen = getAccSections().some(x => !x.body.classList.contains('acc-collapsed'));
+  const secs = accSections(panel);
+  const anyOpen = secs.some(sec => !sec.classList.contains('acc-closed'));
   btn.textContent = anyOpen ? '▴ Tout replier' : '▾ Tout déplier';
 }
 
-function toggleAllAccSections() {
-  const secs = getAccSections();
-  const collapse = secs.some(x => !x.body.classList.contains('acc-collapsed'));
-  secs.forEach(({ t, body }) => {
-    body.classList.toggle('acc-collapsed', collapse);
-    const chevron = t.querySelector('.acc-chevron');
-    if (chevron) chevron.textContent = collapse ? '▸' : '▾';
+function accDecorate(panel) {
+  if (!panel.querySelector(':scope > .acc-toolbar')) {
+    const bar = document.createElement('div');
+    bar.className = 'acc-toolbar';
+    bar.innerHTML = '<button type="button" class="mini-btn acc-all-btn" style="width:auto;margin:0;padding:5px 12px;border-style:solid;font-size:11px;" title="Déplier / replier tous les blocs">▴ Tout replier</button>';
+    panel.insertBefore(bar, panel.firstChild);
+  }
+  accSections(panel).forEach((sec, idx) => {
+    if (!sec.classList.contains('acc-ready')) {
+      sec.classList.add('acc-ready');
+      const head = sec.firstElementChild;
+      const title = head.querySelector('.section-title');
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'acc-btn';
+      btn.title = 'Plier / déplier';
+      btn.textContent = '▾';
+      if (title) title.insertBefore(btn, title.firstChild); else head.insertBefore(btn, head.firstChild);
+      accSetState(sec, ACC_CLOSED.has(accKey(panel, idx)));
+    }
   });
-  updateAccAllBtn();
+  accUpdateAllBtn(panel);
 }
+
+function accToggle(sec) {
+  const panel = sec.closest('.panel');
+  const idx = accSections(panel).indexOf(sec);
+  const closed = !sec.classList.contains('acc-closed');
+  accSetState(sec, closed);
+  if (closed) ACC_CLOSED.add(accKey(panel, idx)); else ACC_CLOSED.delete(accKey(panel, idx));
+  accUpdateAllBtn(panel);
+}
+
+function accToggleAll(panel) {
+  const secs = accSections(panel);
+  const collapse = secs.some(sec => !sec.classList.contains('acc-closed'));
+  secs.forEach((sec, idx) => {
+    accSetState(sec, collapse);
+    if (collapse) ACC_CLOSED.add(accKey(panel, idx)); else ACC_CLOSED.delete(accKey(panel, idx));
+  });
+  accUpdateAllBtn(panel);
+}
+
+function initAccordions() {
+  accPanels().forEach(panel => {
+    accDecorate(panel);
+    // Re-décore après chaque re-rendu dynamique du panneau (idempotent)
+    let queued = false;
+    new MutationObserver(() => {
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(() => { queued = false; accDecorate(panel); });
+    }).observe(panel, { childList: true, subtree: true });
+    panel.addEventListener('click', e => {
+      if (e.target.closest('.acc-all-btn')) { accToggleAll(panel); return; }
+      const head = e.target.closest('.section-head');
+      if (!head) return;
+      const sec = head.parentElement;
+      if (!sec.classList.contains('acc-ready') || sec.firstElementChild !== head) return;
+      // Ne pas replier quand on clique sur un autre bouton / champ de l'en-tête
+      const interactive = e.target.closest('button, input, select, textarea, a, label');
+      if (interactive && !interactive.classList.contains('acc-btn')) return;
+      accToggle(sec);
+    });
+  });
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initAccordions);
+else initAccordions();
 
 // ─── TAB SWITCHING ─────────────────────────────────────────────────────────
 function switchTab(name) {
