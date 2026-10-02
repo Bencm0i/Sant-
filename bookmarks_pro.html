@@ -631,7 +631,7 @@ body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
 /* ── PANNEAU GAUCHE (widgets) : ancré à gauche, masquable comme le panneau droit ── */
 .col-left{
   position:fixed;top:0;left:0;height:100vh;width:280px;max-width:90vw;
-  z-index:200;transform:translateX(-100%);transition:transform 0.25s ease;
+  z-index:980;transform:translateX(-100%);transition:transform 0.25s ease;
   background:var(--surface);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
   border-right:1.5px solid var(--border);box-shadow:var(--shadow);
   padding:16px 12px 16px 16px;overflow-y:auto;
@@ -640,7 +640,7 @@ body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
 .col-left.open{transform:translateX(0);}
 .left-tab{
   position:fixed;top:50%;left:0;transform:translateY(-50%);
-  z-index:201;background:var(--surface);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  z-index:981;background:var(--surface);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
   border:1.5px solid var(--border);border-left:none;border-radius:0 14px 14px 0;
   box-shadow:var(--shadow);width:40px;height:64px;font-size:1.3rem;cursor:pointer;
   display:flex;align-items:center;justify-content:center;transition:left 0.25s ease,opacity 0.15s,top 0.25s ease;
@@ -2853,7 +2853,7 @@ body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
     <style>
       .ha-sidebar{
         position:fixed;top:0;right:0;height:100vh;width:340px;max-width:90vw;
-        z-index:200;transform:translateX(100%);transition:transform 0.25s ease;
+        z-index:980;transform:translateX(100%);transition:transform 0.25s ease;
         background:var(--surface);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
         border-left:1.5px solid var(--border);box-shadow:var(--shadow);
       }
@@ -2863,7 +2863,7 @@ body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
       .ha-sidebar-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1.5px solid rgba(255,255,255,0.6);flex-shrink:0;}
       .ha-tab{
         position:fixed;top:50%;right:0;transform:translateY(-50%);
-        z-index:201;background:var(--surface);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+        z-index:981;background:var(--surface);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
         border:1.5px solid var(--border);border-right:none;border-radius:14px 0 0 14px;
         box-shadow:var(--shadow);width:40px;height:64px;font-size:1.3rem;cursor:pointer;
         display:flex;align-items:center;justify-content:center;transition:right 0.25s ease,opacity 0.15s,top 0.25s ease;
@@ -9676,6 +9676,16 @@ function ghLinkGenerate(){
   document.addEventListener('touchend', e => {
     const t = e.changedTouches[0];
     pointerUp(t.clientX, t.clientY);
+  });
+})();
+</script>
+<script>
+// Les panneaux latéraux (et leurs onglets) sont sortis de #mainPage : celui-ci crée un contexte
+// d'empilement (z-index:1) qui plafonnait leur z-index et les laissait sous les widgets/icônes.
+(function(){
+  ['colLeftPanel','leftTab','haSidebar','haTab'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el && el.parentNode !== document.body) document.body.appendChild(el);
   });
 })();
 </script>
