@@ -1518,6 +1518,40 @@ body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
 #smSearch::placeholder{color:var(--muted);}
 #smModal{position:fixed;inset:0;z-index:610;background:rgba(0,0,0,0.45);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;}
 #smModal.open{display:flex;}
+/* ── GROUPES (dossiers de raccourcis) ── */
+.lch-group-btn{display:grid !important;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:3px;padding:6px;align-content:center;justify-items:center;align-items:center;}
+.lch-group-cell{width:20px;height:20px;border-radius:6px;background:rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;font-size:12px;line-height:1;overflow:hidden;}
+.lch-group-cell img{width:100%;height:100%;object-fit:cover;display:block;}
+.lch-group-count{position:absolute;right:3px;bottom:2px;font-size:0.55rem;font-weight:800;color:#fff;background:rgba(0,0,0,0.5);border-radius:6px;padding:0 4px;line-height:1.4;}
+#lchGroupBtn{position:fixed;bottom:41px;left:calc(50% + 100px);z-index:500;}
+#grpOverlay{position:fixed;inset:0;z-index:590;background:rgba(0,0,0,0.4);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;}
+#grpOverlay.open{display:flex;}
+.grp-box{background:rgba(255,255,255,0.94);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1.5px solid rgba(255,255,255,0.95);border-radius:22px;padding:18px 18px 14px;box-shadow:0 20px 60px rgba(30,41,59,0.3);width:min(420px,92vw);max-height:80vh;display:flex;flex-direction:column;gap:12px;font-family:'Inter',sans-serif;}
+.grp-head{display:flex;align-items:center;gap:8px;}
+.grp-title{flex:1;min-width:0;font-size:0.95rem;font-weight:800;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.grp-hbtn{width:30px;height:30px;border-radius:9px;border:1.5px solid rgba(61,90,115,0.25);background:rgba(61,90,115,0.08);cursor:pointer;font-size:0.85rem;color:var(--muted);transition:all 0.12s;}
+.grp-hbtn:hover{border-color:var(--c2);color:var(--c2);}
+.grp-launch-all{padding:10px;border-radius:12px;border:none;background:linear-gradient(90deg,var(--c1),var(--c2));color:#fff;font-family:inherit;font-weight:800;font-size:0.8rem;cursor:pointer;transition:opacity 0.15s,transform 0.15s;}
+.grp-launch-all:hover{opacity:0.88;transform:translateY(-1px);}
+.grp-launch-all:disabled{opacity:0.4;cursor:default;transform:none;}
+.grp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:14px 8px;overflow-y:auto;padding:6px 2px;}
+.grp-item{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;user-select:none;}
+.grp-item-btn{width:56px;height:56px;border-radius:16px;background:rgba(61,90,115,0.12);border:1.5px solid rgba(61,90,115,0.25);display:flex;align-items:center;justify-content:center;font-size:26px;position:relative;overflow:hidden;transition:transform 0.12s,box-shadow 0.12s;}
+.grp-item:hover .grp-item-btn{transform:scale(1.08);box-shadow:0 6px 18px rgba(30,41,59,0.2);}
+.grp-item:active .grp-item-btn{transform:scale(0.94);}
+.grp-item-btn img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.grp-item-label{font-size:0.66rem;font-weight:700;color:var(--text);text-align:center;max-width:78px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.grp-empty{grid-column:1/-1;text-align:center;font-size:0.72rem;font-weight:600;color:var(--muted);padding:14px 6px;}
+.grp-hint{font-size:0.6rem;font-weight:600;color:var(--muted);text-align:center;}
+#groupModal{position:fixed;inset:0;z-index:630;background:rgba(0,0,0,0.45);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;}
+#groupModal.open{display:flex;}
+.grp-emoji-pick{font-size:18px;width:32px;height:32px;border-radius:8px;border:1.5px solid rgba(61,90,115,0.2);background:rgba(61,90,115,0.06);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.1s;}
+.grp-emoji-pick:hover,.grp-emoji-pick.sel{border-color:var(--c2);background:rgba(61,90,115,0.18);}
+.grp-pick-list{display:flex;flex-direction:column;gap:2px;max-height:190px;overflow-y:auto;border:1.5px solid rgba(61,90,115,0.18);border-radius:10px;padding:4px;}
+.grp-pick-row{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:8px;cursor:pointer;font-size:0.76rem;font-weight:700;color:var(--text);}
+.grp-pick-row:hover{background:rgba(61,90,115,0.1);}
+.grp-pick-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.grp-modal-sub{font-size:0.68rem;font-weight:700;color:var(--muted);}
 /* Modal launcher */
 #launcherModal{position:fixed;inset:0;z-index:600;background:rgba(0,0,0,0.45);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;}
 #launcherModal.open{display:flex;}
@@ -2335,6 +2369,7 @@ body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
 
 <button id="smBtn" onclick="smToggle()" title="Menu démarrer — utilitaires en ligne"><i class="ti ti-apps"></i></button>
 <button id="lchAddBtn" class="lch-ctrl-btn" onclick="launcherOpenAdd()" title="Ajouter un raccourci">＋</button>
+<button id="lchGroupBtn" class="lch-ctrl-btn" onclick="groupOpenEditor(null)" title="Nouveau groupe (dossier de raccourcis)">📁</button>
 <div id="smPanel">
   <div id="smPanelHead">
     <span id="smPanelTitle">Utilitaires</span>
@@ -4501,6 +4536,7 @@ function initApp(){
   launcherLoad();
   launcherRender();
   hydrateIconsAndMigrate(launcherLinks, launcherSave, launcherRender);
+  hydrateIconsAndMigrate(launcherLinks.filter(lchIsGroup).flatMap(g => g.items || []), launcherSave, launcherRender);
   // menu démarrer
   smLoad();
   hydrateIconsAndMigrate(smItems, smSave, () => smRender(document.getElementById('smSearch') ? document.getElementById('smSearch').value : ''));
@@ -4878,7 +4914,7 @@ function pvModalConfirm(){
 function pvUpdateSidebarUI(){
   const countEl = document.getElementById('pvHiddenCount');
   if(!countEl) return;
-  const hiddenCount = launcherLinks.filter(l=>l.hidden).length + smItems.filter(l=>l.hidden).length;
+  const hiddenCount = launcherLinks.filter(l=>l.hidden).length + launcherLinks.filter(lchIsGroup).reduce((n,g)=>n+(g.items||[]).filter(i=>i.hidden).length,0) + smItems.filter(l=>l.hidden).length;
   countEl.textContent = hiddenCount
     ? hiddenCount + ' raccourci' + (hiddenCount>1?'s':'') + ' masqué' + (hiddenCount>1?'s':'') + (pvUnlocked ? ' (déverrouillé)' : ' (verrouillé)')
     : 'Aucun raccourci masqué';
@@ -4916,7 +4952,7 @@ function pvChangePassword(){
 function pvRemoveProtection(){
   const doRemove = () => {
     if(!confirm('Retirer la protection ? Tous les raccourcis masqués redeviendront visibles et le mot de passe sera supprimé.')) return;
-    launcherLinks.forEach(l => delete l.hidden);
+    launcherLinks.forEach(l => { delete l.hidden; if(lchIsGroup(l)) (l.items||[]).forEach(i => delete i.hidden); });
     smItems.forEach(l => delete l.hidden);
     launcherSave(); smSave();
     localStorage.removeItem('dashboard_privacy_hash');
@@ -4997,7 +5033,7 @@ function launcherLoad(){
   try{ launcherLinks = JSON.parse(localStorage.getItem('dashboard_launcher')||'null') || DEFAULT_LAUNCHER.map(l=>({...l})); }
   catch(e){ launcherLinks = DEFAULT_LAUNCHER.map(l=>({...l})); }
 }
-function launcherSave(){ return lsSet('dashboard_launcher', JSON.stringify(launcherLinks.map(stripIconForStorage))); }
+function launcherSave(){ return lsSet('dashboard_launcher', JSON.stringify(launcherLinks.map(l => lchIsGroup(l) ? { ...l, items:(l.items || []).map(stripIconForStorage) } : stripIconForStorage(l)))); }
 
 function launcherRender(){
   const desktop = document.getElementById('launcherDesktop');
@@ -5009,6 +5045,7 @@ function launcherRender(){
     wrap.className = 'lch-icon';
     wrap.style.left = (lk.x ?? 80) + 'px';
     wrap.style.top  = (lk.y ?? 160 + i * 110) + 'px';
+    wrap.dataset.idx = i;
 
     // ── icône ──
     const btn = document.createElement('div');
@@ -5019,7 +5056,8 @@ function launcherRender(){
     btn.appendChild(emojiSpan);
 
     // icône personnalisée (image importée par l'utilisateur) : prioritaire sur l'emoji
-    if(lk.icon){
+    if(lchIsGroup(lk)){ lchBuildGroupBtn(btn, emojiSpan, lk); }
+    else if(lk.icon){
       const custom = document.createElement('img');
       custom.className = 'lch-icon-custom';
       custom.src = lk.icon;
@@ -5104,6 +5142,7 @@ document.addEventListener('mousemove', e => {
   const y = Math.max(0, Math.min(e.clientY - _lch.offY, window.innerHeight - 90));
   _lch.el.style.left = x + 'px';
   _lch.el.style.top  = y + 'px';
+  lchUpdateDropHighlight(e.clientX, e.clientY);
 });
 
 // ── bornes de dépôt : exclut la surface des panneaux gauche/droite quand ils sont dépliés ──
@@ -5126,6 +5165,12 @@ document.addEventListener('mouseup', e => {
   if(_lch.idx < 0 || !_lch.el) return;
 
   if(_lch.moved){
+    const _dropEl = lchFindDropTarget(e.clientX, e.clientY, _lch.idx);
+    lchClearDropHighlight();
+    if(_dropEl && lchHandleDrop(_lch.idx, parseInt(_dropEl.dataset.idx, 10))){
+      _lch.idx = -1; _lch.el = null; _lch.moved = false;
+      return;
+    }
     // Sauvegarder la nouvelle position
     const x = Math.round(parseFloat(_lch.el.style.left));
     const y = Math.round(parseFloat(_lch.el.style.top));
@@ -5138,7 +5183,8 @@ document.addEventListener('mouseup', e => {
   } else {
     // vrai clic → ouvrir le lien
     const lk = launcherLinks[_lch.idx];
-    if(lk && lk.url) window.open(lk.url, '_blank', 'noopener');
+    if(lchIsGroup(lk)) groupOpenFolder(lk);
+    else if(lk && lk.url) window.open(lk.url, '_blank', 'noopener');
   }
 
   _lch.idx = -1;
@@ -5150,14 +5196,16 @@ document.addEventListener('mouseup', e => {
 let _lchCtx = null;
 function lchShowCtxMenu(cx, cy, idx){
   lchHideCtxMenu();
+  if(lchIsGroup(launcherLinks[idx])){ lchShowMenuItems(cx, cy, lchGroupMenuItems(launcherLinks[idx])); return; }
   const m = document.createElement('div');
   m.id = 'lchCtxMenu';
-  m.style.cssText = `position:fixed;left:${Math.min(cx, window.innerWidth-160)}px;top:${Math.min(cy, window.innerHeight-80)}px;z-index:800;background:rgba(20,12,48,0.96);backdrop-filter:blur(16px);border:1.5px solid rgba(61,90,115,0.35);border-radius:12px;padding:6px 0;min-width:150px;box-shadow:0 8px 32px rgba(0,0,0,0.4);font-family:'Inter',sans-serif;`;
+  m.style.cssText = `position:fixed;left:${Math.min(cx, window.innerWidth-160)}px;top:${Math.min(cy, window.innerHeight-200)}px;z-index:800;background:rgba(20,12,48,0.96);backdrop-filter:blur(16px);border:1.5px solid rgba(61,90,115,0.35);border-radius:12px;padding:6px 0;min-width:150px;box-shadow:0 8px 32px rgba(0,0,0,0.4);font-family:'Inter',sans-serif;`;
   const items = [
     {icon:'✏️', label:'Modifier', fn: () => { launcherOpenEdit(idx); }},
     {icon:'📌', label:'Ajouter au menu démarrer', fn: () => { launcherAddToStartMenu(idx); }},
     {icon:'🗑', label:'Supprimer', fn: () => { launcherLinks.splice(idx,1); launcherSave(); launcherRender(); }, danger:true},
   ];
+  items.push({icon:'📁', label:'Créer un groupe…', fn: () => groupOpenEditor(null, launcherLinks[idx])});
   items.forEach(it => {
     const row = document.createElement('div');
     row.style.cssText = `display:flex;align-items:center;gap:8px;padding:7px 14px;cursor:pointer;font-size:0.78rem;font-weight:700;color:${it.danger?'#b3564f':'rgba(255,255,255,0.85)'};transition:background .12s;`;
@@ -5199,6 +5247,342 @@ function launcherFlashStartMenuBtn(){
   btn.style.boxShadow = '0 0 0 4px rgba(65,112,138,0.35)';
   setTimeout(() => { btn.style.transform = ''; btn.style.boxShadow = ''; }, 260);
 }
+
+// ══════════════════════════════════════════
+// GROUPES (dossiers de raccourcis sur le bureau)
+// Un groupe = { type:'group', name, emoji, x, y, items:[ {emoji,name,url,icon?,iconId?,noPreview?,hidden?} ] }
+// Créer : bouton 📁, clic droit « Créer un groupe… », ou glisser une icône sur une autre.
+// Clic sur le groupe = ouvre le dossier (clic sur chaque raccourci) ; « Tout lancer » = ouvre tous les liens.
+// ══════════════════════════════════════════
+let groupEditObj = null, grpOpenObj = null, groupModalEmoji = '📁', groupModalRows = [];
+let launcherEditGroup = null, launcherEditSub = -1;
+
+function lchIsGroup(l){ return !!l && l.type === 'group'; }
+function lchGroupVisibleItems(g){ return (g.items || []).filter(it => !it.hidden || pvUnlocked); }
+function lchLinkToGroupItem(l){ const { x, y, type, ...rest } = l; return rest; }
+
+function lchToast(msg){
+  const old = document.getElementById('lchToast'); if(old) old.remove();
+  const t = document.createElement('div');
+  t.id = 'lchToast'; t.textContent = msg;
+  t.style.cssText = "position:fixed;left:50%;bottom:110px;transform:translateX(-50%);z-index:900;max-width:min(420px,90vw);background:rgba(20,25,40,0.94);color:#fff;font:700 0.78rem Inter,sans-serif;padding:10px 16px;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.35);text-align:center;";
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 4800);
+}
+
+// ── contenu visuel de l'icône d'un groupe (mini-grille 2×2 des raccourcis) ──
+function lchBuildGroupBtn(btn, emojiSpan, g){
+  btn.classList.add('lch-group-btn');
+  const vis = lchGroupVisibleItems(g);
+  if(!vis.length){ emojiSpan.textContent = g.emoji || '📁'; emojiSpan.style.opacity = '0.85'; return; }
+  emojiSpan.style.display = 'none';
+  vis.slice(0, 4).forEach(it => {
+    const c = document.createElement('div');
+    c.className = 'lch-group-cell';
+    if(it.icon){ const im = document.createElement('img'); im.src = it.icon; c.appendChild(im); }
+    else c.textContent = it.emoji || '🔗';
+    btn.appendChild(c);
+  });
+  const n = document.createElement('span');
+  n.className = 'lch-group-count'; n.textContent = vis.length;
+  btn.appendChild(n);
+}
+
+// ── glisser-déposer : une icône sur une autre = groupe ──
+function lchFindDropTarget(x, y, dragIdx){
+  const d = launcherLinks[dragIdx];
+  if(!d || lchIsGroup(d)) return null;
+  const icons = document.querySelectorAll('#launcherDesktop .lch-icon');
+  for(const el of icons){
+    if(el === _lch.el) continue;
+    const b = el.querySelector('.lch-icon-btn').getBoundingClientRect();
+    if(x >= b.left - 4 && x <= b.right + 4 && y >= b.top - 4 && y <= b.bottom + 4) return el;
+  }
+  return null;
+}
+function lchClearDropHighlight(){
+  document.querySelectorAll('#launcherDesktop .lch-drag-over').forEach(e => e.classList.remove('lch-drag-over'));
+}
+function lchUpdateDropHighlight(x, y){
+  lchClearDropHighlight();
+  const el = lchFindDropTarget(x, y, _lch.idx);
+  if(el) el.classList.add('lch-drag-over');
+}
+function lchHandleDrop(di, ti){
+  const dragged = launcherLinks[di], target = launcherLinks[ti];
+  if(!dragged || !target || di === ti || lchIsGroup(dragged)) return false;
+  const prevLinks = launcherLinks.slice();
+  const prevItems = lchIsGroup(target) ? target.items.slice() : null;
+  let newGroup = null;
+  if(lchIsGroup(target)){
+    target.items.push(lchLinkToGroupItem(dragged));
+    launcherLinks.splice(di, 1);
+  } else {
+    newGroup = { type:'group', emoji:'📁', name:'Groupe', x: target.x ?? 80, y: target.y ?? (160 + ti * 110),
+                 items:[ lchLinkToGroupItem(target), lchLinkToGroupItem(dragged) ] };
+    launcherLinks[ti] = newGroup;
+    launcherLinks.splice(launcherLinks.indexOf(dragged), 1);
+  }
+  if(!launcherSave()){
+    launcherLinks = prevLinks;
+    if(prevItems) target.items = prevItems;
+    launcherRender();
+    return true;
+  }
+  launcherRender();
+  pvUpdateSidebarUI();
+  if(newGroup) groupOpenEditor(newGroup); // laisse nommer le groupe tout de suite
+  return true;
+}
+
+// ── menus contextuels ──
+function lchShowMenuItems(cx, cy, items){
+  lchHideCtxMenu();
+  const m = document.createElement('div');
+  m.id = 'lchCtxMenu';
+  m.style.cssText = `position:fixed;left:${Math.max(4, Math.min(cx, window.innerWidth-220))}px;top:${Math.max(4, Math.min(cy, window.innerHeight-(items.length*34+20)))}px;z-index:800;background:rgba(20,12,48,0.96);backdrop-filter:blur(16px);border:1.5px solid rgba(61,90,115,0.35);border-radius:12px;padding:6px 0;min-width:200px;box-shadow:0 10px 36px rgba(0,0,0,0.45);`;
+  items.forEach(it => {
+    const row = document.createElement('div');
+    row.style.cssText = `display:flex;align-items:center;gap:8px;padding:7px 14px;cursor:pointer;font-size:0.78rem;font-weight:700;color:${it.danger?'#e07a72':'rgba(255,255,255,0.85)'};transition:background .12s;`;
+    const ic = document.createElement('span'); ic.textContent = it.icon;
+    const lb = document.createElement('span'); lb.textContent = it.label;
+    row.append(ic, lb);
+    row.onmouseenter = () => { row.style.background = 'rgba(61,90,115,0.3)'; };
+    row.onmouseleave = () => { row.style.background = ''; };
+    row.onclick = (e) => { e.stopPropagation(); lchHideCtxMenu(); it.fn(); };
+    m.appendChild(row);
+  });
+  document.body.appendChild(m);
+  _lchCtx = m;
+  setTimeout(() => document.addEventListener('click', lchHideCtxMenu, {once:true}), 0);
+}
+function lchGroupMenuItems(g){
+  return [
+    {icon:'📂', label:'Ouvrir le dossier',     fn: () => groupOpenFolder(g)},
+    {icon:'🚀', label:'Tout lancer',            fn: () => groupLaunchAll(g)},
+    {icon:'✏️', label:'Modifier le groupe',     fn: () => groupOpenEditor(g)},
+    {icon:'📤', label:'Dissocier le groupe',    fn: () => groupDissolve(g)},
+    {icon:'🗑', label:'Supprimer le groupe',    fn: () => groupDelete(g), danger:true},
+  ];
+}
+
+// ── lancer ──
+function groupLaunchAll(g){
+  if(!g) return;
+  const list = lchGroupVisibleItems(g).filter(it => it.url);
+  if(!list.length){ lchToast('Ce groupe ne contient aucun lien à lancer.'); return; }
+  let opened = 0;
+  list.forEach(it => {
+    const w = window.open(it.url, '_blank');
+    if(w){ try{ w.opener = null; }catch(e){} opened++; }
+  });
+  if(opened < list.length){
+    lchToast('⚠️ ' + (list.length - opened) + ' onglet(s) bloqué(s) par le navigateur. Autorise les pop-ups pour cette page (icône dans la barre d\'adresse) puis relance.');
+  } else {
+    lchToast('🚀 ' + opened + ' raccourci' + (opened > 1 ? 's' : '') + ' lancé' + (opened > 1 ? 's' : ''));
+  }
+}
+
+// ── fenêtre dossier ──
+function groupOpenFolder(g){
+  grpOpenObj = g;
+  groupRenderFolder();
+  document.getElementById('grpOverlay').classList.add('open');
+}
+function groupCloseFolder(){
+  document.getElementById('grpOverlay').classList.remove('open');
+  grpOpenObj = null;
+}
+function groupEditFromFolder(){ if(grpOpenObj) groupOpenEditor(grpOpenObj); }
+function groupRenderFolder(){
+  const g = grpOpenObj;
+  if(!g) return;
+  document.getElementById('grpTitle').textContent = (g.emoji || '📁') + ' ' + (g.name || 'Groupe');
+  const vis = lchGroupVisibleItems(g);
+  const nbLinks = vis.filter(it => it.url).length;
+  const lb = document.getElementById('grpLaunchAll');
+  lb.textContent = '🚀 Tout lancer (' + nbLinks + ')';
+  lb.disabled = nbLinks === 0;
+  const grid = document.getElementById('grpGrid');
+  grid.innerHTML = '';
+  if(!vis.length){
+    const e = document.createElement('div');
+    e.className = 'grp-empty';
+    e.textContent = 'Groupe vide — clique sur ✏️ pour y ajouter des raccourcis.';
+    grid.appendChild(e);
+    return;
+  }
+  vis.forEach(it => {
+    const j = g.items.indexOf(it);
+    const cell = document.createElement('div');
+    cell.className = 'grp-item';
+    const btn = document.createElement('div');
+    btn.className = 'grp-item-btn';
+    if(it.icon){ const im = document.createElement('img'); im.src = it.icon; btn.appendChild(im); }
+    else btn.textContent = it.emoji || '🔗';
+    const label = document.createElement('div');
+    label.className = 'grp-item-label';
+    label.textContent = it.name || '';
+    cell.append(btn, label);
+    cell.title = it.url || '';
+    cell.addEventListener('click', () => { if(it.url) window.open(it.url, '_blank', 'noopener'); });
+    cell.addEventListener('contextmenu', e => {
+      e.preventDefault(); e.stopPropagation();
+      lchShowMenuItems(e.clientX, e.clientY, [
+        {icon:'✏️', label:'Modifier',          fn: () => launcherOpenEditInGroup(g, j)},
+        {icon:'📤', label:'Sortir du groupe',  fn: () => groupItemToDesktop(g, j)},
+        {icon:'🗑', label:'Supprimer',          fn: () => groupItemDelete(g, j), danger:true},
+      ]);
+    });
+    grid.appendChild(cell);
+  });
+}
+
+// ── actions sur un raccourci d'un groupe ──
+function launcherOpenEditInGroup(g, j){
+  const it = g.items[j];
+  if(!it) return;
+  launcherEditIdx = null; launcherEditGroup = g; launcherEditSub = j;
+  document.getElementById('launcherModalTitle').textContent = 'Modifier le raccourci';
+  document.getElementById('launcherModalName').value = it.name || '';
+  document.getElementById('launcherModalUrl').value  = it.url  || '';
+  launcherBuildEmojiGrid(it.emoji || LAUNCHER_EMOJIS[0]);
+  launcherModalIcon = it.icon || null;
+  updateLauncherModalIconPreview();
+  launcherModalNoPreview = !!it.noPreview;
+  updateLauncherModalPreviewToggleUI();
+  launcherModalProtected = !!it.hidden;
+  updateLauncherModalProtectToggleUI();
+  document.getElementById('launcherModal').classList.add('open');
+}
+function groupItemToDesktop(g, j){
+  const it = g.items[j];
+  if(!it) return;
+  const prevLinks = launcherLinks.slice(), prevItems = g.items.slice();
+  g.items.splice(j, 1);
+  const p = _lchNextFreeSpot();
+  launcherLinks.push({ ...it, x:p.x, y:p.y });
+  if(!launcherSave()){ launcherLinks = prevLinks; g.items = prevItems; return; }
+  launcherRender();
+  groupRenderFolder();
+}
+function groupItemDelete(g, j){
+  const it = g.items[j];
+  if(!it || !confirm('Supprimer « ' + (it.name || 'ce raccourci') + ' » ?')) return;
+  const prevItems = g.items.slice();
+  g.items.splice(j, 1);
+  if(!launcherSave()){ g.items = prevItems; return; }
+  launcherRender();
+  groupRenderFolder();
+  pvUpdateSidebarUI();
+}
+
+// ── dissocier / supprimer un groupe ──
+function groupDissolve(g){
+  const pos = launcherLinks.indexOf(g);
+  if(pos < 0) return;
+  const prevLinks = launcherLinks.slice();
+  launcherLinks.splice(pos, 1);
+  (g.items || []).forEach(it => { const p = _lchNextFreeSpot(); launcherLinks.push({ ...it, x:p.x, y:p.y }); });
+  if(!launcherSave()){ launcherLinks = prevLinks; return; }
+  if(grpOpenObj === g) groupCloseFolder();
+  launcherRender();
+  pvUpdateSidebarUI();
+}
+function groupDelete(g){
+  const n = (g.items || []).length;
+  if(!confirm('Supprimer le groupe « ' + (g.name || 'Groupe') + ' » et ses ' + n + ' raccourci(s) ?\n(Utilise « Dissocier » pour garder les raccourcis.)')) return;
+  const prevLinks = launcherLinks.slice();
+  launcherLinks = launcherLinks.filter(l => l !== g);
+  if(!launcherSave()){ launcherLinks = prevLinks; return; }
+  if(grpOpenObj === g) groupCloseFolder();
+  launcherRender();
+  pvUpdateSidebarUI();
+}
+
+// ── modale de création / édition d'un groupe ──
+function groupOpenEditor(g, preLink){
+  groupEditObj = g || null;
+  groupModalEmoji = (g && g.emoji) || '📁';
+  document.getElementById('groupModalTitle').textContent = g ? 'Modifier le groupe' : 'Nouveau groupe';
+  document.getElementById('groupModalName').value = g ? (g.name || '') : '';
+  const eg = document.getElementById('groupEmojiGrid');
+  eg.innerHTML = '';
+  ['📁', ...LAUNCHER_EMOJIS.filter(e => e !== '📁')].forEach(em => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'grp-emoji-pick' + (em === groupModalEmoji ? ' sel' : '');
+    b.textContent = em;
+    b.onclick = () => { groupModalEmoji = em; eg.querySelectorAll('.grp-emoji-pick').forEach(x => x.classList.toggle('sel', x === b)); };
+    eg.appendChild(b);
+  });
+  groupModalRows = [];
+  const list = document.getElementById('groupModalList');
+  list.innerHTML = '';
+  const addRow = (ref, from, checked) => {
+    const row = document.createElement('label');
+    row.className = 'grp-pick-row';
+    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = checked;
+    const em = document.createElement('span'); em.textContent = ref.emoji || '🔗';
+    const nm = document.createElement('span'); nm.className = 'grp-pick-name'; nm.textContent = ref.name || ref.url || 'Lien';
+    row.append(cb, em, nm);
+    list.appendChild(row);
+    groupModalRows.push({ ref, from, cb });
+  };
+  if(g) lchGroupVisibleItems(g).forEach(it => addRow(it, 'group', true));
+  launcherLinks.forEach(l => { if(!lchIsGroup(l) && (!l.hidden || pvUnlocked)) addRow(l, 'desktop', l === preLink); });
+  if(!groupModalRows.length){
+    const e = document.createElement('div');
+    e.className = 'grp-empty';
+    e.textContent = 'Aucun raccourci sur le bureau pour le moment.';
+    list.appendChild(e);
+  }
+  document.getElementById('groupModal').classList.add('open');
+  setTimeout(() => document.getElementById('groupModalName').focus(), 50);
+}
+function groupCloseModal(){ document.getElementById('groupModal').classList.remove('open'); }
+function groupSaveModal(){
+  const g = groupEditObj;
+  const name = document.getElementById('groupModalName').value.trim() || 'Groupe';
+  const prevLinks = launcherLinks.slice();
+  const prevItems = g ? g.items.slice() : null;
+  const prevMeta  = g ? { name:g.name, emoji:g.emoji } : null;
+  const keepHidden = g ? g.items.filter(it => it.hidden && !pvUnlocked) : [];
+  let target = g;
+  if(!target){
+    const pos = launcherNextFreePos();
+    target = { type:'group', emoji:groupModalEmoji, name, x:pos.x, y:pos.y, items:[] };
+    launcherLinks.push(target);
+  }
+  target.name = name; target.emoji = groupModalEmoji;
+  const items = [], released = [], moved = [];
+  groupModalRows.forEach(r => {
+    if(r.from === 'group'){ (r.cb.checked ? items : released).push(r.ref); }
+    else if(r.cb.checked){ items.push(lchLinkToGroupItem(r.ref)); moved.push(r.ref); }
+  });
+  target.items = items.concat(keepHidden);
+  launcherLinks = launcherLinks.filter(l => !moved.includes(l));
+  released.forEach(it => { const p = _lchNextFreeSpot(); launcherLinks.push({ ...it, x:p.x, y:p.y }); });
+  if(!launcherSave()){
+    launcherLinks = prevLinks;
+    if(g){ g.items = prevItems; g.name = prevMeta.name; g.emoji = prevMeta.emoji; }
+    return;
+  }
+  groupCloseModal();
+  launcherRender();
+  if(grpOpenObj === target) groupRenderFolder();
+  pvUpdateSidebarUI();
+}
+document.addEventListener('keydown', e => {
+  if(e.key !== 'Escape') return;
+  const gm = document.getElementById('groupModal');
+  if(gm && gm.classList.contains('open')){ groupCloseModal(); return; }
+  const lm = document.getElementById('launcherModal');
+  if(lm && lm.classList.contains('open')) return;
+  const ov = document.getElementById('grpOverlay');
+  if(ov && ov.classList.contains('open')) groupCloseFolder();
+});
+
 
 // ── modal ──
 function launcherToggleEdit(){} // plus utilisé mais gardé pour compatibilité bouton
@@ -5546,6 +5930,7 @@ function launcherBuildEmojiGrid(sel){
 function launcherSelEmoji(){ return document.querySelector('.launcher-emoji-pick.sel')?.textContent || '🔗'; }
 
 function launcherOpenAdd(){
+  launcherEditGroup = null;
   launcherEditIdx = null;
   document.getElementById('launcherModalTitle').textContent = 'Nouveau raccourci';
   document.getElementById('launcherModalName').value = '';
@@ -5560,6 +5945,8 @@ function launcherOpenAdd(){
   document.getElementById('launcherModal').classList.add('open');
 }
 function launcherOpenEdit(i){
+  if(lchIsGroup(launcherLinks[i])){ groupOpenEditor(launcherLinks[i]); return; }
+  launcherEditGroup = null;
   launcherEditIdx = i;
   const lk = launcherLinks[i];
   document.getElementById('launcherModalTitle').textContent = 'Modifier le raccourci';
@@ -5606,10 +5993,18 @@ async function launcherSaveModal(){
   const prevLinks = launcherLinks.slice();
   let iconId = null;
   if(launcherModalIcon){
-    const prev = (launcherEditIdx !== null) ? launcherLinks[launcherEditIdx] : null;
+    const prev = launcherEditGroup ? launcherEditGroup.items[launcherEditSub] : ((launcherEditIdx !== null) ? launcherLinks[launcherEditIdx] : null);
     iconId = (prev && prev.icon === launcherModalIcon && prev.iconId) ? prev.iconId : await iconStore(launcherModalIcon);
   }
-  if(launcherEditIdx === null){
+  let _prevGroupItem = null;
+  if(launcherEditGroup){
+    _prevGroupItem = launcherEditGroup.items[launcherEditSub];
+    const obj = {emoji, name, url};
+    if(launcherModalIcon){ obj.icon = launcherModalIcon; obj.iconId = iconId; }
+    if(launcherModalNoPreview) obj.noPreview = true;
+    if(launcherModalProtected) obj.hidden = true;
+    launcherEditGroup.items[launcherEditSub] = obj;
+  } else if(launcherEditIdx === null){
     const pos = launcherNextFreePos();
     const obj = {emoji, name, url, x:pos.x, y:pos.y};
     if(launcherModalIcon){ obj.icon = launcherModalIcon; obj.iconId = iconId; }
@@ -5624,9 +6019,11 @@ async function launcherSaveModal(){
     if(launcherModalProtected) obj.hidden = true;
     launcherLinks[launcherEditIdx] = obj;
   }
-  if(!launcherSave()){ launcherLinks = prevLinks; return; } // échec d'enregistrement : on annule et on laisse la modale ouverte
+  if(!launcherSave()){ launcherLinks = prevLinks; if(launcherEditGroup) launcherEditGroup.items[launcherEditSub] = _prevGroupItem; return; } // échec d'enregistrement : on annule et on laisse la modale ouverte
+  const _wasGroupEdit = !!launcherEditGroup;
   launcherCloseModal();
   launcherRender();
+  if(_wasGroupEdit) groupRenderFolder();
   pvUpdateSidebarUI();
 }
 document.addEventListener('click', e => {
@@ -8134,6 +8531,36 @@ document.addEventListener('keydown', function(e){
   </div>
 </div>
 <input type="file" id="modalIconFileInput" accept="image/*" style="display:none" onchange="handleModalIconFile(this)">
+
+<!-- GROUPES : fenêtre dossier -->
+<div id="grpOverlay" onmousedown="if(event.target===this)groupCloseFolder()">
+  <div class="grp-box">
+    <div class="grp-head">
+      <div class="grp-title" id="grpTitle"></div>
+      <button class="grp-hbtn" onclick="groupEditFromFolder()" title="Modifier le groupe">✏️</button>
+      <button class="grp-hbtn" onclick="groupCloseFolder()" title="Fermer">✕</button>
+    </div>
+    <button class="grp-launch-all" id="grpLaunchAll" onclick="groupLaunchAll(grpOpenObj)">🚀 Tout lancer</button>
+    <div class="grp-grid" id="grpGrid"></div>
+    <div class="grp-hint">Clic = ouvrir le raccourci · Clic droit = options</div>
+  </div>
+</div>
+
+<!-- GROUPES : création / édition -->
+<div id="groupModal" onmousedown="if(event.target===this)groupCloseModal()">
+  <div class="launcher-modal-box" style="width:320px;max-height:90vh;overflow-y:auto;">
+    <div class="launcher-modal-title" id="groupModalTitle">Nouveau groupe</div>
+    <div class="launcher-emoji-grid" id="groupEmojiGrid"></div>
+    <input class="launcher-modal-input" id="groupModalName" placeholder="Nom du groupe (ex: Travail)" onkeydown="if(event.key==='Enter')groupSaveModal();">
+    <div class="grp-modal-sub">Raccourcis dans le groupe (coche pour ajouter / décoche pour sortir)</div>
+    <div class="grp-pick-list" id="groupModalList"></div>
+    <div class="launcher-modal-btns">
+      <button class="launcher-modal-cancel" onclick="groupCloseModal()">Annuler</button>
+      <button class="launcher-modal-save" onclick="groupSaveModal()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
 
 <style>
   .modal-icon-row{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:2px 0 4px;}
