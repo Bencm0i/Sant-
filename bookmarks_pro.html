@@ -2982,7 +2982,7 @@ function lsSet(key, value){
     return true;
   }catch(e){
     console.error('lsSet a échoué pour la clé', key, e);
-    alert("Stockage local plein (quota dépassé) : l'ajout/modification n'a pas pu être enregistré.\n\nSupprime quelques icônes personnalisées (remplace-les par un emoji) pour libérer de la place, puis réessaie.");
+    alert("Stockage local plein (quota dépassé) : la modification n'a pas pu être enregistrée.\n\nExporte d'abord une sauvegarde (.vault), puis supprime des éléments volumineux (notes très longues, anciens tableaux) et réessaie.");
     return false;
   }
 }
@@ -3026,6 +3026,14 @@ function iconDelete(id){
     tx.objectStore(ICON_STORE).delete(id);
     tx.oncomplete = ()=>resolve();
     tx.onerror = ()=>reject(tx.error);
+  }));
+}
+function iconGetAll(){
+  return iconOpenDB().then(db=>new Promise((resolve,reject)=>{
+    const tx = db.transaction(ICON_STORE,'readonly');
+    const req = tx.objectStore(ICON_STORE).getAll();
+    req.onsuccess = ()=>resolve(req.result || []);
+    req.onerror = ()=>reject(req.error);
   }));
 }
 function iconNewId(){ return 'ic_' + Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
@@ -3121,6 +3129,7 @@ function resetAll(){
   document.getElementById('page-title').value = '';
   const _naC = document.getElementById('notesArea'); if(_naC) _naC.value = '';
   [0,1,2].forEach(i=>{ const el=document.getElementById('transp'+i); if(el) el.value=''; });
+  drawIdbClear().catch(()=>{});
   drawTabs = [{ id: Date.now(), name:'Tableau 1', dataURL:'' }];
   drawActiveId = drawTabs[0].id;
   drawRenderTabs();
@@ -3840,6 +3849,68 @@ let drawTabs = [];      // [{id, name, dataURL}]
 let drawActiveId = null;
 let drawSaveFlashTimer = null;
 
+// ── TABLEAUX DE DESSIN (IndexedDB : les images PNG ne vivent plus dans le localStorage,
+// qui est limité à ~5 Mo. Seules les métadonnées {id, nom} y restent.) ──
+const DRAW_DB_NAME = 'dashboard_draw';
+const DRAW_STORE = 'tabs';
+function drawOpenDB(){
+  return new Promise((resolve, reject)=>{
+    const req = indexedDB.open(DRAW_DB_NAME, 1);
+    req.onupgradeneeded = (e)=>{
+      const db = e.target.result;
+      if(!db.objectStoreNames.contains(DRAW_STORE)) db.createObjectStore(DRAW_STORE, { keyPath: 'id' });
+    };
+    req.onsuccess = ()=>resolve(req.result);
+    req.onerror = ()=>reject(req.error);
+  });
+}
+function drawIdbPut(id, dataURL){
+  return drawOpenDB().then(db=>new Promise((resolve,reject)=>{
+    const tx = db.transaction(DRAW_STORE,'readwrite');
+    if(dataURL) tx.objectStore(DRAW_STORE).put({id, dataURL});
+    else tx.objectStore(DRAW_STORE).delete(id);
+    tx.oncomplete = ()=>resolve();
+    tx.onerror = ()=>reject(tx.error);
+  }));
+}
+function drawIdbGet(id){
+  return drawOpenDB().then(db=>new Promise((resolve,reject)=>{
+    const req = db.transaction(DRAW_STORE,'readonly').objectStore(DRAW_STORE).get(id);
+    req.onsuccess = ()=>resolve(req.result ? req.result.dataURL : null);
+    req.onerror = ()=>reject(req.error);
+  }));
+}
+function drawIdbDelete(id){ return drawIdbPut(id, ''); }
+function drawIdbClear(){
+  return drawOpenDB().then(db=>new Promise((resolve,reject)=>{
+    const tx = db.transaction(DRAW_STORE,'readwrite');
+    tx.objectStore(DRAW_STORE).clear();
+    tx.oncomplete = ()=>resolve();
+    tx.onerror = ()=>reject(tx.error);
+  }));
+}
+
+// Recharge les images depuis IndexedDB et migre l'ancien format (dataURL dans le localStorage).
+async function drawHydrateTabs(){
+  let migrated = false;
+  for(const t of drawTabs){
+    if(t.dataURL && !t.inIdb){
+      try{ await drawIdbPut(t.id, t.dataURL); t._saved = t.dataURL; t.inIdb = true; migrated = true; }catch(e){}
+    } else if(!t.dataURL){
+      try{ const d = await drawIdbGet(t.id); if(d){ t.dataURL = d; t._saved = d; } }catch(e){}
+      t.inIdb = true;
+    } else {
+      t._saved = t.dataURL;
+    }
+  }
+  if(migrated){
+    // Réécrit la version légère (libère le localStorage) et supprime l'ancien canvas unique.
+    lsSet('dashboard_draw_tabs', JSON.stringify(drawTabs.map(t=>({id:t.id, name:t.name, inIdb:true}))));
+    localStorage.removeItem('dashboard_canvas');
+  }
+  if(!drawing && (!history || history.length === 0)) drawLoadActive();
+}
+
 function drawLoad(){
   try{ drawTabs = JSON.parse(localStorage.getItem('dashboard_draw_tabs')||'null') || []; }catch(e){ drawTabs=[]; }
   if(!drawTabs.length){
@@ -3851,6 +3922,7 @@ function drawLoad(){
   drawRenderTabs();
   initCanvas();
   drawLoadActive();
+  drawHydrateTabs();
 
   drawEnabled = localStorage.getItem('dashboard_draw_visible') === '1';
   const panel = document.getElementById('drawPanel');
@@ -3951,7 +4023,16 @@ function drawSaveActiveSnapshot(){
 
 function drawSaveTabs(){
   drawSaveActiveSnapshot();
-  lsSet('dashboard_draw_tabs', JSON.stringify(drawTabs));
+  // Images → IndexedDB (seulement celles qui ont changé) ; localStorage → métadonnées légères.
+  drawTabs.forEach(t=>{
+    const cur = t.dataURL || '';
+    if(t._saved !== cur){
+      const prev = t._saved;
+      t._saved = cur;
+      drawIdbPut(t.id, cur).catch(err=>{ t._saved = prev; console.error('Sauvegarde du dessin impossible', err); });
+    }
+  });
+  lsSet('dashboard_draw_tabs', JSON.stringify(drawTabs.map(t=>({id:t.id, name:t.name, inIdb:true}))));
   const el = document.getElementById('drawSaved');
   if(el){
     el.classList.add('show');
@@ -4000,6 +4081,7 @@ function drawCloseTab(id){
   const tab = drawTabs[idx];
   if(!confirm('Supprimer l\'onglet "' + (tab ? tab.name : '') + '" ? Cette action est irréversible.')) return;
   drawTabs.splice(idx, 1);
+  drawIdbDelete(id).catch(()=>{});
   if(drawActiveId === id){
     drawActiveId = drawTabs[Math.max(0, idx-1)].id;
     drawLoadActive();
@@ -4250,7 +4332,11 @@ async function exportVault(){
       fullType: it.full.type||'image/jpeg'
     })));
   }catch(e){}
-  const data={ v:2, dataVersion:dashboardVersion, exportedAt:Date.now(), localStorage:ls, wallpapers };
+  // 3) Icônes personnalisées + tableaux de dessin (IndexedDB)
+  let icons=[], draw=[];
+  try{ icons=await iconGetAll(); }catch(e){}
+  try{ drawSaveActiveSnapshot(); draw=drawTabs.filter(t=>t.dataURL).map(t=>({id:t.id, dataURL:t.dataURL})); }catch(e){}
+  const data={ v:2, dataVersion:dashboardVersion, exportedAt:Date.now(), localStorage:ls, wallpapers, icons, draw };
   try{
     const enc=await encryptData(data,pwd);
     const blob=new Blob([enc],{type:'text/plain'});
@@ -4285,6 +4371,8 @@ async function importVault(e){
             await wallPut({ id:wp.id, name:wp.name, ts:wp.ts, thumb:wp.thumb, full:blob });
           }
         }catch(err){}
+        try{ for(const ic of (data.icons||[])) await iconPut(ic.id, ic.dataUrl); }catch(err){}
+        try{ await drawIdbClear(); for(const d of (data.draw||[])) await drawIdbPut(d.id, d.dataURL); }catch(err){}
         alert('✅ Sauvegarde restaurée avec succès. La page va se recharger.');
         location.reload();
         return;
@@ -4517,6 +4605,7 @@ function lerpColor(a, b, t){
 
 function initApp(){
   updateVersionBadge();
+  try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(e){}
   const title=localStorage.getItem('dashboard_title');
   if(title) document.getElementById('page-title').value=title;
   const tr=localStorage.getItem('dashboard_transp');
