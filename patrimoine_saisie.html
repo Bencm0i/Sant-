@@ -1499,10 +1499,19 @@ button, input, select { touch-action: manipulation; }
     </div>
     <div class="section-body" style="padding:14px 16px;">
       <div class="field-row">
-        <div class="field-label">Rendement nominal attendu (hypothèse)<small>Pour l'indicateur "Indépendance corrigée inflation" — moyenne pondérée patrimoine (hors résidence)</small></div>
-        <div class="field-input-wrap input-pct">
+        <div class="field-label">Rendement nominal attendu (hypothèse)<small id="hypRendementInfo">Calculé automatiquement : rendement moyen annualisé de vos investissements (hors résidence)</small></div>
+        <div class="field-input-wrap input-pct" style="display:flex;align-items:center;gap:8px;">
           <input type="number" id="hypRendement" step="0.1" inputmode="decimal" autocomplete="off"
-            oninput="DATA.hypotheses=DATA.hypotheses||{};DATA.hypotheses.rendement=parseFloat(this.value)||0;autoSave();if(typeof renderKPIPanel==='function')renderKPIPanel();">
+            oninput="window._rendementForce=(this.value===''?null:parseFloat(this.value));if(typeof renderKPIPanel==='function')renderKPIPanel();">
+          <button type="button" id="hypRendementAuto" title="Revenir à la valeur calculée"
+            onclick="window._rendementForce=null;if(typeof renderKPIPanel==='function')renderKPIPanel();"
+            style="display:none;background:var(--surface2);border:1px solid var(--border);color:var(--accent);font-family:'DM Mono',monospace;font-size:11px;padding:6px 8px;border-radius:8px;cursor:pointer;white-space:nowrap;">↺ Auto</button>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field-label">Date de début d'investissement<small>Sert à annualiser le rendement (PEA, CTO, Revolut, PEE, AV). Les SCPI utilisent leur propre date d'achat.</small></div>
+        <div class="field-input-wrap">
+          <input type="date" id="hypDateDebut" oninput="DATA.hypotheses=DATA.hypotheses||{};DATA.hypotheses.dateDebut=this.value;autoSave();if(typeof renderKPIPanel==='function')renderKPIPanel();">
         </div>
       </div>
       <div class="field-row">
@@ -3403,7 +3412,29 @@ window.addEventListener('DOMContentLoaded', () => {
     // un rendement nominal moyen (hypothèse réglable) et que les dépenses
     // augmentent chaque année avec l'inflation (hypothèse réglable) ?
     // Modèle : P_(t+1) = P_t·(1+r_réel) − D0 (tout exprimé en euros constants)
-    const hypRendementNominal = (DATA.hypotheses?.rendement ?? 4) / 100;
+    // ── Rendement moyen annualisé (auto) : (1 + gain/capital)^(1/années) − 1
+    // Années = ancienneté moyenne pondérée par le capital (SCPI : dateAchat propre ;
+    // autres poches : date de début d'investissement saisie dans les hypothèses).
+    const _capSrc = [
+      { cap: peaPR + ctoPR + revInvPR + eePR + avVers, d: DATA.hypotheses?.dateDebut },
+      ...(DATA.scpi||[]).map(r => ({ cap: (r.parts||0)*(r.pxAchat||0), d: r.dateAchat }))
+    ];
+    let _capTot = 0, _capAge = 0;
+    _capSrc.forEach(x => {
+      const t = x.d ? new Date(x.d).getTime() : NaN;
+      if (!(x.cap > 0) || isNaN(t)) return;
+      _capTot += x.cap; _capAge += x.cap * Math.max(0, (Date.now() - t) / (365.25*24*3600*1000));
+    });
+    const _capInv = peaPR + ctoPR + revInvPR + eePR + avVers + scpiPrix;
+    const _gain = (peaVal-peaPR) + (ctoVal-ctoPR) + (revInvVal-revInvPR) + (eeVal-eePR) + (avVal-avVers) + (scpiVal-scpiPrix) + scpiLoyersPercus;
+    const _annees = _capTot > 0 ? _capAge / _capTot : 0;
+    let rendementAuto = null; // en %
+    if (_capInv > 0 && _annees >= 0.25 && (1 + _gain/_capInv) > 0) {
+      rendementAuto = (Math.pow(1 + _gain/_capInv, 1/_annees) - 1) * 100;
+    }
+    const rendementForce = (typeof window._rendementForce === 'number' && isFinite(window._rendementForce)) ? window._rendementForce : null;
+    const rendementEffectif = rendementForce ?? rendementAuto ?? (DATA.hypotheses?.rendement ?? 4);
+    const hypRendementNominal = rendementEffectif / 100;
     const hypInflation        = (DATA.hypotheses?.inflation ?? 2.5) / 100;
     const rendementReel = (1 + hypRendementNominal) / (1 + hypInflation) - 1;
     const patrimoineMobilisable = grandTotal - maison;
@@ -3451,7 +3482,7 @@ window.addEventListener('DOMContentLoaded', () => {
       ccBourso, ccFortuneo, ccRevolut, ccEspeces, ccLivrets, ccTotal,
       pmvPEA, pmvCTO, pmvRev, pmvEE, pmvAV, pmvSCPI,
       depMens, revenu, revenuSalaire, revenuLocatif, immoLoyerMens, scpiLoyerMens, txEpargne, moisLiberte, moisLiberteSansMaison,
-      hypRendementNominal, hypInflation, rendementReel, patrimoineMobilisable, depAnnuelle, anneesIndependanceReel,
+      hypRendementNominal, rendementAuto, rendementForce, anneesRendement: _annees, hypInflation, rendementReel, patrimoineMobilisable, depAnnuelle, anneesIndependanceReel,
       nonInvestiTotal, nonInvestiLines, investiHorsImmo,
       immoTotal, immoP1Val, immoP2Val, immoP3Val, immoAll: maison + immoTotal,
     };
@@ -3491,7 +3522,7 @@ window.addEventListener('DOMContentLoaded', () => {
       { label:'Indépendance (hors immo)', value: (k.moisLiberteSansMaison/12).toFixed(1).replace('.',',')+' ans', cls:'gold', sub:'Patrimoine liquide ÷ dépenses' },
       // ── NOUVEAU : Indépendance totale corrigée de l'inflation (rendement réel)
       { label:'Indépendance (corrigée inflation)', value: fmtAnnees(k.anneesIndependanceReel), cls:'gold',
-        sub:`Rendement réel ${(k.rendementReel*100).toFixed(1).replace('.',',')}%/an (${k.hypRendementNominal*100}% nominal − ${k.hypInflation*100}% inflation)` },
+        sub:`Rendement réel ${(k.rendementReel*100).toFixed(1).replace('.',',')}%/an (${(k.hypRendementNominal*100).toFixed(1).replace('.',',')}% nominal${k.rendementForce!==null?' ⚠ forcé':' auto'} − ${(k.hypInflation*100).toFixed(1).replace('.',',')}% inflation)` },
     ];
     const el = document.getElementById('kpi-cards');
     if (!el) return;
@@ -4570,7 +4601,20 @@ window.addEventListener('DOMContentLoaded', () => {
     DATA.hypotheses = DATA.hypotheses || { rendement:4, inflation:2.5 };
     const hypRendEl = document.getElementById('hypRendement');
     const hypInflEl = document.getElementById('hypInflation');
-    if (hypRendEl && document.activeElement !== hypRendEl) hypRendEl.value = DATA.hypotheses.rendement;
+    const k0 = computeKPIs();
+    if (hypRendEl && document.activeElement !== hypRendEl) {
+      hypRendEl.value = (k0.hypRendementNominal*100).toFixed(2);
+    }
+    const hypAutoBtn = document.getElementById('hypRendementAuto');
+    if (hypAutoBtn) hypAutoBtn.style.display = k0.rendementForce !== null ? 'inline-block' : 'none';
+    const hypInfo = document.getElementById('hypRendementInfo');
+    if (hypInfo) hypInfo.textContent = k0.rendementForce !== null
+      ? 'Valeur forcée (temporaire, non sauvegardée)' + (k0.rendementAuto!==null ? ' — calculé : ' + k0.rendementAuto.toFixed(2).replace('.',',') + ' %/an' : '')
+      : (k0.rendementAuto!==null
+          ? 'Auto : rendement moyen annualisé sur ' + k0.anneesRendement.toFixed(1).replace('.',',') + ' an(s) d\'ancienneté moyenne'
+          : 'Auto indisponible (renseignez la date de début ou la date d\'achat SCPI) — valeur par défaut 4 %');
+    const hypDateEl = document.getElementById('hypDateDebut');
+    if (hypDateEl && document.activeElement !== hypDateEl) hypDateEl.value = DATA.hypotheses.dateDebut || '';
     if (hypInflEl && document.activeElement !== hypInflEl) hypInflEl.value = DATA.hypotheses.inflation;
     const k = computeKPIs();
     renderKPICards(k);
