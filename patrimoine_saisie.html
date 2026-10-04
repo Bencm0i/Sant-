@@ -1309,6 +1309,16 @@ button, input, select { touch-action: manipulation; }
     </div>
     <div class="section-body" id="body-inv-revolut"></div>
   </div>
+  <div class="section accent-green">
+    <div class="section-head">
+      <div class="section-title">💵 Compte USD rémunéré</div>
+      <div style="display:flex;gap:6px;">
+        <button class="mini-btn" style="width:auto;margin:0;padding:5px 12px;border-style:solid;font-size:11px;" onclick="refreshFx()" title="Rafraîchir le taux EUR/USD live">⟳ Change</button>
+        <button class="mini-btn" style="width:auto;margin:0;padding:5px 12px;" onclick="addUsdRow()">＋</button>
+      </div>
+    </div>
+    <div class="section-body" id="body-usd"></div>
+  </div>
   <div class="section">
     <div class="section-head">
       <div class="section-title">🏢 Épargne Entreprise (PEE/PERCO)</div>
@@ -1729,6 +1739,9 @@ let DATA = {
       {nom:"Bitcoin",ticker:"BTC",isin:"",qte:0,pr:0,coursActuel:0,varJour:0,lastUpdate:null,url:""},
       {nom:"Or (XAU/EUR)",ticker:"XAU",isin:"",qte:0,pr:0,coursActuel:0,varJour:0,lastUpdate:null,url:""},
     ],
+    compte_usd:[
+      {nom:"Compte USD rémunéré (Revolut $ster)",soldeUSD:0,dateSolde:"",pru:0,apy:0,fxManuel:0,url:""},
+    ],
     epargne_entreprise:[
       {nom:"PEE — Natixis",fonds:"Fonds diversifié",parts:0,pr:0,valeurActuelle:0,tauxRendement:0,url:""},
     ],
@@ -1875,7 +1888,7 @@ function switchTab(name) {
 const MANAGED = {
   boursorama: [3,5,7],
   fortuneo:   [3,5,7],
-  revolut:    [3,7],
+  revolut:    [2,3,7],
   natixis:    [0],
 };
 
@@ -2017,6 +2030,163 @@ function delInvRow(key, i) {
   }, 'Ligne supprimée');
 }
 
+// ─── COMPTE USD RÉMUNÉRÉ ───────────────────────────────────────────────────
+// Solde en $ qui capitalise chaque jour à un taux APY (déjà « composé ») :
+//   solde(t) = solde_réf × (1 + APY)^(jours/365)
+// Valeur en € = solde ÷ EUR/USD (live du bandeau, sinon dernier taux connu, sinon taux manuel).
+// PRU = prix de revient de 1 $ en € (ex : 0,9250 €/$). Coût € = solde de départ × PRU.
+function usdFx(r) {
+  if (r && r.fxManuel > 0) return r.fxManuel;
+  const live = window._tickerState && window._tickerState.eur && window._tickerState.eur.price;
+  if (live > 0) return live;
+  return DATA.fxEurUsd > 0 ? DATA.fxEurUsd : 0;
+}
+function usdJours(dateStr) {
+  if (!dateStr) return 0;
+  const [y, m, d] = String(dateStr).split('-').map(Number);
+  if (!y || !m || !d) return 0;
+  const now = new Date();
+  const start = new Date(y, m - 1, d);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.max(0, Math.round((today - start) / 86400000));
+}
+function usdCalc(r) {
+  const solde0 = r.soldeUSD || 0, apy = (r.apy || 0) / 100, pru = r.pru || 0;
+  const jours = usdJours(r.dateSolde);
+  const soldeAct = solde0 * Math.pow(1 + apy, jours / 365);
+  const fx = usdFx(r);
+  const valEUR = fx > 0 ? soldeAct / fx : 0;
+  const coutEUR = solde0 * pru;
+  const interetsUSD = soldeAct - solde0;
+  const interetsEUR = fx > 0 ? interetsUSD / fx : 0;
+  const changeEUR = (fx > 0 && pru > 0) ? solde0 * (1 / fx - pru) : 0;
+  const pmv = (fx > 0 && pru > 0) ? valEUR - coutEUR : null;
+  const interetJourUSD = soldeAct * (Math.pow(1 + apy, 1 / 365) - 1);
+  return { solde0, soldeAct, fx, valEUR, coutEUR, interetsUSD, interetsEUR, changeEUR, pmv, jours, interetJourUSD, pru };
+}
+function usdResHtml(r) {
+  const c = usdCalc(r);
+  const fE = v => new Intl.NumberFormat('fr-FR', {style:'currency', currency:'EUR', maximumFractionDigits:2}).format(v);
+  const fU = v => new Intl.NumberFormat('fr-FR', {style:'currency', currency:'USD', maximumFractionDigits:2}).format(v);
+  const sg = v => (v >= 0 ? '+' : '');
+  const col = v => v >= 0 ? 'var(--green)' : 'var(--red)';
+  const row = (l, v, extra) => `<div style="display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;font-size:11px;"><span style="color:var(--muted);">${l}</span><span style="font-family:'DM Mono',monospace;${extra||''}">${v}</span></div>`;
+  if (!(r.soldeUSD > 0)) return '<p style="font-size:11px;color:var(--muted);margin-top:8px;">Renseignez le solde en $ (et la date de ce solde) pour voir la valeur en €.</p>';
+  const fxTxt = c.fx > 0 ? `${c.fx.toFixed(4)} $ pour 1 € ${r.fxManuel > 0 ? '(manuel)' : '(live)'}` : 'indisponible — saisissez un taux manuel';
+  return `<div style="border-top:1px solid var(--border);margin-top:10px;padding-top:8px;">
+    ${row('Taux EUR/USD', fxTxt)}
+    ${row('Solde actuel (capitalisé ' + c.jours + ' j)', fU(c.soldeAct))}
+    ${row('Intérêts cumulés', sg(c.interetsUSD) + fU(c.interetsUSD) + (c.fx > 0 ? ' ≈ ' + sg(c.interetsEUR) + fE(c.interetsEUR) : ''), 'color:var(--green);')}
+    ${c.interetJourUSD > 0 ? row('Intérêt / jour (aujourd\'hui)', '+' + fU(c.interetJourUSD)) : ''}
+    ${row('VALEUR ACTUELLE', c.fx > 0 ? fE(c.valEUR) : '—', "font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:var(--accent);")}
+    ${c.pru > 0 ? row('Coût de revient', fE(c.coutEUR) + ' <span style="opacity:.7">(' + c.pru.toFixed(4) + ' €/$)</span>') : ''}
+    ${c.pmv !== null ? row('P/MV latente', sg(c.pmv) + fE(c.pmv) + ' <span style="font-size:10px;opacity:.75;">(' + sg(c.pmv) + (c.coutEUR > 0 ? (c.pmv / c.coutEUR * 100).toFixed(1) : '0.0') + '%)</span>', 'font-weight:700;color:' + col(c.pmv) + ';') : ''}
+    ${c.pmv !== null ? row('&nbsp;&nbsp;dont intérêts', sg(c.interetsEUR) + fE(c.interetsEUR), 'color:' + col(c.interetsEUR) + ';opacity:.85;') : ''}
+    ${c.pmv !== null ? row('&nbsp;&nbsp;dont effet de change', sg(c.changeEUR) + fE(c.changeEUR), 'color:' + col(c.changeEUR) + ';opacity:.85;') : ''}
+  </div>`;
+}
+function usdTotalHtml() {
+  const rows = DATA.investissements.compte_usd || [];
+  const fE = v => new Intl.NumberFormat('fr-FR', {style:'currency', currency:'EUR', maximumFractionDigits:0}).format(v);
+  const tot = rows.reduce((s, r) => s + usdCalc(r).valEUR, 0);
+  return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0 4px;border-top:1px solid var(--border);margin-top:6px;">
+    <span style="font-family:'Syne',sans-serif;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">VALEUR ACTUELLE</span>
+    <span style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--accent);">${fE(tot)}</span>
+  </div>`;
+}
+function usdRefreshAll() {
+  const rows = DATA.investissements.compte_usd || [];
+  rows.forEach((r, i) => { const el = document.getElementById('usd-res-' + i); if (el) el.innerHTML = usdResHtml(r); });
+  const t = document.getElementById('usd-total'); if (t) t.innerHTML = usdTotalHtml();
+}
+function usdSet(i, key, val) {
+  DATA.investissements.compte_usd[i][key] = val;
+  usdRefreshAll();
+  syncUsdToBank();
+  autoSave();
+}
+function syncUsdToBank() {
+  const rows = DATA.investissements.compte_usd || [];
+  if (!rows.length || !DATA.revolut || !DATA.revolut[2]) return;
+  const hasData = rows.some(r => (r.soldeUSD || 0) > 0);
+  // Ancienne saisie manuelle « $ster » conservée tant qu'aucun solde $ n'est renseigné ici
+  if (!hasData && (DATA.revolut[2].val || 0) > 0) return;
+  // Taux indisponible : on ne remet pas le total à 0
+  if (hasData && rows.some(r => (r.soldeUSD || 0) > 0 && !(usdFx(r) > 0))) return;
+  DATA.revolut[2].val = rows.reduce((s, r) => s + usdCalc(r).valEUR, 0);
+  if (typeof updateBankTotal === 'function') updateBankTotal('revolut', 'body-revolut');
+}
+function refreshFx() {
+  const band = document.getElementById('tickerBand');
+  if (band) band.click();
+  showToast('⟳ Taux EUR/USD en cours de mise à jour…');
+}
+// Appelé par le bandeau quand EUR/USD est mis à jour
+window.onFxUpdate = function() {
+  usdRefreshAll();
+  syncUsdToBank();
+  if (typeof window.updateKPITickers === 'function') window.updateKPITickers();
+};
+function renderUsd() {
+  if (!DATA.investissements.compte_usd) DATA.investissements.compte_usd = [];
+  const rows = DATA.investissements.compte_usd;
+  const c = document.getElementById('body-usd');
+  if (!c) return;
+  c.innerHTML = rows.map((r, i) => `
+    <div class="card" style="margin-bottom:10px;">
+      <div class="card-head">
+        <span class="card-title-sm">💵 ${r.nom || 'Compte USD'}</span>
+        <button class="del-btn" onclick="delUsdRow(${i})">✕</button>
+      </div>
+      <div class="card-body">
+        <div class="grid2">
+          <div class="form-field full">
+            <label class="lbl">Nom</label>
+            <input type="text" value="${(r.nom || '').replace(/"/g, '&quot;')}" placeholder="ex: Revolut $ster" autocomplete="off"
+              oninput="usdSet(${i},'nom',this.value)">
+          </div>
+          <div class="form-field">
+            <label class="lbl">Solde ($)</label>
+            <input type="number" value="${r.soldeUSD || ''}" step="0.01" min="0" placeholder="0.00" inputmode="decimal" autocomplete="off"
+              oninput="usdSet(${i},'soldeUSD',parseFloat(this.value)||0)">
+          </div>
+          <div class="form-field">
+            <label class="lbl">Date de ce solde</label>
+            <input type="date" value="${r.dateSolde || ''}" oninput="usdSet(${i},'dateSolde',this.value)">
+          </div>
+          <div class="form-field">
+            <label class="lbl">PRU (€ pour 1 $)</label>
+            <input type="number" value="${r.pru || ''}" step="0.0001" min="0" placeholder="ex: 0.9250" inputmode="decimal" autocomplete="off"
+              oninput="usdSet(${i},'pru',parseFloat(this.value)||0)">
+          </div>
+          <div class="form-field">
+            <label class="lbl">Taux APY (%) — capitalisé / jour</label>
+            <input type="number" value="${r.apy || ''}" step="0.01" min="0" placeholder="ex: 4.00" inputmode="decimal" autocomplete="off"
+              oninput="usdSet(${i},'apy',parseFloat(this.value)||0)">
+          </div>
+          <div class="form-field full">
+            <label class="lbl">EUR/USD manuel (vide = taux live)</label>
+            <input type="number" value="${r.fxManuel || ''}" step="0.0001" min="0" placeholder="auto" inputmode="decimal" autocomplete="off"
+              oninput="usdSet(${i},'fxManuel',parseFloat(this.value)||0)">
+          </div>
+        </div>
+        <div id="usd-res-${i}">${usdResHtml(r)}</div>
+      </div>
+    </div>`).join('') || '<p style="color:var(--muted);font-size:11px;">Aucun compte. Cliquez ＋ pour ajouter.</p>';
+  c.innerHTML += '<div id="usd-total"></div>';
+  usdRefreshAll();
+  syncUsdToBank();
+}
+function addUsdRow() {
+  if (!DATA.investissements.compte_usd) DATA.investissements.compte_usd = [];
+  DATA.investissements.compte_usd.push({nom:'',soldeUSD:0,dateSolde:'',pru:0,apy:0,fxManuel:0,url:''});
+  renderUsd();
+  autoSave();
+}
+function delUsdRow(i) {
+  deleteWithUndo(DATA.investissements.compte_usd, i, () => { renderUsd(); syncUsdToBank(); }, 'Compte USD supprimé');
+}
+
 // ─── ÉPARGNE ENTREPRISE ────────────────────────────────────────────────────
 // ─── RENDU GÉNÉRIQUE DE LISTE-DE-CARDS (EE / AV / EB) ───────────────────────
 // Génère exactement le même HTML que les anciennes renderEE/renderAV/renderEB
@@ -2149,6 +2319,7 @@ function syncInvToBank() {
   if(btc) DATA.revolut[7].val = btc.qte * btc.coursActuel;
   const ee = DATA.investissements.epargne_entreprise.reduce((s,r)=>s+r.valeurActuelle,0);
   DATA.natixis[0].val = ee;
+  if (typeof syncUsdToBank === 'function') syncUsdToBank();
   ['boursorama','fortuneo','revolut','natixis'].forEach(bank => {
     const managed = MANAGED[bank] || [];
     managed.forEach(i => {
@@ -3248,6 +3419,7 @@ function renderAll() {
   renderEE();
   renderAV();
   renderEB();
+  renderUsd();
   renderSCPI();
   renderATH();
   renderHeritage();
@@ -4527,6 +4699,13 @@ window.addEventListener('DOMContentLoaded', () => {
     invBlock('PEA', DATA.investissements.pea, r=>(r.qte||0)*(r.coursActuel||0), r=>(r.qte||0)*(r.pr||0));
     invBlock('CTO', DATA.investissements.cto, r=>(r.qte||0)*(r.coursActuel||0), r=>(r.qte||0)*(r.pr||0));
     invBlock('Revolut (actifs)', DATA.investissements.revolut, r=>(r.qte||0)*(r.coursActuel||0), r=>(r.qte||0)*(r.pr||0));
+    (DATA.investissements.compte_usd||[]).forEach(r => {
+      if (!(r.soldeUSD > 0)) return;
+      const c = usdCalc(r);
+      if (!c.valEUR) return;
+      push('- Compte USD rémunéré :');
+      push('    ' + (r.nom || 'Compte USD') + ' : ' + fmtE(c.valEUR) + ' (solde ' + c.soldeAct.toFixed(2) + ' $, APY ' + (r.apy||0) + ' % capitalisé chaque jour, EUR/USD ' + c.fx.toFixed(4) + (c.pru > 0 ? ', PRU ' + c.pru.toFixed(4) + ' €/$, prix de revient ' + fmtE(c.coutEUR) + ', P/MV ' + fmtE(c.pmv) : '') + ')');
+    });
     invBlock('Épargne entreprise', DATA.investissements.epargne_entreprise, r=>r.valeurActuelle||0, r=>(r.parts||0)*(r.pr||0));
     invBlock('Assurance-vie', DATA.investissements.assurance_vie, r=>r.valeurActuelle||0, r=>r.versements||0);
     invBlock('Épargne bloquée (Livrets)', DATA.investissements.epargne_bloquee, r=>r.montant||0, null);
@@ -4715,6 +4894,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   function updateItem(id, price, chgAbs, chgPct) {
     state[id] = { price, chgAbs, chgPct };
+    if (id === 'eur' && price > 0) { DATA.fxEurUsd = price; if (typeof window.onFxUpdate === 'function') window.onFxUpdate(); }
     ['', '-b'].forEach(suffix => {
       const pe = document.getElementById('tp-' + id + suffix);
       const ce = document.getElementById('tc-' + id + suffix);
