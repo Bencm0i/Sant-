@@ -4320,6 +4320,7 @@ async function exportVault(){
   const ls={};
   for(let i=0;i<localStorage.length;i++){
     const k=localStorage.key(i);
+    if(k==='ha_widget_token') continue; // clé API HA : jamais exportée
     ls[k]=localStorage.getItem(k);
   }
   // 2) TOUS les fonds d'écran (images stockées en IndexedDB, converties en base64 pour le fichier)
@@ -9689,5 +9690,186 @@ function ghLinkGenerate(){
   });
 })();
 </script>
+
+<!-- ══ WIDGET HOME ASSISTANT (températures) ══ -->
+<style>
+#haTW{position:fixed;top:92px;left:20px;z-index:21;display:flex;align-items:center;gap:9px;background:rgba(255,255,255,0.18);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.35);border-radius:30px;padding:6px 14px 6px 10px;box-shadow:0 2px 14px rgba(30,41,59,0.1);cursor:grab;transition:background .2s,box-shadow .2s;font-family:'Inter',sans-serif;user-select:none;touch-action:none;}
+#haTW:hover{background:rgba(255,255,255,0.35);box-shadow:0 4px 20px rgba(30,41,59,0.18);}
+#haTW.dragging{cursor:grabbing;box-shadow:0 8px 28px rgba(30,41,59,0.22);}
+#haTW.ha-off{display:none;}
+#haTWIcon{width:32px;height:32px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,#1f9bd1,#41bdf5);display:flex;align-items:center;justify-content:center;font-size:.95rem;box-shadow:0 2px 8px rgba(0,0,0,.15);}
+#haTWVals{display:flex;flex-direction:column;gap:1px;}
+.haTWv{font-size:.82rem;font-weight:800;color:var(--text);line-height:1.15;white-space:nowrap;}
+.haTWv small{font-size:.55rem;font-weight:700;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-right:4px;}
+#haTWPanel{position:fixed;z-index:22;display:none;flex-direction:column;gap:8px;min-width:250px;max-width:92vw;background:rgba(255,255,255,0.96);backdrop-filter:blur(20px);border:1.5px solid rgba(255,255,255,0.9);border-radius:16px;padding:14px 16px;box-shadow:0 8px 32px rgba(30,41,59,0.18);font-family:'Inter',sans-serif;}
+#haTWPanel.open{display:flex;}
+.haTWhead{display:flex;align-items:center;justify-content:space-between;font-size:.7rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--c2);}
+.haTWhead button{background:transparent;border:none;cursor:pointer;font-size:.9rem;opacity:.55;padding:2px 6px;border-radius:8px;}
+.haTWhead button:hover{opacity:1;}
+.haTWrow{display:flex;align-items:center;gap:8px;}
+.haTWrow .l{font-size:.65rem;font-weight:700;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;flex:1;}
+.haTWrow .v{font-size:.95rem;font-weight:800;color:var(--text);}
+#haTWMsg{font-size:.65rem;font-weight:700;color:#b3564f;min-height:1em;}
+#haTWPanel input{font-family:'Inter',sans-serif;font-size:.72rem;padding:6px 8px;border:1.5px solid var(--border);border-radius:8px;width:100%;background:rgba(255,255,255,.8);color:var(--text);}
+.haTWbtn{padding:6px 12px;border-radius:10px;border:none;background:linear-gradient(90deg,var(--c2),var(--c3));color:#fff;font-family:'Inter',sans-serif;font-size:.68rem;font-weight:800;cursor:pointer;width:100%;text-align:center;text-decoration:none;display:block;transition:opacity .15s;}
+.haTWbtn:hover{opacity:.82;}
+.haTWbtn.alt{background:linear-gradient(90deg,#1f9bd1,#41bdf5);}
+.haTWbtn.ghost{background:rgba(61,90,115,0.12);color:var(--c2);}
+.haTWlbl{font-size:.6rem;font-weight:700;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;}
+#haTWReveal{position:fixed;bottom:8px;left:8px;z-index:21;width:28px;height:28px;border-radius:50%;border:1px solid rgba(255,255,255,0.5);background:rgba(255,255,255,0.35);backdrop-filter:blur(8px);cursor:pointer;font-size:.8rem;opacity:.45;display:none;align-items:center;justify-content:center;transition:opacity .15s;}
+#haTWReveal:hover{opacity:1;}
+#haTWReveal.show{display:flex;}
+</style>
+
+<div id="haTW" title="Home Assistant — températures (clic = détails, glisser = déplacer)">
+  <span id="haTWIcon">🌡️</span>
+  <div id="haTWVals">
+    <div class="haTWv"><small>Hobeian</small><span id="haTWv0">--°</span></div>
+    <div class="haTWv"><small>Chambre S</small><span id="haTWv1">--°</span></div>
+  </div>
+</div>
+<button id="haTWReveal" title="Afficher le widget Home Assistant">🌡️</button>
+<div id="haTWPanel">
+  <div class="haTWhead"><span>🏠 Home Assistant</span><button id="haTWHide" title="Masquer le widget">✕</button></div>
+  <div class="haTWrow"><span class="l">Hobeian ZG-204ZV</span><span class="v" id="haTWp0">--</span></div>
+  <div class="haTWrow"><span class="l">Chambre sud</span><span class="v" id="haTWp1">--</span></div>
+  <div id="haTWMsg"></div>
+  <div class="haTWlbl">Clé API (jeton d'accès longue durée)</div>
+  <input id="haTWToken" type="password" placeholder="Coller le jeton HA…" autocomplete="off" spellcheck="false">
+  <button class="haTWbtn" id="haTWSave">💾 Enregistrer la clé et actualiser</button>
+  <a class="haTWbtn alt" id="haTWLink" href="http://192.168.50.234:8123/lovelace/0?edit=1" target="_blank" rel="noopener">✏️ Éditer le dashboard HA</a>
+  <button class="haTWbtn ghost" id="haTWForget">🗑 Oublier la clé</button>
+</div>
+
+<script>
+(function(){
+  const HA_BASE = 'http://192.168.50.234:8123';
+  const SENSORS = ['sensor.hobeian_zg_204zv_temperature', 'sensor.chambre_sud_temperature'];
+  const K_TOKEN = 'ha_widget_token', K_POS = 'ha_widget_pos', K_HIDDEN = 'ha_widget_hidden';
+  const el = document.getElementById('haTW'), panel = document.getElementById('haTWPanel');
+  const reveal = document.getElementById('haTWReveal'), msg = document.getElementById('haTWMsg');
+  const tokenInput = document.getElementById('haTWToken');
+  let timer = null, panelOpen = false;
+
+  const get = k => { try { return localStorage.getItem(k); } catch(e){ return null; } };
+  const set = (k,v) => { try { localStorage.setItem(k,v); } catch(e){} };
+  const del = k => { try { localStorage.removeItem(k); } catch(e){} };
+
+  function setVals(i, txt){
+    document.getElementById('haTWv'+i).textContent = txt;
+    document.getElementById('haTWp'+i).textContent = txt;
+  }
+  function fmt(s){
+    if(!s || s.state === 'unavailable' || s.state === 'unknown') return '—';
+    const n = parseFloat(s.state);
+    const unit = (s.attributes && s.attributes.unit_of_measurement) || '°C';
+    return isNaN(n) ? s.state : n.toFixed(1).replace('.', ',') + unit;
+  }
+  async function fetchOne(entity, token){
+    const r = await fetch(HA_BASE + '/api/states/' + entity, { headers: { 'Authorization': 'Bearer ' + token } });
+    if(r.status === 401) throw new Error('Clé API refusée (401)');
+    if(r.status === 404) throw new Error('Capteur introuvable : ' + entity);
+    if(!r.ok) throw new Error('Erreur HA ' + r.status);
+    return r.json();
+  }
+  async function refresh(){
+    const token = get(K_TOKEN);
+    if(!token){
+      setVals(0,'🔑'); setVals(1,'🔑');
+      msg.textContent = 'Renseigne ta clé API pour afficher les capteurs.';
+      return;
+    }
+    msg.textContent = '';
+    const res = await Promise.allSettled(SENSORS.map(e => fetchOne(e, token)));
+    const errs = [];
+    res.forEach((r,i) => {
+      if(r.status === 'fulfilled') setVals(i, fmt(r.value));
+      else {
+        setVals(i, '⚠️');
+        errs.push(r.reason && r.reason.message === 'Failed to fetch'
+          ? 'HA injoignable (réseau, CORS ou HTTP/HTTPS bloqué)' : (r.reason && r.reason.message) || 'Erreur');
+      }
+    });
+    msg.textContent = errs.length ? [...new Set(errs)].join(' · ') : '';
+  }
+  function startTimer(){ stopTimer(); timer = setInterval(refresh, 60000); }
+  function stopTimer(){ if(timer){ clearInterval(timer); timer = null; } }
+
+  function positionPanel(){
+    const r = el.getBoundingClientRect();
+    panel.style.top = Math.min(r.bottom + 6, window.innerHeight - panel.offsetHeight - 4) + 'px';
+    panel.style.left = Math.max(4, Math.min(r.left, window.innerWidth - panel.offsetWidth - 4)) + 'px';
+  }
+  function togglePanel(force){
+    panelOpen = typeof force === 'boolean' ? force : !panelOpen;
+    panel.classList.toggle('open', panelOpen);
+    if(panelOpen) positionPanel();
+  }
+  function setHidden(h){
+    el.classList.toggle('ha-off', h);
+    reveal.classList.toggle('show', h);
+    if(h){ togglePanel(false); stopTimer(); set(K_HIDDEN,'1'); }
+    else { del(K_HIDDEN); refresh(); startTimer(); }
+  }
+
+  // Position mémorisée
+  try {
+    const sp = JSON.parse(get(K_POS) || 'null');
+    if(sp){ el.style.left = sp.left + 'px'; el.style.top = sp.top + 'px'; }
+  } catch(e){}
+
+  // Glisser / cliquer
+  let dragging = false, didDrag = false, sx, sy, ol, ot;
+  function down(x,y){ dragging = true; didDrag = false; sx = x; sy = y; const r = el.getBoundingClientRect(); ol = r.left; ot = r.top; el.classList.add('dragging'); }
+  function move(x,y){
+    if(!dragging) return;
+    const dx = x - sx, dy = y - sy;
+    if(Math.abs(dx) > 3 || Math.abs(dy) > 3) didDrag = true;
+    el.style.left = Math.max(0, Math.min(ol + dx, window.innerWidth - el.offsetWidth)) + 'px';
+    el.style.top = Math.max(30, Math.min(ot + dy, window.innerHeight - el.offsetHeight - 4)) + 'px';
+    if(panelOpen) positionPanel();
+  }
+  function up(){
+    if(!dragging) return;
+    dragging = false; el.classList.remove('dragging');
+    if(!didDrag) togglePanel();
+    else { const r = el.getBoundingClientRect(); set(K_POS, JSON.stringify({left: r.left, top: r.top})); }
+  }
+  el.addEventListener('mousedown', e => { if(e.button !== 0) return; down(e.clientX, e.clientY); e.preventDefault(); });
+  document.addEventListener('mousemove', e => move(e.clientX, e.clientY));
+  document.addEventListener('mouseup', up);
+  el.addEventListener('touchstart', e => { const t = e.touches[0]; down(t.clientX, t.clientY); }, {passive:true});
+  document.addEventListener('touchmove', e => { if(!dragging) return; const t = e.touches[0]; move(t.clientX, t.clientY); e.preventDefault(); }, {passive:false});
+  document.addEventListener('touchend', up);
+
+  // Fermer le panneau en cliquant ailleurs
+  document.addEventListener('click', e => {
+    if(panelOpen && !e.target.closest('#haTW') && !e.target.closest('#haTWPanel')) togglePanel(false);
+  });
+
+  // Boutons
+  document.getElementById('haTWSave').addEventListener('click', () => {
+    const v = tokenInput.value.trim();
+    if(!v){ msg.textContent = 'Colle d\'abord ta clé API.'; return; }
+    set(K_TOKEN, v); tokenInput.value = ''; tokenInput.placeholder = '•••••• clé enregistrée'; refresh();
+  });
+  tokenInput.addEventListener('keydown', e => { if(e.key === 'Enter') document.getElementById('haTWSave').click(); });
+  document.getElementById('haTWForget').addEventListener('click', () => {
+    del(K_TOKEN); tokenInput.placeholder = 'Coller le jeton HA…'; refresh();
+  });
+  document.getElementById('haTWHide').addEventListener('click', () => setHidden(true));
+  reveal.addEventListener('click', () => setHidden(false));
+
+  // Init
+  if(get(K_TOKEN)) tokenInput.placeholder = '•••••• clé enregistrée';
+  if(get(K_HIDDEN) === '1') setHidden(true);
+  else { refresh(); startTimer(); if(!get(K_TOKEN)) setTimeout(() => togglePanel(true), 400); }
+  document.addEventListener('visibilitychange', () => {
+    if(get(K_HIDDEN) === '1') return;
+    if(document.hidden) stopTimer(); else { refresh(); startTimer(); }
+  });
+})();
+</script>
+
 </body>
 </html>
