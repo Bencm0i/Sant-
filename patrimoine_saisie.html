@@ -1479,6 +1479,21 @@ button, input, select { touch-action: manipulation; }
     </div>
   </div>
 
+  <!-- HISTORIQUE INDÉPENDANCE (corrigée inflation) -->
+  <div class="section accent-gold" style="margin-bottom:16px;" id="section-indep-chart">
+    <div class="section-head">
+      <div class="section-title">⏳ Historique Indépendance (corrigée inflation)</div>
+      <span class="badge gold" id="kpi-indep-badge">—</span>
+    </div>
+    <div class="section-body" style="padding:16px;">
+      <div id="indep-chart-empty" style="display:none;font-size:11px;color:var(--muted);text-align:center;padding:20px 0;">
+        Aucun point pour l'instant — renseignez vos dépenses et votre patrimoine : un point est enregistré automatiquement chaque jour.
+      </div>
+      <canvas id="chart-indep" height="200"></canvas>
+      <div id="indep-chart-legend" style="margin-top:12px;font-size:10px;color:var(--muted);display:flex;flex-wrap:wrap;gap:12px;justify-content:center;"></div>
+    </div>
+  </div>
+
   <!-- RÉPARTITION PATRIMONIALE -->
   <div class="section accent-blue" style="margin-bottom:16px;">
     <div class="section-head">
@@ -1658,6 +1673,7 @@ let DATA = {
   // Hypothèses pour l'indicateur "Indépendance totale (corrigée inflation)"
   hypotheses:{ rendement:4, inflation:2.5 },
   ath:[],
+  indepHist:[],
   heritage:[],
   dca:[],
   dcaRegleCash:{
@@ -4637,6 +4653,121 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // ─── HISTORIQUE INDÉPENDANCE (corrigée inflation) ─────────────────────
+  // Un point par jour (le dernier calcul du jour écrase le précédent).
+  function recordIndepSnapshot(k) {
+    try {
+      if (!(k.depAnnuelle > 0) || !(k.patrimoineMobilisable > 0)) return;
+      const inf = !isFinite(k.anneesIndependanceReel);
+      const val = inf ? 60 : Math.round(k.anneesIndependanceReel * 100) / 100;
+      if (!isFinite(val)) return;
+      if (!Array.isArray(DATA.indepHist)) DATA.indepHist = [];
+      const today = new Date().toISOString().slice(0, 10);
+      const entry = DATA.indepHist.find(r => r.date === today);
+      if (entry) {
+        if (Math.abs((entry.val || 0) - val) < 0.01 && !!entry.inf === inf) return;
+        entry.val = val; entry.inf = inf;
+      } else {
+        DATA.indepHist.push({ date: today, val, inf });
+      }
+      autoSave();
+    } catch (_) {}
+  }
+
+  function renderChartIndep() {
+    const hist = (Array.isArray(DATA.indepHist) ? DATA.indepHist : []).filter(e => e.date && e.val != null);
+    const emptyEl  = document.getElementById('indep-chart-empty');
+    const canvasEl = document.getElementById('chart-indep');
+    const badge    = document.getElementById('kpi-indep-badge');
+    const legend   = document.getElementById('indep-chart-legend');
+    const fmtV = e => e.inf ? '∞' : fmtAnnees(e.val);
+
+    if (!hist.length) {
+      if (emptyEl)  emptyEl.style.display = 'block';
+      if (canvasEl) canvasEl.style.display = 'none';
+      if (badge)    badge.textContent = '—';
+      if (legend)   legend.innerHTML = '';
+      return;
+    }
+    if (emptyEl)  emptyEl.style.display = 'none';
+    if (canvasEl) canvasEl.style.display = 'block';
+
+    const sorted = [...hist].sort((a, b) => a.date.localeCompare(b.date));
+    const latest = sorted[sorted.length - 1];
+    const first  = sorted[0];
+    if (badge) badge.textContent = fmtV(latest);
+
+    const labels = sorted.map(e => new Date(e.date).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'2-digit' }));
+    const data   = sorted.map(e => e.val);
+    const last   = data.length - 1;
+
+    mkChart('chart-indep', {
+      type: 'line',
+      data: { labels, datasets: [{
+        label: 'Indépendance',
+        data,
+        borderColor: '#5aab7a',
+        borderWidth: 2.5,
+        pointBackgroundColor: data.map((_, i) => i === last ? '#8fe0ae' : '#5aab7a'),
+        pointBorderColor:     data.map((_, i) => i === last ? '#fff'    : '#5aab7a'),
+        pointRadius:          data.map((_, i) => i === last ? 6 : 4),
+        pointHoverRadius: 7,
+        fill: true,
+        backgroundColor: function(ctx) {
+          const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, ctx.chart.height);
+          g.addColorStop(0,   'rgba(90,171,122,0.40)');
+          g.addColorStop(0.6, 'rgba(90,171,122,0.12)');
+          g.addColorStop(1,   'rgba(90,171,122,0.0)');
+          return g;
+        },
+        tension: 0.35,
+      }] },
+      options: {
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => ' ⏳ ' + fmtV(sorted[ctx.dataIndex]),
+              afterLabel: ctx => {
+                const prev = sorted[ctx.dataIndex - 1];
+                if (!prev || sorted[ctx.dataIndex].inf || prev.inf) return '';
+                const diff = sorted[ctx.dataIndex].val - prev.val;
+                return (diff >= 0 ? '▲ +' : '▼ ') + Math.abs(diff).toFixed(1).replace('.', ',') + ' ans';
+              }
+            },
+            backgroundColor: 'rgba(26,30,36,0.95)',
+            borderColor: '#5aab7a',
+            borderWidth: 1,
+            titleColor: '#5aab7a',
+            bodyColor: '#c8cdd8',
+          }
+        },
+        scales: {
+          x: { ticks: { color: '#6b7585', font: { size: 9 }, maxRotation: 30 }, grid: { color: 'rgba(255,255,255,0.04)' } },
+          y: { beginAtZero: true, ticks: { color: '#6b7585', callback: v => v + ' ans' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+        },
+        interaction: { mode: 'nearest', intersect: false }
+      }
+    });
+
+    if (legend) {
+      const dFmt = d => new Date(d).toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' });
+      const parts = [];
+      if (sorted.length >= 2) {
+        parts.push(`<span style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:12px;height:2px;background:#5aab7a;border-radius:1px;"></span>📅 1er point : <strong>${dFmt(first.date)}</strong> — ${fmtV(first)}</span>`);
+        parts.push(`<span>⏳ Dernier : <strong>${dFmt(latest.date)}</strong> — ${fmtV(latest)}</span>`);
+        if (!first.inf && !latest.inf) {
+          const diff = latest.val - first.val;
+          const col  = diff >= 0 ? '#5aab7a' : '#c05a5a';
+          parts.push(`<span style="color:${col};">${diff >= 0 ? '▲ +' : '▼ '}${Math.abs(diff).toFixed(1).replace('.', ',')} ans sur ${sorted.length} points</span>`);
+        }
+      } else {
+        parts.push(`<span style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:12px;height:2px;background:#5aab7a;border-radius:1px;"></span>⏳ 1er point — ${dFmt(latest.date)} : ${fmtV(latest)}</span>`);
+      }
+      legend.innerHTML = parts.join('');
+    }
+  }
+
   // ─── RAPPORT TEXTE POUR ANALYSE IA ────────────────────────────────────
   function generateAIReportText() {
     const k = computeKPIs();
@@ -4747,6 +4878,11 @@ window.addEventListener('DOMContentLoaded', () => {
       push('- ' + r.date + ' : ' + fmtE(r.val) + (r.auto?' (auto)':''));
     });
 
+    push('\n8. HISTORIQUE INDÉPENDANCE (corrigée inflation)');
+    (DATA.indepHist||[]).slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')).forEach(r => {
+      push('- ' + r.date + ' : ' + (r.inf ? '∞ (auto-suffisant)' : r.val.toFixed(1) + ' ans'));
+    });
+
     sep();
     push('\nFIN DU RAPPORT — Ce document peut être fourni tel quel à une IA pour analyse, conseils ou simulation.');
 
@@ -4775,6 +4911,7 @@ window.addEventListener('DOMContentLoaded', () => {
           : 'Auto indisponible : renseignez les dates de début dans la carte Taux de rendement moyen (défaut 4 %)');
     if (hypInflEl && document.activeElement !== hypInflEl) hypInflEl.value = DATA.hypotheses.inflation;
     renderRatios(k);
+    recordIndepSnapshot(k);
     updateKPITickers();
     try {
       await loadChartJS();
@@ -4782,6 +4919,7 @@ window.addEventListener('DOMContentLoaded', () => {
       renderChartRisque(k);
       renderChartPMV(k);
       renderChartATH(k.grandTotal);
+      renderChartIndep();
     } catch(e) { console.warn('KPI charts:', e); }
   };
 
