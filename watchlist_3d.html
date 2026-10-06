@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Watchlist 3D</title>
+<style>
+:root{--bg:#f6f5f1;--card:#fff;--tx:#23201b;--mut:#7a7466;--bd:#e3dfd4;--ac:#d9622b;--in:#fbfaf7;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#16150f;--card:#211f18;--tx:#efece3;--mut:#9a9381;--bd:#33301f;--in:#1a1912}}
+:root[data-theme="dark"]{--bg:#16150f;--card:#211f18;--tx:#efece3;--mut:#9a9381;--bd:#33301f;--in:#1a1912}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+body{padding:0 12px 90px;max-width:720px;margin:0 auto}
+header{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);padding:10px 0 6px;z-index:5}
+h1{font-size:1.15rem;margin:0 0 8px;display:flex;justify-content:space-between;align-items:center}
+h1 small{font-weight:400;color:var(--mut);font-size:.8rem}
+input,select,textarea{width:100%;font:inherit;color:var(--tx);background:var(--in);border:1px solid var(--bd);border-radius:10px;padding:10px}
+textarea{resize:vertical;min-height:70px}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:6px 0;scrollbar-width:none}
+.chip{flex:none;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:99px;padding:6px 12px;font-size:.82rem;cursor:pointer}
+.chip.on{background:var(--ac);border-color:var(--ac);color:#fff}
+h2{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin:18px 2px 6px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:12px;margin-bottom:8px}
+.row{display:flex;gap:8px;align-items:flex-start;justify-content:space-between}
+.t{font-weight:600;word-break:break-word}.t a{color:inherit}
+.src{font-size:.72rem;color:var(--mut);margin-top:2px}
+.pill{flex:none;border:0;color:#fff;border-radius:99px;padding:6px 11px;font-size:.78rem;font-weight:600;cursor:pointer}
+.fm{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.fm span{font-size:.7rem;border:1px solid var(--bd);border-radius:6px;padding:2px 6px;color:var(--mut)}
+.path{margin-top:8px;font:.74rem ui-monospace,Consolas,monospace;color:var(--mut);word-break:break-all;cursor:pointer}
+.note{margin-top:6px;font-size:.84rem;color:var(--mut);white-space:pre-wrap}
+.edit{background:none;border:0;color:var(--mut);font-size:.8rem;padding:6px 0 0;cursor:pointer}
+.fab{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));width:56px;height:56px;border-radius:50%;border:0;background:var(--ac);color:#fff;font-size:30px;box-shadow:0 4px 14px #0004;cursor:pointer}
+.fab2{right:84px;width:44px;height:44px;font-size:18px;background:var(--card);color:var(--tx);border:1px solid var(--bd);bottom:calc(22px + env(safe-area-inset-bottom,0px))}
+dialog{border:0;border-radius:18px 18px 0 0;background:var(--bg);color:var(--tx);width:100%;max-width:560px;margin:auto auto 0;padding:16px;max-height:92vh}
+dialog::backdrop{background:#0007}
+label{display:block;font-size:.76rem;color:var(--mut);margin:10px 0 4px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.fmx{display:flex;flex-wrap:wrap;gap:6px}.fmx label{display:flex;gap:4px;align-items:center;margin:0;color:var(--tx);font-size:.85rem;border:1px solid var(--bd);border-radius:8px;padding:6px 9px;background:var(--card)}
+.fmx input{width:auto}
+.btns{display:flex;gap:8px;margin-top:14px}.btns button{flex:1;padding:12px;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--tx);font:inherit;cursor:pointer}
+.btns .p{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:600}.btns .d{color:#c0392b}
+.empty{text-align:center;color:var(--mut);padding:40px 10px}
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#222;color:#fff;padding:8px 14px;border-radius:10px;font-size:.82rem;opacity:0;transition:.2s;pointer-events:none;z-index:50}
+#toast.on{opacity:1}
+</style></head><body>
+<header>
+  <h1>Watchlist 3D <small id="cnt"></small></h1>
+  <input id="q" type="search" placeholder="Rechercher (titre, note, chemin…)">
+  <div class="chips" id="cats"></div>
+  <div class="chips" id="sts"></div>
+</header>
+<main id="list"></main>
+<button class="fab fab2" id="bk" title="Sauvegarde / import">⇅</button>
+<button class="fab" id="add" title="Ajouter">+</button>
+
+<dialog id="dlg">
+  <div id="dt" style="font-weight:700;margin-bottom:4px">Pièce</div>
+  <label>Titre</label><input id="f_t">
+  <label>Lien (MakerWorld, Thingiverse, Printables…)</label><input id="f_u" type="url" inputmode="url" placeholder="https://">
+  <div class="g2">
+    <div><label>Source</label><select id="f_s"></select></div>
+    <div><label>Catégorie</label><input id="f_c" list="cl" placeholder="ex. Rangement"><datalist id="cl"></datalist></div>
+  </div>
+  <label>Étape</label><select id="f_st"></select>
+  <label>Formats disponibles sur le disque</label><div class="fmx" id="f_f"></div>
+  <label>Chemin du dossier sur le disque</label><input id="f_p" placeholder="D:\3D\Rangement\boite-vis\">
+  <label>Notes (réglages slicer, version, idées…)</label><textarea id="f_n"></textarea>
+  <div class="btns"><button id="x">Annuler</button><button class="d" id="del">Suppr.</button><button class="p" id="ok">Enregistrer</button></div>
+</dialog>
+
+<dialog id="bd">
+  <div style="font-weight:700">Sauvegarde / transfert</div>
+  <p style="font-size:.8rem;color:var(--mut)">Les données restent dans ce navigateur. Copie ce texte pour le garder ou le coller sur un autre appareil, ou colle une sauvegarde pour l'importer.</p>
+  <textarea id="bt" style="min-height:160px;font:.72rem ui-monospace,monospace"></textarea>
+  <div class="btns"><button id="bx">Fermer</button><button id="bc">Copier</button><button class="p" id="bi">Importer</button></div>
+</dialog>
+<div id="toast"></div>
+
+<script>
+const ST=['À voir','À télécharger','Téléchargé','Slicé','Imprimé','Terminé'];
+const SC=['#8a8577','#c98a2c','#3d7ea6','#7a5ab0','#d9622b','#3f9b5f'];
+const FM=['STL','3MF','STEP','AMF','F3D','GCODE'];
+const SRC=['MakerWorld','Thingiverse','Printables','Cults','Thangs','Autre','Perso'];
+const KEY='watchlist3d_v1';
+let D={items:[]},fc='',fs=-1,q='',eid=null;
+try{const r=localStorage.getItem(KEY);if(r)D=JSON.parse(r)}catch(e){}
+if(!D||!Array.isArray(D.items))D={items:[]};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2200)}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){toast('Stockage indisponible : copie ta sauvegarde (⇅)')}}
+function safeUrl(u){return /^https?:\/\//i.test(u||'')?u:''}
+function detect(u){const h=(u||'').toLowerCase();return h.includes('makerworld')?'MakerWorld':h.includes('thingiverse')?'Thingiverse':h.includes('printables')?'Printables':h.includes('cults3d')?'Cults':h.includes('thangs')?'Thangs':u?'Autre':'Perso'}
+
+function render(){
+  const cats=[...new Set(D.items.map(i=>i.cat||'Sans catégorie'))].sort((a,b)=>a.localeCompare(b));
+  if(fc&&!cats.includes(fc))fc='';
+  $('cats').innerHTML=['Toutes',...cats].map(c=>`<button class="chip ${(c==='Toutes'?!fc:c===fc)?'on':''}" data-c="${esc(c==='Toutes'?'':c)}">${esc(c)}</button>`).join('');
+  $('sts').innerHTML=['Tous',...ST].map((s,i)=>`<button class="chip ${i-1===fs?'on':''}" data-s="${i-1}">${esc(s)}</button>`).join('');
+  const k=q.toLowerCase();
+  const items=D.items.filter(i=>(!fc||(i.cat||'Sans catégorie')===fc)&&(fs<0||i.st===fs)&&(!k||[i.t,i.n,i.p,i.cat,i.s].join(' ').toLowerCase().includes(k)));
+  $('cnt').textContent=D.items.length+' pièce'+(D.items.length>1?'s':'')+' · '+D.items.filter(i=>i.st<4).length+' à faire';
+  if(!items.length){$('list').innerHTML='<div class="empty">'+(D.items.length?'Aucun résultat.':'Aucune pièce.<br>Appuie sur + pour ajouter ta première.')+'</div>';return}
+  const g={};items.forEach(i=>(g[i.cat||'Sans catégorie']=g[i.cat||'Sans catégorie']||[]).push(i));
+  $('list').innerHTML=Object.keys(g).sort((a,b)=>a.localeCompare(b)).map(c=>'<h2>'+esc(c)+' · '+g[c].length+'</h2>'+g[c].sort((a,b)=>a.st-b.st||a.t.localeCompare(b.t)).map(card).join('')).join('');
+}
+function card(i){
+  const u=safeUrl(i.u),t=u?`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(i.t)}</a>`:esc(i.t);
+  return `<div class="card"><div class="row"><div><div class="t">${t}</div><div class="src">${esc(i.s)}</div></div>
+  <button class="pill" style="background:${SC[i.st]}" data-a="adv" data-id="${i.id}" title="Passer à l'étape suivante">${ST[i.st]}</button></div>
+  ${i.f&&i.f.length?'<div class="fm">'+i.f.map(f=>'<span>'+esc(f)+'</span>').join('')+'</div>':''}
+  ${i.p?`<div class="path" data-a="cp" data-id="${i.id}">📁 ${esc(i.p)}</div>`:''}
+  ${i.n?'<div class="note">'+esc(i.n)+'</div>':''}
+  <button class="edit" data-a="ed" data-id="${i.id}">Modifier</button></div>`;
+}
+
+function openForm(id){
+  eid=id;const i=D.items.find(x=>x.id===id)||{t:'',u:'',s:'Perso',cat:fc,st:0,f:[],p:'',n:''};
+  $('dt').textContent=id?'Modifier la pièce':'Nouvelle pièce';
+  $('f_t').value=i.t;$('f_u').value=i.u||'';$('f_s').value=i.s;$('f_c').value=i.cat||'';$('f_st').value=i.st;$('f_p').value=i.p||'';$('f_n').value=i.n||'';
+  document.querySelectorAll('#f_f input').forEach(c=>c.checked=(i.f||[]).includes(c.value));
+  $('del').style.display=id?'':'none';$('dlg').showModal();
+}
+function saveForm(){
+  const t=$('f_t').value.trim();if(!t){toast('Titre requis');return}
+  const o={t,u:$('f_u').value.trim(),s:$('f_s').value,cat:$('f_c').value.trim(),st:+$('f_st').value,p:$('f_p').value.trim(),n:$('f_n').value.trim(),f:[...document.querySelectorAll('#f_f input:checked')].map(c=>c.value)};
+  if(eid){Object.assign(D.items.find(x=>x.id===eid),o)}else{o.id='i'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);D.items.push(o)}
+  save();$('dlg').close();render();
+}
+
+$('f_s').innerHTML=SRC.map(s=>`<option>${s}</option>`).join('');
+$('f_st').innerHTML=ST.map((s,i)=>`<option value="${i}">${s}</option>`).join('');
+$('f_f').innerHTML=FM.map(f=>`<label><input type="checkbox" value="${f}">${f}</label>`).join('');
+$('f_u').addEventListener('input',()=>{const u=$('f_u').value.trim();if(u)$('f_s').value=detect(u)});
+$('add').onclick=()=>openForm(null);
+$('x').onclick=()=>$('dlg').close();
+$('ok').onclick=saveForm;
+$('del').onclick=()=>{if(confirm('Supprimer cette pièce ?')){D.items=D.items.filter(x=>x.id!==eid);save();$('dlg').close();render()}};
+$('q').oninput=e=>{q=e.target.value;render()};
+$('cats').onclick=e=>{const b=e.target.closest('[data-c]');if(b){fc=b.dataset.c;render()}};
+$('sts').onclick=e=>{const b=e.target.closest('[data-s]');if(b){fs=+b.dataset.s;render()}};
+$('list').onclick=e=>{
+  const b=e.target.closest('[data-a]');if(!b)return;const i=D.items.find(x=>x.id===b.dataset.id);if(!i)return;
+  if(b.dataset.a==='adv'){i.st=Math.min(i.st+1,ST.length-1);save();render()}
+  else if(b.dataset.a==='ed')openForm(i.id);
+  else if(b.dataset.a==='cp'){try{navigator.clipboard.writeText(i.p).then(()=>toast('Chemin copié'),()=>toast('Copie impossible'))}catch(x){toast('Copie impossible')}}
+};
+$('bk').onclick=()=>{$('bt').value=JSON.stringify(D);$('bd').showModal()};
+$('bx').onclick=()=>$('bd').close();
+$('bc').onclick=()=>{$('bt').select();try{navigator.clipboard.writeText($('bt').value).then(()=>toast('Copié'),()=>{document.execCommand('copy');toast('Copié')})}catch(e){toast('Sélectionne et copie à la main')}};
+$('bi').onclick=()=>{
+  try{
+    const n=JSON.parse($('bt').value);if(!n||!Array.isArray(n.items))throw 0;
+    const m=new Map(D.items.map(i=>[i.id,i]));n.items.forEach(i=>{if(i&&i.id&&i.t)m.set(i.id,{t:String(i.t),u:i.u||'',s:i.s||'Autre',cat:i.cat||'',st:Math.min(Math.max(+i.st||0,0),5),f:Array.isArray(i.f)?i.f:[],p:i.p||'',n:i.n||'',id:String(i.id)})});
+    D.items=[...m.values()];save();render();$('bd').close();toast('Importé (fusion)');
+  }catch(e){toast('Sauvegarde invalide')}
+};
+render();
+</script></body></html>
