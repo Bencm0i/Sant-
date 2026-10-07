@@ -2848,7 +2848,8 @@ input[type=file]{display:none;}
 }
 
 /* TEXT COLUMNS */
-.text-col{flex:1;display:flex;flex-direction:column;min-width:0;border-right:1.5px solid var(--line);border-top:6px solid transparent;transition:border-top-color .15s;}
+.text-col{flex:1;display:flex;flex-direction:column;min-width:0;border-right:1.5px solid var(--line);border-top:6px solid transparent;border-left:10px solid var(--tab-color,transparent);transition:border-top-color .15s,border-left-color .15s,border-right-color .15s;}
+#iaCol{border-right:10px solid var(--tab-color,transparent);}
 .text-col:last-child{border-right:none;}
 #iaCol{flex:0 0 var(--ia-col-width, 50%);}
 
@@ -2911,11 +2912,11 @@ textarea.note-area{
     repeating-linear-gradient(to bottom, rgba(47,93,98,0.13) 0, rgba(47,93,98,0.13) 1px, transparent 1px, transparent 40px),
     repeating-linear-gradient(to right,  rgba(47,93,98,0.13) 0, rgba(47,93,98,0.13) 1px, transparent 1px, transparent 40px);
   background-attachment:local;
-  box-shadow:inset 6px 0 0 var(--accent);
+  box-shadow:inset 6px 0 0 var(--tab-color,var(--accent));
 }
 textarea.note-area:focus{
   background-color:#e0edeb;
-  box-shadow:inset 6px 0 0 var(--accent), inset 0 0 0 2px var(--accent);
+  box-shadow:inset 6px 0 0 var(--tab-color,var(--accent)), inset 0 0 0 2px var(--tab-color,var(--accent));
 }
 .char-count{
   padding:6px 16px;font-family:'IBM Plex Mono',monospace;font-size:0.65rem;
@@ -3439,7 +3440,7 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
   <button id="mobileColIA" onclick="setMobileCol('ia')" title="Affiche la colonne Texte (la colonne Marge reste intacte, juste masquée)">👁 Texte</button>
 </div>
 
-<span style="position:fixed;bottom:4px;right:8px;font-size:9px;color:#c7bfae;z-index:1;pointer-events:none;font-family:monospace;">build 2026-09-04-fix6</span>
+<span style="position:fixed;bottom:4px;right:8px;font-size:9px;color:#c7bfae;z-index:1;pointer-events:none;font-family:monospace;">build 2026-10-07-liseres</span>
 
 <div class="mosaic-panel" id="mosaicPanel" style="display:none;">
   <div class="mosaic-inner">
@@ -4400,6 +4401,8 @@ function recolorTab(id, val){
   if(id === activeId){
     document.getElementById('rawCol').style.borderTopColor = val;
     document.getElementById('iaCol').style.borderTopColor = val;
+    document.getElementById('rawCol').style.setProperty('--tab-color', val);
+    document.getElementById('iaCol').style.setProperty('--tab-color', val);
   }
 }
 
@@ -4828,6 +4831,8 @@ function renderColumns(){
     iaDot.style.background = 'transparent';
     rawCol.style.borderTopColor = 'transparent';
     iaCol.style.borderTopColor = 'transparent';
+    rawCol.style.removeProperty('--tab-color');
+    iaCol.style.removeProperty('--tab-color');
     { const rc = document.getElementById('rawCount'); if(rc) rc.textContent = '0 caractère · 0 mot'; }
     document.getElementById('iaCount').textContent = '0 caractère · 0 mot';
     renderViewState('raw');
@@ -4842,6 +4847,8 @@ function renderColumns(){
   iaDot.style.background = t.color;
   rawCol.style.borderTopColor = t.color;
   iaCol.style.borderTopColor = t.color;
+  rawCol.style.setProperty('--tab-color', t.color);
+  iaCol.style.setProperty('--tab-color', t.color);
   updateCounts();
   renderViewState('raw');
   renderViewState('ia');
