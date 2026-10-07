@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Suivi de poids</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+  :root{
+    color-scheme: light dark;
+    --bg:#EEF0EF; --panel-dark:#1E2126; --panel-dark-2:#2A2E35; --panel-dark-line:#383D46;
+    --accent:#C81E1E; --accent-dim:#C81E1E22; --ok:#3C7A5C; --warn:#B8791A; --flat:#6B7280;
+    --text:#1A1C1F; --text-mid:#5B6068; --text-soft:#8A8F97;
+    --card:#FFFFFF; --input:#FAFAFA; --border:#DFE2E4;
+    --radius-lg:18px; --radius-md:12px;
+    --sans:'Inter',system-ui,-apple-system,sans-serif;
+    --mono:'JetBrains Mono','SF Mono',Consolas,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#121316; --panel-dark:#17191D; --panel-dark-2:#1F2227; --panel-dark-line:#2C2F35;
+      --text:#EDEDEF; --text-mid:#A7ABB2; --text-soft:#75797F;
+      --card:#1B1D22; --input:#101216; --border:#2A2D33;
+    }
+    body{ background:#0B0C0E; }
+  }
+
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  .hidden{ display:none !important; }
+  body{ margin:0; background:var(--bg); color:var(--text); font-family:var(--sans); -webkit-font-smoothing:antialiased; }
+  .app{
+    max-width:460px; margin:0 auto; min-height:100vh;
+    padding-bottom:calc(48px + env(safe-area-inset-bottom));
+    padding-left:env(safe-area-inset-left); padding-right:env(safe-area-inset-right);
+  }
+
+  /* ---------- Hero ---------- */
+  .cluster{
+    background:linear-gradient(180deg,var(--panel-dark) 0%,#16181C 100%);
+    color:#fff;
+    padding:calc(18px + env(safe-area-inset-top)) 18px 20px;
+    border-bottom:3px solid var(--accent);
+  }
+  .cluster-top{ display:flex; align-items:center; justify-content:space-between; }
+  .title{ font-weight:600; font-size:1.05rem; }
+  .icon-btn{
+    background:var(--panel-dark-2); border:1px solid var(--panel-dark-line); color:#fff;
+    width:44px; height:44px; flex:none; border-radius:12px; font-size:1.1rem;
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  .hero{ display:flex; align-items:flex-end; justify-content:space-between; gap:12px; margin-top:14px; }
+  .weight-big{ font-family:var(--mono); font-weight:700; font-size:3rem; line-height:1; }
+  .weight-big .u{ font-size:1rem; color:var(--text-soft); margin-left:4px; font-weight:500; }
+  .weight-sub{ font-size:0.72rem; color:var(--text-soft); margin-top:6px; }
+  .trend{
+    text-align:right; padding:10px 12px; border-radius:14px;
+    background:var(--panel-dark-2); border:1px solid var(--panel-dark-line); min-width:132px;
+  }
+  .trend-arrow{ font-size:1.9rem; line-height:1; font-weight:700; }
+  .trend-label{ font-size:0.8rem; font-weight:600; margin-top:3px; }
+  .trend-rate{ font-family:var(--mono); font-size:0.7rem; color:var(--text-soft); margin-top:2px; }
+  .trend.down .trend-arrow,.trend.down .trend-label{ color:#5FC196; }
+  .trend.up .trend-arrow,.trend.up .trend-label{ color:#E9A33B; }
+  .trend.flat .trend-arrow,.trend.flat .trend-label{ color:#B6BBC4; }
+
+  .bmi-bar{ margin-top:16px; }
+  .bmi-row{ display:flex; justify-content:space-between; align-items:baseline; font-size:0.72rem; color:var(--text-soft); margin-bottom:6px; }
+  .bmi-row b{ font-family:var(--mono); color:#fff; font-size:1rem; margin-right:6px; }
+  .bmi-scale{ position:relative; height:8px; border-radius:6px; display:flex; overflow:visible; }
+  .bmi-scale span{ display:block; height:100%; }
+  .bmi-scale span:nth-child(1){ background:#4A7FB5; border-radius:6px 0 0 6px; }
+  .bmi-scale span:nth-child(2){ background:#3C7A5C; }
+  .bmi-scale span:nth-child(3){ background:#B8791A; }
+  .bmi-scale span:nth-child(4){ background:#C81E1E; border-radius:0 6px 6px 0; }
+  .bmi-marker{ position:absolute; top:-4px; width:4px; height:16px; background:#fff; border-radius:2px; transform:translateX(-2px); box-shadow:0 0 0 1px #000a; }
+  .bmi-ticks{ display:flex; justify-content:space-between; font-size:0.6rem; color:var(--text-soft); margin-top:4px; font-family:var(--mono); }
+
+  /* ---------- Stats ---------- */
+  .stats{ display:grid; grid-template-columns:repeat(2,1fr); background:var(--panel-dark); color:#fff; }
+  .stat{ padding:12px 14px; border-right:1px solid var(--panel-dark-line); border-top:1px solid var(--panel-dark-line); }
+  .stat:nth-child(2n){ border-right:none; }
+  .stat-label{ font-size:0.68rem; color:var(--text-soft); margin-bottom:3px; }
+  .stat-value{ font-family:var(--mono); font-weight:600; font-size:1.05rem; }
+  .stat-value .u{ font-size:0.65rem; color:var(--text-soft); margin-left:2px; }
+
+  /* ---------- Cards / forms ---------- */
+  .section-title{ font-size:0.95rem; font-weight:600; margin:22px 16px 8px; }
+  .card{ background:var(--card); margin:0 12px 12px; border-radius:var(--radius-lg); border:1px solid var(--border); overflow:hidden; }
+  .card-toggle{
+    width:100%; text-align:left; background:none; border:none; padding:15px 16px;
+    font-size:0.95rem; font-weight:600; color:var(--accent); cursor:pointer;
+    display:flex; align-items:center; justify-content:space-between; font-family:var(--sans);
+  }
+  .card-toggle .chev{ transition:transform .2s ease; color:var(--text-soft); }
+  .card-toggle.open .chev{ transform:rotate(180deg); }
+  .form{ padding:4px 16px 16px; display:flex; flex-direction:column; gap:12px; }
+  .field{ display:flex; flex-direction:column; gap:5px; }
+  .field label{ font-size:0.78rem; color:var(--text-mid); font-weight:500; }
+  .field input,.field select,.history-filter select{
+    -webkit-appearance:none; appearance:none;
+    font-family:var(--mono); font-size:1rem; padding:10px 11px;
+    border-radius:var(--radius-md); border:1px solid var(--border);
+    background:var(--input); color:var(--text); -webkit-text-fill-color:var(--text);
+  }
+  .field select,.history-filter select{ font-family:var(--sans); }
+  .field input:focus,.field select:focus{ outline:none; border-color:var(--accent); }
+  .field-row{ display:flex; gap:10px; }
+  .field-row .field{ flex:1; }
+  .field.has-error input{ border-color:var(--accent); background:#C81E1E14; }
+  .field-error{ display:none; font-size:0.76rem; font-weight:600; color:var(--accent); padding:4px 8px; background:#C81E1E14; border-radius:6px; }
+  .field.has-error .field-error{ display:block; }
+  .hint{ font-size:0.75rem; color:var(--text-soft); }
+  .computed{ font-family:var(--mono); font-size:0.9rem; color:var(--text-mid); background:var(--input); padding:8px 10px; border-radius:var(--radius-md); }
+  .computed b{ color:var(--text); }
+  .btn-primary{ background:var(--accent); color:#fff; border:none; border-radius:var(--radius-md); padding:12px; font-size:.95rem; font-weight:600; cursor:pointer; font-family:var(--sans); }
+  .btn-secondary{ background:var(--input); color:var(--text); border:1px solid var(--border); border-radius:var(--radius-md); padding:10px; font-size:.88rem; font-weight:600; cursor:pointer; font-family:var(--sans); }
+
+  /* ---------- Chart ---------- */
+  .range-tabs{ display:flex; gap:6px; padding:12px 16px 0; }
+  .range-tabs button{
+    flex:1; padding:7px 0; font-size:.78rem; font-weight:600; font-family:var(--sans);
+    border-radius:10px; border:1px solid var(--border); background:var(--input); color:var(--text-mid); cursor:pointer;
+  }
+  .range-tabs button.on{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .chart-wrap{ padding:10px 12px 14px; }
+  .chart-empty{ padding:18px 4px; text-align:center; color:var(--text-soft); font-size:.85rem; }
+  .chart-svg{ width:100%; display:block; }
+  .chart-legend{ display:flex; gap:14px; justify-content:center; font-size:.68rem; color:var(--text-soft); margin-top:6px; }
+  .chart-legend i{ display:inline-block; width:14px; height:3px; border-radius:2px; vertical-align:middle; margin-right:5px; }
+
+  /* ---------- History ---------- */
+  .history-filter{ padding:10px 16px 0; }
+  .history-filter select{ width:100%; font-size:.82rem; }
+  .history-empty{ padding:24px 16px; text-align:center; color:var(--text-soft); font-size:.88rem; }
+  .history-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 16px; border-top:1px solid var(--border); cursor:pointer; }
+  .history-row:first-child{ border-top:none; }
+  .history-row.editing{ background:var(--accent-dim); }
+  .hr-date{ font-size:.72rem; color:var(--text-soft); }
+  .hr-w{ font-family:var(--mono); font-weight:600; font-size:1rem; margin-top:1px; }
+  .hr-w .d{ font-size:.72rem; margin-left:8px; }
+  .d.down{ color:var(--ok); } .d.up{ color:var(--warn); } .d.flat{ color:var(--text-soft); }
+  .hr-detail{ font-size:.76rem; color:var(--text-mid); margin-top:2px; }
+  .hr-del{ background:none; border:none; color:var(--text-soft); font-size:1.3rem; min-width:40px; min-height:40px; cursor:pointer; line-height:1; }
+  .hr-del:active{ color:var(--accent); }
+
+  /* ---------- Settings ---------- */
+  .settings-panel{ position:fixed; inset:0; background:rgba(15,16,18,.55); display:flex; align-items:flex-end; z-index:20; }
+  .settings-sheet{ background:var(--card); width:100%; max-width:460px; margin:0 auto; border-radius:20px 20px 0 0; padding:18px 18px 28px; max-height:88vh; overflow-y:auto; }
+  .settings-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .settings-head h3{ margin:0; font-size:1.05rem; }
+  .settings-head .icon-btn{ background:var(--input); color:var(--text); border-color:var(--border); }
+  .settings-sheet .field{ margin-bottom:12px; }
+  .sub-title{ font-size:.85rem; font-weight:600; margin:18px 0 4px; }
+  .cloth-row{ display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+  .cloth-row input{ min-width:0; font-family:var(--sans); font-size:.9rem; padding:9px 10px; border-radius:var(--radius-md); border:1px solid var(--border); background:var(--input); color:var(--text); -webkit-text-fill-color:var(--text); }
+  .cloth-row .c-label{ flex:1; }
+  .cloth-row .c-off{ width:84px; font-family:var(--mono); text-align:right; }
+  .cloth-row button{ background:none; border:none; color:var(--text-soft); font-size:1.2rem; min-width:34px; min-height:34px; cursor:pointer; }
+  .settings-actions{ display:flex; gap:10px; margin-top:12px; }
+  .settings-actions button{ flex:1; }
+  .danger-zone{ margin-top:18px; padding-top:14px; border-top:1px solid var(--border); }
+  .danger-zone button{ color:var(--accent); width:100%; }
+  input[type=file]{ display:none; }
+
+  .backup-banner{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin:10px 12px 0; padding:10px 12px; background:var(--warn); color:#fff; border-radius:var(--radius-md); font-size:.78rem; }
+  .backup-banner button{ background:rgba(255,255,255,.18); border:none; color:#fff; border-radius:8px; padding:6px 10px; font-size:.72rem; font-weight:600; cursor:pointer; flex:none; }
+
+  .toast{ position:fixed; left:50%; bottom:22px; transform:translateX(-50%) translateY(120%); background:var(--panel-dark); color:#fff; padding:10px 18px; border-radius:999px; font-size:.85rem; box-shadow:0 6px 20px rgba(0,0,0,.25); transition:transform .25s ease; z-index:40; white-space:nowrap; }
+  .toast.show{ transform:translateX(-50%) translateY(0); }
+  @media (min-width:461px){ body{ background:#DCDFE0; } .app{ background:var(--bg); box-shadow:0 0 0 1px var(--border); } }
+  @media (min-width:461px) and (prefers-color-scheme: dark){ body{ background:#0B0C0E; } }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="cluster">
+    <div class="cluster-top">
+      <div class="title">Suivi de poids</div>
+      <button class="icon-btn" id="settingsBtn" aria-label="Réglages">⚙</button>
+    </div>
+
+    <div class="hero">
+      <div>
+        <div class="weight-big"><span id="wNow">--</span><span class="u">kg</span></div>
+        <div class="weight-sub" id="wSub">Aucune pesée</div>
+      </div>
+      <div class="trend flat" id="trendBox">
+        <div class="trend-arrow" id="trendArrow">–</div>
+        <div class="trend-label" id="trendLabel">Pas de données</div>
+        <div class="trend-rate" id="trendRate"></div>
+      </div>
+    </div>
+
+    <div class="bmi-bar">
+      <div class="bmi-row">
+        <span><b id="bmiVal">--</b>IMC</span>
+        <span id="bmiCat">Renseigne ta taille dans les réglages</span>
+      </div>
+      <div class="bmi-scale" id="bmiScale">
+        <span style="width:22.5%"></span><span style="width:32.5%"></span><span style="width:20%"></span><span style="width:25%"></span>
+        <div class="bmi-marker hidden" id="bmiMarker"></div>
+      </div>
+      <div class="bmi-ticks"><span>15</span><span>18,5</span><span>25</span><span>30</span><span>40</span></div>
+    </div>
+  </header>
+
+  <div class="backup-banner hidden" id="backupBanner">
+    <span id="backupBannerText"></span>
+    <button id="backupBannerBtn">Exporter</button>
+  </div>
+
+  <section class="stats">
+    <div class="stat"><div class="stat-label">Variation 7 jours</div><div class="stat-value"><span id="sD7">--</span><span class="u">kg</span></div></div>
+    <div class="stat"><div class="stat-label">Variation 30 jours</div><div class="stat-value"><span id="sD30">--</span><span class="u">kg</span></div></div>
+    <div class="stat"><div class="stat-label">Depuis le début</div><div class="stat-value"><span id="sDAll">--</span><span class="u">kg</span></div></div>
+    <div class="stat"><div class="stat-label">Moyenne 7 derniers jours</div><div class="stat-value"><span id="sAvg7">--</span><span class="u">kg</span></div></div>
+  </section>
+
+  <div class="section-title">Pesée</div>
+  <section class="card">
+    <button class="card-toggle open" id="toggleForm"><span id="toggleFormLabel">+ Ajouter une pesée</span><span class="chev">⌄</span></button>
+    <form class="form" id="form">
+      <div class="field-row">
+        <div class="field" id="f-date-field">
+          <label for="f-date">Date</label>
+          <input type="date" id="f-date" required>
+          <div class="field-error">Date requise.</div>
+        </div>
+        <div class="field" id="f-w-field">
+          <label for="f-w">Poids affiché (kg)</label>
+          <input type="text" id="f-w" inputmode="decimal" autocomplete="off" required>
+          <div class="field-error" id="f-w-error">Poids invalide.</div>
+        </div>
+      </div>
+      <div class="field">
+        <label for="f-cloth">Tenue</label>
+        <select id="f-cloth"></select>
+      </div>
+      <div class="computed">Poids corrigé : <b id="f-corr">-- kg</b></div>
+      <div style="display:flex;gap:10px;">
+        <button type="submit" class="btn-primary" id="f-submit" style="flex:1">Enregistrer</button>
+        <button type="button" class="btn-secondary hidden" id="f-cancel">Annuler</button>
+      </div>
+    </form>
+  </section>
+
+  <div class="section-title">Évolution</div>
+  <section class="card">
+    <div class="range-tabs" id="rangeTabs">
+      <button data-r="30">30 j</button><button data-r="90">3 mois</button><button data-r="365">1 an</button><button data-r="0">Tout</button>
+    </div>
+    <div class="chart-wrap" id="chartWrap"></div>
+  </section>
+
+  <div class="section-title">Historique</div>
+  <section class="card">
+    <div class="history-filter"><select id="yearFilter"><option value="">Toutes les années</option></select></div>
+    <div id="historyList"></div>
+  </section>
+
+</div>
+
+<div class="settings-panel hidden" id="settingsPanel">
+  <div class="settings-sheet">
+    <div class="settings-head"><h3>Réglages</h3><button class="icon-btn" id="closeSettings">✕</button></div>
+
+    <div class="field">
+      <label for="s-height">Taille (cm)</label>
+      <input type="text" id="s-height" inputmode="decimal" placeholder="ex. 178">
+      <div class="hint">Nécessaire pour l'IMC.</div>
+    </div>
+
+    <div class="sub-title">Tenues et correction</div>
+    <div class="hint" style="margin-bottom:10px">Décalage en kg à soustraire du poids affiché (ex. vêtements = 1,2). Modifier une valeur recalcule tout l'historique.</div>
+    <div id="clothList"></div>
+    <button class="btn-secondary" id="addCloth" style="width:100%">+ Ajouter une tenue</button>
+
+    <div class="settings-actions">
+      <button class="btn-secondary" id="exportBtn">Exporter (JSON)</button>
+      <button class="btn-secondary" id="importBtn">Importer (JSON)</button>
+      <input type="file" id="importFile" accept="application/json">
+    </div>
+    <div class="settings-actions">
+      <button class="btn-secondary" id="exportCsvBtn" style="width:100%">Exporter l'historique (CSV)</button>
+    </div>
+    <div class="hint" id="lastExportHint" style="margin-top:8px"></div>
+
+    <div class="danger-zone"><button class="btn-secondary" id="resetBtn">Réinitialiser toutes les données</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+  var KEY = "suiviPoids_v1";
+
+  var defaultState = {
+    heightCm: null,
+    clothes: [
+      { id:"nu",  label:"Nu",           offset:0 },
+      { id:"leg", label:"Sous-vêtements", offset:0 },
+      { id:"hab", label:"Habillé",      offset:0 }
+    ],
+    entries: [],          // {id,date,weight,cloth}
+    range: 90,
+    lastExportAt: null
+  };
+
+  function clone(o){ return JSON.parse(JSON.stringify(o)); }
+  function uid(){ return Date.now()+"-"+Math.floor(Math.random()*100000); }
+  function todayISO(){
+    var d=new Date();
+    return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+  }
+  function esc(s){ return String(s).replace(/[&<>"']/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+  function toNum(v){ if(typeof v==="number") return v; if(!v) return NaN; return parseFloat(String(v).trim().replace(",",".")); }
+  function fmt(n,d){ if(n===null||n===undefined||isNaN(n)) return "--"; return n.toLocaleString("fr-FR",{minimumFractionDigits:d,maximumFractionDigits:d}); }
+  function fmtSigned(n,d){ if(n===null||isNaN(n)) return "--"; var s=fmt(Math.abs(n),d); return (n>0.0000001?"+":(n<-0.0000001?"−":""))+s; }
+  function fmtDate(iso){ var p=(iso||"").split("-"); return p.length===3?p[2]+"/"+p[1]+"/"+p[0]:iso; }
+  function dayNum(iso){ var p=iso.split("-"); return Math.round(Date.UTC(+p[0],+p[1]-1,+p[2])/86400000); }
+
+  function sanitize(p){
+    var s = Object.assign(clone(defaultState), p||{});
+    if(!Array.isArray(s.clothes) || !s.clothes.length) s.clothes = clone(defaultState.clothes);
+    s.clothes = s.clothes.filter(function(c){ return c && c.id; }).map(function(c){ return { id:String(c.id), label:String(c.label||"Tenue"), offset: (typeof c.offset==="number"&&!isNaN(c.offset))?c.offset:0 }; });
+    if(!s.clothes.length) s.clothes = clone(defaultState.clothes);
+    s.entries = (Array.isArray(s.entries)?s.entries:[]).filter(function(e){
+      return e && typeof e.date==="string" && typeof e.weight==="number" && !isNaN(e.weight) && e.weight>0;
+    }).map(function(e){ return { id:e.id||uid(), date:e.date, weight:e.weight, cloth:e.cloth }; });
+    if(typeof s.heightCm!=="number" || isNaN(s.heightCm) || s.heightCm<=0) s.heightCm=null;
+    if([0,30,90,365].indexOf(s.range)===-1) s.range=90;
+    if(typeof s.lastExportAt!=="string") s.lastExportAt=null;
+    return s;
+  }
+
+  var state;
+  try{ var raw=localStorage.getItem(KEY); state = raw ? sanitize(JSON.parse(raw)) : clone(defaultState); }
+  catch(e){ state = clone(defaultState); }
+
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){ toast("Stockage indisponible : données non sauvegardées"); } }
+  function toast(msg){
+    var t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show");
+    clearTimeout(toast._t); toast._t=setTimeout(function(){ t.classList.remove("show"); },2200);
+  }
+
+  /* ---------- Core computations ---------- */
+  function offsetOf(clothId){
+    var c = state.clothes.find(function(x){ return x.id===clothId; });
+    return c ? c.offset : 0;
+  }
+  function series(){
+    return state.entries.map(function(e){
+      return { id:e.id, date:e.date, day:dayNum(e.date), raw:e.weight, cloth:e.cloth, w:e.weight - offsetOf(e.cloth) };
+    }).sort(function(a,b){ return a.day-b.day || (a.id<b.id?-1:1); });
+  }
+  // Exponential smoothing (per entry, time-aware): alpha grows with gap
+  function smooth(s){
+    var out=[], prev=null, prevDay=null;
+    s.forEach(function(p){
+      if(prev===null){ prev=p.w; }
+      else{
+        var gap=Math.max(1,p.day-prevDay);
+        var a=1-Math.pow(1-0.25,gap);   // ~0.25 per day
+        prev = prev + a*(p.w-prev);
+      }
+      prevDay=p.day; out.push(prev);
+    });
+    return out;
+  }
+  // Linear regression slope (kg/week) over last ~21 days
+  function trend(s){
+    if(s.length<3) return null;
+    var lastDay=s[s.length-1].day;
+    var pts=s.filter(function(p){ return lastDay-p.day<=21; });
+    if(pts.length<3 || pts[pts.length-1].day-pts[0].day<5){
+      pts=s.slice(-5);
+      if(pts.length<3 || pts[pts.length-1].day-pts[0].day<5) return null;
+    }
+    var n=pts.length, sx=0, sy=0, sxx=0, sxy=0;
+    pts.forEach(function(p){ var x=p.day-pts[0].day; sx+=x; sy+=p.w; sxx+=x*x; sxy+=x*p.w; });
+    var den=n*sxx-sx*sx; if(den===0) return null;
+    return ((n*sxy-sx*sy)/den)*7;
+  }
+  function valueAtOrBefore(s, day){
+    var v=null; s.forEach(function(p){ if(p.day<=day) v=p; }); return v;
+  }
+  function deltaOver(s, days){
+    if(s.length<2) return null;
+    var last=s[s.length-1];
+    var ref=valueAtOrBefore(s, last.day-days);
+    if(!ref || ref===last) return null;
+    return last.w-ref.w;
+  }
+
+  /* ---------- Render ---------- */
+  function render(){
+    var s=series(), sm=smooth(s), last=s[s.length-1];
+    document.getElementById("s-height").value = state.heightCm!==null ? state.heightCm : "";
+
+    // Hero
+    document.getElementById("wNow").textContent = last ? fmt(last.w,1) : "--";
+    document.getElementById("wSub").textContent = last
+      ? ("Pesée du "+fmtDate(last.date)+" · lissé "+fmt(sm[sm.length-1],1)+" kg")
+      : "Aucune pesée";
+
+    var slope=trend(s), box=document.getElementById("trendBox");
+    box.className="trend flat";
+    if(slope===null){
+      document.getElementById("trendArrow").textContent="–";
+      document.getElementById("trendLabel").textContent = s.length ? "Tendance : 3 pesées sur 5 j min." : "Pas de données";
+      document.getElementById("trendRate").textContent="";
+    } else if(slope<=-0.15){
+      box.className="trend down";
+      document.getElementById("trendArrow").textContent="↘";
+      document.getElementById("trendLabel").textContent="Baisse";
+      document.getElementById("trendRate").textContent=fmtSigned(slope,2)+" kg/sem";
+    } else if(slope>=0.15){
+      box.className="trend up";
+      document.getElementById("trendArrow").textContent="↗";
+      document.getElementById("trendLabel").textContent="Hausse";
+      document.getElementById("trendRate").textContent=fmtSigned(slope,2)+" kg/sem";
+    } else {
+      document.getElementById("trendArrow").textContent="→";
+      document.getElementById("trendLabel").textContent="Stable";
+      document.getElementById("trendRate").textContent=fmtSigned(slope,2)+" kg/sem";
+    }
+
+    // BMI (on smoothed weight, less noisy than a single weigh-in)
+    var bmiEl=document.getElementById("bmiVal"), catEl=document.getElementById("bmiCat"), mk=document.getElementById("bmiMarker");
+    if(state.heightCm && last){
+      var h=state.heightCm/100, bmi=sm[sm.length-1]/(h*h);
+      bmiEl.textContent=fmt(bmi,1);
+      catEl.textContent = bmi<18.5?"Insuffisance pondérale":bmi<25?"Corpulence normale":bmi<30?"Surpoids":bmi<35?"Obésité modérée":bmi<40?"Obésité sévère":"Obésité massive";
+      var pos = bmi<=15?0 : bmi>=40?100 : (bmi<18.5? (bmi-15)/3.5*22.5 : bmi<25? 22.5+(bmi-18.5)/6.5*32.5 : bmi<30? 55+(bmi-25)/5*20 : 75+(bmi-30)/10*25);
+      mk.style.left=pos+"%"; mk.classList.remove("hidden");
+    } else {
+      bmiEl.textContent="--";
+      catEl.textContent = state.heightCm ? "Aucune pesée" : "Renseigne ta taille dans les réglages";
+      mk.classList.add("hidden");
+    }
+
+    // Stats
+    function setD(id,v){ document.getElementById(id).textContent = v===null?"--":fmtSigned(v,1); }
+    setD("sD7", deltaOver(s,7));
+    setD("sD30", deltaOver(s,30));
+    setD("sDAll", s.length>1 ? last.w-s[0].w : null);
+    var recent = last ? s.filter(function(p){ return last.day-p.day<7; }) : [];
+    document.getElementById("sAvg7").textContent = recent.length ? fmt(recent.reduce(function(a,p){return a+p.w;},0)/recent.length,1) : "--";
+
+    renderTabs(); renderChart(s,sm); renderHistory(s); renderClothSelect(); renderClothSettings(); updateCorrected(); refreshBackup();
+  }
+
+  function renderTabs(){
+    document.querySelectorAll("#rangeTabs button").forEach(function(b){
+      b.classList.toggle("on", Number(b.getAttribute("data-r"))===state.range);
+    });
+  }
+
+  function renderChart(s,sm){
+    var wrap=document.getElementById("chartWrap");
+    var pts=s.map(function(p,i){ return { day:p.day, w:p.w, sm:sm[i] }; });
+    if(state.range>0 && pts.length){
+      var lastDay=pts[pts.length-1].day;
+      pts=pts.filter(function(p){ return lastDay-p.day<=state.range; });
+    }
+    if(pts.length<2){
+      wrap.innerHTML='<div class="chart-empty">Au moins 2 pesées sont nécessaires pour tracer la courbe.</div>';
+      return;
+    }
+    var W=330,H=170,pl=34,pr=10,pt=12,pb=20;
+    var vals=pts.reduce(function(a,p){ a.push(p.w,p.sm); return a; },[]);
+    var mn=Math.min.apply(null,vals), mx=Math.max.apply(null,vals);
+    var pad=Math.max(0.3,(mx-mn)*0.15); mn-=pad; mx+=pad;
+    var d0=pts[0].day, d1=pts[pts.length-1].day, span=Math.max(1,d1-d0);
+    function X(d){ return pl+((d-d0)/span)*(W-pl-pr); }
+    function Y(v){ return pt+(1-(v-mn)/(mx-mn))*(H-pt-pb); }
+
+    var grid="";
+    for(var i=0;i<=3;i++){
+      var v=mn+(mx-mn)*i/3, y=Y(v);
+      grid+='<line x1="'+pl+'" x2="'+(W-pr)+'" y1="'+y.toFixed(1)+'" y2="'+y.toFixed(1)+'" stroke="var(--border)" stroke-width="1"/>'+
+            '<text x="'+(pl-5)+'" y="'+(y+3).toFixed(1)+'" font-size="9" text-anchor="end" fill="var(--text-soft)">'+fmt(v,1)+'</text>';
+    }
+    var line=pts.map(function(p,i){ return (i?"L":"M")+X(p.day).toFixed(1)+","+Y(p.sm).toFixed(1); }).join(" ");
+    var dots=pts.map(function(p){ return '<circle cx="'+X(p.day).toFixed(1)+'" cy="'+Y(p.w).toFixed(1)+'" r="'+(pts.length>60?1.8:3)+'" fill="var(--text-soft)" opacity="0.75"/>'; }).join("");
+
+    function dlabel(day){ var d=new Date(day*86400000); return String(d.getUTCDate()).padStart(2,"0")+"/"+String(d.getUTCMonth()+1).padStart(2,"0"); }
+    var axis='<text x="'+pl+'" y="'+(H-4)+'" font-size="9" fill="var(--text-soft)">'+dlabel(d0)+'</text>'+
+             '<text x="'+(W-pr)+'" y="'+(H-4)+'" font-size="9" text-anchor="end" fill="var(--text-soft)">'+dlabel(d1)+'</text>';
+
+    wrap.innerHTML='<svg class="chart-svg" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet">'+grid+dots+
+      '<path d="'+line+'" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'+axis+'</svg>'+
+      '<div class="chart-legend"><span><i style="background:var(--text-soft)"></i>Pesées corrigées</span><span><i style="background:var(--accent)"></i>Tendance lissée</span></div>';
+  }
+
+  var editingId=null;
+
+  function renderHistory(s){
+    var sel=document.getElementById("yearFilter");
+    var years=Array.from(new Set(s.map(function(p){ return p.date.slice(0,4); }))).sort().reverse();
+    var cur=sel.value;
+    sel.innerHTML='<option value="">Toutes les années</option>'+years.map(function(y){ return '<option value="'+y+'">'+y+'</option>'; }).join("");
+    if(years.indexOf(cur)!==-1) sel.value=cur;
+
+    var prevOf={}; s.forEach(function(p,i){ prevOf[p.id]= i? s[i-1] : null; });
+    var rows=s.slice().reverse();
+    if(sel.value) rows=rows.filter(function(p){ return p.date.slice(0,4)===sel.value; });
+    var el=document.getElementById("historyList");
+    if(!rows.length){ el.innerHTML='<div class="history-empty">'+(s.length?"Aucune pesée pour cette période.":"Aucune pesée enregistrée.")+'</div>'; return; }
+    el.innerHTML=rows.map(function(p){
+      var pr=prevOf[p.id], dHtml="";
+      if(pr){
+        var d=p.w-pr.w, cls=d<-0.05?"down":d>0.05?"up":"flat";
+        dHtml='<span class="d '+cls+'">'+fmtSigned(d,1)+'</span>';
+      }
+      var c=state.clothes.find(function(x){ return x.id===p.cloth; });
+      var off=c?c.offset:0;
+      return '<div class="history-row'+(p.id===editingId?" editing":"")+'" data-id="'+esc(p.id)+'">'+
+        '<div><div class="hr-date">'+fmtDate(p.date)+'</div>'+
+        '<div class="hr-w">'+fmt(p.w,1)+' kg'+dHtml+'</div>'+
+        '<div class="hr-detail">affiché '+fmt(p.raw,1)+' kg · '+esc(c?c.label:"—")+(off?(" (−"+fmt(off,1)+")"):"")+'</div></div>'+
+        '<button class="hr-del" data-del="'+esc(p.id)+'" aria-label="Supprimer">×</button></div>';
+    }).join("");
+  }
+
+  /* ---------- Form ---------- */
+  var form=document.getElementById("form"), toggleBtn=document.getElementById("toggleForm");
+  var submitBtn=document.getElementById("f-submit"), cancelBtn=document.getElementById("f-cancel");
+
+  function renderClothSelect(){
+    var sel=document.getElementById("f-cloth"), cur=sel.value;
+    sel.innerHTML=state.clothes.map(function(c){ return '<option value="'+esc(c.id)+'">'+esc(c.label)+(c.offset?(" (−"+fmt(c.offset,1)+" kg)"):"")+'</option>'; }).join("");
+    if(state.clothes.some(function(c){ return c.id===cur; })) sel.value=cur;
+    else if(!cur && lastCloth && state.clothes.some(function(c){ return c.id===lastCloth; })) sel.value=lastCloth;
+  }
+  var lastCloth = (function(){ var s=series(); return s.length ? s[s.length-1].cloth : null; })();
+
+  function updateCorrected(){
+    var w=toNum(document.getElementById("f-w").value);
+    var off=offsetOf(document.getElementById("f-cloth").value);
+    document.getElementById("f-corr").textContent = isNaN(w) ? "-- kg" : fmt(w-off,1)+" kg";
+  }
+  document.getElementById("f-w").addEventListener("input", function(){ document.getElementById("f-w-field").classList.remove("has-error"); updateCorrected(); });
+  document.getElementById("f-cloth").addEventListener("change", updateCorrected);
+
+  function resetForm(){
+    editingId=null;
+    var s=series(), last=s[s.length-1];
+    document.getElementById("f-date").value=todayISO();
+    document.getElementById("f-w").value="";
+    document.getElementById("f-w").placeholder = last ? fmt(last.raw,1).replace(",",",") : "";
+    if(last && state.clothes.some(function(c){ return c.id===last.cloth; })) document.getElementById("f-cloth").value=last.cloth;
+    cancelBtn.classList.add("hidden");
+    submitBtn.textContent="Enregistrer";
+    document.getElementById("toggleFormLabel").textContent="+ Ajouter une pesée";
+    document.getElementById("f-w-field").classList.remove("has-error");
+    updateCorrected();
+  }
+
+  toggleBtn.addEventListener("click", function(){
+    var hidden=form.classList.toggle("hidden");
+    toggleBtn.classList.toggle("open", !hidden);
+    if(!hidden){ resetForm(); document.getElementById("f-w").focus(); }
+  });
+  cancelBtn.addEventListener("click", function(){ resetForm(); renderHistory(series()); });
+
+  form.addEventListener("submit", function(e){
+    e.preventDefault();
+    var date=document.getElementById("f-date").value;
+    var w=toNum(document.getElementById("f-w").value);
+    var cloth=document.getElementById("f-cloth").value;
+    var ok=true;
+    document.getElementById("f-date-field").classList.remove("has-error");
+    document.getElementById("f-w-field").classList.remove("has-error");
+    if(!date){ document.getElementById("f-date-field").classList.add("has-error"); ok=false; }
+    if(isNaN(w) || w<20 || w>400){
+      document.getElementById("f-w-error").textContent="Poids invalide (20–400 kg).";
+      document.getElementById("f-w-field").classList.add("has-error"); ok=false;
+    }
+    if(!ok){ toast("Corrige les champs en rouge"); return; }
+
+    if(editingId){
+      var ex=state.entries.find(function(x){ return x.id===editingId; });
+      if(ex){ ex.date=date; ex.weight=w; ex.cloth=cloth; }
+      toast("Pesée mise à jour");
+    } else {
+      state.entries.push({ id:uid(), date:date, weight:w, cloth:cloth });
+      toast("Pesée enregistrée");
+    }
+    lastCloth=cloth;
+    save(); resetForm(); render();
+  });
+
+  document.getElementById("historyList").addEventListener("click", function(e){
+    var row=e.target.closest(".history-row"); if(!row) return;
+    var id=row.getAttribute("data-id");
+    var btn=e.target.closest("[data-del]");
+    if(btn){
+      if(row.classList.contains("confirming")){
+        state.entries=state.entries.filter(function(x){ return x.id!==id; });
+        if(editingId===id) resetForm();
+        save(); render(); toast("Pesée supprimée");
+      } else {
+        row.classList.add("confirming"); btn.textContent="✓";
+        setTimeout(function(){ if(row.isConnected){ row.classList.remove("confirming"); btn.textContent="×"; } },2500);
+      }
+      return;
+    }
+    var en=state.entries.find(function(x){ return x.id===id; }); if(!en) return;
+    editingId=id;
+    form.classList.remove("hidden"); toggleBtn.classList.add("open");
+    document.getElementById("f-date").value=en.date;
+    document.getElementById("f-w").value=String(en.weight).replace(".",",");
+    renderClothSelect();
+    if(state.clothes.some(function(c){ return c.id===en.cloth; })) document.getElementById("f-cloth").value=en.cloth;
+    cancelBtn.classList.remove("hidden");
+    submitBtn.textContent="Mettre à jour";
+    document.getElementById("toggleFormLabel").textContent="Modifier la pesée";
+    updateCorrected(); renderHistory(series());
+    form.scrollIntoView({behavior:"smooth",block:"center"});
+  });
+  document.getElementById("yearFilter").addEventListener("change", function(){ renderHistory(series()); });
+
+  document.getElementById("rangeTabs").addEventListener("click", function(e){
+    var b=e.target.closest("button"); if(!b) return;
+    state.range=Number(b.getAttribute("data-r")); save(); render();
+  });
+
+  /* ---------- Settings ---------- */
+  var panel=document.getElementById("settingsPanel");
+  document.getElementById("settingsBtn").addEventListener("click", function(){ panel.classList.remove("hidden"); });
+  document.getElementById("closeSettings").addEventListener("click", function(){ panel.classList.add("hidden"); });
+  panel.addEventListener("click", function(e){ if(e.target===panel) panel.classList.add("hidden"); });
+
+  document.getElementById("s-height").addEventListener("change", function(e){
+    var v=toNum(e.target.value);
+    state.heightCm = (!isNaN(v) && v>=100 && v<=250) ? v : null;
+    if(e.target.value && state.heightCm===null) toast("Taille invalide (100–250 cm)");
+    save(); render();
+  });
+
+  function renderClothSettings(){
+    var el=document.getElementById("clothList");
+    if(el.contains(document.activeElement) && document.activeElement.tagName==="INPUT") return; // don't clobber typing
+    el.innerHTML=state.clothes.map(function(c){
+      return '<div class="cloth-row" data-id="'+esc(c.id)+'">'+
+        '<input class="c-label" type="text" maxlength="30" value="'+esc(c.label)+'">'+
+        '<input class="c-off" type="text" inputmode="decimal" value="'+String(c.offset).replace(".",",")+'" aria-label="Décalage kg">'+
+        '<button data-rm="'+esc(c.id)+'" aria-label="Supprimer">×</button></div>';
+    }).join("");
+  }
+  document.getElementById("clothList").addEventListener("change", function(e){
+    var row=e.target.closest(".cloth-row"); if(!row) return;
+    var c=state.clothes.find(function(x){ return x.id===row.getAttribute("data-id"); }); if(!c) return;
+    if(e.target.classList.contains("c-label")) c.label=e.target.value.trim()||"Tenue";
+    if(e.target.classList.contains("c-off")){
+      var v=toNum(e.target.value); c.offset=(!isNaN(v)&&v>=0&&v<20)?v:0;
+    }
+    save(); e.target.blur(); render();
+  });
+  document.getElementById("clothList").addEventListener("click", function(e){
+    var b=e.target.closest("[data-rm]"); if(!b) return;
+    if(state.clothes.length<=1){ toast("Garde au moins une tenue"); return; }
+    state.clothes=state.clothes.filter(function(c){ return c.id!==b.getAttribute("data-rm"); });
+    save(); render();
+  });
+  document.getElementById("addCloth").addEventListener("click", function(){
+    state.clothes.push({ id:"t"+uid(), label:"Nouvelle tenue", offset:0 });
+    save(); render();
+  });
+
+  function download(content,type,name){
+    var blob=new Blob([content],{type:type}), url=URL.createObjectURL(blob), a=document.createElement("a");
+    a.href=url; a.download=name; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  }
+  function exportJson(){
+    download(JSON.stringify(state,null,2),"application/json","suivi-poids-backup-"+todayISO()+".json");
+    state.lastExportAt=new Date().toISOString(); save(); refreshBackup(); toast("Export lancé");
+  }
+  document.getElementById("exportBtn").addEventListener("click", exportJson);
+  document.getElementById("backupBannerBtn").addEventListener("click", exportJson);
+  document.getElementById("exportCsvBtn").addEventListener("click", function(){
+    var s=series(); if(!s.length){ toast("Aucune pesée à exporter"); return; }
+    var rows=[["date","poids_affiche","tenue","decalage","poids_corrige"]];
+    s.forEach(function(p){
+      var c=state.clothes.find(function(x){ return x.id===p.cloth; });
+      rows.push([p.date,p.raw,c?c.label:"",offsetOf(p.cloth),p.w.toFixed(2)]);
+    });
+    download(rows.map(function(r){ return r.join(";"); }).join("\n"),"text/csv","suivi-poids-"+todayISO()+".csv");
+    toast("Export CSV lancé");
+  });
+
+  var importFile=document.getElementById("importFile");
+  document.getElementById("importBtn").addEventListener("click", function(){ importFile.click(); });
+  importFile.addEventListener("change", function(e){
+    var f=e.target.files[0]; if(!f) return;
+    var r=new FileReader();
+    r.onload=function(ev){
+      try{
+        var p=JSON.parse(ev.target.result);
+        if(!p || typeof p!=="object" || !Array.isArray(p.entries)) throw new Error("Fichier invalide");
+        state=sanitize(p); save(); render(); toast("Import réussi"); panel.classList.add("hidden");
+      }catch(err){ toast(err.message||"Fichier invalide"); }
+    };
+    r.readAsText(f); importFile.value="";
+  });
+
+  var resetBtn=document.getElementById("resetBtn"), armed=false;
+  resetBtn.addEventListener("click", function(){
+    if(!armed){
+      armed=true; resetBtn.textContent="Confirmer la réinitialisation ?";
+      setTimeout(function(){ armed=false; resetBtn.textContent="Réinitialiser toutes les données"; },3000); return;
+    }
+    state=clone(defaultState); save(); armed=false; resetBtn.textContent="Réinitialiser toutes les données";
+    panel.classList.add("hidden"); resetForm(); render(); toast("Données réinitialisées");
+  });
+
+  function refreshBackup(){
+    var banner=document.getElementById("backupBanner"), hint=document.getElementById("lastExportHint");
+    var days = state.lastExportAt ? Math.floor((Date.now()-new Date(state.lastExportAt).getTime())/86400000) : Infinity;
+    hint.textContent = state.lastExportAt ? "Dernier export : "+fmtDate(state.lastExportAt.slice(0,10))+" ("+days+" j)." : "Aucun export effectué pour l'instant.";
+    if(state.entries.length && days>=30){
+      document.getElementById("backupBannerText").textContent = state.lastExportAt ? "Dernière sauvegarde il y a "+days+" jours." : "Aucune sauvegarde exportée.";
+      banner.classList.remove("hidden");
+    } else banner.classList.add("hidden");
+  }
+
+  resetForm();
+  render();
+})();
+</script>
+</body>
+</html>
