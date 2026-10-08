@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Suivi des fissures</title>
+<style>
+:root{
+  --bg:#f5f5f2; --card:#ffffff; --text:#1d1d1b; --muted:#6b6b66; --line:#dcdcd6;
+  --accent:#2563eb; --ok:#15803d; --warn:#b45309; --bad:#b91c1c; --info:#0369a1;
+  --okbg:#dcfce7; --warnbg:#fef3c7; --badbg:#fee2e2; --infobg:#e0f2fe; --graybg:#eeeeea;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#141413; --card:#1f1f1d; --text:#ececE8; --muted:#9a9a93; --line:#37372f;
+    --accent:#60a5fa; --ok:#4ade80; --warn:#fbbf24; --bad:#f87171; --info:#38bdf8;
+    --okbg:#14301f; --warnbg:#3a2a0c; --badbg:#3d1616; --infobg:#0c2a3a; --graybg:#2a2a27;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:760px;margin:0 auto;padding:16px}
+h1{font-size:1.4rem;margin:0 0 4px}
+h2{font-size:1.1rem;margin:0}
+.sub{color:var(--muted);font-size:.9rem;margin:0 0 14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.spread{justify-content:space-between}
+button,.btn{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:8px;padding:8px 12px;cursor:pointer}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button.small{padding:4px 8px;font-size:.85rem}
+button.danger{color:var(--bad)}
+input,select,textarea{font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px;width:100%}
+label{display:block;font-size:.85rem;color:var(--muted);margin-bottom:3px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.full{grid-column:1/-1}
+.badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:.82rem;font-weight:600}
+.b-ok{background:var(--okbg);color:var(--ok)}
+.b-warn{background:var(--warnbg);color:var(--warn)}
+.b-bad{background:var(--badbg);color:var(--bad)}
+.b-info{background:var(--infobg);color:var(--info)}
+.b-gray{background:var(--graybg);color:var(--muted)}
+.big{font-size:1.6rem;font-weight:700}
+.muted{color:var(--muted);font-size:.88rem}
+.meas{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
+.meas:first-child{border-top:0}
+details{margin-top:10px}
+summary{cursor:pointer;color:var(--accent)}
+svg{width:100%;height:auto;display:block}
+.guide li{margin-bottom:4px}
+.hide{display:none}
+</style>
+</head>
+<body>
+<main>
+  <h1>Suivi des fissures</h1>
+  <p class="sub">Relevés datés pour trancher « stable ou actif ». Les données restent dans ce navigateur (aucun envoi). Pense à exporter régulièrement.</p>
+
+  <div class="row" style="margin-bottom:14px">
+    <button id="btnExport">Exporter JSON</button>
+    <button id="btnCsv">Exporter CSV</button>
+    <button id="btnImport">Importer JSON</button>
+    <input type="file" id="fileImport" accept=".json,application/json" class="hide">
+  </div>
+
+  <div id="list"></div>
+
+  <div class="card">
+    <h2>Ajouter une fissure à suivre</h2>
+    <form id="formCrack" style="margin-top:10px">
+      <div class="grid">
+        <div class="full">
+          <label for="cName">Nom / repère</label>
+          <input id="cName" required placeholder="ex. Jour cloison / plafond, salon">
+        </div>
+        <div>
+          <label for="cType">Type</label>
+          <select id="cType">
+            <option>Cloison / plafond</option>
+            <option>Angle de fenêtre</option>
+            <option>Mur extérieur</option>
+            <option>Mur intérieur porteur</option>
+            <option>Sol / carrelage</option>
+            <option>Joint de placo</option>
+            <option>Autre</option>
+          </select>
+        </div>
+        <div>
+          <label for="cDir">Direction</label>
+          <select id="cDir">
+            <option>Horizontale</option>
+            <option>Verticale</option>
+            <option>Diagonale</option>
+            <option>En escalier</option>
+            <option>Autre / mixte</option>
+          </select>
+        </div>
+        <div class="full">
+          <label for="cNote">Description (traversante ? visible dehors ? depuis quand ?)</label>
+          <textarea id="cNote" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="primary" type="submit">Ajouter</button>
+        <button type="button" id="preset1" class="small">Modèle : jour cloison/plafond</button>
+        <button type="button" id="preset2" class="small">Modèle : angle fenêtre → plafond</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card guide">
+    <h2>Mesurer correctement</h2>
+    <ul class="muted" style="padding-left:18px;margin:8px 0 0">
+      <li>Toujours au même point : repère au crayon ou marque de part et d'autre de la fissure, ou témoin posé (jauge plâtre, fissuromètre).</li>
+      <li>Photo à chaque relevé avec un mètre dans le cadre, même cadrage.</li>
+      <li>Précision réaliste à la règle : ±0,5 mm. Une variation inférieure n'est pas significative.</li>
+      <li>Un seul relevé par mois suffit. Les deux relevés clés : fin d'été (sol le plus sec) et fin d'hiver (sol le plus humide).</li>
+      <li>Conclure « stable » seulement après un cycle complet (~12 mois) sans variation au-delà de la précision.</li>
+      <li>Seuils usuels : moins de 2 mm à surveiller, 2 à 5 mm suivi sérieux, plus de 5 mm ou décalage de niveau : étude géotechnique (G5).</li>
+    </ul>
+  </div>
+</main>
+
+<script>
+(function(){
+  var KEY = 'suivi_fissures_v1';
+  var state = { cracks: [] };
+  var openIds = {};
+
+  function load(){
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) { var p = JSON.parse(raw); if (p && Array.isArray(p.cracks)) state = p; }
+    } catch(e){}
+  }
+  function save(){
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch(e){ alert('Sauvegarde locale impossible : pense à exporter le JSON.'); }
+  }
+  function uid(){ return Math.random().toString(36).slice(2,8) + Date.now().toString(36); }
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function today(){
+    var d = new Date(); var m = String(d.getMonth()+1).padStart(2,'0'); var j = String(d.getDate()).padStart(2,'0');
+    return d.getFullYear() + '-' + m + '-' + j;
+  }
+  function toDate(s){ return new Date(s + 'T00:00:00'); }
+  function days(a,b){ return Math.round((toDate(b) - toDate(a)) / 86400000); }
+  function fmtDate(s){ return toDate(s).toLocaleDateString('fr-FR'); }
+  function fmt(n){ return Number(n).toLocaleString('fr-FR', {maximumFractionDigits:1}); }
+  function sorted(c){ return c.measures.slice().sort(function(a,b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; }); }
+
+  function analyse(c){
+    var m = sorted(c);
+    if (!m.length) return { cls:'b-gray', label:'Aucun relevé', detail:'Ajoute une première mesure de référence.' };
+    var last = m[m.length-1], first = m[0];
+    var w = m.map(function(x){ return x.width; });
+    var amp = Math.max.apply(null,w) - Math.min.apply(null,w);
+    var span = days(first.date, last.date);
+    var delta = last.width - first.width;
+    var tol = 0.5;
+    var lastOff = (last.offset != null && last.offset !== '') ? Number(last.offset) : null;
+    if (last.width >= 5 || (lastOff != null && lastOff >= 2))
+      return { cls:'b-bad', label:'Seuil sérieux atteint', detail:'Largeur ≥ 5 mm ou décalage de niveau ≥ 2 mm : étude géotechnique recommandée.' };
+    if (m.length < 2)
+      return { cls:'b-info', label:'Mesure de référence', detail:'Un seul relevé : aucune évolution mesurable pour l\'instant.' };
+    if (span < 180)
+      return { cls:'b-info', label:'Recul insuffisant (' + span + ' j)', detail:'Variation observée : ' + (delta>=0?'+':'') + fmt(delta) + ' mm. Conclure après un cycle complet (~12 mois).' };
+    if (delta > tol)
+      return { cls:'b-warn', label:'En ouverture', detail:'+' + fmt(delta) + ' mm en ' + span + ' jours (' + fmt(delta/span*365) + ' mm/an).' };
+    if (delta < -tol)
+      return { cls:'b-info', label:'En fermeture', detail:fmt(delta) + ' mm en ' + span + ' jours. Peut être saisonnier.' };
+    if (amp > tol)
+      return { cls:'b-warn', label:'Mouvement saisonnier probable', detail:'Amplitude ' + fmt(amp) + ' mm sans dérive nette : la fissure respire.' };
+    if (span >= 330)
+      return { cls:'b-ok', label:'Stable sur la période', detail:'Variation inférieure à la précision de mesure sur ' + span + ' jours.' };
+    return { cls:'b-info', label:'Stable pour l\'instant', detail:'Pas de variation sur ' + span + ' jours, mais le cycle annuel n\'est pas complet.' };
+  }
+
+  function chart(c){
+    var m = sorted(c);
+    if (m.length < 2) return '';
+    var W = 320, H = 150, pl = 30, pr = 8, pt = 10, pb = 22;
+    var t0 = toDate(m[0].date).getTime(), t1 = toDate(m[m.length-1].date).getTime();
+    var span = Math.max(t1 - t0, 1);
+    var maxW = Math.max(6, Math.max.apply(null, m.map(function(x){ return x.width; })) + 1);
+    function X(d){ return pl + (toDate(d).getTime() - t0) / span * (W - pl - pr); }
+    function Y(v){ return pt + (1 - v / maxW) * (H - pt - pb); }
+    var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Évolution de la largeur">';
+    s += '<line x1="' + pl + '" y1="' + Y(0) + '" x2="' + (W-pr) + '" y2="' + Y(0) + '" stroke="var(--line)"/>';
+    [2,5].forEach(function(v){
+      s += '<line x1="' + pl + '" y1="' + Y(v) + '" x2="' + (W-pr) + '" y2="' + Y(v) + '" stroke="' + (v===5?'var(--bad)':'var(--warn)') + '" stroke-dasharray="4 3" opacity=".7"/>';
+      s += '<text x="' + (pl-4) + '" y="' + (Y(v)+3) + '" font-size="9" text-anchor="end" fill="var(--muted)">' + v + '</text>';
+    });
+    s += '<text x="' + (pl-4) + '" y="' + (Y(0)+3) + '" font-size="9" text-anchor="end" fill="var(--muted)">0</text>';
+    var pts = m.map(function(x){ return X(x.date).toFixed(1) + ',' + Y(x.width).toFixed(1); }).join(' ');
+    s += '<polyline points="' + pts + '" fill="none" stroke="var(--accent)" stroke-width="2"/>';
+    m.forEach(function(x){ s += '<circle cx="' + X(x.date).toFixed(1) + '" cy="' + Y(x.width).toFixed(1) + '" r="3.5" fill="var(--accent)"/>'; });
+    s += '<text x="' + pl + '" y="' + (H-6) + '" font-size="9" fill="var(--muted)">' + fmtDate(m[0].date) + '</text>';
+    s += '<text x="' + (W-pr) + '" y="' + (H-6) + '" font-size="9" text-anchor="end" fill="var(--muted)">' + fmtDate(m[m.length-1].date) + '</text>';
+    s += '</svg><div class="muted">Largeur en mm. Pointillés : 2 mm (orange) et 5 mm (rouge).</div>';
+    return s;
+  }
+
+  function nextHint(c){
+    var m = sorted(c);
+    if (!m.length) return '';
+    var last = m[m.length-1];
+    var since = days(last.date, today());
+    var txt = 'Dernier relevé il y a ' + since + ' jour' + (since > 1 ? 's' : '') + '.';
+    if (since > 45) return '<span class="badge b-warn">À re-mesurer</span> <span class="muted">' + txt + '</span>';
+    return '<span class="muted">' + txt + '</span>';
+  }
+
+  function render(){
+    var box = document.getElementById('list');
+    if (!state.cracks.length){
+      box.innerHTML = '<div class="card muted">Aucune fissure suivie. Ajoute-en une ci-dessous (deux modèles sont proposés pour tes cas).</div>';
+      return;
+    }
+    box.innerHTML = state.cracks.map(function(c){
+      var m = sorted(c), last = m[m.length-1], a = analyse(c);
+      var cur = last ? fmt(last.width) + ' mm' : '–';
+      var offTxt = (last && last.offset != null && last.offset !== '') ? ' · décalage ' + fmt(last.offset) + ' mm' : '';
+      var h = '<div class="card" data-id="' + c.id + '">';
+      h += '<div class="row spread"><h2>' + esc(c.name) + '</h2><button class="small danger" data-act="delCrack">Supprimer</button></div>';
+      h += '<div class="muted">' + esc(c.type) + ' · ' + esc(c.dir) + '</div>';
+      if (c.note) h += '<div class="muted" style="margin-top:4px">' + esc(c.note) + '</div>';
+      h += '<div class="row" style="margin:10px 0 4px"><span class="big">' + cur + '</span><span class="muted">' + offTxt + '</span></div>';
+      h += '<div><span class="badge ' + a.cls + '">' + esc(a.label) + '</span></div>';
+      h += '<div class="muted" style="margin-top:4px">' + esc(a.detail) + '</div>';
+      h += '<div style="margin-top:6px">' + nextHint(c) + '</div>';
+      h += '<div style="margin-top:10px">' + chart(c) + '</div>';
+      h += '<form data-act="addMeasure" style="margin-top:12px"><div class="grid">';
+      h += '<div><label>Date</label><input type="date" name="date" value="' + today() + '" required></div>';
+      h += '<div><label>Largeur (mm)</label><input type="number" name="width" step="0.1" min="0" inputmode="decimal" required></div>';
+      h += '<div><label>Décalage niveau (mm)</label><input type="number" name="offset" step="0.1" min="0" inputmode="decimal" placeholder="optionnel"></div>';
+      h += '<div class="full"><label>Note (météo récente, photo prise, etc.)</label><input type="text" name="note"></div>';
+      h += '</div><div style="margin-top:8px"><button class="primary" type="submit">Enregistrer le relevé</button></div></form>';
+      h += '<details data-id="' + c.id + '"' + (openIds[c.id] ? ' open' : '') + '><summary>Historique (' + m.length + ')</summary>';
+      h += m.slice().reverse().map(function(x){
+        var extra = (x.offset != null && x.offset !== '') ? ' · décalage ' + fmt(x.offset) + ' mm' : '';
+        return '<div class="meas" data-mid="' + x.id + '"><div><strong>' + fmt(x.width) + ' mm</strong> <span class="muted">' + fmtDate(x.date) + extra + '</span>' +
+               (x.note ? '<div class="muted">' + esc(x.note) + '</div>' : '') + '</div><button class="small danger" data-act="delMeasure">×</button></div>';
+      }).join('');
+      h += '</details></div>';
+      return h;
+    }).join('');
+  }
+
+  function findCrack(id){ return state.cracks.filter(function(c){ return c.id === id; })[0]; }
+
+  document.getElementById('list').addEventListener('submit', function(e){
+    var f = e.target;
+    if (f.getAttribute('data-act') !== 'addMeasure') return;
+    e.preventDefault();
+    var id = f.closest('.card').getAttribute('data-id');
+    var c = findCrack(id); if (!c) return;
+    var fd = new FormData(f);
+    var width = parseFloat(String(fd.get('width')).replace(',', '.'));
+    if (isNaN(width)) return;
+    var off = String(fd.get('offset') || '').replace(',', '.');
+    c.measures.push({ id: uid(), date: fd.get('date'), width: width, offset: off === '' ? null : parseFloat(off), note: String(fd.get('note') || '').trim() });
+    openIds[id] = true;
+    save(); render();
+  });
+
+  document.getElementById('list').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-act]'); if (!b) return;
+    var act = b.getAttribute('data-act');
+    var card = b.closest('.card'); var id = card.getAttribute('data-id');
+    if (act === 'delCrack'){
+      if (confirm('Supprimer cette fissure et tous ses relevés ?')){
+        state.cracks = state.cracks.filter(function(c){ return c.id !== id; });
+        save(); render();
+      }
+    } else if (act === 'delMeasure'){
+      var mid = b.closest('.meas').getAttribute('data-mid');
+      var c = findCrack(id);
+      if (c && confirm('Supprimer ce relevé ?')){
+        c.measures = c.measures.filter(function(x){ return x.id !== mid; });
+        openIds[id] = true; save(); render();
+      }
+    }
+  });
+
+  document.getElementById('list').addEventListener('toggle', function(e){
+    var d = e.target;
+    if (d.tagName === 'DETAILS') openIds[d.getAttribute('data-id')] = d.open;
+  }, true);
+
+  document.getElementById('formCrack').addEventListener('submit', function(e){
+    e.preventDefault();
+    var name = document.getElementById('cName').value.trim(); if (!name) return;
+    state.cracks.push({
+      id: uid(), name: name,
+      type: document.getElementById('cType').value,
+      dir: document.getElementById('cDir').value,
+      note: document.getElementById('cNote').value.trim(),
+      measures: []
+    });
+    e.target.reset();
+    save(); render();
+  });
+
+  function preset(name, type, dir, note){
+    document.getElementById('cName').value = name;
+    document.getElementById('cType').value = type;
+    document.getElementById('cDir').value = dir;
+    document.getElementById('cNote').value = note;
+  }
+  document.getElementById('preset1').addEventListener('click', function(){
+    preset('Jour cloison / plafond', 'Cloison / plafond', 'Horizontale', 'Jour d\'environ 1 cm sur toute la longueur de la cloison, absent dans son prolongement. Date d\'apparition inconnue.');
+  });
+  document.getElementById('preset2').addEventListener('click', function(){
+    preset('Angle fenêtre → plafond', 'Angle de fenêtre', 'Verticale', 'Part de l\'angle de la fenêtre jusqu\'au plafond. À vérifier : traversante ? visible à l\'extérieur ? direction exacte ? Fenêtre qui frotte.');
+  });
+
+  document.getElementById('btnExport').addEventListener('click', function(){
+    download('suivi_fissures_' + today() + '.json', JSON.stringify(state, null, 2), 'application/json');
+  });
+  document.getElementById('btnCsv').addEventListener('click', function(){
+    var rows = [['fissure','type','direction','date','largeur_mm','decalage_mm','note']];
+    state.cracks.forEach(function(c){
+      sorted(c).forEach(function(x){
+        rows.push([c.name, c.type, c.dir, x.date, String(x.width).replace('.', ','), x.offset == null ? '' : String(x.offset).replace('.', ','), x.note || '']);
+      });
+    });
+    var csv = rows.map(function(r){ return r.map(function(v){ return '"' + String(v).replace(/"/g, '""') + '"'; }).join(';'); }).join('\r\n');
+    download('suivi_fissures_' + today() + '.csv', '\ufeff' + csv, 'text/csv;charset=utf-8');
+  });
+  function download(name, content, type){
+    var blob = new Blob([content], { type: type });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  }
+
+  document.getElementById('btnImport').addEventListener('click', function(){ document.getElementById('fileImport').click(); });
+  document.getElementById('fileImport').addEventListener('change', function(e){
+    var file = e.target.files[0]; if (!file) return;
+    var r = new FileReader();
+    r.onload = function(){
+      try {
+        var p = JSON.parse(r.result);
+        if (!p || !Array.isArray(p.cracks)) throw new Error('format');
+        if (confirm('Remplacer les données actuelles par ce fichier ?')){ state = p; save(); render(); }
+      } catch(err){ alert('Fichier invalide.'); }
+      e.target.value = '';
+    };
+    r.readAsText(file);
+  });
+
+  load(); render();
+})();
+</script>
+</body>
+</html>
