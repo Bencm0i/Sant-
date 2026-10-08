@@ -197,6 +197,30 @@
     font-size:.9rem;word-break:break-all;color:var(--accent2);
   }
   .sec-title{font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin:0 0 8px;}
+
+  /* ---- Onglet Trigrammes ---- */
+  table.tri{width:100%;border-collapse:separate;border-spacing:0 8px;}
+  table.tri th{
+    font-size:.74rem;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;
+    text-align:left;font-weight:600;padding:0 4px 2px;
+  }
+  table.tri td{padding:0 4px 0 0;vertical-align:middle;}
+  table.tri td:last-child{padding-right:0;}
+  table.tri input[type=text]{margin-bottom:0;padding:9px 10px;font-size:.9rem;}
+  table.tri .tname{width:100%;}
+  table.tri .ttri{
+    width:76px;text-align:center;text-transform:uppercase;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-weight:600;letter-spacing:.08em;color:var(--accent2);
+  }
+  table.tri .tact{white-space:nowrap;width:1%;}
+  .tcopy{
+    background:var(--accent);color:#fff;border:none;border-radius:8px;
+    padding:9px 12px;font-size:.78rem;font-weight:600;cursor:pointer;
+  }
+  .tcopy.copied{background:var(--accent2);}
+  .tcopy:disabled{opacity:.35;cursor:default;}
+  .tdel{background:none;border:none;color:var(--danger);font-size:1.15rem;cursor:pointer;padding:0 6px;line-height:1;}
 </style>
 </head>
 <body>
@@ -207,7 +231,8 @@
   <div class="tabs">
     <div class="tab active" data-tab="rename">Renommage</div>
     <div class="tab" data-tab="indice">Indices</div>
-    <div class="tab" data-tab="batch">Suivi multi-fichiers</div>
+    <div class="tab" data-tab="tri">Trigrammes</div>
+    <div class="tab" data-tab="batch">Suivi</div>
   </div>
 
   <!-- ===================== TAB 1 : RENOMMAGE ===================== -->
@@ -296,6 +321,20 @@
       <button class="btn secondary" id="ixReset">Désélectionner</button>
     </div>
     <div class="hint">Format : base + indice + complément, ex. 5PAF1266PMC005A ou 5PAF1266PMC005A_PLAN. Clique plusieurs indices et/ou compléments pour générer toutes les combinaisons d'un coup. "sans" = pas de complément (utile pour avoir les deux). Les indices et compléments ajoutés sont mémorisés (× pour les retirer). Si le complément commence déjà par - ou _, aucun séparateur n'est ajouté.</div>
+  </div>
+
+  <!-- ===================== TAB : TRIGRAMMES ===================== -->
+  <div class="panel" id="panel-tri">
+    <div class="card">
+      <input type="text" id="triSearch" placeholder="Rechercher un nom ou un trigramme..." autocomplete="off">
+      <table class="tri">
+        <thead><tr><th>Nom Prénom</th><th>Trigramme</th><th></th><th></th></tr></thead>
+        <tbody id="triBody"></tbody>
+      </table>
+      <div class="btn-row" style="margin-top:6px;">
+        <button class="btn secondary" id="triAdd">+ Ajouter une ligne</button>
+      </div>
+    </div>
   </div>
 
   <!-- ===================== TAB 2 : SUIVI MULTI-FICHIERS ===================== -->
@@ -793,6 +832,104 @@ renderRows();
 
   renderChips();
   build();
+})();
+
+/* ===================== TAB : TRIGRAMMES ===================== */
+(function(){
+  const KEY = 'rf_people';
+  let people = [];
+  try{ people = JSON.parse(localStorage.getItem(KEY) || '[]'); }catch(e){ people = []; }
+  if(!Array.isArray(people)) people = [];
+  const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()));
+  if(!people.length) people.push({ id: uid(), name: '', tri: '' });
+  const save = () => { try{ localStorage.setItem(KEY, JSON.stringify(people)); }catch(e){} };
+  const body = $('triBody');
+
+  const search = $('triSearch');
+  function render(focusId){
+    body.innerHTML = '';
+    const q = stripAccents(search.value.trim()).toLowerCase();
+    const shown = people.filter(p => !q ||
+      stripAccents(p.name || '').toLowerCase().includes(q) ||
+      (p.tri || '').toLowerCase().includes(q));
+    if(!shown.length){
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 4;
+      td.className = 'empty-state';
+      td.textContent = 'Aucun résultat.';
+      tr.appendChild(td);
+      body.appendChild(tr);
+      return;
+    }
+    shown.forEach(p => {
+      const tr = document.createElement('tr');
+
+      const tdN = document.createElement('td');
+      const n = document.createElement('input');
+      n.type = 'text'; n.className = 'tname'; n.value = p.name || '';
+      n.placeholder = 'Nom Prénom'; n.autocomplete = 'off';
+      n.dataset.id = p.id;
+      n.addEventListener('input', () => { p.name = n.value; save(); });
+      tdN.appendChild(n);
+
+      const tdT = document.createElement('td');
+      const t = document.createElement('input');
+      t.type = 'text'; t.className = 'ttri'; t.value = p.tri || '';
+      t.maxLength = 3; t.placeholder = '---'; t.autocomplete = 'off';
+      t.autocapitalize = 'characters';
+      tdT.appendChild(t);
+
+      const tdC = document.createElement('td');
+      tdC.className = 'tact';
+      const c = document.createElement('button');
+      c.className = 'tcopy'; c.textContent = 'Copier';
+      c.disabled = !p.tri;
+      c.addEventListener('click', () => {
+        if(!p.tri) return;
+        navigator.clipboard.writeText(p.tri).then(() => {
+          c.textContent = 'Copié !'; c.classList.add('copied');
+          setTimeout(() => { c.textContent = 'Copier'; c.classList.remove('copied'); }, 900);
+        });
+      });
+      tdC.appendChild(c);
+
+      t.addEventListener('input', () => {
+        const v = t.value.replace(/[^a-zA-Z0-9]/g,'').toUpperCase();
+        t.value = v; p.tri = v; c.disabled = !v; save();
+      });
+
+      const tdD = document.createElement('td');
+      tdD.className = 'tact';
+      const x = document.createElement('button');
+      x.className = 'tdel'; x.textContent = '×'; x.title = 'Supprimer la ligne';
+      x.addEventListener('click', () => {
+        if((p.name || p.tri) && !confirm('Supprimer la ligne ' + (p.name || p.tri) + ' ?')) return;
+        people = people.filter(o => o.id !== p.id);
+        if(!people.length) people.push({ id: uid(), name: '', tri: '' });
+        save(); render();
+      });
+      tdD.appendChild(x);
+
+      tr.appendChild(tdN); tr.appendChild(tdT); tr.appendChild(tdC); tr.appendChild(tdD);
+      body.appendChild(tr);
+    });
+    if(focusId){
+      const el = body.querySelector('input[data-id="' + focusId + '"]');
+      if(el) el.focus();
+    }
+  }
+
+  $('triAdd').addEventListener('click', () => {
+    const p = { id: uid(), name: '', tri: '' };
+    people.push(p);
+    save();
+    search.value = '';
+    render(p.id);
+  });
+
+  search.addEventListener('input', () => render());
+  render();
 })();
 </script>
 </body>
