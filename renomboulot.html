@@ -167,6 +167,36 @@
     margin-top:8px;text-decoration:underline;
   }
   .empty-state{color:var(--muted);font-size:.82rem;text-align:center;padding:20px 0;}
+
+  /* ---- Onglet Indices ---- */
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+  .chip{
+    display:inline-flex;align-items:center;gap:6px;
+    background:var(--panel2);border:1px solid var(--border);color:var(--muted);
+    padding:6px 11px;border-radius:20px;font-size:.82rem;font-weight:600;
+    cursor:pointer;user-select:none;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  .chip.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .chip .x{font-size:.9rem;line-height:1;opacity:.7;padding:0 2px;}
+  .chip .x:hover{opacity:1;color:var(--danger);}
+  .chip.on .x:hover{color:#fff;}
+  .add-line{display:flex;gap:8px;align-items:center;margin-bottom:16px;}
+  .add-line input[type=text]{flex:1;margin-bottom:0;}
+  select.sep{
+    background:var(--panel2);border:1px solid var(--border);color:var(--text);
+    padding:10px 8px;border-radius:9px;font-size:.85rem;outline:none;
+  }
+  .out-line{
+    display:flex;align-items:center;gap:10px;
+    background:var(--panel2);border:1px solid var(--border);
+    border-radius:10px;padding:10px 12px;margin-bottom:8px;
+  }
+  .out-line .t{
+    flex:1;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:.9rem;word-break:break-all;color:var(--accent2);
+  }
+  .sec-title{font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin:0 0 8px;}
 </style>
 </head>
 <body>
@@ -176,6 +206,7 @@
 
   <div class="tabs">
     <div class="tab active" data-tab="rename">Renommage</div>
+    <div class="tab" data-tab="indice">Indices</div>
     <div class="tab" data-tab="batch">Suivi multi-fichiers</div>
   </div>
 
@@ -218,6 +249,53 @@
     <div class="btn-row" style="margin-top:14px;">
       <button class="btn secondary" id="clearBtn">Vider les champs</button>
     </div>
+  </div>
+
+  <!-- ===================== TAB : INDICES ===================== -->
+  <div class="panel" id="panel-indice">
+    <div class="card">
+      <div class="field">
+        <label for="ixBase">Nom de base</label>
+        <input type="text" id="ixBase" placeholder="ex: 5PAF1266PMC005 (ou 5PAF1266PMC005A)" autocapitalize="characters" autocomplete="off">
+      </div>
+      <div class="row-opts" style="margin-top:0;margin-bottom:14px;">
+        <label class="opt"><input type="checkbox" id="ixStrip" checked> remplacer l'indice final existant</label>
+        <label class="opt"><input type="checkbox" id="ixUpper" checked> base en MAJ</label>
+      </div>
+
+      <div class="sec-title">Indices (plusieurs possibles)</div>
+      <div class="chips" id="ixChips"></div>
+      <div class="add-line">
+        <input type="text" id="ixCustom" placeholder="autre indice : 00, 01, AA, Z1..." autocomplete="off">
+        <button class="btn secondary small" id="ixAddIdx">Ajouter</button>
+      </div>
+
+      <div class="sec-title">Compléments (si différents)</div>
+      <div class="chips" id="cpChips"></div>
+      <div class="add-line">
+        <input type="text" id="cpCustom" placeholder="complément : PLAN, REV2, ASSY..." autocomplete="off">
+        <select class="sep" id="ixSep" title="Séparateur avant le complément">
+          <option value="_">sép _</option>
+          <option value="-">sép -</option>
+          <option value="">sans sép</option>
+        </select>
+        <button class="btn secondary small" id="cpAdd">Ajouter</button>
+      </div>
+
+      <div class="field">
+        <label for="ixExt">Extension (optionnel)</label>
+        <input type="text" id="ixExt" list="extensionList" placeholder="ex: pdf" autocomplete="off">
+      </div>
+    </div>
+
+    <div class="result-label" id="ixCount">Résultat</div>
+    <div id="ixOut"></div>
+    <div class="btn-row" style="margin-top:6px;">
+      <button class="btn" id="ixCopyAll">Copier tout</button>
+      <button class="btn secondary" id="ixToBatch">Envoyer vers le suivi</button>
+      <button class="btn secondary" id="ixReset">Désélectionner</button>
+    </div>
+    <div class="hint">Format : base + indice + complément, ex. 5PAF1266PMC005A ou 5PAF1266PMC005A_PLAN. Clique plusieurs indices et/ou compléments pour générer toutes les combinaisons d'un coup. "sans" = pas de complément (utile pour avoir les deux). Les indices et compléments ajoutés sont mémorisés (× pour les retirer). Si le complément commence déjà par - ou _, aucun séparateur n'est ajouté.</div>
   </div>
 
   <!-- ===================== TAB 2 : SUIVI MULTI-FICHIERS ===================== -->
@@ -530,6 +608,192 @@ stepsInput.addEventListener('input', renderRows);
 
 loadRows();
 renderRows();
+
+/* ===================== TAB : INDICES ===================== */
+(function(){
+  const IX_KEY = 'rf_ix_state';
+  const DEFAULT_IDX = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  const st = { customIdx:[], customCmp:[], selIdx:[], selCmp:[], sep:'_', strip:true, upper:true };
+
+  try{ Object.assign(st, JSON.parse(localStorage.getItem(IX_KEY) || '{}')); }catch(e){}
+  const save = () => { try{ localStorage.setItem(IX_KEY, JSON.stringify(st)); }catch(e){} };
+
+  const ixBase=$('ixBase'), ixStrip=$('ixStrip'), ixUpper=$('ixUpper');
+  const ixChips=$('ixChips'), cpChips=$('cpChips');
+  const ixCustom=$('ixCustom'), cpCustom=$('cpCustom'), ixSep=$('ixSep'), ixExt=$('ixExt');
+  const ixOut=$('ixOut'), ixCount=$('ixCount');
+  let names = [];
+
+  ixStrip.checked = !!st.strip;
+  ixUpper.checked = !!st.upper;
+  ixSep.value = st.sep;
+
+  const allIdx = () => DEFAULT_IDX.concat(st.customIdx.filter(c => !DEFAULT_IDX.includes(c)));
+  const allCmp = () => [''].concat(st.customCmp);
+
+  function cleanIdx(v){
+    return stripAccents(v || '').replace(/[^a-zA-Z0-9\-]/g,'');
+  }
+  function cleanCmp(v){
+    return stripAccents(v || '').replace(/[^a-zA-Z0-9\-_()]/g,'');
+  }
+
+  function makeChip(label, on, onToggle, onRemove){
+    const c = document.createElement('div');
+    c.className = 'chip' + (on ? ' on' : '');
+    c.appendChild(document.createTextNode(label));
+    c.addEventListener('click', onToggle);
+    if(onRemove){
+      const x = document.createElement('span');
+      x.className = 'x'; x.textContent = '×'; x.title = 'Retirer';
+      x.addEventListener('click', e => { e.stopPropagation(); onRemove(); });
+      c.appendChild(x);
+    }
+    return c;
+  }
+  function toggle(arr, v){
+    const i = arr.indexOf(v);
+    if(i >= 0) arr.splice(i,1); else arr.push(v);
+  }
+
+  function renderChips(){
+    ixChips.innerHTML = '';
+    allIdx().forEach(v => {
+      const isCustom = !DEFAULT_IDX.includes(v);
+      ixChips.appendChild(makeChip(v, st.selIdx.includes(v),
+        () => { toggle(st.selIdx, v); save(); renderChips(); build(); },
+        isCustom ? () => {
+          st.customIdx = st.customIdx.filter(x => x !== v);
+          st.selIdx = st.selIdx.filter(x => x !== v);
+          save(); renderChips(); build();
+        } : null));
+    });
+    cpChips.innerHTML = '';
+    allCmp().forEach(v => {
+      const isBlank = v === '';
+      cpChips.appendChild(makeChip(isBlank ? 'sans' : v, st.selCmp.includes(v),
+        () => { toggle(st.selCmp, v); save(); renderChips(); build(); },
+        isBlank ? null : () => {
+          st.customCmp = st.customCmp.filter(x => x !== v);
+          st.selCmp = st.selCmp.filter(x => x !== v);
+          save(); renderChips(); build();
+        }));
+    });
+  }
+
+  function joinCmp(c){
+    if(!c) return '';
+    return /^[-_]/.test(c) ? c : (st.sep + c);
+  }
+
+  function build(){
+    let base = cleanReference(ixBase.value);
+    if(ixUpper.checked) base = base.toUpperCase();
+    const idxSel = allIdx().filter(v => st.selIdx.includes(v));
+    const cmpSel = allCmp().filter(v => st.selCmp.includes(v));
+
+    // retire l'indice final existant (lettre(s) précédée(s) d'un chiffre) seulement si un indice est choisi
+    if(ixStrip.checked && idxSel.length){
+      const m = base.match(/^(.*\d)[A-Za-z]{1,2}$/);
+      if(m) base = m[1];
+    }
+    const ext = ixExt.value.trim().replace(/^\./,'').replace(/[^a-zA-Z0-9]/g,'');
+    const idxs = idxSel.length ? idxSel : [''];
+    const cmps = cmpSel.length ? cmpSel : [''];
+
+    names = [];
+    if(base){
+      idxs.forEach(i => cmps.forEach(c => {
+        names.push(base + i + joinCmp(c) + (ext ? '.' + ext : ''));
+      }));
+    }
+    render();
+  }
+
+  function render(){
+    ixOut.innerHTML = '';
+    ixCount.textContent = names.length > 1 ? 'Résultats (' + names.length + ')' : 'Résultat';
+    if(!names.length){
+      const d = document.createElement('div');
+      d.className = 'out-line';
+      d.innerHTML = '<span class="t" style="color:var(--muted)">en attente...</span>';
+      ixOut.appendChild(d);
+      return;
+    }
+    names.forEach(n => {
+      const line = document.createElement('div');
+      line.className = 'out-line';
+      const t = document.createElement('span');
+      t.className = 't'; t.textContent = n;
+      const b = document.createElement('button');
+      b.className = 'copy'; b.textContent = 'Copier';
+      b.addEventListener('click', () => {
+        navigator.clipboard.writeText(n).then(() => {
+          b.textContent = 'Copié !'; b.classList.add('copied');
+          setTimeout(() => { b.textContent = 'Copier'; b.classList.remove('copied'); }, 1000);
+        });
+        saveHistValue(HIST_KEYS.extension, ixExt.value.trim());
+      });
+      line.appendChild(t); line.appendChild(b);
+      ixOut.appendChild(line);
+    });
+  }
+
+  function addIdx(){
+    let v = cleanIdx(ixCustom.value);
+    if(!v) return;
+    if(ixUpper.checked) v = v.toUpperCase();
+    if(!allIdx().includes(v)){ st.customIdx.push(v); }
+    if(!st.selIdx.includes(v)) st.selIdx.push(v);
+    ixCustom.value = '';
+    save(); renderChips(); build();
+  }
+  function addCmp(){
+    const v = cleanCmp(cpCustom.value);
+    if(!v) return;
+    if(!st.customCmp.includes(v)) st.customCmp.push(v);
+    if(!st.selCmp.includes(v)) st.selCmp.push(v);
+    cpCustom.value = '';
+    save(); renderChips(); build();
+  }
+
+  $('ixAddIdx').addEventListener('click', addIdx);
+  $('cpAdd').addEventListener('click', addCmp);
+  ixCustom.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); addIdx(); } });
+  cpCustom.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); addCmp(); } });
+
+  ixBase.addEventListener('input', build);
+  ixExt.addEventListener('input', build);
+  ixStrip.addEventListener('change', () => { st.strip = ixStrip.checked; save(); build(); });
+  ixUpper.addEventListener('change', () => { st.upper = ixUpper.checked; save(); build(); });
+  ixSep.addEventListener('change', () => { st.sep = ixSep.value; save(); build(); });
+
+  $('ixCopyAll').addEventListener('click', () => {
+    if(!names.length) return;
+    const b = $('ixCopyAll');
+    navigator.clipboard.writeText(names.join('\n')).then(() => {
+      b.textContent = 'Copié !';
+      setTimeout(() => b.textContent = 'Copier tout', 1200);
+    });
+    saveHistValue(HIST_KEYS.extension, ixExt.value.trim());
+  });
+
+  $('ixToBatch').addEventListener('click', () => {
+    if(!names.length) return;
+    names.forEach(n => rows.push({ id: crypto.randomUUID(), name: n, steps: {} }));
+    saveRows();
+    renderRows();
+    document.querySelector('.tab[data-tab="batch"]').click();
+  });
+
+  $('ixReset').addEventListener('click', () => {
+    st.selIdx = []; st.selCmp = [];
+    save(); renderChips(); build();
+  });
+
+  renderChips();
+  build();
+})();
 </script>
 </body>
 </html>
