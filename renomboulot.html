@@ -281,7 +281,7 @@
     <div class="card">
       <div class="field">
         <label for="ixBase">Nom de base</label>
-        <input type="text" id="ixBase" placeholder="ex: 5PAF1266PMC005 (ou 5PAF1266PMC005A)" autocapitalize="characters" autocomplete="off">
+        <input type="text" id="ixBase" placeholder="ex: 5PAF1266PMC005_LOAD DISTRIBUTION ENERG" autocapitalize="characters" autocomplete="off">
       </div>
       <div class="row-opts" style="margin-top:0;margin-bottom:14px;">
         <label class="opt"><input type="checkbox" id="ixStrip" checked> remplacer l'indice final existant</label>
@@ -726,7 +726,11 @@ renderRows();
   }
 
   function build(){
-    let base = cleanReference(ixBase.value);
+    // Découpe la saisie : code (1er mot) + reste (séparateur "_" ou espace + description), reste conservé tel quel
+    const raw = stripAccents(ixBase.value).trim();
+    const pm = raw.match(/^([A-Za-z0-9]*)([-_\s][\s\S]*)?$/);
+    let base = pm ? pm[1] : cleanReference(raw);
+    const rest = pm && pm[2] ? pm[2] : '';
     if(ixUpper.checked) base = base.toUpperCase();
     const idxSel = allIdx().filter(v => st.selIdx.includes(v));
     const cmpSel = allCmp().filter(v => st.selCmp.includes(v));
@@ -743,7 +747,7 @@ renderRows();
     names = [];
     if(base){
       idxs.forEach(i => cmps.forEach(c => {
-        names.push(base + i + joinCmp(c) + (ext ? '.' + ext : ''));
+        names.push(base + i + rest + joinCmp(c) + (ext ? '.' + ext : ''));
       }));
     }
     render();
