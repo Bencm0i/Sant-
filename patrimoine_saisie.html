@@ -1329,7 +1329,10 @@ button, input, select { touch-action: manipulation; }
   <div class="section accent-red">
     <div class="section-head">
       <div class="section-title">🛡️ Assurances Vie</div>
-      <button class="mini-btn" style="width:auto;margin:0;padding:5px 12px;" onclick="addAVRow()">＋</button>
+      <div style="display:flex;gap:6px;">
+        <button class="mini-btn" style="width:auto;margin:0;padding:5px 12px;border-style:solid;font-size:11px;" onclick="fetchAllAvPrices()" title="Récupérer les cours live des ETF">⟳ Cours</button>
+        <button class="mini-btn" style="width:auto;margin:0;padding:5px 12px;" onclick="addAVRow()">＋</button>
+      </div>
     </div>
     <div class="section-body" id="body-av"></div>
   </div>
@@ -1762,8 +1765,8 @@ let DATA = {
       {nom:"PEE — Natixis",fonds:"Fonds diversifié",parts:0,pr:0,valeurActuelle:0,tauxRendement:0,url:""},
     ],
     assurance_vie:[
-      {nom:"Assurance Vie Boursorama",assureur:"Boursorama",contrat:"",versements:0,valeurActuelle:0,tauxRendement:0,url:""},
-      {nom:"Assurance Vie Fortuneo",assureur:"Fortuneo",contrat:"",versements:0,valeurActuelle:0,tauxRendement:0,url:""},
+      {nom:"Assurance Vie Boursorama",assureur:"Boursorama",contrat:"",versements:0,fondsEuro:0,etfs:[],valeurActuelle:0,tauxRendement:0,url:""},
+      {nom:"Assurance Vie Fortuneo",assureur:"Fortuneo",contrat:"",versements:0,fondsEuro:0,etfs:[],valeurActuelle:0,tauxRendement:0,url:""},
     ],
     epargne_bloquee:[
       {nom:"Livret A — Boursorama",type:"Livret A",banque:"Boursorama",montant:0,tauxAnnuel:0,dateOuverture:"",url:""},
@@ -2274,27 +2277,210 @@ function renderEE() {
 function addEERow() { DATA.investissements.epargne_entreprise.push({nom:'',fonds:'',parts:0,pr:0,valeurActuelle:0,tauxRendement:0,url:''}); renderEE(); autoSave(); }
 function delEERow(i) { deleteWithUndo(DATA.investissements.epargne_entreprise, i, renderEE, 'Ligne épargne entreprise supprimée'); }
 
-// ─── ASSURANCE VIE ─────────────────────────────────────────────────────────
-function renderAV() {
-  renderCardList({
-    containerId: 'body-av',
-    array: DATA.investissements.assurance_vie || [],
-    basePath: 'DATA.investissements.assurance_vie',
-    cardClass: 'card inv-av',
-    delFn: 'delAVRow',
-    titleFn: r => r.nom || 'Assurance Vie',
-    fields: [
-      { key: 'nom', label: 'Nom du contrat', type: 'text', full: true },
-      { key: 'assureur', label: 'Assureur', type: 'text' },
-      { key: 'contrat', label: 'N° contrat', type: 'text' },
-      { key: 'versements', label: 'Versements (€)', type: 'number', step: 0.01, min: 0 },
-      { key: 'valeurActuelle', label: 'Valeur actuelle (€)', type: 'number', step: 0.01, min: 0, after: 'syncInvToBank' },
-      { key: 'tauxRendement', label: 'Taux rendement (%)', type: 'number', step: 0.01, full: true },
-    ]
-  });
+// ─── ASSURANCE VIE (fonds euro + unités de compte en ETF) ──────────────────
+// valeurActuelle = fondsEuro + Σ(qte × coursActuel des ETF)  → toujours recalculée.
+const avQ   = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+const avFmt = v => new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v||0);
+
+function avEtfBlank() { return {nom:'',ticker:'',isin:'',qte:0,pr:0,coursActuel:0,varJour:0,lastUpdate:null,url:''}; }
+function avEtfsValue(av) { return (av.etfs||[]).reduce((s,e)=>s+(e.qte||0)*(e.coursActuel||0),0); }
+function avEtfsPR(av)    { return (av.etfs||[]).reduce((s,e)=>s+(e.qte||0)*(e.pr||0),0); }
+
+function avRecalc(av) {
+  if (!av) return;
+  if (!Array.isArray(av.etfs)) av.etfs = [];
+  // Migration : anciennes données sans décomposition → tout dans le fonds euro
+  if (av.fondsEuro === undefined || av.fondsEuro === null) av.fondsEuro = av.valeurActuelle || 0;
+  av.valeurActuelle = (av.fondsEuro || 0) + avEtfsValue(av);
 }
-function addAVRow() { DATA.investissements.assurance_vie.push({nom:'',assureur:'',contrat:'',versements:0,valeurActuelle:0,tauxRendement:0,url:''}); renderAV(); autoSave(); }
-function delAVRow(i) { deleteWithUndo(DATA.investissements.assurance_vie, i, renderAV, 'Ligne assurance-vie supprimée'); }
+function normalizeAV() { (DATA.investissements.assurance_vie || []).forEach(avRecalc); }
+
+// Lignes ETF d'un portefeuille : clé 'pea'/'cto'/'revolut' ou 'av:<index contrat>'
+function invRows(key) {
+  if (String(key).startsWith('av:')) {
+    const av = DATA.investissements.assurance_vie[parseInt(String(key).slice(3), 10)];
+    return av ? (av.etfs || (av.etfs = [])) : [];
+  }
+  return DATA.investissements[key] || [];
+}
+
+function avEtfLineHtml(e) {
+  const val = (e.qte||0)*(e.coursActuel||0), pr = (e.qte||0)*(e.pr||0);
+  if (!(val > 0)) return '';
+  let h = `<span style="color:var(--muted);">Valeur</span> <strong style="color:var(--accent);">${avFmt(val)}</strong>`;
+  if (pr > 0) {
+    const p = val - pr;
+    h += ` · P/MV <strong style="color:${p>=0?'var(--green)':'var(--red)'};">${p>=0?'+':''}${avFmt(p)} (${(p/pr*100).toFixed(1)}%)</strong>`;
+  }
+  return h;
+}
+
+function avResHtml(av) {
+  const fe = av.fondsEuro || 0, uc = avEtfsValue(av), tot = fe + uc, etfPR = avEtfsPR(av);
+  const pFE = tot > 0 ? fe / tot * 100 : 0, pUC = tot > 0 ? 100 - pFE : 0;
+  const col = v => v >= 0 ? 'var(--green)' : 'var(--red)';
+  const sg  = v => v >= 0 ? '+' : '';
+  const row = (l, v, x) => `<div style="display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;font-size:11px;"><span style="color:var(--muted);">${l}</span><span style="font-family:'DM Mono',monospace;${x||''}">${v}</span></div>`;
+  const bar = tot > 0
+    ? `<div style="display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--surface2);margin:2px 0 8px;"><div style="width:${pFE.toFixed(1)}%;background:#4df0c8;"></div><div style="width:${pUC.toFixed(1)}%;background:var(--accent);"></div></div>`
+    : '';
+  let h = `<div style="border-top:1px solid var(--border);margin-top:10px;padding-top:8px;">${bar}`;
+  h += row('🛡️ Fonds euro', avFmt(fe) + ` <span style="opacity:.7">(${pFE.toFixed(0)}%)</span>`);
+  h += row('📈 Unités de compte (ETF)', avFmt(uc) + ` <span style="opacity:.7">(${pUC.toFixed(0)}%)</span>`);
+  if (etfPR > 0 && uc > 0) {
+    const p = uc - etfPR;
+    h += row('&nbsp;&nbsp;P/MV ETF', `${sg(p)}${avFmt(p)} (${sg(p)}${(p/etfPR*100).toFixed(1)}%)`, `color:${col(p)};`);
+  }
+  h += row('VALEUR ACTUELLE', avFmt(tot), "font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:var(--accent);");
+  if ((av.versements||0) > 0) {
+    const p = tot - av.versements;
+    h += row('P/MV vs versements', `${sg(p)}${avFmt(p)} (${sg(p)}${(p/av.versements*100).toFixed(1)}%)`, `font-weight:700;color:${col(p)};`);
+  }
+  return h + '</div>';
+}
+
+// Mise à jour ciblée (sans re-render complet → on garde le focus du champ en cours)
+function avAfterChange(ai) {
+  const av = DATA.investissements.assurance_vie[ai];
+  if (!av) return;
+  avRecalc(av);
+  const r = document.getElementById('av-res-' + ai);
+  if (r) r.innerHTML = avResHtml(av);
+  (av.etfs || []).forEach((e, ei) => {
+    const l = document.getElementById(`av-etf-line-${ai}-${ei}`);
+    if (l) l.innerHTML = avEtfLineHtml(e);
+  });
+  syncInvToBank();
+  autoSave();
+}
+function avSet(ai, key, val) { DATA.investissements.assurance_vie[ai][key] = val; avAfterChange(ai); }
+function avEtfSet(ai, ei, key, val) { DATA.investissements.assurance_vie[ai].etfs[ei][key] = val; avAfterChange(ai); }
+
+function avEtfsHtml(ai) {
+  const av = DATA.investissements.assurance_vie[ai];
+  const etfs = av.etfs || [];
+  if (!etfs.length) return '<p style="color:var(--muted);font-size:11px;margin-bottom:6px;">Aucun ETF. Cliquez « ＋ ETF » pour ajouter une unité de compte.</p>';
+  return etfs.map((e, ei) => `
+    <div class="card" style="margin-bottom:8px;">
+      <div class="card-head">
+        <span class="card-title-sm" style="font-size:10px;">${avQ(e.ticker || e.nom || 'ETF')}</span>
+        <button class="del-btn" onclick="delAvEtf(${ai},${ei})">✕</button>
+      </div>
+      <div class="card-body">
+        <div class="grid2">
+          <div class="form-field full">
+            <label class="lbl">Nom</label>
+            <input type="text" value="${avQ(e.nom)}" placeholder="Nom complet de l'ETF" autocomplete="off" autocapitalize="words"
+              oninput="avEtfSet(${ai},${ei},'nom',this.value)">
+          </div>
+          <div class="form-field">
+            <label class="lbl">Ticker</label>
+            <input type="text" value="${avQ(e.ticker)}" placeholder="ex: IWDA" autocomplete="off" autocapitalize="characters" style="text-transform:uppercase"
+              oninput="avEtfSet(${ai},${ei},'ticker',this.value.toUpperCase())">
+          </div>
+          <div class="form-field">
+            <label class="lbl">ISIN</label>
+            <input type="text" value="${avQ(e.isin)}" placeholder="IE000..." autocomplete="off" autocapitalize="characters" style="text-transform:uppercase"
+              oninput="avEtfSet(${ai},${ei},'isin',this.value.toUpperCase())">
+          </div>
+          <div class="form-field">
+            <label class="lbl">Quantité</label>
+            <input type="number" value="${e.qte||''}" step="0.0001" min="0" placeholder="0.0000" inputmode="decimal" autocomplete="off"
+              oninput="avEtfSet(${ai},${ei},'qte',parseFloat(this.value)||0)">
+          </div>
+          <div class="form-field">
+            <label class="lbl">PRU (€)</label>
+            <input type="number" value="${e.pr||''}" step="0.01" min="0" placeholder="0.00" inputmode="decimal" autocomplete="off"
+              oninput="avEtfSet(${ai},${ei},'pr',parseFloat(this.value)||0)">
+          </div>
+          <div class="form-field full">
+            <label class="lbl">Cours actuel (€) <button id="inv-fetch-av:${ai}-${ei}" onclick="fetchInvPrice('av:${ai}',${ei})" title="Récupérer le cours live (Yahoo Finance)" style="background:rgba(126,184,212,0.12);border:1px solid rgba(126,184,212,0.3);color:var(--accent);font-size:11px;padding:1px 7px;border-radius:5px;cursor:pointer;font-family:'DM Mono',monospace;vertical-align:middle;margin-left:4px;">⟳</button></label>
+            <input type="number" id="inv-cours-av:${ai}-${ei}" value="${e.coursActuel||''}" step="0.01" min="0" placeholder="0.00" inputmode="decimal" autocomplete="off"
+              oninput="avEtfSet(${ai},${ei},'coursActuel',parseFloat(this.value)||0)">
+          </div>
+        </div>
+        <div id="av-etf-line-${ai}-${ei}" style="font-size:11px;text-align:right;margin-top:6px;">${avEtfLineHtml(e)}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderAV() {
+  const c = document.getElementById('body-av');
+  if (!c) return;
+  normalizeAV();
+  const rows = DATA.investissements.assurance_vie || [];
+  c.innerHTML = rows.map((av, ai) => `
+    <div class="card inv-av" style="margin-bottom:10px;">
+      <div class="card-head">
+        <span class="card-title-sm">${avQ(av.nom || 'Assurance Vie')}</span>
+        <button class="del-btn" onclick="delAVRow(${ai})">✕</button>
+      </div>
+      <div class="card-body">
+        <div class="grid2">
+          <div class="form-field full">
+            <label class="lbl">Nom du contrat</label>
+            <input type="text" value="${avQ(av.nom)}" oninput="avSet(${ai},'nom',this.value)">
+          </div>
+          <div class="form-field">
+            <label class="lbl">Assureur</label>
+            <input type="text" value="${avQ(av.assureur)}" oninput="avSet(${ai},'assureur',this.value)">
+          </div>
+          <div class="form-field">
+            <label class="lbl">N° contrat</label>
+            <input type="text" value="${avQ(av.contrat)}" oninput="avSet(${ai},'contrat',this.value)">
+          </div>
+          <div class="form-field full">
+            <label class="lbl">Versements totaux (€)</label>
+            <input type="number" value="${av.versements||''}" step="0.01" min="0" inputmode="decimal" autocomplete="off"
+              oninput="avSet(${ai},'versements',parseFloat(this.value)||0)">
+          </div>
+        </div>
+
+        <div class="sep">🛡️ Fonds Euro</div>
+        <div class="grid2">
+          <div class="form-field">
+            <label class="lbl">Montant (€)</label>
+            <input type="number" value="${av.fondsEuro||''}" step="0.01" min="0" placeholder="0.00" inputmode="decimal" autocomplete="off"
+              oninput="avSet(${ai},'fondsEuro',parseFloat(this.value)||0)">
+          </div>
+          <div class="form-field">
+            <label class="lbl">Taux fonds euro (%)</label>
+            <input type="number" value="${av.tauxRendement||''}" step="0.01" inputmode="decimal" autocomplete="off"
+              oninput="avSet(${ai},'tauxRendement',parseFloat(this.value)||0)">
+          </div>
+        </div>
+
+        <div class="sep">📈 Unités de compte (ETF)</div>
+        <div id="av-etfs-${ai}">${avEtfsHtml(ai)}</div>
+        <button class="mini-btn" onclick="addAvEtf(${ai})">＋ ETF</button>
+
+        <div id="av-res-${ai}">${avResHtml(av)}</div>
+      </div>
+    </div>`).join('') || '<p style="color:var(--muted);font-size:11px;">Aucune ligne.</p>';
+}
+
+function addAVRow() {
+  DATA.investissements.assurance_vie.push({nom:'',assureur:'',contrat:'',versements:0,fondsEuro:0,etfs:[],valeurActuelle:0,tauxRendement:0,url:''});
+  renderAV(); autoSave();
+}
+function delAVRow(i) {
+  deleteWithUndo(DATA.investissements.assurance_vie, i, () => { renderAV(); syncInvToBank(); }, 'Ligne assurance-vie supprimée');
+}
+function addAvEtf(ai) {
+  const av = DATA.investissements.assurance_vie[ai];
+  if (!av.etfs) av.etfs = [];
+  av.etfs.push(avEtfBlank());
+  renderAV(); autoSave();
+}
+function delAvEtf(ai, ei) {
+  deleteWithUndo(DATA.investissements.assurance_vie[ai].etfs, ei, () => { renderAV(); avAfterChange(ai); }, 'ETF supprimé');
+}
+async function fetchAllAvPrices() {
+  const n = (DATA.investissements.assurance_vie || []).length;
+  const jobs = [];
+  for (let ai = 0; ai < n; ai++) jobs.push(fetchAllInvPrices('av:' + ai));
+  await Promise.allSettled(jobs);
+}
 
 // ─── ÉPARGNE BLOQUÉE ───────────────────────────────────────────────────────
 function renderEB() {
@@ -2321,6 +2507,7 @@ function delEBRow(i) { deleteWithUndo(DATA.investissements.epargne_bloquee, i, r
 
 // ─── SYNC INV → BANK ───────────────────────────────────────────────────────
 function syncInvToBank() {
+  normalizeAV();
   const avBourso = DATA.investissements.assurance_vie.find(a=>a.assureur==='Boursorama'||a.nom.toLowerCase().includes('bourso'));
   if(avBourso) DATA.boursorama[7].val = avBourso.valeurActuelle;
   const avFort = DATA.investissements.assurance_vie.find(a=>a.assureur==='Fortuneo'||a.nom.toLowerCase().includes('fortuneo'));
@@ -2353,7 +2540,7 @@ const INV_CORS_PROXIES = [
 ];
 
 async function fetchInvPrice(key, i) {
-  const row = DATA.investissements[key]?.[i];
+  const row = invRows(key)[i];
   if (!row || !row.ticker) return;
   const ticker = row.ticker.trim().toUpperCase();
 
@@ -2399,7 +2586,7 @@ async function fetchInvPrice(key, i) {
           else { continue; } // Pas de taux dispo, essayer candidat suivant
         }
         // Succès
-        DATA.investissements[key][i].coursActuel = price;
+        row.coursActuel = price;
         if (inp) {
           inp.value = price.toFixed(2);
           inp.classList.add('input-saved');
@@ -2407,7 +2594,8 @@ async function fetchInvPrice(key, i) {
         }
         syncInvToBank();
         autoSave();
-        renderInvTotals(key);
+        if (String(key).startsWith('av:')) avAfterChange(parseInt(String(key).slice(3), 10));
+        else renderInvTotals(key);
         if (btn) { btn.textContent = '✓'; btn.disabled = false; setTimeout(()=>{if(btn)btn.textContent='⟳';},1500); }
         return;
       } catch(_) {}
@@ -2417,7 +2605,7 @@ async function fetchInvPrice(key, i) {
 }
 
 async function fetchAllInvPrices(key) {
-  const rows = DATA.investissements[key] || [];
+  const rows = invRows(key);
   const promises = rows.map((r, i) => r.ticker ? fetchInvPrice(key, i) : Promise.resolve());
   await Promise.allSettled(promises);
 }
@@ -3428,6 +3616,7 @@ function toggleTheme() {
 
 // ─── RENDER ALL ────────────────────────────────────────────────────────────
 function renderAll() {
+  normalizeAV();
   renderAllBanks();
   renderInvPortfolio('pea','body-pea');
   renderInvPortfolio('cto','body-cto');
@@ -4041,6 +4230,7 @@ window.addEventListener('DOMContentLoaded', () => {
     addPRU(DATA.investissements?.revolut, 'Revolut');
     addPRU(DATA.investissements?.pea,     'PEA');
     addPRU(DATA.investissements?.cto,     'CTO');
+    (DATA.investissements?.assurance_vie||[]).forEach(av => addPRU(av.etfs, 'AV ' + (av.assureur||'')));
     pruAssets.sort((a,b) => Math.abs(b.gainPct) - Math.abs(a.gainPct));
 
     let pruCard = '';
@@ -4839,6 +5029,12 @@ window.addEventListener('DOMContentLoaded', () => {
     });
     invBlock('Épargne entreprise', DATA.investissements.epargne_entreprise, r=>r.valeurActuelle||0, r=>(r.parts||0)*(r.pr||0));
     invBlock('Assurance-vie', DATA.investissements.assurance_vie, r=>r.valeurActuelle||0, r=>r.versements||0);
+    (DATA.investissements.assurance_vie||[]).forEach(av => {
+      const fe = av.fondsEuro||0, etfs = (av.etfs||[]).filter(e => (e.qte||0) > 0);
+      if (!fe && !etfs.length) return;
+      push('    ↳ ' + (av.nom||'Assurance-vie') + ' : fonds euro ' + fmtE(fe) + (av.tauxRendement ? ' (taux ' + av.tauxRendement + ' %)' : '') + ', unités de compte ' + fmtE(avEtfsValue(av)));
+      etfs.forEach(e => push('        · ' + (e.nom||e.ticker||'ETF') + (e.ticker?' ['+e.ticker+']':'') + ' : ' + e.qte + ' parts × ' + fmtE(e.coursActuel) + ' = ' + fmtE((e.qte||0)*(e.coursActuel||0)) + ' (PRU ' + fmtE(e.pr) + ')'));
+    });
     invBlock('Épargne bloquée (Livrets)', DATA.investissements.epargne_bloquee, r=>r.montant||0, null);
 
     push('\n4. SCPI');
