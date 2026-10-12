@@ -1,0 +1,256 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>Liste d'impression STL</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%96%A8%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f5f5f2;--card:#fff;--tx:#1d1d1b;--mut:#6b6b66;--bd:#dcdcd6;--ac:#2f6fed;--ok:#1f9d55;--gr:#eef3ff}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#151515;--card:#222;--tx:#eee;--mut:#9a9a94;--bd:#3a3a38;--ac:#6b9bff;--ok:#41c27a;--gr:#1d2536}}
+:root[data-theme="dark"]{--bg:#151515;--card:#222;--tx:#eee;--mut:#9a9a94;--bd:#3a3a38;--ac:#6b9bff;--ok:#41c27a;--gr:#1d2536}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px system-ui,-apple-system,Segoe UI,sans-serif;padding:12px;max-width:1100px;margin:auto}
+h1{font-size:20px;margin:4px 0 10px}
+.bar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+button,select,input{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--bd);border-radius:7px;padding:5px 8px}
+button{cursor:pointer}button:hover{border-color:var(--ac)}button.p{background:var(--ac);color:#fff;border-color:var(--ac)}
+.sum{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:10px;margin-bottom:10px}
+.sum b{font-size:15px}.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{display:flex;align-items:center;gap:6px;border:1px solid var(--bd);border-radius:20px;padding:3px 10px}
+.sw{display:inline-block;width:14px;height:14px;border-radius:50%;border:1px solid #8886;vertical-align:middle}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:8px;margin-bottom:6px}
+.row.in{margin-left:26px}.row.done{opacity:.55}.row.drag{outline:2px dashed var(--ac)}
+.gh{background:var(--gr);border-color:var(--ac)}
+.pr{font-weight:700;min-width:26px;text-align:center;color:var(--ac)}
+img.th{width:48px;height:48px;object-fit:cover;border-radius:6px;background:#8883}
+.nm{flex:1 1 200px;min-width:150px}.nm small{display:block;color:var(--mut)}
+.f{display:flex;flex-direction:column;font-size:11px;color:var(--mut);gap:2px}.f input{width:62px}.f select{max-width:110px}
+.w{font-weight:700;min-width:70px;text-align:right}
+.mv{display:flex;flex-direction:column;gap:2px}.mv button{padding:0 7px;line-height:1.2}
+dialog{background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:12px;max-width:520px;width:94%}
+.pal{display:flex;gap:6px;align-items:center;margin:5px 0}.pal input[type=color]{width:38px;padding:1px;height:30px}.pal input[type=text]{flex:1}
+.dz::after{content:'Dépose tes fichiers STL ici';position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-size:26px;background:rgba(47,111,237,.18);border:4px dashed var(--ac);z-index:50;pointer-events:none}#msg{color:var(--mut);margin:0 0 8px;font-size:13px}.tabs{display:flex;gap:6px;margin-bottom:10px}.kg{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-bottom:10px}
+.kc{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:10px}.kl,.ks{color:var(--mut);font-size:12px}.kv{font-size:22px;font-weight:700}
+.sc{overflow-x:auto}.kt{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--bd);margin-bottom:6px}.kt th,.kt td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--bd);white-space:nowrap}.kt th:first-child,.kt td:first-child{text-align:left}.kt th{color:var(--mut);font-size:12px}.kt input{width:70px}
+.bb{background:var(--bd);height:8px;border-radius:4px;min-width:60px}.bb i{display:block;height:100%;border-radius:4px}h2.kh{font-size:15px;margin:16px 0 6px}
+.star{font-size:18px;border:0;background:none}.empty{text-align:center;color:var(--mut);padding:30px}
+.hd{cursor:grab;font-size:22px;touch-action:none;user-select:none;padding:0 4px;color:var(--mut)}.row.tgt{outline:2px dashed var(--ac)}.row.drag{opacity:.6}
+.note{flex-basis:100%;min-height:38px;resize:vertical;font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:7px;padding:5px 8px}
+img.th{cursor:zoom-in}#zoom{overflow:auto;max-height:92vh;text-align:center}#zoom img{width:min(80vw,480px);cursor:zoom-in;border-radius:8px}#zoom img.z{width:min(170vw,1000px);cursor:zoom-out}
+</style></head><body>
+<h1>🖨️ Liste d'impression STL</h1>
+<div class="tabs"><button class="p" data-tab="list">📋 Liste</button><button data-tab="kpi">📊 KPI</button></div>
+<div id="vList">
+<div class="bar">
+<button class="p" id="bAdd">+ Ajouter des STL</button><button id="bDir">+ Ajouter un dossier</button>
+<button id="bImp">Importer JSON</button><button id="bExp">Exporter JSON</button>
+<button id="bGrp">Regrouper la sélection</button><button id="bPal">🎨 Couleurs</button>
+<button id="bAll">Tout cocher / décocher</button>
+</div>
+<input type="file" id="fStl" accept=".stl" multiple hidden><input type="file" id="fJson" accept=".json" hidden><input type="file" id="fDir" webkitdirectory hidden>
+<div class="bar"><input id="base" placeholder="Dossier de base des STL (ex. /media/guidesktop/2To/...)" style="flex:1 1 320px"></div><div id="msg">💡 Glisse-dépose des fichiers STL ou un dossier entier n'importe où sur la page : la miniature est générée automatiquement.</div>
+<div class="sum" id="sum"></div><div class="bar" id="flt"></div><div id="list"></div></div><div id="vKpi" hidden></div>
+<dialog id="zoom"><div id="zc"></div><p style="color:var(--mut);font-size:12px">Clique sur l'image pour agrandir / réduire, en dehors pour fermer.</p></dialog>
+<dialog id="dlg"><h3 style="margin-top:0">Couleurs de filament</h3><p style="color:var(--mut);margin:0 0 6px">★ = favori (affiché en premier dans les listes).</p><div id="pal"></div>
+<div class="bar" style="margin-top:8px"><button id="pAdd">+ Ajouter une couleur</button><button class="p" id="pOk">Fermer</button></div></dialog>
+<script>
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const DENS={PLA:1.24,PETG:1.27,ABS:1.04,ASA:1.07,TPU:1.21},MATS=Object.keys(DENS);
+const PAL0=[['blanc','#f5f5f5',1],['noir','#222222',1],['gris','#888888',0],['rouge','#d33333',0],['bleu','#2f6fed',0],['vert','#2a9d4b',0],['jaune','#f2c230',0],['orange','#f28a30',0]].map(([n,h,f])=>({n,h,f}));
+let S={items:[],groups:[],palette:PAL0,bv:[256,256,256],base:''},sel=new Set(),drag=null;
+let FL='all';const ok=i=>FL==='all'||i.status===FL;
+const save=()=>{try{localStorage.setItem('stl-list',JSON.stringify(S))}catch(e){}};
+try{const t=localStorage.getItem('stl-list');if(t)S=JSON.parse(t)}catch(e){}
+const fmtD=t=>t?new Date(t).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'}):'—';
+const wt=i=>(i.volume||0)/1000*(DENS[i.material]||1.24)*(.3+.7*(i.infill||0)/100)*(/^(Aucun)?$/.test(i.supports||'')?1:1.1)*(i.qty||1);
+const g1=w=>w>=1000?(w/1000).toFixed(2)+' kg':w.toFixed(1)+' g';
+const pal=n=>S.palette.find(p=>p.n===n);
+function ensure(){S.prices=S.prices||{PLA:20,PETG:22,ABS:20,ASA:28,TPU:32};S.diam=S.diam||1.75;S.palette=S.palette||[];S.groups=S.groups||[];S.items.forEach(i=>{i.status=i.status||'todo';if(i.color&&!pal(i.color))S.palette.push({n:i.color,h:'#cccccc',f:0})})}
+function units(){const u=[],seen={};S.items.forEach(i=>{if(i.group&&S.groups.find(g=>g.id===i.group)){if(!seen[i.group]){seen[i.group]={g:i.group,items:[]};u.push(seen[i.group])}seen[i.group].items.push(i)}else u.push({items:[i]})});return u}
+const flat=u=>{S.items=u.flatMap(x=>x.items)};
+function move(id,d,isG){const u=units();let k=u.findIndex(x=>isG?x.g===id:!x.g&&x.items[0].id===id);
+ if(k<0){k=u.findIndex(x=>x.g&&x.items.some(i=>i.id===id));const m=u[k].items,j=m.findIndex(i=>i.id===id),t=j+d;if(t<0||t>=m.length)return;[m[j],m[t]]=[m[t],m[j]]}
+ else{const t=k+d;if(t<0||t>=u.length)return;[u[k],u[t]]=[u[t],u[k]]}flat(u);draw()}
+function drop(from,to){if(from===to)return;const u=units(),fk=from.slice(1),tk=to.slice(1);
+ const idx=(k,isG)=>u.findIndex(x=>isG?x.g===k:!x.g&&x.items[0].id===k);
+ const gOf=id=>(S.items.find(i=>i.id===id)||{}).group||'';
+ if(from[0]==='i'&&gOf(fk)){ // membre de groupe: réordonner dans le même groupe
+  if(to[0]!=='i'||gOf(tk)!==gOf(fk))return;const m=u.find(x=>x.g===gOf(fk)).items,a=m.findIndex(i=>i.id===fk),b=m.findIndex(i=>i.id===tk),[it]=m.splice(a,1);m.splice(b,0,it)}
+ else{const a=idx(fk,from[0]==='g');const [x]=u.splice(a,1);let b=to[0]==='g'?idx(tk,true):(gOf(tk)?u.findIndex(y=>y.g===gOf(tk)):idx(tk,false));u.splice(b<0?u.length:b,0,x)}
+ flat(u);draw()}
+function colorOpts(cur){const f=S.palette.filter(p=>p.f),o=S.palette.filter(p=>!p.f);const op=p=>`<option value="${esc(p.n)}"${p.n===cur?' selected':''}>${p.f?'★ ':''}${esc(p.n)}</option>`;
+ return `<option value="">— couleur —</option>${f.map(op).join('')}${f.length&&o.length?'<option disabled>──────</option>':''}${o.map(op).join('')}`}
+function field(i,f,l,h){return `<label class="f">${l}${h}</label>`}
+function rowHTML(i,n,inG){const sw=pal(i.color);const gOpts=`<option value="">— aucun —</option>${S.groups.map(g=>`<option value="${g.id}"${i.group===g.id?' selected':''}>${esc(g.name)}</option>`).join('')}<option value="__new">+ Nouveau groupe…</option>`;
+ const sel_=(f,arr,cur)=>`<select data-id="${i.id}" data-f="${f}">${arr.map(v=>`<option${v==cur?' selected':''}>${v}</option>`).join('')}</select>`;
+ return `<div class="row${inG?' in':''}${i.status==='done'?' done':''}" data-k="i${i.id}"><span class="hd" title="Glisser pour changer la priorité">⠿</span>
+<input type="checkbox" data-sel="${i.id}"${sel.has(i.id)?' checked':''}><span class="pr">#${S.items.indexOf(i)+1}</span>
+${i.thumb?`<img class="th" data-zoom="${i.id}" title="Cliquer pour zoomer" src="${i.thumb}" alt="">`:''}
+<div class="nm"><b>${esc(i.name)}</b><small>${(i.dims||[]).map(d=>d.toFixed(0)).join('×')} mm · ${((i.volume||0)/1000).toFixed(1)} cm³ · ajouté ${fmtD(i.added)}${i.doneAt?' · fait '+fmtD(i.doneAt):''}</small></div>
+${field(i,'qty','Qté',`<input type="number" min="1" value="${i.qty||1}" data-id="${i.id}" data-f="qty">`)}
+${field(i,'material','Matière',sel_('material',MATS,i.material))}
+${field(i,'color','Couleur',`<select data-id="${i.id}" data-f="color">${colorOpts(i.color)}</select>`)}
+${sw?`<span class="sw" style="background:${sw.h}"></span>`:''}
+${field(i,'layer','Couche',sel_('layer',['0.08','0.12','0.16','0.20','0.28'],i.layer))}
+${field(i,'infill','Remplissage %',`<input type="number" min="0" max="100" value="${i.infill??15}" data-id="${i.id}" data-f="infill">`)}
+${field(i,'supports','Supports',sel_('supports',['Aucun','Auto','Partout'],i.supports))}
+${field(i,'group','Groupe',`<select data-id="${i.id}" data-f="group">${gOpts}</select>`)}
+${field(i,'status','Statut',`<select data-id="${i.id}" data-f="status">${[['todo','À faire'],['doing','En cours'],['done','Terminé']].map(([v,l])=>`<option value="${v}"${i.status===v?' selected':''}>${l}</option>`).join('')}</select>`)}
+<span class="w" title="Estimation (volume, remplissage, supports)">${g1(wt(i))}<small style="display:block;font-weight:400;color:var(--mut)">${eur(cost(i))}</small></span>
+<div class="mv"><button data-mv="${i.id}" data-d="-1">↑</button><button data-mv="${i.id}" data-d="1">↓</button></div>
+<button data-del="${i.id}" title="Supprimer">🗑</button>
+<textarea class="note" data-id="${i.id}" data-f="note" placeholder="Commentaire…">${esc(i.note)}</textarea></div>`}
+function draw(){save();ensure();const bi=$('#base');if(bi&&document.activeElement!==bi)bi.value=S.base||'';
+ const tot=S.items.reduce((a,i)=>a+wt(i),0),by={};
+ S.items.filter(i=>i.status!=='done').forEach(i=>{const k=(i.material||'?')+'|'+(i.color||'sans couleur');by[k]=(by[k]||0)+wt(i)});
+ $('#sum').innerHTML=`<b>Filament total : ${g1(tot)}</b> · ${S.items.length} fichier(s) · ${S.items.filter(i=>i.status==='done').length} terminé(s)
+ <div style="color:var(--mut);margin-top:4px">Reste à imprimer, par matière et couleur :</div><div class="chips">${Object.entries(by).sort().map(([k,w])=>{const[m,c]=k.split('|'),p=pal(c);return `<span class="chip">${p?`<span class="sw" style="background:${p.h}"></span>`:''}${m} ${esc(c)} · <b>${g1(w)}</b></span>`}).join('')||'<span style="color:var(--mut)">Rien à imprimer</span>'}</div>`;
+ const cnt=s=>s==='all'?S.items.length:S.items.filter(i=>i.status===s).length;
+ $('#flt').innerHTML=[['all','Tous'],['todo','À faire'],['doing','En cours'],['done','Terminés']].map(([v,l])=>`<button data-fl="${v}" class="${FL===v?'p':''}">${l} (${cnt(v)})</button>`).join('');
+ let h='';if(!S.items.length)h='<div class="empty">Aucun fichier. Ajoute des STL ou importe ton JSON.</div>';
+ units().forEach(u=>{const vis=u.items.filter(ok);if(!vis.length)return;if(!u.g){h+=rowHTML(u.items[0],0,false);return}
+  const g=S.groups.find(x=>x.id===u.g),w=u.items.reduce((a,i)=>a+wt(i),0),d=u.items.filter(i=>i.status==='done').length;
+  h+=`<div class="row gh" data-k="g${g.id}"><span class="hd" title="Glisser pour déplacer le groupe">⠿</span><button data-tg="${g.id}">${g.open===false?'▶':'▼'}</button><b style="flex:1">📦 ${esc(g.name)}</b>
+  <span style="color:var(--mut)">${u.items.length} pièce(s) · ${d}/${u.items.length} faites</span><span class="w">${g1(w)}</span>
+  <button data-ren="${g.id}">Renommer</button><button data-ung="${g.id}">Dégrouper</button>
+  <div class="mv"><button data-mvg="${g.id}" data-d="-1">↑</button><button data-mvg="${g.id}" data-d="1">↓</button></div></div>`;
+  if(g.open!==false)vis.forEach(i=>h+=rowHTML(i,0,true))});
+ $('#list').innerHTML=h||'<div class="empty">Aucun fichier dans ce filtre.</div>';kpi()}
+const L=$('#list');
+L.addEventListener('change',e=>{const t=e.target;if(t.dataset.sel){t.checked?sel.add(t.dataset.sel):sel.delete(t.dataset.sel);return}
+ const i=S.items.find(x=>x.id===t.dataset.id);if(!i)return;const f=t.dataset.f;let v=t.value;
+ if(['qty','infill'].includes(f))v=Math.max(0,+v||0);
+ if(f==='group'&&v==='__new'){const n=prompt('Nom du nouveau groupe (ex. Statuette) :');if(!n)return draw();const g={id:crypto.randomUUID(),name:n,open:true};S.groups.push(g);v=g.id}
+ if(f==='note'){i.note=v;save();return}
+ i[f]=v;if(f==='status')i.doneAt=v==='done'?Date.now():null;draw()});
+L.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const d=b.dataset;
+ if(d.mv)move(d.mv,+d.d,false);else if(d.mvg)move(d.mvg,+d.d,true);
+ else if(d.del){if(confirm('Supprimer ce fichier de la liste ?')){S.items=S.items.filter(i=>i.id!==d.del);draw()}}
+ else if(d.tg){const g=S.groups.find(x=>x.id===d.tg);g.open=g.open===false;draw()}
+ else if(d.ung){S.items.forEach(i=>{if(i.group===d.ung)i.group=''});S.groups=S.groups.filter(g=>g.id!==d.ung);draw()}
+ else if(d.ren){const g=S.groups.find(x=>x.id===d.ren),n=prompt('Nouveau nom :',g.name);if(n){g.name=n;draw()}}});
+L.addEventListener('dragstart',e=>{const r=e.target.closest('[data-k]');if(r){drag=r.dataset.k;e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',drag)}});
+L.addEventListener('dragover',e=>{const r=e.target.closest('[data-k]');if(r&&drag){e.preventDefault();L.querySelectorAll('.drag').forEach(x=>x.classList.remove('drag'));r.classList.add('drag')}});
+L.addEventListener('drop',e=>{const r=e.target.closest('[data-k]');if(r&&drag){e.preventDefault();drop(drag,r.dataset.k)}drag=null});
+L.addEventListener('dragend',()=>{drag=null;L.querySelectorAll('.drag').forEach(x=>x.classList.remove('drag'))});
+$('#bGrp').onclick=()=>{if(sel.size<1)return alert('Coche d\'abord les fichiers à regrouper.');const n=prompt('Nom du groupe (ex. Statuette Xenomorph) :');if(!n)return;
+ const g={id:crypto.randomUUID(),name:n,open:true};S.groups.push(g);S.items.forEach(i=>{if(sel.has(i.id))i.group=g.id});sel.clear();draw()};
+$('#bAll').onclick=()=>{sel.size?sel.clear():S.items.forEach(i=>sel.add(i.id));draw()};
+// Palette
+function drawPal(){$('#pal').innerHTML=S.palette.map((p,k)=>`<div class="pal"><button class="star" data-s="${k}">${p.f?'★':'☆'}</button><input type="color" value="${p.h}" data-c="${k}"><input type="text" value="${esc(p.n)}" data-n="${k}">
+ <button data-u="${k}">↑</button><button data-d="${k}">↓</button><button data-x="${k}">🗑</button></div>`).join('')}
+$('#bPal').onclick=()=>{drawPal();$('#dlg').showModal()};$('#pOk').onclick=()=>{$('#dlg').close();draw()};
+$('#pAdd').onclick=()=>{S.palette.push({n:'nouvelle',h:'#999999',f:0});drawPal()};
+$('#pal').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const d=b.dataset,P=S.palette;
+ if(d.s!==undefined)P[d.s].f=P[d.s].f?0:1;
+ else if(d.u!==undefined&&+d.u>0)[P[d.u-1],P[d.u]]=[P[d.u],P[d.u-1]];
+ else if(d.d!==undefined&&+d.d<P.length-1)[P[+d.d+1],P[d.d]]=[P[d.d],P[+d.d+1]];
+ else if(d.x!==undefined)P.splice(d.x,1);drawPal()});
+$('#pal').addEventListener('change',e=>{const t=e.target,P=S.palette;
+ if(t.dataset.c!==undefined)P[t.dataset.c].h=t.value;
+ if(t.dataset.n!==undefined){const old=P[t.dataset.n].n;P[t.dataset.n].n=t.value;S.items.forEach(i=>{if(i.color===old)i.color=t.value})}save()});
+// Import / export
+$('#bImp').onclick=()=>$('#fJson').click();
+$('#fJson').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const d=JSON.parse(await f.text());
+ S={items:d.items||[],groups:d.groups||[],palette:d.palette||S.palette,bv:d.bv||[256,256,256],base:d.base||'',prices:d.prices||S.prices,diam:d.diam||S.diam};
+ S.items.sort((a,b)=>(a.order??1e9)-(b.order??1e9));draw()}catch(err){alert('JSON invalide : '+err.message)}e.target.value=''};
+$('#bExp').onclick=()=>{S.items.forEach((i,k)=>i.order=k);const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,1)],{type:'application/json'}));a.download='liste_impression_stl.json';a.click()};
+// Filtre, zoom et glisser-déposer (souris + tactile, via la poignée ⠿)
+$('#flt').onclick=e=>{const b=e.target.closest('[data-fl]');if(b){FL=b.dataset.fl;draw()}};
+L.addEventListener('click',e=>{const im=e.target.closest('[data-zoom]');if(!im)return;const i=S.items.find(x=>x.id===im.dataset.zoom);$('#zc').innerHTML=`<img src="${i.thumb}" alt=""><div><b>${esc(i.name)}</b></div>`;$('#zoom').showModal()});
+$('#zoom').onclick=e=>{const im=e.target.closest('img');if(im)im.classList.toggle('z');else $('#zoom').close()};
+L.addEventListener('pointerdown',e=>{const h=e.target.closest('.hd');if(!h)return;const r=h.closest('[data-k]');drag=r.dataset.k;r.classList.add('drag');try{h.setPointerCapture(e.pointerId)}catch(x){}e.preventDefault()});
+L.addEventListener('pointermove',e=>{if(!drag)return;L.querySelectorAll('.tgt').forEach(x=>x.classList.remove('tgt'));if(e.clientY<70)scrollBy(0,-14);else if(e.clientY>innerHeight-70)scrollBy(0,14);const t=document.elementFromPoint(e.clientX,e.clientY),r=t&&t.closest('[data-k]');if(r&&L.contains(r)&&r.dataset.k!==drag)r.classList.add('tgt')});
+L.addEventListener('pointerup',e=>{if(!drag)return;const from=drag;drag=null;const t=document.elementFromPoint(e.clientX,e.clientY),r=t&&t.closest('[data-k]');if(r&&L.contains(r))drop(from,r.dataset.k);else draw()});
+L.addEventListener('pointercancel',()=>{drag=null;draw()});
+// Ajout STL
+$('#bAdd').onclick=()=>$('#fStl').click();
+// ===== Onglets & KPI =====
+let TAB='list';
+const eur=v=>v.toLocaleString('fr-FR',{style:'currency',currency:'EUR'});
+const cost=i=>wt(i)/1000*((S.prices||{})[i.material]||0);
+const lenM=(g,m)=>g/((DENS[m]||1.24)*Math.PI*Math.pow((S.diam||1.75)/20,2))/100;
+const lm=m=>m>=1000?(m/1000).toFixed(2)+' km':m.toFixed(0)+' m';
+document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{TAB=b.dataset.tab;document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('p',x===b));$('#vList').hidden=TAB!=='list';$('#vKpi').hidden=TAB!=='kpi'});
+$('#vKpi').addEventListener('change',e=>{const t=e.target;
+ if(t.dataset.price){S.prices[t.dataset.price]=Math.max(0,+t.value||0);draw()}
+ if(t.dataset.diam){S.diam=+t.value;draw()}});
+function kpi(){const I=S.items,P=S.prices;
+ const sm=(a,f)=>a.reduce((x,i)=>x+f(i),0);
+ const ag=a=>({n:a.length,g:sm(a,wt),m:sm(a,i=>lenM(wt(i),i.material)),c:sm(a,cost),v:sm(a,i=>(i.volume||0)/1000*(i.qty||1))});
+ const T=ag(I),D=ag(I.filter(i=>i.status==='done')),R=ag(I.filter(i=>i.status!=='done'));
+ const card=(l,v,s)=>`<div class="kc"><div class="kl">${l}</div><div class="kv">${v}</div><div class="ks">${s||'&nbsp;'}</div></div>`;
+ const bar=(v,mx,col)=>`<div class="bb"><i style="width:${mx?Math.max(2,v/mx*100):0}%;background:${col||'var(--ac)'}"></i></div>`;
+ const tbl=(head,rows)=>`<div class="sc"><table class="kt"><tr>${head.map(x=>`<th>${x}</th>`).join('')}</tr>${rows.join('')}</table></div>`;
+ const pct=T.g?Math.round(D.g/T.g*100):0;
+ let h=`<div class="kg">${card('Poids total de filament',g1(T.g),T.n+' fichier(s)')}${card('Longueur de fil',lm(T.m),'diamètre '+S.diam+' mm')}${card('Coût matière',eur(T.c),'selon les prix/kg ci-dessous')}${card('Bobines de 1 kg',(T.g/1000).toFixed(2),'équivalent')}${card('Volume des modèles',T.v.toFixed(0)+' cm³')}${card('Poids moyen / fichier',g1(T.n?T.g/T.n:0))}</div>`;
+ h+=`<h2 class="kh">Avancement : ${pct} % (en poids)</h2>${bar(D.g,T.g,'var(--ok)')}<div class="kg" style="margin-top:8px">${card('Déjà imprimé',g1(D.g),lm(D.m)+' · '+eur(D.c))}${card('Reste à imprimer',g1(R.g),lm(R.m)+' · '+eur(R.c))}</div>`;
+ const ms=[...new Set([...MATS,...I.map(i=>i.material).filter(Boolean)])];
+ h+=`<h2 class="kh">Par matière <span style="font-weight:400;color:var(--mut)">· diamètre <select data-diam="1"><option${S.diam==1.75?' selected':''}>1.75</option><option${S.diam==2.85?' selected':''}>2.85</option></select> mm</span></h2>`+
+  tbl(['Matière','Poids','Longueur','Prix / kg','Coût','Bobines 1 kg'],[...ms.map(m=>{const a=ag(I.filter(i=>i.material===m));return `<tr><td><b>${esc(m)}</b></td><td>${g1(a.g)}</td><td>${lm(a.m)}</td><td><input type="number" min="0" step="0.5" value="${P[m]||0}" data-price="${esc(m)}"> €</td><td>${eur(a.c)}</td><td>${(a.g/1000).toFixed(2)}</td></tr>`}),
+  `<tr><td><b>Total</b></td><td><b>${g1(T.g)}</b></td><td><b>${lm(T.m)}</b></td><td></td><td><b>${eur(T.c)}</b></td><td><b>${(T.g/1000).toFixed(2)}</b></td></tr>`]);
+ const cols={};I.forEach(i=>{const k=i.color||'sans couleur';(cols[k]=cols[k]||[]).push(i)});
+ const ca=Object.entries(cols).map(([k,a])=>({k,...ag(a)})).sort((a,b)=>b.g-a.g),cm=ca[0]?ca[0].g:0;
+ h+=`<h2 class="kh">Par couleur</h2>`+tbl(['Couleur','Poids','Longueur','Coût',''],ca.map(a=>{const p=pal(a.k);return `<tr><td>${p?`<span class="sw" style="background:${p.h}"></span> `:''}${esc(a.k)}</td><td>${g1(a.g)}</td><td>${lm(a.m)}</td><td>${eur(a.c)}</td><td style="min-width:90px">${bar(a.g,cm,p&&p.h)}</td></tr>`}));
+ const grp=[];S.groups.forEach(g=>{const a=I.filter(i=>i.group===g.id);if(a.length)grp.push({k:'📦 '+g.name,...ag(a)})});
+ const free=I.filter(i=>!S.groups.some(g=>g.id===i.group));if(free.length)grp.push({k:'Sans groupe',...ag(free)});
+ h+=`<h2 class="kh">Par groupe</h2>`+tbl(['Groupe','Fichiers','Poids','Longueur','Coût'],grp.map(a=>`<tr><td>${esc(a.k)}</td><td>${a.n}</td><td>${g1(a.g)}</td><td>${lm(a.m)}</td><td>${eur(a.c)}</td></tr>`));
+ h+=`<h2 class="kh">Par état</h2>`+tbl(['État','Fichiers','Poids','Coût'],[['todo','À faire'],['doing','En cours'],['done','Terminé']].map(([v,l])=>{const a=ag(I.filter(i=>i.status===v));return `<tr><td>${l}</td><td>${a.n}</td><td>${g1(a.g)}</td><td>${eur(a.c)}</td></tr>`}));
+ const top=[...I].sort((a,b)=>wt(b)-wt(a)).slice(0,5);
+ h+=`<h2 class="kh">Les 5 pièces les plus gourmandes</h2>`+tbl(['Pièce','Qté','Matière','Poids','Coût'],top.map(i=>`<tr><td>${esc(i.name)}</td><td>${i.qty||1}</td><td>${esc(i.material)}</td><td>${g1(wt(i))}</td><td>${eur(cost(i))}</td></tr>`));
+ h+=`<p style="color:var(--mut);font-size:12px">Estimations : poids = volume × densité × remplissage (+10 % si supports) × quantité. Longueur = poids ÷ (densité × section du fil). Les prix/kg sont modifiables et sauvegardés.</p>`;
+ $('#vKpi').innerHTML=h}
+// ===== Ajout STL : glisser-déposer, chemin d'accès, miniature (rendu logiciel, sans bibliothèque 3D) =====
+const msg=t=>{$('#msg').textContent=t};
+function readSTL(buf){const dv=new DataView(buf);let P;
+ if(buf.byteLength>84&&84+dv.getUint32(80,true)*50===buf.byteLength){const n=dv.getUint32(80,true);P=new Float32Array(n*9);
+  for(let t=0;t<n;t++){const o=84+t*50+12;for(let k=0;k<9;k++)P[t*9+k]=dv.getFloat32(o+k*4,true)}}
+ else{const tx=new TextDecoder().decode(buf),a=[],re=/vertex\s+(\S+)\s+(\S+)\s+(\S+)/g;let m;while(m=re.exec(tx))a.push(+m[1],+m[2],+m[3]);P=new Float32Array(a)}
+ if(P.length<9)throw new Error('STL vide ou illisible');return P}
+function stats(P){const mn=[1e9,1e9,1e9],mx=[-1e9,-1e9,-1e9];let vol=0;
+ for(let i=0;i<P.length;i+=3)for(let k=0;k<3;k++){const c=P[i+k];if(c<mn[k])mn[k]=c;if(c>mx[k])mx[k]=c}
+ for(let i=0;i<P.length;i+=9)vol+=(P[i]*(P[i+4]*P[i+8]-P[i+5]*P[i+7])-P[i+1]*(P[i+3]*P[i+8]-P[i+5]*P[i+6])+P[i+2]*(P[i+3]*P[i+7]-P[i+4]*P[i+6]))/6;
+ return{tris:P.length/9,dims:mx.map((x,k)=>x-mn[k]),volume:Math.abs(vol),mn,mx}}
+function thumb(P,st,Z=192){
+ const cv=document.createElement('canvas');cv.width=cv.height=Z;const g=cv.getContext('2d');
+ const rz=-.6,cz=Math.cos(rz),sz=Math.sin(rz),T=.6,cT=Math.cos(T),sT=Math.sin(T),c0=st.mn.map((m,k)=>(m+st.mx[k])/2);
+ const N=P.length/3,X=new Float32Array(N),U=new Float32Array(N),W=new Float32Array(N);
+ let a=1e9,b=-1e9,c=1e9,d=-1e9;
+ for(let i=0;i<N;i++){const x=P[i*3]-c0[0],y=P[i*3+1]-c0[1],z=P[i*3+2]-c0[2],x1=x*cz-y*sz,y1=x*sz+y*cz;
+  X[i]=x1;U[i]=z*cT+y1*sT;W[i]=-y1*cT+z*sT;if(X[i]<a)a=X[i];if(X[i]>b)b=X[i];if(U[i]<c)c=U[i];if(U[i]>d)d=U[i]}
+ const s=(Z-14)/Math.max(b-a,d-c,1e-6),mx=(a+b)/2,my=(c+d)/2,h=Z/2;
+ const img=g.createImageData(Z,Z),D=img.data,zb=new Float32Array(Z*Z).fill(-1e30);
+ for(let i=0;i<Z*Z;i++){D[i*4]=D[i*4+1]=D[i*4+2]=232;D[i*4+3]=255}
+ for(let t=0;t<N;t+=3){
+  const x0=(X[t]-mx)*s+h,y0=h-(U[t]-my)*s,x1=(X[t+1]-mx)*s+h,y1=h-(U[t+1]-my)*s,x2=(X[t+2]-mx)*s+h,y2=h-(U[t+2]-my)*s;
+  const ar=(x1-x0)*(y2-y0)-(x2-x0)*(y1-y0);if(Math.abs(ar)<1e-9)continue;
+  const ux=X[t+1]-X[t],uu=U[t+1]-U[t],uw=W[t+1]-W[t],vx=X[t+2]-X[t],vu=U[t+2]-U[t],vw=W[t+2]-W[t];
+  const nx=uu*vw-uw*vu,nu=uw*vx-ux*vw,nw=ux*vu-uu*vx,nl=Math.hypot(nx,nu,nw)||1;
+  const sh=.3+.7*Math.abs((nx*.35+nu*.55+nw*.76)/nl),R=70*sh+25,G=110*sh+30,B=190*sh+30;
+  const xa=Math.max(0,Math.floor(Math.min(x0,x1,x2))),xb=Math.min(Z-1,Math.ceil(Math.max(x0,x1,x2))),ya=Math.max(0,Math.floor(Math.min(y0,y1,y2))),yb=Math.min(Z-1,Math.ceil(Math.max(y0,y1,y2)));
+  const d0=W[t],d1=W[t+1],d2=W[t+2];
+  for(let y=ya;y<=yb;y++)for(let x=xa;x<=xb;x++){const px=x+.5,py=y+.5,l1=((px-x0)*(y2-y0)-(x2-x0)*(py-y0))/ar,l2=((x1-x0)*(py-y0)-(px-x0)*(y1-y0))/ar,l0=1-l1-l2;
+   if(l0<-.03||l1<-.03||l2<-.03)continue;const dz=l0*d0+l1*d1+l2*d2,k=y*Z+x;
+   if(dz>zb[k]){zb[k]=dz;D[k*4]=R;D[k*4+1]=G;D[k*4+2]=B}}}
+ g.putImageData(img,0,0);return cv.toDataURL('image/jpeg',.82)}
+async function addFile(f,rel){const P=readSTL(await f.arrayBuffer()),st=stats(P),base=(S.base||'').replace(/\/+$/,'');
+ S.items.push({id:crypto.randomUUID(),name:f.name,size:f.size,tris:st.tris,dims:st.dims,volume:st.volume,thumb:thumb(P,st),added:Date.now(),
+  path:base?base+rel:rel.replace(/^\//,''),qty:1,material:'PLA',color:'',layer:'0.20',infill:15,supports:'Aucun',status:'todo',note:''})}
+async function addMany(list){const stl=list.filter(x=>/\.stl$/i.test(x.f.name));let n=0,skip=0;const err=[];
+ for(const x of stl){if(S.items.some(i=>i.name===x.f.name&&i.size===x.f.size)){skip++;continue}
+  msg(`Traitement ${n+skip+1}/${stl.length} : ${x.f.name}…`);await new Promise(r=>setTimeout(r,30));
+  try{await addFile(x.f,x.rel);n++;draw()}catch(e){err.push(x.f.name+' ('+e.message+')')}}
+ msg(`${n} ajouté(s)${skip?`, ${skip} déjà présent(s)`:''}${err.length?', erreurs : '+err.join('; '):''}${list.length>stl.length?`, ${list.length-stl.length} fichier(s) ignoré(s) (pas .stl)`:''}.`);draw()}
+$('#fStl').onchange=e=>{addMany([...e.target.files].map(f=>({f,rel:'/'+f.name})));e.target.value=''};
+$('#bDir').onclick=()=>$('#fDir').click();
+$('#fDir').onchange=e=>{addMany([...e.target.files].map(f=>({f,rel:'/'+(f.webkitRelativePath||f.name)})));e.target.value=''};
+$('#base').onchange=e=>{S.base=e.target.value.trim();save()};
+const readEntries=d=>new Promise(r=>{const rd=d.createReader(),all=[];(function go(){rd.readEntries(es=>{if(!es.length)r(all);else{all.push(...es);go()}},()=>r(all))})()});
+async function walk(en,out){if(en.isFile)await new Promise(r=>en.file(f=>{out.push({f,rel:en.fullPath});r()},r));else if(en.isDirectory)for(const c of await readEntries(en))await walk(c,out)}
+const hasFiles=e=>e.dataTransfer&&[...e.dataTransfer.types].includes('Files');
+window.addEventListener('dragover',e=>{if(hasFiles(e)){e.preventDefault();document.body.classList.add('dz')}});
+window.addEventListener('dragleave',e=>{if(!e.relatedTarget)document.body.classList.remove('dz')});
+window.addEventListener('drop',async e=>{if(!hasFiles(e))return;e.preventDefault();document.body.classList.remove('dz');
+ const files=[...e.dataTransfer.files],ents=[...e.dataTransfer.items].map(i=>i.webkitGetAsEntry&&i.webkitGetAsEntry()),out=[];
+ for(const en of ents)if(en)await walk(en,out);
+ if(!out.length)files.forEach(f=>out.push({f,rel:'/'+f.name}));addMany(out)});
+
+draw();
+</script></body></html>
