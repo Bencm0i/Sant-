@@ -33,6 +33,7 @@ dialog{background:var(--card);color:var(--tx);border:1px solid var(--bd);border-
 .star{font-size:18px;border:0;background:none}.empty{text-align:center;color:var(--mut);padding:30px}
 .hd{cursor:grab;font-size:22px;touch-action:none;user-select:none;padding:0 4px;color:var(--mut)}.row.tgt{outline:2px dashed var(--ac)}.row.drag{opacity:.6}
 .note{flex-basis:100%;min-height:38px;resize:vertical;font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:7px;padding:5px 8px}
+.row.skip{opacity:.5;border-style:dashed;background-image:repeating-linear-gradient(45deg,transparent 0 8px,rgba(136,136,128,.12) 8px 16px)}.row.skip .nm b{text-decoration:line-through}.f.sk{flex-direction:row;align-items:center;gap:4px;white-space:nowrap;font-size:12px}.f.sk input{width:auto}.pp{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px;color:var(--mut)}.pp label{display:flex;align-items:center;gap:4px}.pp input{width:62px}
 img.th{cursor:zoom-in}#zoom{overflow:auto;max-height:92vh;text-align:center}#zoom img{width:min(80vw,480px);cursor:zoom-in;border-radius:8px}#zoom img.z{width:min(170vw,1000px);cursor:zoom-out}
 </style></head><body>
 <h1>🖨️ Liste d'impression STL</h1>
@@ -55,7 +56,7 @@ const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>(
 const DENS={PLA:1.24,PETG:1.27,ABS:1.04,ASA:1.07,TPU:1.21},MATS=Object.keys(DENS);
 const PAL0=[['blanc','#f5f5f5',1],['noir','#222222',1],['gris','#888888',0],['rouge','#d33333',0],['bleu','#2f6fed',0],['vert','#2a9d4b',0],['jaune','#f2c230',0],['orange','#f28a30',0]].map(([n,h,f])=>({n,h,f}));
 let S={items:[],groups:[],palette:PAL0,bv:[256,256,256],base:''},sel=new Set(),drag=null;
-let FL='all';const ok=i=>FL==='all'||i.status===FL;
+let FL='all';const act=i=>!i.skip;const ok=i=>FL==='all'||(FL==='skip'?!!i.skip:(i.status===FL&&!i.skip));
 const save=()=>{try{localStorage.setItem('stl-list',JSON.stringify(S))}catch(e){}};
 try{const t=localStorage.getItem('stl-list');if(t)S=JSON.parse(t)}catch(e){}
 const fmtD=t=>t?new Date(t).toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'}):'—';
@@ -80,7 +81,7 @@ function colorOpts(cur){const f=S.palette.filter(p=>p.f),o=S.palette.filter(p=>!
 function field(i,f,l,h){return `<label class="f">${l}${h}</label>`}
 function rowHTML(i,n,inG){const sw=pal(i.color);const gOpts=`<option value="">— aucun —</option>${S.groups.map(g=>`<option value="${g.id}"${i.group===g.id?' selected':''}>${esc(g.name)}</option>`).join('')}<option value="__new">+ Nouveau groupe…</option>`;
  const sel_=(f,arr,cur)=>`<select data-id="${i.id}" data-f="${f}">${arr.map(v=>`<option${v==cur?' selected':''}>${v}</option>`).join('')}</select>`;
- return `<div class="row${inG?' in':''}${i.status==='done'?' done':''}" data-k="i${i.id}"><span class="hd" title="Glisser pour changer la priorité">⠿</span>
+ return `<div class="row${inG?' in':''}${i.status==='done'?' done':''}${i.skip?' skip':''}" data-k="i${i.id}"><span class="hd" title="Glisser pour changer la priorité">⠿</span>
 <input type="checkbox" data-sel="${i.id}"${sel.has(i.id)?' checked':''}><span class="pr">#${S.items.indexOf(i)+1}</span>
 ${i.thumb?`<img class="th" data-zoom="${i.id}" title="Cliquer pour zoomer" src="${i.thumb}" alt="">`:''}
 <div class="nm"><b>${esc(i.name)}</b><small>${(i.dims||[]).map(d=>d.toFixed(0)).join('×')} mm · ${((i.volume||0)/1000).toFixed(1)} cm³ · ajouté ${fmtD(i.added)}${i.doneAt?' · fait '+fmtD(i.doneAt):''}</small></div>
@@ -92,30 +93,32 @@ ${field(i,'layer','Couche',sel_('layer',['0.08','0.12','0.16','0.20','0.28'],i.l
 ${field(i,'infill','Remplissage %',`<input type="number" min="0" max="100" value="${i.infill??15}" data-id="${i.id}" data-f="infill">`)}
 ${field(i,'supports','Supports',sel_('supports',['Aucun','Auto','Partout'],i.supports))}
 ${field(i,'group','Groupe',`<select data-id="${i.id}" data-f="group">${gOpts}</select>`)}
+<label class="f sk" title="Exclu des totaux et des KPI"><input type="checkbox" data-id="${i.id}" data-f="skip"${i.skip?' checked':''}>Pas à faire</label>
 ${field(i,'status','Statut',`<select data-id="${i.id}" data-f="status">${[['todo','À faire'],['doing','En cours'],['done','Terminé']].map(([v,l])=>`<option value="${v}"${i.status===v?' selected':''}>${l}</option>`).join('')}</select>`)}
-<span class="w" title="Estimation (volume, remplissage, supports)">${g1(wt(i))}<small style="display:block;font-weight:400;color:var(--mut)">${eur(cost(i))}</small></span>
+<span class="w" title="Estimation (volume, remplissage, supports)">${i.skip?`<s>${g1(wt(i))}</s><small style="display:block;font-weight:400;color:var(--mut)">non compté</small>`:`${g1(wt(i))}<small style="display:block;font-weight:400;color:var(--mut)">${eur(cost(i))}</small>`}</span>
 <div class="mv"><button data-mv="${i.id}" data-d="-1">↑</button><button data-mv="${i.id}" data-d="1">↓</button></div>
 <button data-del="${i.id}" title="Supprimer">🗑</button>
 <textarea class="note" data-id="${i.id}" data-f="note" placeholder="Commentaire…">${esc(i.note)}</textarea></div>`}
 function draw(){save();ensure();const bi=$('#base');if(bi&&document.activeElement!==bi)bi.value=S.base||'';
- const tot=S.items.reduce((a,i)=>a+wt(i),0),by={};
- S.items.filter(i=>i.status!=='done').forEach(i=>{const k=(i.material||'?')+'|'+(i.color||'sans couleur');by[k]=(by[k]||0)+wt(i)});
- $('#sum').innerHTML=`<b>Filament total : ${g1(tot)}</b> · ${S.items.length} fichier(s) · ${S.items.filter(i=>i.status==='done').length} terminé(s)
- <div style="color:var(--mut);margin-top:4px">Reste à imprimer, par matière et couleur :</div><div class="chips">${Object.entries(by).sort().map(([k,w])=>{const[m,c]=k.split('|'),p=pal(c);return `<span class="chip">${p?`<span class="sw" style="background:${p.h}"></span>`:''}${m} ${esc(c)} · <b>${g1(w)}</b></span>`}).join('')||'<span style="color:var(--mut)">Rien à imprimer</span>'}</div>`;
- const cnt=s=>s==='all'?S.items.length:S.items.filter(i=>i.status===s).length;
- $('#flt').innerHTML=[['all','Tous'],['todo','À faire'],['doing','En cours'],['done','Terminés']].map(([v,l])=>`<button data-fl="${v}" class="${FL===v?'p':''}">${l} (${cnt(v)})</button>`).join('');
+ const A=S.items.filter(act),nSkip=S.items.length-A.length,tot=A.reduce((a,i)=>a+wt(i),0),totC=A.reduce((a,i)=>a+cost(i),0),by={};
+ A.filter(i=>i.status!=='done').forEach(i=>{const k=(i.material||'?')+'|'+(i.color||'sans couleur');by[k]=(by[k]||0)+wt(i)});
+ $('#sum').innerHTML=`<b>Filament total : ${g1(tot)}</b> · ${eur(totC)} · ${A.length} fichier(s) · ${A.filter(i=>i.status==='done').length} terminé(s)${nSkip?` · <span style="color:var(--mut)">${nSkip} pas à faire (non compté)</span>`:''}
+ <div style="color:var(--mut);margin-top:4px">Reste à imprimer, par matière et couleur :</div><div class="chips">${Object.entries(by).sort().map(([k,w])=>{const[m,c]=k.split('|'),p=pal(c);return `<span class="chip">${p?`<span class="sw" style="background:${p.h}"></span>`:''}${m} ${esc(c)} · <b>${g1(w)}</b></span>`}).join('')||'<span style="color:var(--mut)">Rien à imprimer</span>'}</div>
+ <div class="pp"><span>💶 Prix / kg :</span>${MATS.map(m=>`<label>${m}<input type="number" min="0" step="0.5" value="${S.prices[m]||0}" data-price="${m}">€</label>`).join('')}</div>`;
+ const cnt=s=>s==='all'?S.items.length:s==='skip'?S.items.filter(i=>i.skip).length:S.items.filter(i=>i.status===s&&!i.skip).length;
+ $('#flt').innerHTML=[['all','Tous'],['todo','À faire'],['doing','En cours'],['done','Terminés'],['skip','Pas à faire']].map(([v,l])=>`<button data-fl="${v}" class="${FL===v?'p':''}">${l} (${cnt(v)})</button>`).join('');
  let h='';if(!S.items.length)h='<div class="empty">Aucun fichier. Ajoute des STL ou importe ton JSON.</div>';
  units().forEach(u=>{const vis=u.items.filter(ok);if(!vis.length)return;if(!u.g){h+=rowHTML(u.items[0],0,false);return}
-  const g=S.groups.find(x=>x.id===u.g),w=u.items.reduce((a,i)=>a+wt(i),0),d=u.items.filter(i=>i.status==='done').length;
+  const g=S.groups.find(x=>x.id===u.g),ua=u.items.filter(act),w=ua.reduce((a,i)=>a+wt(i),0),d=ua.filter(i=>i.status==='done').length;
   h+=`<div class="row gh" data-k="g${g.id}"><span class="hd" title="Glisser pour déplacer le groupe">⠿</span><button data-tg="${g.id}">${g.open===false?'▶':'▼'}</button><b style="flex:1">📦 ${esc(g.name)}</b>
-  <span style="color:var(--mut)">${u.items.length} pièce(s) · ${d}/${u.items.length} faites</span><span class="w">${g1(w)}</span>
+  <span style="color:var(--mut)">${ua.length} pièce(s) · ${d}/${ua.length} faites${ua.length<u.items.length?' · '+(u.items.length-ua.length)+' pas à faire':''}</span><span class="w">${g1(w)}</span>
   <button data-ren="${g.id}">Renommer</button><button data-ung="${g.id}">Dégrouper</button>
   <div class="mv"><button data-mvg="${g.id}" data-d="-1">↑</button><button data-mvg="${g.id}" data-d="1">↓</button></div></div>`;
   if(g.open!==false)vis.forEach(i=>h+=rowHTML(i,0,true))});
  $('#list').innerHTML=h||'<div class="empty">Aucun fichier dans ce filtre.</div>';kpi()}
 const L=$('#list');
 L.addEventListener('change',e=>{const t=e.target;if(t.dataset.sel){t.checked?sel.add(t.dataset.sel):sel.delete(t.dataset.sel);return}
- const i=S.items.find(x=>x.id===t.dataset.id);if(!i)return;const f=t.dataset.f;let v=t.value;
+ const i=S.items.find(x=>x.id===t.dataset.id);if(!i)return;const f=t.dataset.f;let v=f==='skip'?t.checked:t.value;
  if(['qty','infill'].includes(f))v=Math.max(0,+v||0);
  if(f==='group'&&v==='__new'){const n=prompt('Nom du nouveau groupe (ex. Statuette) :');if(!n)return draw();const g={id:crypto.randomUUID(),name:n,open:true};S.groups.push(g);v=g.id}
  if(f==='note'){i.note=v;save();return}
@@ -169,10 +172,11 @@ const cost=i=>wt(i)/1000*((S.prices||{})[i.material]||0);
 const lenM=(g,m)=>g/((DENS[m]||1.24)*Math.PI*Math.pow((S.diam||1.75)/20,2))/100;
 const lm=m=>m>=1000?(m/1000).toFixed(2)+' km':m.toFixed(0)+' m';
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{TAB=b.dataset.tab;document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('p',x===b));$('#vList').hidden=TAB!=='list';$('#vKpi').hidden=TAB!=='kpi'});
+$('#sum').addEventListener('change',e=>{const t=e.target;if(t.dataset.price){S.prices[t.dataset.price]=Math.max(0,+t.value||0);draw()}});
 $('#vKpi').addEventListener('change',e=>{const t=e.target;
  if(t.dataset.price){S.prices[t.dataset.price]=Math.max(0,+t.value||0);draw()}
  if(t.dataset.diam){S.diam=+t.value;draw()}});
-function kpi(){const I=S.items,P=S.prices;
+function kpi(){const I=S.items.filter(act),P=S.prices,nSk=S.items.length-I.length;
  const sm=(a,f)=>a.reduce((x,i)=>x+f(i),0);
  const ag=a=>({n:a.length,g:sm(a,wt),m:sm(a,i=>lenM(wt(i),i.material)),c:sm(a,cost),v:sm(a,i=>(i.volume||0)/1000*(i.qty||1))});
  const T=ag(I),D=ag(I.filter(i=>i.status==='done')),R=ag(I.filter(i=>i.status!=='done'));
@@ -195,7 +199,7 @@ function kpi(){const I=S.items,P=S.prices;
  h+=`<h2 class="kh">Par état</h2>`+tbl(['État','Fichiers','Poids','Coût'],[['todo','À faire'],['doing','En cours'],['done','Terminé']].map(([v,l])=>{const a=ag(I.filter(i=>i.status===v));return `<tr><td>${l}</td><td>${a.n}</td><td>${g1(a.g)}</td><td>${eur(a.c)}</td></tr>`}));
  const top=[...I].sort((a,b)=>wt(b)-wt(a)).slice(0,5);
  h+=`<h2 class="kh">Les 5 pièces les plus gourmandes</h2>`+tbl(['Pièce','Qté','Matière','Poids','Coût'],top.map(i=>`<tr><td>${esc(i.name)}</td><td>${i.qty||1}</td><td>${esc(i.material)}</td><td>${g1(wt(i))}</td><td>${eur(cost(i))}</td></tr>`));
- h+=`<p style="color:var(--mut);font-size:12px">Estimations : poids = volume × densité × remplissage (+10 % si supports) × quantité. Longueur = poids ÷ (densité × section du fil). Les prix/kg sont modifiables et sauvegardés.</p>`;
+ h+=`<p style="color:var(--mut);font-size:12px">Estimations : poids = volume × densité × remplissage (+10 % si supports) × quantité. Longueur = poids ÷ (densité × section du fil). Les prix/kg sont modifiables et sauvegardés.${nSk?` ${nSk} fichier(s) marqué(s) « pas à faire » sont exclus de tous les calculs.`:''}</p>`;
  $('#vKpi').innerHTML=h}
 // ===== Ajout STL : glisser-déposer, chemin d'accès, miniature (rendu logiciel, sans bibliothèque 3D) =====
 const msg=t=>{$('#msg').textContent=t};
