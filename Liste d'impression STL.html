@@ -41,7 +41,7 @@ img.th{cursor:zoom-in}#zoom{overflow:auto;max-height:92vh;text-align:center}#zoo
 <div id="vList">
 <div class="bar">
 <button class="p" id="bAdd">+ Ajouter des STL</button><button id="bDir">+ Ajouter un dossier</button>
-<button id="bImp">Importer JSON</button><button id="bExp">Exporter JSON</button>
+<button id="bSortP" title="Réordonne la liste : pièces avec un ordre de passage d'abord, les autres à la suite">Trier par passage</button><button id="bImp">Importer JSON</button><button id="bExp">Exporter JSON</button>
 <button id="bGrp">Regrouper la sélection</button><button id="bPal">🎨 Couleurs</button>
 <button id="bAll">Tout cocher / décocher</button>
 </div>
@@ -94,6 +94,7 @@ ${field(i,'infill','Remplissage %',`<input type="number" min="0" max="100" value
 ${field(i,'supports','Supports',sel_('supports',['Aucun','Auto','Partout'],i.supports))}
 ${field(i,'group','Groupe',`<select data-id="${i.id}" data-f="group">${gOpts}</select>`)}
 <label class="f sk" title="Exclu des totaux et des KPI"><input type="checkbox" data-id="${i.id}" data-f="skip"${i.skip?' checked':''}>Pas à faire</label>
+${field(i,'passage','Ordre de passage',`<input type="number" min="1" step="1" placeholder="—" value="${i.passage??''}" data-id="${i.id}" data-f="passage" title="Vide = pas prévu">`)}
 ${field(i,'status','Statut',`<select data-id="${i.id}" data-f="status">${[['todo','À faire'],['doing','En cours'],['done','Terminé']].map(([v,l])=>`<option value="${v}"${i.status===v?' selected':''}>${l}</option>`).join('')}</select>`)}
 <span class="w" title="Estimation (volume, remplissage, supports)">${i.skip?`<s>${g1(wt(i))}</s><small style="display:block;font-weight:400;color:var(--mut)">non compté</small>`:`${g1(wt(i))}<small style="display:block;font-weight:400;color:var(--mut)">${eur(cost(i))}</small>`}</span>
 <div class="mv"><button data-mv="${i.id}" data-d="-1">↑</button><button data-mv="${i.id}" data-d="1">↓</button></div>
@@ -120,6 +121,7 @@ const L=$('#list');
 L.addEventListener('change',e=>{const t=e.target;if(t.dataset.sel){t.checked?sel.add(t.dataset.sel):sel.delete(t.dataset.sel);return}
  const i=S.items.find(x=>x.id===t.dataset.id);if(!i)return;const f=t.dataset.f;let v=f==='skip'?t.checked:t.value;
  if(['qty','infill'].includes(f))v=Math.max(0,+v||0);
+ if(f==='passage')v=v===''||!(+v>0)?null:Math.round(+v);
  if(f==='group'&&v==='__new'){const n=prompt('Nom du nouveau groupe (ex. Statuette) :');if(!n)return draw();const g={id:crypto.randomUUID(),name:n,open:true};S.groups.push(g);v=g.id}
  if(f==='note'){i.note=v;save();return}
  i[f]=v;if(f==='status')i.doneAt=v==='done'?Date.now():null;draw()});
@@ -150,11 +152,12 @@ $('#pal').addEventListener('change',e=>{const t=e.target,P=S.palette;
  if(t.dataset.c!==undefined)P[t.dataset.c].h=t.value;
  if(t.dataset.n!==undefined){const old=P[t.dataset.n].n;P[t.dataset.n].n=t.value;S.items.forEach(i=>{if(i.color===old)i.color=t.value})}save()});
 // Import / export
+$('#bSortP').onclick=()=>{if(!S.items.some(i=>i.passage>0))return alert("Aucun ordre de passage renseigné.");if(!confirm("Réordonner la liste selon l'ordre de passage ? Les pièces sans ordre restent à la suite, dans leur ordre actuel."))return;const k=i=>i.passage>0?i.passage:Infinity,idx=new Map(S.items.map((i,n)=>[i,n]));S.items.sort((a,b)=>k(a)===k(b)?idx.get(a)-idx.get(b):k(a)-k(b));draw()};
 $('#bImp').onclick=()=>$('#fJson').click();
 $('#fJson').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const d=JSON.parse(await f.text());
  S={items:d.items||[],groups:d.groups||[],palette:d.palette||S.palette,bv:d.bv||[256,256,256],base:d.base||'',prices:d.prices||S.prices,diam:d.diam||S.diam};
  S.items.sort((a,b)=>(a.order??1e9)-(b.order??1e9));draw()}catch(err){alert('JSON invalide : '+err.message)}e.target.value=''};
-$('#bExp').onclick=()=>{S.items.forEach((i,k)=>i.order=k);const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,1)],{type:'application/json'}));a.download='liste_impression_stl.json';a.click()};
+$('#bExp').onclick=()=>{S.items.forEach((i,k)=>i.order=k);const n=new Date(),z=x=>String(x).padStart(2,'0'),st=`${n.getFullYear()}-${z(n.getMonth()+1)}-${z(n.getDate())}_${z(n.getHours())}-${z(n.getMinutes())}`;const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({exported_at:n.toISOString(),...S},null,1)],{type:'application/json'}));a.download=`liste_impression_stl_${st}.json`;a.click()};
 // Filtre, zoom et glisser-déposer (souris + tactile, via la poignée ⠿)
 $('#flt').onclick=e=>{const b=e.target.closest('[data-fl]');if(b){FL=b.dataset.fl;draw()}};
 L.addEventListener('click',e=>{const im=e.target.closest('[data-zoom]');if(!im)return;const i=S.items.find(x=>x.id===im.dataset.zoom);$('#zc').innerHTML=`<img src="${i.thumb}" alt=""><div><b>${esc(i.name)}</b></div>`;$('#zoom').showModal()});
