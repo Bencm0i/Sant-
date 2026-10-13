@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anonymiseur local</title>
+<style>
+:root{
+  --bg:#f6f7f9; --card:#ffffff; --text:#1c2230; --muted:#667085; --border:#d6dbe3;
+  --accent:#2f6fed; --accent-text:#ffffff; --warn:#b54708; --warn-bg:#fff4e5; --ok:#067647;
+  --input:#ffffff;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#12151b; --card:#1b2029; --text:#e6e9ef; --muted:#8f98a8; --border:#2e3644;
+    --accent:#5b8cff; --accent-text:#0b1020; --warn:#f5b461; --warn-bg:#2b2112; --ok:#4ade80;
+    --input:#141820;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:16px}
+h1{font-size:1.4rem;margin:8px 0 2px}
+h2{font-size:1.05rem;margin:0 0 10px}
+.sub{color:var(--muted);margin:0 0 16px}
+section{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;align-items:center}
+button{font:inherit;padding:7px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:var(--accent-text);border-color:var(--accent)}
+button.icon{padding:4px 10px}
+label.opt{display:flex;gap:6px;align-items:center;color:var(--muted);font-size:.9rem}
+input[type=text],select,textarea{font:inherit;color:var(--text);background:var(--input);border:1px solid var(--border);border-radius:8px;padding:7px 9px;width:100%}
+textarea{min-height:200px;resize:vertical;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.88rem}
+.grid-head,.row{display:grid;grid-template-columns:170px 1fr 1fr 56px 40px;gap:8px;align-items:center}
+.grid-head{color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.04em;padding:0 2px 4px}
+.row{margin-bottom:8px}
+.count{text-align:center;font-variant-numeric:tabular-nums;color:var(--ok);font-weight:600}
+.count.zero{color:var(--warn)}
+.panes{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pane-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-weight:600}
+.stat{color:var(--muted);font-size:.85rem;margin-top:6px;min-height:1.2em}
+.warn{background:var(--warn-bg);color:var(--warn);border-radius:8px;padding:8px 10px;margin:8px 0;font-size:.9rem}
+.warn:empty{display:none}
+.note{color:var(--muted);font-size:.85rem;margin-top:8px}
+@media (max-width:760px){
+  .grid-head{display:none}
+  .row{grid-template-columns:1fr 1fr 48px;border:1px solid var(--border);border-radius:8px;padding:8px}
+  .row select{grid-column:1 / 3}
+  .row .count{grid-column:3;grid-row:1}
+  .row .real{grid-column:1 / 4}
+  .row .rep{grid-column:1 / 3}
+  .row .del{grid-column:3}
+  .panes{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<main>
+  <h1>Anonymiseur local</h1>
+  <p class="sub">Remplace noms, adresses, comptes… par des repères avant d'envoyer un document à une IA, puis restaure la réponse. Tout se passe dans ton navigateur, rien n'est envoyé.</p>
+
+  <section>
+    <h2>1. Table de correspondance</h2>
+    <div class="toolbar">
+      <button class="primary" id="btnAdd">+ Ligne</button>
+      <button id="btnDetect">Détecter auto (e-mail, IBAN, tél.)</button>
+      <button id="btnExport">Exporter JSON</button>
+      <button id="btnImport">Importer JSON</button>
+      <button id="btnClear">Vider</button>
+      <input type="file" id="fileImport" accept="application/json" hidden>
+    </div>
+    <div class="toolbar">
+      <label class="opt"><input type="checkbox" id="optCase" checked> Ignorer la casse</label>
+      <label class="opt"><input type="checkbox" id="optWord" checked> Mot entier uniquement</label>
+      <label class="opt"><input type="checkbox" id="optFlex" checked> Tolérer espaces/points/tirets variables (comptes, tél.)</label>
+      <label class="opt"><input type="checkbox" id="optSave"> Mémoriser la table dans ce navigateur</label>
+    </div>
+    <div class="grid-head"><div>Catégorie</div><div>Valeur réelle</div><div>Remplacement</div><div>Occ.</div><div></div></div>
+    <div id="rows"></div>
+    <div class="warn" id="warn"></div>
+    <p class="note">Les lignes sont appliquées de la valeur la plus longue à la plus courte. La colonne « Occ. » passe en orange si une valeur n'apparaît pas dans le texte.</p>
+  </section>
+
+  <section>
+    <h2>2. Document → version anonymisée</h2>
+    <div class="panes">
+      <div>
+        <div class="pane-head"><span>Document original</span><button class="icon" id="btnPasteSrc">Coller</button></div>
+        <textarea id="src" spellcheck="false"></textarea>
+      </div>
+      <div>
+        <div class="pane-head"><span>Anonymisé (à envoyer à l'IA)</span><button class="icon primary" id="btnCopyOut">Copier</button></div>
+        <textarea id="out" readonly spellcheck="false"></textarea>
+      </div>
+    </div>
+    <div class="stat" id="statOut"></div>
+  </section>
+
+  <section>
+    <h2>3. Réponse de l'IA → version restaurée</h2>
+    <div class="panes">
+      <div>
+        <div class="pane-head"><span>Réponse de l'IA (avec repères)</span><button class="icon" id="btnPasteAi">Coller</button></div>
+        <textarea id="ai" spellcheck="false"></textarea>
+      </div>
+      <div>
+        <div class="pane-head"><span>Restaurée (valeurs réelles)</span><button class="icon primary" id="btnCopyRes">Copier</button></div>
+        <textarea id="res" readonly spellcheck="false"></textarea>
+      </div>
+    </div>
+    <div class="stat" id="statRes"></div>
+    <p class="note">Limite : c'est de la pseudonymisation. Le contexte (poste, dates, montants, situation rare) peut encore ré-identifier quelqu'un : relis la version anonymisée avant envoi. Le JSON exporté contient les valeurs réelles en clair : à traiter comme sensible.</p>
+  </section>
+</main>
+
+<script>
+const CATS = {
+  personne:{label:'Nom / personne',prefix:'PERSONNE'},
+  adresse:{label:'Adresse',prefix:'ADRESSE'},
+  compte:{label:'N° de compte / IBAN',prefix:'COMPTE'},
+  tel:{label:'Téléphone',prefix:'TEL'},
+  email:{label:'E-mail',prefix:'EMAIL'},
+  societe:{label:'Société / organisme',prefix:'SOCIETE'},
+  autre:{label:'Autre',prefix:'AUTRE'}
+};
+const AUTO_RE = /^\[[A-Z]+_\d+\]$/;
+const KEY = 'anon_map_v1';
+let rows = [], uid = 0;
+const $ = id => document.getElementById(id);
+
+function nextPlaceholder(cat){
+  const p = CATS[cat].prefix, used = new Set(rows.map(r => r.rep));
+  let n = 1; while(used.has(`[${p}_${n}]`)) n++;
+  return `[${p}_${n}]`;
+}
+function addRow(cat='personne', real='', rep=null){
+  rows.push({id:++uid, cat, real, rep: rep ?? nextPlaceholder(cat), count:0});
+}
+
+function loadExamples(){
+  rows = []; uid = 0;
+  addRow('personne','Jean Dupont');
+  addRow('personne','Marie Martin');
+  addRow('adresse','12 rue des Lilas, 26500 Bourg-lès-Valence');
+  addRow('compte','FR76 3000 6000 0112 3456 7890 189');
+  addRow('tel','06 12 34 56 78');
+  addRow('email','jean.dupont@example.com');
+  addRow('societe','Aventech');
+  $('src').value =
+`Objet : Contestation de prélèvement
+
+Bonjour,
+
+Je soussigné Jean Dupont, domicilié au 12 rue des Lilas, 26500 Bourg-lès-Valence, employé chez Aventech, conteste le prélèvement effectué sur mon compte FR76 3000 6000 0112 3456 7890 189.
+
+Mon conseiller, Marie Martin, peut confirmer les faits. Je suis joignable au 06.12.34.56.78 ou par mail : jean.dupont@example.com.
+
+Cordialement,
+JEAN DUPONT`;
+}
+
+/* ---------- rendu des lignes ---------- */
+function renderRows(){
+  const box = $('rows'); box.innerHTML = '';
+  rows.forEach(r => {
+    const d = document.createElement('div'); d.className = 'row';
+    const sel = document.createElement('select');
+    for(const k in CATS){ const o = document.createElement('option'); o.value = k; o.textContent = CATS[k].label; if(k===r.cat) o.selected = true; sel.appendChild(o); }
+    const real = document.createElement('input'); real.type='text'; real.className='real'; real.value = r.real; real.placeholder='Valeur réelle'; real.autocomplete='off';
+    const rep = document.createElement('input'); rep.type='text'; rep.className='rep'; rep.value = r.rep; rep.placeholder='[REPERE_1]'; rep.autocomplete='off';
+    const cnt = document.createElement('div'); cnt.className='count'; cnt.textContent='0';
+    const del = document.createElement('button'); del.className='icon del'; del.textContent='×'; del.title='Supprimer';
+    sel.onchange = () => {
+      if(AUTO_RE.test(r.rep)){ r.cat = sel.value; r.rep = nextPlaceholder(r.cat); rep.value = r.rep; }
+      r.cat = sel.value; run();
+    };
+    real.oninput = () => { r.real = real.value; run(); };
+    rep.oninput = () => { r.rep = rep.value; run(); };
+    del.onclick = () => { rows = rows.filter(x => x !== r); renderRows(); run(); };
+    d.append(sel, real, rep, cnt, del);
+    box.appendChild(d);
+    r.cntEl = cnt;
+  });
+}
+
+/* ---------- moteur ---------- */
+const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function buildRegex(r){
+  const v = r.real.trim(); if(!v) return null;
+  let body;
+  if($('optFlex').checked && (r.cat==='compte' || r.cat==='tel')){
+    const chars = v.replace(/[\s.\-\u00a0]/g,'');
+    if(!chars) return null;
+    body = chars.split('').map(esc).join('[\\s.\\-\\u00a0]*');
+  } else {
+    body = esc(v).replace(/\s+/g,'[\\s\\u00a0]+');
+  }
+  if($('optWord').checked) body = '(?<![\\p{L}\\p{N}])' + body + '(?![\\p{L}\\p{N}])';
+  return new RegExp(body, $('optCase').checked ? 'giu' : 'gu');
+}
+const tok = id => `\uE000${id}\uE001`;
+const TOK_RE = /\uE000(\d+)\uE001/g;
+
+function anonymize(text){
+  const act = rows.filter(r => r.real.trim() && r.rep).sort((a,b) => b.real.trim().length - a.real.trim().length);
+  rows.forEach(r => r.count = 0);
+  let out = text;
+  act.forEach(r => {
+    const re = buildRegex(r); if(!re) return;
+    out = out.replace(re, () => { r.count++; return tok(r.id); });
+  });
+  const byId = Object.fromEntries(rows.map(r => [r.id, r]));
+  out = out.replace(TOK_RE, (m,id) => byId[id].rep);
+  return {out, total: act.reduce((s,r) => s + r.count, 0)};
+}
+function restore(text){
+  const act = rows.filter(r => r.real.trim() && r.rep).sort((a,b) => b.rep.length - a.rep.length);
+  let out = text, total = 0;
+  act.forEach(r => {
+    const parts = out.split(r.rep);
+    total += parts.length - 1;
+    out = parts.join(tok(r.id));
+  });
+  const byId = Object.fromEntries(rows.map(r => [r.id, r]));
+  out = out.replace(TOK_RE, (m,id) => byId[id].real);
+  return {out, total};
+}
+
+function run(){
+  const a = anonymize($('src').value);
+  $('out').value = a.out;
+  const hasSrc = $('src').value.trim().length > 0;
+  rows.forEach(r => {
+    if(!r.cntEl) return;
+    r.cntEl.textContent = r.count;
+    r.cntEl.classList.toggle('zero', hasSrc && r.real.trim() && r.count === 0);
+  });
+  $('statOut').textContent = hasSrc ? `${a.total} remplacement(s) effectué(s).` : '';
+  const b = restore($('ai').value);
+  $('res').value = b.out;
+  $('statRes').textContent = $('ai').value.trim() ? `${b.total} repère(s) restauré(s).` : '';
+
+  // doublons de repères
+  const seen = {}, dup = new Set();
+  rows.forEach(r => { if(!r.rep) return; if(seen[r.rep]) dup.add(r.rep); seen[r.rep] = true; });
+  $('warn').textContent = dup.size
+    ? `Repère(s) en double : ${[...dup].join(', ')}. La restauration sera ambiguë, donne un repère unique à chaque ligne.`
+    : '';
+  persist();
+}
+
+/* ---------- détection auto ---------- */
+function detect(){
+  const t = $('src').value;
+  const known = new Set(rows.map(r => r.real.trim().toLowerCase()));
+  let added = 0;
+  const add = (cat, list) => (list || []).forEach(v => {
+    v = v.trim();
+    if(!known.has(v.toLowerCase())){ known.add(v.toLowerCase()); addRow(cat, v); added++; }
+  });
+  add('email', t.match(/[\w.+-]+@[\w-]+\.[\w.-]+[A-Za-z]/g));
+  add('compte', t.match(/\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]{4}){2,7}(?: ?[A-Z0-9]{1,4})?\b/g));
+  add('tel', t.match(/(?:(?:\+|00)33[\s.]?|0)[1-9](?:[\s.]?\d{2}){4}/g));
+  // supprime les lignes vides résiduelles
+  rows = rows.filter(r => r.real.trim() || r.rep);
+  renderRows(); run();
+  $('statOut').textContent = added ? `${added} valeur(s) détectée(s) et ajoutée(s). Les noms et adresses restent à saisir à la main.` : 'Rien de nouveau détecté.';
+}
+
+/* ---------- persistance, import/export ---------- */
+function persist(){
+  try{
+    if($('optSave').checked){
+      localStorage.setItem(KEY, JSON.stringify(rows.map(({cat,real,rep}) => ({cat,real,rep}))));
+    }
+  }catch(e){}
+}
+function setRows(list){
+  rows = []; uid = 0;
+  list.forEach(x => { if(x && CATS[x.cat]) addRow(x.cat, String(x.real||''), String(x.rep||'') || null); });
+  renderRows(); run();
+}
+$('optSave').onchange = () => {
+  try{
+    if($('optSave').checked) persist(); else localStorage.removeItem(KEY);
+  }catch(e){}
+};
+$('btnExport').onclick = () => {
+  const data = JSON.stringify(rows.map(({cat,real,rep}) => ({cat,real,rep})), null, 2);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([data], {type:'application/json'}));
+  a.download = 'correspondances.json'; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+$('btnImport').onclick = () => $('fileImport').click();
+$('fileImport').onchange = e => {
+  const f = e.target.files[0]; if(!f) return;
+  const rd = new FileReader();
+  rd.onload = () => { try{ setRows(JSON.parse(rd.result)); }catch(err){ alert('JSON invalide.'); } };
+  rd.readAsText(f); e.target.value = '';
+};
+$('btnClear').onclick = () => { if(confirm('Vider la table et les textes ?')){ rows=[]; uid=0; $('src').value=''; $('ai').value=''; renderRows(); run(); } };
+$('btnAdd').onclick = () => { addRow('personne'); renderRows(); run(); const inp = document.querySelectorAll('.row .real'); inp[inp.length-1].focus(); };
+$('btnDetect').onclick = detect;
+
+/* ---------- presse-papiers ---------- */
+async function copy(id, btn){
+  const v = $(id).value; if(!v) return;
+  try{ await navigator.clipboard.writeText(v); }
+  catch(e){ $(id).select(); document.execCommand('copy'); }
+  const old = btn.textContent; btn.textContent = 'Copié ✓'; setTimeout(() => btn.textContent = old, 1200);
+}
+async function paste(id){
+  try{ $(id).value = await navigator.clipboard.readText(); run(); }
+  catch(e){ $(id).focus(); alert('Colle manuellement (Ctrl/Cmd+V) : accès au presse-papiers refusé.'); }
+}
+$('btnCopyOut').onclick = e => copy('out', e.target);
+$('btnCopyRes').onclick = e => copy('res', e.target);
+$('btnPasteSrc').onclick = () => paste('src');
+$('btnPasteAi').onclick = () => paste('ai');
+
+['src','ai'].forEach(id => $(id).addEventListener('input', run));
+['optCase','optWord','optFlex'].forEach(id => $(id).addEventListener('change', run));
+
+/* ---------- init ---------- */
+(function init(){
+  let saved = null;
+  try{ saved = JSON.parse(localStorage.getItem(KEY) || 'null'); }catch(e){}
+  if(Array.isArray(saved) && saved.length){
+    $('optSave').checked = true;
+    setRows(saved);
+  } else {
+    loadExamples(); renderRows(); run();
+  }
+  // texte d'exemple pour la restauration
+  if(!$('ai').value){
+    $('ai').value = 'Bonjour [PERSONNE_1], voici un brouillon de courrier à l\'attention de [SOCIETE_1] concernant le compte [COMPTE_1]. Réponse à envoyer à [EMAIL_1].';
+    run();
+  }
+})();
+</script>
+</body>
+</html>
