@@ -480,6 +480,21 @@
     flex:none;
   }
 
+  /* ---------- Low fuel banner ---------- */
+  .fuel-banner{
+    display:flex; align-items:center; gap:10px;
+    margin:10px 12px 0;
+    padding:10px 12px;
+    background:var(--accent);
+    color:#fff;
+    border-radius:var(--radius-md);
+    font-size:0.82rem;
+    font-weight:600;
+  }
+  .fuel-banner.hidden{ display:none; }
+  .fuel-banner .fb-icon{ font-size:1.1rem; flex:none; }
+  .fuel-banner .fb-sub{ display:block; font-weight:400; font-size:0.72rem; opacity:0.9; margin-top:2px; }
+
   /* ---------- Field errors ---------- */
   .field.has-error input{ border-color:var(--accent); background:#C81E1E11; }
   .field-error{ font-size:0.76rem; font-weight:600; color:var(--accent); margin-top:-2px; padding:4px 8px; background:#C81E1E14; border-radius:6px; display:none; }
@@ -592,6 +607,11 @@
     </div>
   </header>
 
+  <div class="fuel-banner hidden" id="fuelBanner" role="alert">
+    <span class="fb-icon">⛽</span>
+    <span><span id="fuelBannerText">Pense à faire le plein.</span><span class="fb-sub" id="fuelBannerSub"></span></span>
+  </div>
+
   <div class="backup-banner hidden" id="backupBanner">
     <span id="backupBannerText">Pense à exporter tes données.</span>
     <button id="backupBannerBtn">Exporter</button>
@@ -613,6 +633,11 @@
     <div class="stat">
       <div class="stat-label">Autonomie estimée</div>
       <div class="stat-value"><span id="statRange">--</span><span class="u">km</span></div>
+    </div>
+    <div class="stat stat-wide">
+      <div class="stat-label">Manque pour faire le plein</div>
+      <div class="stat-value"><span id="statMissing">--</span><span class="u">L</span></div>
+      <div class="stat-sub" id="statMissingSub"></div>
     </div>
     <div class="stat stat-wide">
       <div class="stat-label">Kilométrage annuel estimé</div>
@@ -1032,6 +1057,26 @@
     document.getElementById("statCostKm").textContent = k.costPerKm!==null ? fmt(k.costPerKm, 3) : "--";
     document.getElementById("statCostKmUnit").textContent = cur+"/km";
     document.getElementById("statRange").textContent = k.range!==null ? fmt(k.range,0) : "--";
+
+    var fuelBanner = document.getElementById("fuelBanner");
+    if(k.levelPct!==null && k.levelPct <= 33){
+      document.getElementById("fuelBannerText").textContent = "Réservoir à "+k.levelPct+" % : pense à faire le plein.";
+      document.getElementById("fuelBannerSub").textContent = "≈ "+fmt(k.levelLiters,1)+" L restants" + (k.range!==null ? " · autonomie ≈ "+fmt(k.range,0)+" km" : "");
+      fuelBanner.classList.remove("hidden");
+    } else {
+      fuelBanner.classList.add("hidden");
+    }
+
+    if(k.levelLiters!==null){
+      var missing = Math.max(0, k.capacity - k.levelLiters);
+      document.getElementById("statMissing").textContent = fmt(missing,1);
+      var sub = "≈ "+fmt(100-k.levelPct,0)+" % du réservoir";
+      if(k.avgPrice!==null) sub += " · ≈ "+fmt(missing*k.avgPrice,2)+" "+cur+" au prix moyen";
+      document.getElementById("statMissingSub").textContent = sub;
+    } else {
+      document.getElementById("statMissing").textContent = "--";
+      document.getElementById("statMissingSub").textContent = "Ajoute un plein pour estimer";
+    }
 
     var yk = computeAnnualKm();
     document.getElementById("statYearKm").textContent = yk ? fmt(Math.round(yk.annualized),0) : "--";
