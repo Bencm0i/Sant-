@@ -33,11 +33,13 @@ kbd{font:11px ui-monospace,Consolas,monospace;opacity:.6}
 #sb button{padding:1px 8px;font-size:12px}#co{margin-right:auto;font-family:ui-monospace,Consolas,monospace;white-space:nowrap}
 dialog{background:var(--pn);color:var(--tx);border:1px solid var(--ln);border-radius:8px;max-width:560px}dialog::backdrop{background:#000a}
 dialog td{padding:2px 14px 2px 0;vertical-align:top}
+#vn{flex:1;min-width:0;background:#12161b;border:1px solid var(--ln);color:var(--tx);border-radius:4px;padding:3px 6px}
+#vl{max-height:50vh;overflow:auto}.vr{display:flex;gap:4px;align-items:center;padding:3px 0;border-bottom:1px solid var(--ln)}.vr span{flex:1;min-width:0}
 @media(max-width:820px){#app{grid-template-columns:112px minmax(0,1fr)}#side{display:none}header,#con,#sb{grid-column:1/3}}
 </style></head><body>
 <div id="app">
 <header><b>Mini CAO 2D</b>
-<button data-f="NEW">Nouveau</button><button data-f="OPEN">Ouvrir</button><button data-f="SAVE">Enregistrer</button><i></i>
+<button data-f="NEW">Nouveau</button><button data-f="OPEN">Ouvrir</button><button data-f="SAVE">Enregistrer</button><button data-f="VER">Versions</button><i></i>
 <button data-f="DXF">DXF</button><button data-f="SVG">SVG</button><button data-f="PNG">PNG</button><i></i>
 <button data-f="U">Annuler</button><button data-f="Y">Rétablir</button><button data-f="ZE">Zoom étendu</button><button data-f="AIDE">Aide</button>
 <input type="file" id="fi" accept=".json" hidden></header>
@@ -56,9 +58,15 @@ dialog td{padding:2px 14px 2px 0;vertical-align:top}
 <tr><td><b>Modifier</b></td><td>M déplacer · CO copier · RO rotation · SC échelle · MI miroir · O décaler · TR ajuster · E effacer · X exploser</td></tr>
 <tr><td><b>Autres</b></td><td>DI distance · AR lignes,colonnes,dx,dy · LA calque · TH hauteur texte · ZE zoom étendu · U / Y annuler / rétablir</td></tr>
 <tr><td><b>Saisie</b></td><td>x,y absolu · @dx,dy relatif · @longueur&lt;angle polaire · un nombre = distance dans la direction du curseur</td></tr>
+<tr><td><b>Étirer</b></td><td>ET : fenêtre de capture, point de base, point d'arrivée. Les sommets dans la fenêtre bougent, les autres restent</td></tr>
+<tr><td><b>Date / heure</b></td><td>SD début ; fin → sélectionne les objets créés dans l'intervalle (ex. SD 2026-10-16 13:00 ; 15:00, ou SD 13:00 pour « depuis 13:00 aujourd'hui) · VER ouvre les versions horodatées</td></tr>
 <tr><td><b>Souris</b></td><td>Molette zoom · clic molette pan · clic droit = Entrée · fenêtre gauche→droite = inclus, droite→gauche = capture</td></tr>
 <tr><td><b>Touches</b></td><td>Entrée/Espace valide ou répète · Échap annule · Suppr efface · F3 accrochage · F7 grille · F8 ortho · F9 pas grille · Ctrl+Z / Ctrl+Y</td></tr>
 </table><form method="dialog"><button style="margin-top:12px">Fermer</button></form></dialog>
+<dialog id="vd"><h3 style="margin-top:0">Versions enregistrées</h3>
+<div style="display:flex;gap:4px;margin-bottom:8px"><input id="vn" placeholder="Nom (optionnel)" aria-label="Nom de la version"><button id="vs">Créer une version</button></div>
+<div id="vl"></div><p class="mu" style="font-size:12px">Sauvegarde auto toutes les 2 min si modifié · 30 versions max · stockées dans ce navigateur</p>
+<form method="dialog"><button>Fermer</button></form></dialog>
 <script>
 const $=s=>document.querySelector(s),cv=$('#cv'),cx=cv.getContext('2d'),ci=$('#ci');
 const PI=Math.PI,d=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]),ang=(a,b)=>Math.atan2(b[1]-a[1],b[0]-a[0]),nm=x=>((x%(2*PI))+2*PI)%(2*PI),mid=(a,b)=>[(a[0]+b[0])/2,(a[1]+b[1])/2],fmt=n=>String(+n.toFixed(2)),deg=r=>nm(r)*180/PI;
@@ -66,7 +74,7 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 const LY=(n,c,lt)=>({n,c,lt:lt||'solid',v:1,k:0}),PAL=['#ff9f43','#c77dff','#2ec4b6','#ff6b9d','#9ad14b'];
 const V={ox:300,oy:300,s:.4},O={os:1,gr:1,or:0,gs:0};
 let S={ents:[],layers:[LY('0','#e6e9ee'),LY('Murs','#ff6b6b'),LY('Cotes','#5fd38d'),LY('Axes','#4aa3ff','dash'),LY('Texte','#ffd23f')],cur:'0',sel:new Set(),undo:[],redo:[]};
-let st={tool:'select',pts:[],aw:null,awp:'',pick:false,dist:10,ent:null,th:0},cur=[0,0],curS={p:[0,0]},mouse=null,win=null,pan=null,last='line',cacheP=null,W=0,H=0,dpr=1,raf=0;
+let st={tool:'select',pts:[],aw:null,awp:'',pick:false,dist:10,ent:null,th:0,sw:null},cur=[0,0],curS={p:[0,0]},mouse=null,win=null,pan=null,last='line',cacheP=null,W=0,H=0,dpr=1,raf=0;
 const TL={
 select:{l:'Sélection',k:'S',p:['Cliquez un objet ou tracez une fenêtre']},
 line:{l:'Ligne',k:'L',p:['Premier point','Point suivant · Entrée pour finir']},
@@ -81,16 +89,17 @@ copy:{l:'Copier',k:'CO',m:1,p:['Point de base',"Point d'arrivée · Échap pour 
 rotate:{l:'Rotation',k:'RO',m:1,p:['Point de base','Angle (cliquer ou saisir en degrés)']},
 scale:{l:'Échelle',k:'SC',m:1,p:['Point de base']},
 mirror:{l:'Miroir',k:'MI',m:1,p:["Premier point de l'axe","Second point de l'axe"]},
+stretch:{l:'Étirer',k:'ET',p:['Fenêtre de capture : glissez pour encadrer','Point de base',"Point d'arrivée"]},
 offset:{l:'Décaler',k:'O',p:["Cliquez l'objet à décaler",'Cliquez le côté']},
 trim:{l:'Ajuster',k:'TR',p:['Cliquez la partie de ligne à supprimer']},
 erase:{l:'Effacer',k:'E',m:1,p:['']},
 measure:{l:'Distance',k:'DI',p:['Premier point','Second point']},
 pan:{l:'Vue (pan)',k:'P',p:['Glissez pour déplacer la vue']}};
-const GROUPS=[['Dessin',['line','pl','rect','circle','arc','text','dim']],['Modification',['move','copy','rotate','scale','mirror','offset','trim','erase']],['Outils',['select','measure','pan']]];
+const GROUPS=[['Dessin',['line','pl','rect','circle','arc','text','dim']],['Modification',['move','copy','rotate','scale','mirror','stretch','offset','trim','erase']],['Outils',['select','measure','pan']]];
 $('#tools').innerHTML=GROUPS.map(([h,a])=>`<h4>${h}</h4>`+a.map(t=>`<button data-t="${t}">${TL[t].l}<kbd>${TL[t].k}</kbd></button>`).join('')).join('');
 const ALI={};Object.entries(TL).forEach(([k,v])=>{ALI[k.toUpperCase()]=k;ALI[v.k]=k;ALI[v.l.toUpperCase()]=k});
-Object.assign(ALI,{LINE:'line',CIRCLE:'circle',MOVE:'move',COPY:'copy',ROTATE:'rotate',SCALE:'scale',MIRROR:'mirror',OFFSET:'offset',TRIM:'trim',ERASE:'erase',DIST:'measure',TEXTE:'text',CERCLE:'circle',COTE:'dim',DEPLACER:'move',COPIER:'copy',ECHELLE:'scale',MIROIR:'mirror',DECALER:'offset',AJUSTER:'trim',EFFACER:'erase',RECT:'rect'});
-const DRAWT=['line','pl','rect','circle','arc','text','dim','move','copy','rotate','scale','mirror','measure','offset'];
+Object.assign(ALI,{LINE:'line',CIRCLE:'circle',MOVE:'move',COPY:'copy',ROTATE:'rotate',SCALE:'scale',MIRROR:'mirror',OFFSET:'offset',TRIM:'trim',ERASE:'erase',DIST:'measure',TEXTE:'text',CERCLE:'circle',COTE:'dim',DEPLACER:'move',COPIER:'copy',ECHELLE:'scale',MIROIR:'mirror',DECALER:'offset',AJUSTER:'trim',EFFACER:'erase',RECT:'rect',ETIRER:'stretch',STRETCH:'stretch'});
+const DRAWT=['line','pl','rect','circle','arc','text','dim','move','copy','rotate','scale','mirror','measure','offset','stretch'];
 
 /* ---------- géométrie ---------- */
 const lay=e=>S.layers.find(l=>l.n==e.l)||S.layers[0],vis=e=>lay(e).v;
@@ -151,13 +160,22 @@ return{p,t}}
 
 /* ---------- modèle ---------- */
 function snp(){S.undo.push(JSON.stringify(S.ents));if(S.undo.length>100)S.undo.shift();S.redo=[]}
-function chg(){cacheP=null;ui();redraw();try{localStorage.setItem('minicao',JSON.stringify({e:S.ents,l:S.layers,c:S.cur}))}catch(_){}}
-function add(e,l){e.l=l||S.cur;snp();S.ents.push(e);chg()}
+var dirty=0;
+function chg(){dirty=1;cacheP=null;ui();redraw();try{localStorage.setItem('minicao',JSON.stringify({e:S.ents,l:S.layers,c:S.cur}))}catch(_){}}
+function add(e,l){e.l=l||S.cur;e.d=Date.now();snp();S.ents.push(e);chg()}
 function undo(){if(!S.undo.length)return log('Rien à annuler');S.redo.push(JSON.stringify(S.ents));S.ents=JSON.parse(S.undo.pop());S.sel.clear();chg()}
 function redo(){if(!S.redo.length)return log('Rien à rétablir');S.undo.push(JSON.stringify(S.ents));S.ents=JSON.parse(S.redo.pop());S.sel.clear();chg()}
 function erase(){if(!S.sel.size)return;snp();S.ents=S.ents.filter(e=>!S.sel.has(e));S.sel.clear();chg()}
-function applyTo(fn,keep){snp();const ns=new Set(),out=[];for(const e of S.ents){if(S.sel.has(e)){const n=fn(e);if(keep)out.push(e,n);else{out.push(n);ns.add(n)}}else out.push(e)}S.ents=out;if(!keep)S.sel=ns;chg()}
+function applyTo(fn,keep){snp();const ns=new Set(),out=[];for(const e of S.ents){if(S.sel.has(e)){const n=fn(e);if(keep){n.d=Date.now();out.push(e,n)}else{out.push(n);ns.add(n)}}else out.push(e)}S.ents=out;if(!keep)S.sel=ns;chg()}
 const rotf=(b,t)=>p=>{const x=p[0]-b[0],y=p[1]-b[1],c=Math.cos(t),s=Math.sin(t);return[b[0]+x*c-y*s,b[1]+x*s+y*c]};
+function stretchE(e,B,dx,dy){const q=bb(e);if(q[2]<B[0]||q[0]>B[2]||q[3]<B[1]||q[1]>B[3])return e;
+const I=p=>p[0]>=B[0]&&p[0]<=B[2]&&p[1]>=B[1]&&p[1]<=B[3],n=JSON.parse(JSON.stringify(e));let ch=0;
+const mv=(o,k)=>{if(I(o[k])){o[k]=[o[k][0]+dx,o[k][1]+dy];ch=1}};
+if(e.t=='line'){mv(n,'a');mv(n,'b')}else if(e.t=='pl')n.p.forEach((_,i)=>mv(n.p,i));
+else if(e.t=='circle'||e.t=='arc')mv(n,'c');else if(e.t=='text')mv(n,'p');
+else if(e.t=='dim'){const both=I(e.a)&&I(e.b);mv(n,'a');mv(n,'b');if(both||I(e.o)){n.o=[e.o[0]+dx,e.o[1]+dy];ch=1}}
+return ch?n:e}
+function stretchSel(B,a,b){const dx=b[0]-a[0],dy=b[1]-a[1];snp();S.ents=S.ents.map(e=>vis(e)&&!lay(e).k?stretchE(e,B,dx,dy):e);S.sel.clear();chg()}
 function mirSel(a,b){const th=ang(a,b),c=Math.cos(2*th),s=Math.sin(2*th),f=p=>{const x=p[0]-a[0],y=p[1]-a[1];return[a[0]+x*c+y*s,a[1]+x*s-y*c]};
 applyTo(e=>{const n=tf(e,f);if(n.t=='arc'){n.a0=nm(2*th-e.a1);n.a1=nm(2*th-e.a0)}return n},true)}
 function trimAt(p){const e=hit(p);if(!e||e.t!='line')return log('Ajuster : cliquez une ligne');
@@ -166,22 +184,22 @@ if(!ts.length)return log('Aucune limite de coupe trouvée');
 const L=d(e.a,e.b),tc=Math.max(0,Math.min(1,((p[0]-e.a[0])*(e.b[0]-e.a[0])+(p[1]-e.a[1])*(e.b[1]-e.a[1]))/(L*L))),
 lo=Math.max(0,...ts.filter(t=>t<=tc)),hi=Math.min(1,...ts.filter(t=>t>=tc)),q=t=>[e.a[0]+(e.b[0]-e.a[0])*t,e.a[1]+(e.b[1]-e.a[1])*t];
 snp();S.ents.splice(S.ents.indexOf(e),1);if(lo>1e-6)S.ents.push({...e,b:q(lo)});if(hi<1-1e-6)S.ents.push({...e,a:q(hi)});chg()}
-function explode(){const es=[...S.sel].filter(e=>e.t=='pl');if(!es.length)return log('Sélectionnez des polylignes');snp();S.ents=S.ents.filter(e=>!es.includes(e));es.forEach(e=>segs(e).forEach(g=>S.ents.push({t:'line',a:g[0],b:g[1],l:e.l})));S.sel.clear();chg()}
+function explode(){const es=[...S.sel].filter(e=>e.t=='pl');if(!es.length)return log('Sélectionnez des polylignes');snp();S.ents=S.ents.filter(e=>!es.includes(e));es.forEach(e=>segs(e).forEach(g=>S.ents.push({t:'line',a:g[0],b:g[1],l:e.l,d:e.d})));S.sel.clear();chg()}
 function array(r){const[n,m,dx,dy]=r.split(/[,\s]+/).map(Number);if(!(n>0&&m>0)||isNaN(dx)||isNaN(dy))return log('Syntaxe : AR lignes,colonnes,dx,dy');if(!S.sel.size)return log('Sélectionnez d\'abord des objets');
-snp();const src=[...S.sel];for(let i=0;i<n;i++)for(let j=0;j<m;j++)if(i||j)src.forEach(e=>S.ents.push(tf(e,p=>[p[0]+j*dx,p[1]+i*dy])));chg()}
+snp();const src=[...S.sel];for(let i=0;i<n;i++)for(let j=0;j<m;j++)if(i||j)src.forEach(e=>{const n=tf(e,p=>[p[0]+j*dx,p[1]+i*dy]);n.d=Date.now();S.ents.push(n)});chg()}
 const selAll=()=>{S.sel=new Set(S.ents.filter(e=>vis(e)&&!lay(e).k));ui();redraw()};
 function addLayer(n){n=(n||'').trim();if(!n)return;if(!S.layers.some(l=>l.n==n))S.layers.push(LY(n,PAL[S.layers.length%PAL.length]));S.cur=n;chg()}
 
 /* ---------- outils ---------- */
 const th=()=>st.th||+(14/V.s).toPrecision(2);
-function setTool(t){st={...st,tool:t,pts:[],aw:null,pick:false,ent:null};if(t!='select'&&t!='pan')last=t;const T=TL[t];
+function setTool(t){st={...st,tool:t,pts:[],aw:null,pick:false,ent:null,sw:null};if(t!='select'&&t!='pan')last=t;const T=TL[t];
 if(t=='erase'&&S.sel.size){erase();st.tool='select'}
 else if(T.m&&!S.sel.size)st.pick=true;
 if(t=='offset')ask('Distance de décalage <'+fmt(st.dist)+'> :',s=>{const n=parseFloat(s);if(s&&!(n>0))log('Distance invalide');else if(s)st.dist=n});
 pr();redraw()}
 function ask(p,f){st.aw=f;st.awp=p;pr()}
 function rotSel(b,t){applyTo(e=>tf(e,rotf(b,t),t),false);setTool('select')}
-function pt(p){const t=st.tool,a=st.pts;if(st.pick)return;
+function pt(p){const t=st.tool,a=st.pts;if(st.pick)return;if(t=='stretch'&&!st.sw)return;
 if(t=='line'){if(a.length)add({t:'line',a:a[0],b:p});st.pts=[p]}
 else if(t=='pl')a.push(p);
 else if(t=='rect'){if(a.length){add(rectE(a[0],p));st.pts=[]}else a.push(p)}
@@ -190,6 +208,7 @@ else if(t=='arc'){a.push(p);if(a.length==3){const e=arc3(a[0],a[1],a[2]);e?add(e
 else if(t=='text'){st.pts=[p];ask('Texte (hauteur '+th()+') :',s=>{if(s)add({t:'text',p,s,h:th(),rot:0});st.pts=[]})}
 else if(t=='dim'){a.push(p);if(a.length==3){add({t:'dim',a:a[0],b:a[1],o:a[2],h:th()});st.pts=[]}}
 else if(t=='move'||t=='copy'){if(!a.length)a.push(p);else{const b=a[0];applyTo(e=>tf(e,q=>[q[0]+p[0]-b[0],q[1]+p[1]-b[1]]),t=='copy');if(t=='move')return setTool('select')}}
+else if(t=='stretch'){if(!a.length)a.push(p);else{stretchSel(st.sw,a[0],p);return setTool('select')}}
 else if(t=='rotate'){if(!a.length)a.push(p);else rotSel(a[0],ang(a[0],p))}
 else if(t=='scale'){a.push(p);ask("Facteur d'échelle :",s=>{const k=parseFloat(s);if(k>0){applyTo(e=>tf(e,q=>[p[0]+(q[0]-p[0])*k,p[1]+(q[1]-p[1])*k],0,k));setTool('select')}else{log('Facteur invalide');st.pts=[]}})}
 else if(t=='mirror'){a.push(p);if(a.length==2){mirSel(a[0],a[1]);return setTool('select')}}
@@ -200,7 +219,7 @@ pr();redraw()}
 function num(n){const a=st.pts,t=st.tool;
 if(t=='circle'&&a.length){add({t:'circle',c:a[0],r:Math.abs(n)});st.pts=[];return true}
 if(t=='rotate'&&a.length&&!st.pick){rotSel(a[0],n*PI/180);return true}
-if(a.length&&!st.pick&&['line','pl','move','copy','measure','dim','mirror','arc'].includes(t)){const b=a[a.length-1],u=unit(b,cur);pt([b[0]+u[0]*n,b[1]+u[1]*n]);return true}
+if(a.length&&!st.pick&&['line','pl','move','copy','measure','dim','mirror','arc','stretch'].includes(t)){const b=a[a.length-1],u=unit(b,cur);pt([b[0]+u[0]*n,b[1]+u[1]*n]);return true}
 return false}
 function pc(s){const rel=s[0]=='@';if(rel)s=s.slice(1);let m,r;
 if(m=s.match(/^(-?[\d.]+),(-?[\d.]+)$/))r=[+m[1],+m[2]];
@@ -209,12 +228,32 @@ if(rel){const b=st.pts.length?st.pts[st.pts.length-1]:[0,0];r=[b[0]+r[0],b[1]+r[
 function esc1(){if(st.tool!='select'||st.pts.length||st.aw||st.pick){setTool('select')}else{S.sel.clear();ui();redraw()}}
 
 /* ---------- commandes ---------- */
-const FN={U:undo,UNDO:undo,ANNULER:undo,Y:redo,REDO:redo,ZE:zoomE,Z:zoomE,ZOOM:zoomE,X:explode,EXPLODE:explode,AR:array,TOUT:selAll,ALL:selAll,
+const FN={U:undo,UNDO:undo,ANNULER:undo,Y:redo,REDO:redo,ZE:zoomE,Z:zoomE,ZOOM:zoomE,X:explode,EXPLODE:explode,AR:array,VER:openVer,VERSIONS:openVer,SD:selDate,TOUT:selAll,ALL:selAll,
 ORTHO:()=>tg('or'),GRILLE:()=>tg('gr'),OSNAP:()=>tg('os'),SNAP:()=>tg('gs'),AIDE:()=>$('#hp').showModal(),HELP:()=>$('#hp').showModal(),
 LA:addLayer,TH:r=>{const n=parseFloat(r);st.th=n>0?n:0;log('Hauteur de texte : '+(st.th||'auto'))},
-DXF:()=>dl('dessin.dxf',dxf()),SVG:()=>dl('dessin.svg',svg(),'image/svg+xml'),PNG:()=>{const a=document.createElement('a');a.href=cv.toDataURL('image/png');a.download='dessin.png';a.click()},
-SAVE:()=>dl('dessin.json',JSON.stringify({e:S.ents,l:S.layers,c:S.cur}),'application/json'),OPEN:()=>$('#fi').click(),
+DXF:()=>dl('dessin_'+stamp()+'.dxf',dxf()),SVG:()=>dl('dessin_'+stamp()+'.svg',svg(),'image/svg+xml'),PNG:()=>{const a=document.createElement('a');a.href=cv.toDataURL('image/png');a.download='dessin_'+stamp()+'.png';a.click()},
+SAVE:()=>dl('dessin_'+stamp()+'.json',JSON.stringify(pack()),'application/json'),OPEN:()=>$('#fi').click(),
 NEW:()=>{if(S.ents.length&&!confirm('Effacer le dessin actuel ?'))return;snp();S.ents=[];S.sel.clear();chg()}};
+/* ---------- horodatage, sélection par date, versions ---------- */
+const p2=n=>String(n).padStart(2,'0'),stamp=(t=new Date())=>t.getFullYear()+'-'+p2(t.getMonth()+1)+'-'+p2(t.getDate())+'_'+p2(t.getHours())+'-'+p2(t.getMinutes())+'-'+p2(t.getSeconds()),human=t=>new Date(t).toLocaleString('fr-FR');
+const pack=(v)=>({v:2,date:new Date(v?v.t:Date.now()).toISOString(),e:v?v.e:S.ents,l:v?v.l:S.layers,c:v?v.c:S.cur});
+function pd(s){s=s.trim();if(/^\d{1,2}:\d{2}$/.test(s)){const n=new Date(),h=s.split(':');n.setHours(+h[0],+h[1],0,0);return +n}return Date.parse(s.replace(/\s+/,'T'))}
+function selDate(r){const q=r.split(/\s*[;>]\s*/),a=q[0]?pd(q[0]):NaN,b=q[1]?pd(q[1]):Infinity;
+if(isNaN(a)||isNaN(b))return log('Syntaxe : SD début ; fin  (ex. SD 2026-10-16 13:00 ; 15:00 · SD 13:00 = depuis 13:00 aujourd\'hui)');
+S.sel=new Set(S.ents.filter(e=>vis(e)&&!lay(e).k&&e.d>=a&&e.d<=b));log(S.sel.size+' objet(s) créé(s) entre '+human(a)+' et '+(b==Infinity?'maintenant':human(b))+' (les objets sans date sont ignorés)');ui();redraw()}
+const VK='minicao_versions';
+function snapsGet(){try{return JSON.parse(localStorage.getItem(VK)||'[]')}catch(_){return[]}}
+function snapsSet(a){for(;;){try{localStorage.setItem(VK,JSON.stringify(a));return}catch(_){if(a.length<=1){log('Stockage plein : version non enregistrée');return}a=a.slice(0,Math.ceil(a.length/2))}}}
+function snapNow(label,auto){const a=snapsGet();if(auto&&a[0]&&JSON.stringify(a[0].e)==JSON.stringify(S.ents)&&JSON.stringify(a[0].l)==JSON.stringify(S.layers))return;
+a.unshift({t:Date.now(),n:label||'',e:S.ents,l:S.layers,c:S.cur});snapsSet(a.slice(0,30))}
+function renderVer(){const a=snapsGet();$('#vl').innerHTML=a.length?a.map((v,i)=>`<div class="vr" data-i="${i}"><span>${human(v.t)}${v.n?' · '+esc(v.n):''} <span class="mu">· ${v.e.length} objets</span></span><button data-v="r">Restaurer</button><button data-v="j">JSON</button><button data-v="x" title="Supprimer">✕</button></div>`).join(''):'<p class="mu">Aucune version</p>'}
+function openVer(){renderVer();$('#vd').showModal()}
+$('#vs').onclick=()=>{snapNow($('#vn').value.trim()||'manuel');dirty=0;$('#vn').value='';renderVer()};
+$('#vn').onkeydown=e=>{if(e.key=='Enter')$('#vs').click();e.stopPropagation()};
+$('#vl').addEventListener('click',e=>{const b=e.target.closest('button'),row=e.target.closest('.vr');if(!b||!row)return;const a=snapsGet(),i=+row.dataset.i,v=a[i];if(!v)return;
+if(b.dataset.v=='r'){snp();S.ents=JSON.parse(JSON.stringify(v.e));S.layers=JSON.parse(JSON.stringify(v.l));S.cur=v.c||'0';S.sel.clear();chg();zoomE();$('#vd').close();log('Version restaurée : '+human(v.t)+' (Annuler possible)')}
+else if(b.dataset.v=='j')dl('dessin_'+stamp(new Date(v.t))+'.json',JSON.stringify(pack(v)),'application/json');
+else if(b.dataset.v=='x'){a.splice(i,1);snapsSet(a);renderVer()}});
 function tg(k){O[k]=!O[k];ui();redraw()}
 function enter(s){s=s.trim();ci.value='';if(s)log('› '+s);
 if(st.aw){const f=st.aw;st.aw=null;f(s);pr();redraw();return}
@@ -243,7 +282,7 @@ else if(e.t=='text'){cx.setLineDash([]);return drawText(e)}
 else if(e.t=='dim'){const m=dimPrims(e);m.lines.forEach(g=>{mv(g[0]);ln(g[1])});cx.stroke();cx.setLineDash([]);return drawText(m.text)}
 cx.stroke()}
 function tip(){const a=st.pts,t=st.tool;if(!a.length||st.pick)return'';const b=a[a.length-1];
-if(['line','pl','measure','move','copy','mirror','arc'].includes(t))return fmt(d(b,cur))+' ∠ '+fmt(deg(ang(b,cur)))+'°';
+if(['line','pl','measure','move','copy','mirror','arc','stretch'].includes(t))return fmt(d(b,cur))+' ∠ '+fmt(deg(ang(b,cur)))+'°';
 if(t=='rect')return fmt(Math.abs(cur[0]-a[0][0]))+' × '+fmt(Math.abs(cur[1]-a[0][1]));
 if(t=='circle')return'R '+fmt(d(a[0],cur));if(t=='rotate')return fmt(deg(ang(a[0],cur)))+'°';return''}
 function paint(){cx.setTransform(dpr,0,0,dpr,0,0);cx.fillStyle='#12161b';cx.fillRect(0,0,W,H);
@@ -258,7 +297,9 @@ else if(t=='rect')drawEnt(rectE(a[0],c),G,1);
 else if(t=='circle')drawEnt({t:'circle',c:a[0],r:d(a[0],c)},G,1);
 else if(t=='arc'){if(a.length==1)drawEnt({t:'line',a:a[0],b:c},G,1);else{const e=arc3(a[0],a[1],c);e&&drawEnt(e,G,1)}}
 else if(t=='dim'){if(a.length==1)drawEnt({t:'line',a:a[0],b:c},G,1);else if(a.length==2)drawEnt({t:'dim',a:a[0],b:a[1],o:c,h:th()},G,1)}
+else if(t=='stretch'&&st.sw){const dx=c[0]-a[0][0],dy=c[1]-a[0][1];S.ents.forEach(e=>{if(vis(e)&&!lay(e).k){const n=stretchE(e,st.sw,dx,dy);if(n!==e)drawEnt(n,G,1)}});drawEnt({t:'line',a:a[0],b:c},'#888',1)}
 else if((t=='move'||t=='copy'||t=='rotate')&&a.length){const f=t=='rotate'?rotf(a[0],ang(a[0],c)):q=>[q[0]+c[0]-a[0][0],q[1]+c[1]-a[0][1]],r=t=='rotate'?ang(a[0],c):0;S.sel.forEach(e=>drawEnt(tf(e,f,r),G,1));drawEnt({t:'line',a:a[0],b:c},'#888',1)}}
+if(st.sw){const p=w2s([st.sw[0],st.sw[3]]),q=w2s([st.sw[2],st.sw[1]]);cx.setLineDash([5,4]);cx.strokeStyle='#5fd38d';cx.lineWidth=1;cx.strokeRect(p[0],p[1],q[0]-p[0],q[1]-p[1])}
 if(win){const x=Math.min(win.x0,win.x1),y=Math.min(win.y0,win.y1),w=Math.abs(win.x1-win.x0),h=Math.abs(win.y1-win.y0),cr=win.x1<win.x0;cx.fillStyle=cr?'#5fd38d22':'#3ea6ff22';cx.strokeStyle=cr?'#5fd38d':'#3ea6ff';cx.setLineDash(cr?[5,4]:[]);cx.fillRect(x,y,w,h);cx.strokeRect(x,y,w,h)}
 if(mouse&&st.tool!='pan'){const[mx,my]=w2s(cur);cx.setLineDash([]);cx.lineWidth=1;cx.strokeStyle='#9fb0c2';cx.globalAlpha=.4;cx.beginPath();cx.moveTo(0,my);cx.lineTo(W,my);cx.moveTo(mx,0);cx.lineTo(mx,H);cx.stroke();cx.globalAlpha=1;
 if(st.tool=='select'||st.pick)cx.strokeRect(mx-5,my-5,10,10);
@@ -271,7 +312,7 @@ function rs(){const r=cv.parentNode.getBoundingClientRect();dpr=devicePixelRatio
 
 /* ---------- interface ---------- */
 function log(m){const h=$('#hist'),x=document.createElement('div');x.textContent=m;h.appendChild(x);h.scrollTop=h.scrollHeight}
-function pr(){const T=TL[st.tool],i=st.tool=='offset'?(st.ent?1:0):Math.min(st.pts.length,T.p.length-1);
+function pr(){const T=TL[st.tool],i=st.tool=='offset'?(st.ent?1:0):st.tool=='stretch'?(st.sw?1+Math.min(st.pts.length,1):0):Math.min(st.pts.length,T.p.length-1);
 $('#pr').textContent=(st.aw?st.awp:st.pick?'Sélectionnez les objets, puis Entrée':T.l+' · '+T.p[i])+' ›';
 document.querySelectorAll('[data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t==st.tool));cv.style.cursor=st.tool=='pan'?'grab':'none'}
 function info(e){const f=fmt,r=[['Type',{line:'Ligne',pl:e.z?'Polyligne fermée':'Polyligne',circle:'Cercle',arc:'Arc',text:'Texte',dim:'Cote'}[e.t]]];
@@ -294,7 +335,7 @@ $('#fi').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileRea
 
 /* ---------- souris & clavier ---------- */
 function mvc(x,y){mouse=[x,y];curS=snapAt(x,y);cur=curS.p;$('#co').textContent='X '+fmt(cur[0])+'   Y '+fmt(cur[1])}
-function doSel(w){if(Math.hypot(w.x1-w.x0,w.y1-w.y0)<5){const e=hit(s2w(w.x0,w.y0));if(!w.sh)S.sel.clear();if(e){if(S.sel.has(e)&&w.sh)S.sel.delete(e);else S.sel.add(e)}}
+function doSel(w){if(st.tool=='stretch'){if(Math.hypot(w.x1-w.x0,w.y1-w.y0)<5){log('Étirer : tracez une fenêtre de capture');return}const a=s2w(w.x0,w.y0),b=s2w(w.x1,w.y1);st.sw=[Math.min(a[0],b[0]),Math.min(a[1],b[1]),Math.max(a[0],b[0]),Math.max(a[1],b[1])];pr();redraw();return}if(Math.hypot(w.x1-w.x0,w.y1-w.y0)<5){const e=hit(s2w(w.x0,w.y0));if(!w.sh)S.sel.clear();if(e){if(S.sel.has(e)&&w.sh)S.sel.delete(e);else S.sel.add(e)}}
 else{const a=s2w(w.x0,w.y0),b=s2w(w.x1,w.y1),X0=Math.min(a[0],b[0]),X1=Math.max(a[0],b[0]),Y0=Math.min(a[1],b[1]),Y1=Math.max(a[1],b[1]),cr=w.x1<w.x0;if(!w.sh)S.sel.clear();
 for(const e of S.ents){if(!vis(e)||lay(e).k)continue;const q=bb(e);if(cr?(q[0]<=X1&&q[2]>=X0&&q[1]<=Y1&&q[3]>=Y0):(q[0]>=X0&&q[2]<=X1&&q[1]>=Y0&&q[3]<=Y1))S.sel.add(e)}}
 ui();redraw()}
@@ -302,7 +343,7 @@ const rel=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clien
 cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);const[x,y]=rel(e);ci.focus();
 if(e.button==1||(st.tool=='pan'&&e.button==0)){pan={x,y,ox:V.ox,oy:V.oy};e.preventDefault();return}
 if(e.button==2){enter('');return}if(e.button!=0)return;mvc(x,y);
-if(st.tool=='select'||st.pick){win={x0:x,y0:y,x1:x,y1:y,sh:e.shiftKey};return}pt(curS.p)});
+if(st.tool=='select'||st.pick||(st.tool=='stretch'&&!st.sw)){win={x0:x,y0:y,x1:x,y1:y,sh:e.shiftKey};return}pt(curS.p)});
 cv.addEventListener('pointermove',e=>{const[x,y]=rel(e);if(pan){V.ox=pan.ox+x-pan.x;V.oy=pan.oy+y-pan.y}mvc(x,y);if(win){win.x1=x;win.y1=y}redraw()});
 cv.addEventListener('pointerup',()=>{pan=null;if(win){const w=win;win=null;doSel(w)}});
 cv.addEventListener('pointerleave',()=>{mouse=null;redraw()});cv.addEventListener('contextmenu',e=>e.preventDefault());
@@ -341,6 +382,7 @@ return o+'</svg>'}
 
 /* ---------- démarrage ---------- */
 try{const j=JSON.parse(localStorage.getItem('minicao')||'null');if(j&&j.e){S.ents=j.e;S.layers=j.l;S.cur=j.c}}catch(_){}
+setInterval(()=>{if(dirty){dirty=0;snapNow('auto',1)}},120000);addEventListener('visibilitychange',()=>{if(document.hidden&&dirty){dirty=0;snapNow('auto',1)}});
 addEventListener('resize',rs);rs();ui();setTool('select');if(S.ents.length)zoomE();
 log('Mini CAO 2D prête. Tapez L pour une ligne, C pour un cercle, AIDE pour la liste des commandes.');ci.focus();
 </script></body></html>
