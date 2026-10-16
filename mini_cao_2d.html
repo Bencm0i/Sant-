@@ -39,7 +39,7 @@ dialog td{padding:2px 14px 2px 0;vertical-align:top}
 </style></head><body>
 <div id="app">
 <header><b>Mini CAO 2D</b>
-<button data-f="NEW">Nouveau</button><button data-f="OPEN">Ouvrir</button><button data-f="SAVE">Enregistrer</button><button data-f="VER">Versions</button><i></i>
+<button data-f="NEW">Nouveau</button><button data-f="OPEN">Ouvrir</button><button data-f="SAVE">Enregistrer</button><button data-f="VER">Versions</button><i></i><button data-f="GR">Grouper</button><button data-f="DG">Dégrouper</button><i></i>
 <button data-f="DXF">DXF</button><button data-f="SVG">SVG</button><button data-f="PNG">PNG</button><i></i>
 <button data-f="U">Annuler</button><button data-f="Y">Rétablir</button><button data-f="ZE">Zoom étendu</button><button data-f="AIDE">Aide</button>
 <input type="file" id="fi" accept=".json" hidden></header>
@@ -60,6 +60,7 @@ dialog td{padding:2px 14px 2px 0;vertical-align:top}
 <tr><td><b>Saisie</b></td><td>x,y absolu · @dx,dy relatif · @longueur&lt;angle polaire · un nombre = distance dans la direction du curseur</td></tr>
 <tr><td><b>Avancé</b></td><td>EX prolonger jusqu'à la limite · F raccord (rayon) · CHA chanfrein (distance) · POL polygone régulier · AP n,angle,cx,cy réseau polaire de la sélection (angle 360 par défaut)</td></tr>
 <tr><td><b>Plus</b></td><td>EL ellipse · AL aligner (2 paires de points, échelle en option) · LEN allonger ou raccourcir (± valeur) · H hachures (contours fermés sélectionnés) · BL nom crée un bloc depuis la sélection · INS nom insère le bloc · BLS liste</td></tr>
+<tr><td><b>Groupes</b></td><td>GR (ou bouton Grouper) lie la sélection : un clic sélectionne tout le groupe, et déplacer, copier, pivoter, échelle, miroir, aligner, effacer s'appliquent ensemble · DG dégroupe · Ctrl+clic = un seul objet du groupe · une copie crée un nouveau groupe</td></tr>
 <tr><td><b>Étirer</b></td><td>ET : fenêtre de capture, point de base, point d'arrivée. Les sommets dans la fenêtre bougent, les autres restent</td></tr>
 <tr><td><b>Date / heure</b></td><td>SD début ; fin → sélectionne les objets créés dans l'intervalle (ex. SD 2026-10-16 13:00 ; 15:00, ou SD 13:00 pour « depuis 13:00 aujourd'hui) · VER ouvre les versions horodatées</td></tr>
 <tr><td><b>Souris</b></td><td>Molette zoom · clic molette pan · clic droit = Entrée · fenêtre gauche→droite = inclus, droite→gauche = capture</td></tr>
@@ -180,7 +181,7 @@ function add(e,l){e.l=l||S.cur;e.d=Date.now();snp();S.ents.push(e);chg()}
 function undo(){if(!S.undo.length)return log('Rien à annuler');S.redo.push(JSON.stringify(S.ents));S.ents=JSON.parse(S.undo.pop());S.sel.clear();chg()}
 function redo(){if(!S.redo.length)return log('Rien à rétablir');S.undo.push(JSON.stringify(S.ents));S.ents=JSON.parse(S.redo.pop());S.sel.clear();chg()}
 function erase(){if(!S.sel.size)return;snp();S.ents=S.ents.filter(e=>!S.sel.has(e));S.sel.clear();chg()}
-function applyTo(fn,keep){snp();const ns=new Set(),out=[];for(const e of S.ents){if(S.sel.has(e)){const n=fn(e);if(keep){n.d=Date.now();out.push(e,n)}else{out.push(n);ns.add(n)}}else out.push(e)}S.ents=out;if(!keep)S.sel=ns;chg()}
+function applyTo(fn,keep){snp();const ns=new Set(),out=[],gm=regroup();for(const e of S.ents){if(S.sel.has(e)){const n=fn(e);if(keep){n.d=Date.now();if(n.g)n.g=gm(n.g);out.push(e,n)}else{out.push(n);ns.add(n)}}else out.push(e)}S.ents=out;if(!keep)S.sel=ns;chg()}
 const rotf=(b,t)=>p=>{const x=p[0]-b[0],y=p[1]-b[1],c=Math.cos(t),s=Math.sin(t);return[b[0]+x*c-y*s,b[1]+x*s+y*c]};
 function stretchE(e,B,dx,dy){const q=bb(e);if(q[2]<B[0]||q[0]>B[2]||q[3]<B[1]||q[1]>B[3])return e;
 const I=p=>p[0]>=B[0]&&p[0]<=B[2]&&p[1]>=B[1]&&p[1]<=B[3],n=JSON.parse(JSON.stringify(e));let ch=0;
@@ -213,7 +214,7 @@ function polyE(c,p,n){const r=d(c,p),a0=ang(c,p);return{t:'pl',z:1,p:Array.from(
 function polar(r){const v=r.split(/[,\s]+/).filter(Boolean).map(Number),n=Math.round(v[0]),tot=v[1]||360,c=[v[2]||0,v[3]||0];
 if(!(n>=2)||v.some(isNaN))return log('Syntaxe : AP n,angle,cx,cy  (angle 360 par défaut, centre 0,0)');if(!S.sel.size)return log("Sélectionnez d'abord des objets");
 snp();const src=[...S.sel],step=Math.abs(tot)>=360?tot/n:tot/(n-1);
-for(let i=1;i<n;i++)src.forEach(e=>{const t=i*step*PI/180,m=tf(e,rotf(c,t),t);m.d=Date.now();S.ents.push(m)});chg()}
+for(let i=1;i<n;i++){const gm=regroup();src.forEach(e=>{const t=i*step*PI/180,m=tf(e,rotf(c,t),t);m.d=Date.now();if(m.g)m.g=gm(m.g);S.ents.push(m)})}chg()}
 function ellE(c,p1,p2){let rx=d(c,p1),ry=d(c,p2),rot=ang(c,p1);if(rx<1e-9||ry<1e-9)return null;if(ry>rx){const t=rx;rx=ry;ry=t;rot+=PI/2}return{t:'ell',c,rx,ry,rot}}
 function alignDo(a,sc){const s1=a[0],d1=a[1],s2=a[2],d2=a[3];let th=0,k=1;
 if(a.length>=4){th=ang(d1,d2)-ang(s1,s2);if(sc){const L=d(s1,s2);if(L>1e-9)k=d(d1,d2)/L}}
@@ -241,11 +242,15 @@ if(!S.layers.some(l=>l.n=='Hachures'))S.layers.push(LY('Hachures','#8a94a0'));
 snp();out.forEach(e=>S.ents.push(e));S.sel.clear();chg();log(out.length+' hachures créées (calque Hachures · SD pour les resélectionner)')}
 function insertEnts(n,P){const b=S.blocks[n],k=st.bs,th=st.br*PI/180,c=Math.cos(th),s=Math.sin(th);
 const f=q=>{const x=(q[0]-b.base[0])*k,y=(q[1]-b.base[1])*k;return[P[0]+x*c-y*s,P[1]+x*s+y*c]};
-return b.ents.map(e=>{const m=tf(e,f,th,k);m.d=Date.now();return m})}
+const gm=regroup();return b.ents.map(e=>{const m=tf(e,f,th,k);m.d=Date.now();if(m.g)m.g=gm(m.g);return m})}
 function blockCmd(r){const n=r.trim();if(!n)return log('Syntaxe : BL nom  (après avoir sélectionné les objets)');if(!S.sel.size)return log("Sélectionnez d'abord des objets");st.bn=n;setTool('bblock')}
 function insCmd(r){const n=r.trim();if(!S.blocks[n])return log('Blocs : '+(Object.keys(S.blocks).join(', ')||'aucun')+' · syntaxe INS nom');st.bn=n;setTool('insert');
 ask('Échelle <'+st.bs+'> :',s=>{const k=parseFloat(s);if(s&&k>0)st.bs=k;ask('Rotation en degrés <'+st.br+'> :',s2=>{const v=parseFloat(s2);if(s2&&!isNaN(v))st.br=v})})}
 function blockList(){const k=Object.keys(S.blocks);log(k.length?'Blocs : '+k.map(n=>n+' ('+S.blocks[n].ents.length+')').join(', '):'Aucun bloc')}
+const gid=()=>'g'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),regroup=()=>{const m={};return g=>m[g]||(m[g]=gid())};
+function expandG(){const gs=new Set();S.sel.forEach(e=>e.g&&gs.add(e.g));if(gs.size)S.ents.forEach(e=>{if(e.g&&gs.has(e.g)&&vis(e)&&!lay(e).k)S.sel.add(e)})}
+function groupSel(){if(S.sel.size<2)return log('Groupe : sélectionnez au moins 2 objets');snp();const id=gid();S.sel.forEach(e=>e.g=id);chg();log('Groupe créé ('+S.sel.size+' objets) · Ctrl+clic pour choisir un objet seul')}
+function ungroupSel(){const es=[...S.sel].filter(e=>e.g);if(!es.length)return log('Aucun groupe dans la sélection');snp();es.forEach(e=>delete e.g);chg();log(es.length+' objet(s) dégroupé(s)')}
 function mirSel(a,b){const th=ang(a,b),c=Math.cos(2*th),s=Math.sin(2*th),f=p=>{const x=p[0]-a[0],y=p[1]-a[1];return[a[0]+x*c+y*s,a[1]+x*s-y*c]};
 applyTo(e=>{const n=tf(e,f);if(n.t=='arc'){n.a0=nm(2*th-e.a1);n.a1=nm(2*th-e.a0)}if(n.t=='ell')n.rot=2*th-e.rot;return n},true)}
 function trimAt(p){const e=hit(p);if(!e||e.t!='line')return log('Ajuster : cliquez une ligne');
@@ -256,7 +261,7 @@ lo=Math.max(0,...ts.filter(t=>t<=tc)),hi=Math.min(1,...ts.filter(t=>t>=tc)),q=t=
 snp();S.ents.splice(S.ents.indexOf(e),1);if(lo>1e-6)S.ents.push({...e,b:q(lo)});if(hi<1-1e-6)S.ents.push({...e,a:q(hi)});chg()}
 function explode(){const es=[...S.sel].filter(e=>e.t=='pl');if(!es.length)return log('Sélectionnez des polylignes');snp();S.ents=S.ents.filter(e=>!es.includes(e));es.forEach(e=>segs(e).forEach(g=>S.ents.push({t:'line',a:g[0],b:g[1],l:e.l,d:e.d})));S.sel.clear();chg()}
 function array(r){const[n,m,dx,dy]=r.split(/[,\s]+/).map(Number);if(!(n>0&&m>0)||isNaN(dx)||isNaN(dy))return log('Syntaxe : AR lignes,colonnes,dx,dy');if(!S.sel.size)return log('Sélectionnez d\'abord des objets');
-snp();const src=[...S.sel];for(let i=0;i<n;i++)for(let j=0;j<m;j++)if(i||j)src.forEach(e=>{const n=tf(e,p=>[p[0]+j*dx,p[1]+i*dy]);n.d=Date.now();S.ents.push(n)});chg()}
+snp();const src=[...S.sel];for(let i=0;i<n;i++)for(let j=0;j<m;j++)if(i||j){const gm=regroup();src.forEach(e=>{const n=tf(e,p=>[p[0]+j*dx,p[1]+i*dy]);n.d=Date.now();if(n.g)n.g=gm(n.g);S.ents.push(n)})};chg()}
 const selAll=()=>{S.sel=new Set(S.ents.filter(e=>vis(e)&&!lay(e).k));ui();redraw()};
 function addLayer(n){n=(n||'').trim();if(!n)return;if(!S.layers.some(l=>l.n==n))S.layers.push(LY(n,PAL[S.layers.length%PAL.length]));S.cur=n;chg()}
 
@@ -312,7 +317,7 @@ if(rel){const b=st.pts.length?st.pts[st.pts.length-1]:[0,0];r=[b[0]+r[0],b[1]+r[
 function esc1(){if(st.tool!='select'||st.pts.length||st.aw||st.pick){setTool('select')}else{S.sel.clear();ui();redraw()}}
 
 /* ---------- commandes ---------- */
-const FN={U:undo,UNDO:undo,ANNULER:undo,Y:redo,REDO:redo,ZE:zoomE,Z:zoomE,ZOOM:zoomE,X:explode,EXPLODE:explode,AR:array,AP:polar,BL:blockCmd,INS:insCmd,BLS:blockList,VER:openVer,VERSIONS:openVer,SD:selDate,TOUT:selAll,ALL:selAll,
+const FN={U:undo,UNDO:undo,ANNULER:undo,Y:redo,REDO:redo,ZE:zoomE,Z:zoomE,ZOOM:zoomE,X:explode,EXPLODE:explode,AR:array,GR:groupSel,G:groupSel,GROUP:groupSel,DG:ungroupSel,UG:ungroupSel,UNGROUP:ungroupSel,AP:polar,BL:blockCmd,INS:insCmd,BLS:blockList,VER:openVer,VERSIONS:openVer,SD:selDate,TOUT:selAll,ALL:selAll,
 ORTHO:()=>tg('or'),GRILLE:()=>tg('gr'),OSNAP:()=>tg('os'),SNAP:()=>tg('gs'),AIDE:()=>$('#hp').showModal(),HELP:()=>$('#hp').showModal(),
 LA:addLayer,TH:r=>{const n=parseFloat(r);st.th=n>0?n:0;log('Hauteur de texte : '+(st.th||'auto'))},
 DXF:()=>dl('dessin_'+stamp()+'.dxf',dxf()),SVG:()=>dl('dessin_'+stamp()+'.svg',svg(),'image/svg+xml'),PNG:()=>{const a=document.createElement('a');a.href=cv.toDataURL('image/png');a.download='dessin_'+stamp()+'.png';a.click()},
@@ -376,6 +381,8 @@ function paint(){cx.setTransform(dpr,0,0,dpr,0,0);cx.fillStyle='#12161b';cx.fill
 if(O.gr){const g=gstep(),a=s2w(0,0),b=s2w(W,H);cx.fillStyle='#2e3842';for(let x=Math.floor(a[0]/g)*g;x<=b[0];x+=g)for(let y=Math.floor(b[1]/g)*g;y<=a[1];y+=g){const q=w2s([x,y]);cx.fillRect(q[0]-.5,q[1]-.5,1.6,1.6)}}
 cx.setLineDash([]);cx.lineWidth=1;cx.strokeStyle='#6a3b3b';cx.beginPath();cx.moveTo(0,V.oy);cx.lineTo(W,V.oy);cx.stroke();cx.strokeStyle='#3b6a45';cx.beginPath();cx.moveTo(V.ox,0);cx.lineTo(V.ox,H);cx.stroke();
 for(const e of S.ents){if(!vis(e))continue;const s=S.sel.has(e),l=lay(e);cx.globalAlpha=l.k?.55:1;drawEnt(e,s?'#3ea6ff':l.c,s||l.lt=='dash',s?2:1.2)}
+cx.globalAlpha=1;{const gb={};S.sel.forEach(e=>{if(!e.g)return;const q=bb(e),b=gb[e.g]||(gb[e.g]=[1e18,1e18,-1e18,-1e18]);b[0]=Math.min(b[0],q[0]);b[1]=Math.min(b[1],q[1]);b[2]=Math.max(b[2],q[2]);b[3]=Math.max(b[3],q[3])});
+cx.setLineDash([2,4]);cx.lineWidth=1;cx.strokeStyle='#3ea6ffaa';for(const k in gb){const b=gb[k],p=w2s([b[0],b[3]]),q=w2s([b[2],b[1]]);cx.strokeRect(p[0]-5,p[1]-5,q[0]-p[0]+10,q[1]-p[1]+10)}cx.setLineDash([])}
 cx.globalAlpha=1;const a=st.pts,t=st.tool;
 if(mouse&&!st.pick&&a.length){const c=cur,G='#ffd23f';
 if(t=='line'||t=='measure'||t=='mirror')drawEnt({t:'line',a:a[0],b:c},G,1);
@@ -413,6 +420,7 @@ if(e.t=='circle')r.push(['Rayon',f(e.r)],['Circonférence',f(2*PI*e.r)],['Aire',
 if(e.t=='ell')r.push(['Axes',f(2*e.rx)+' × '+f(2*e.ry)],['Aire',f(PI*e.rx*e.ry)]);
 if(e.t=='arc')r.push(['Rayon',f(e.r)],['Longueur',f(e.r*nm(e.a1-e.a0))]);
 if(e.t=='dim')r.push(['Valeur',f(d(e.a,e.b))]);if(e.t=='text')r.push(['Contenu',esc(e.s)]);
+if(e.g)r.push(['Groupe',S.ents.filter(x=>x.g==e.g).length+' objets']);
 return'<table>'+r.map(x=>`<tr><td>${x[0]}</td><td>${x[1]}</td></tr>`).join('')+'</table>'}
 function ui(){$('#lay').innerHTML=S.layers.map((l,i)=>`<div class="ly${l.n==S.cur?' cu':''}" data-i="${i}"><input type="checkbox" data-a="v" ${l.v?'checked':''} title="Visible"><button data-a="k" title="Verrouiller">${l.k?'🔒':'🔓'}</button><input type="color" data-a="c" value="${l.c}" title="Couleur"><span data-a="n">${esc(l.n)}</span><button data-a="t" title="Type de ligne">${l.lt=='dash'?'- -':'—'}</button></div>`).join('');
 const es=[...S.sel],n=es.length;let h=n?`<p>${n} objet${n>1?'s':''} sélectionné${n>1?'s':''}</p>`+(n==1?info(es[0]):'')+`<select id="pl" aria-label="Calque des objets">${S.layers.map(l=>`<option ${es.every(e=>e.l==l.n)?'selected':''}>${esc(l.n)}</option>`).join('')}</select>`:'<p class="mu">Aucune sélection</p>';
@@ -427,15 +435,15 @@ $('#fi').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileRea
 
 /* ---------- souris & clavier ---------- */
 function mvc(x,y){mouse=[x,y];curS=snapAt(x,y);cur=curS.p;$('#co').textContent='X '+fmt(cur[0])+'   Y '+fmt(cur[1])}
-function doSel(w){if(st.tool=='stretch'){if(Math.hypot(w.x1-w.x0,w.y1-w.y0)<5){log('Étirer : tracez une fenêtre de capture');return}const a=s2w(w.x0,w.y0),b=s2w(w.x1,w.y1);st.sw=[Math.min(a[0],b[0]),Math.min(a[1],b[1]),Math.max(a[0],b[0]),Math.max(a[1],b[1])];pr();redraw();return}if(Math.hypot(w.x1-w.x0,w.y1-w.y0)<5){const e=hit(s2w(w.x0,w.y0));if(!w.sh)S.sel.clear();if(e){if(S.sel.has(e)&&w.sh)S.sel.delete(e);else S.sel.add(e)}}
+function doSel(w){if(st.tool=='stretch'){if(Math.hypot(w.x1-w.x0,w.y1-w.y0)<5){log('Étirer : tracez une fenêtre de capture');return}const a=s2w(w.x0,w.y0),b=s2w(w.x1,w.y1);st.sw=[Math.min(a[0],b[0]),Math.min(a[1],b[1]),Math.max(a[0],b[0]),Math.max(a[1],b[1])];pr();redraw();return}if(Math.hypot(w.x1-w.x0,w.y1-w.y0)<5){const e=hit(s2w(w.x0,w.y0));if(!w.sh)S.sel.clear();if(e){if(S.sel.has(e)&&w.sh){S.sel.delete(e);if(e.g&&!w.ck)S.ents.forEach(x=>{if(x.g==e.g)S.sel.delete(x)})}else S.sel.add(e)}}
 else{const a=s2w(w.x0,w.y0),b=s2w(w.x1,w.y1),X0=Math.min(a[0],b[0]),X1=Math.max(a[0],b[0]),Y0=Math.min(a[1],b[1]),Y1=Math.max(a[1],b[1]),cr=w.x1<w.x0;if(!w.sh)S.sel.clear();
 for(const e of S.ents){if(!vis(e)||lay(e).k)continue;const q=bb(e);if(cr?(q[0]<=X1&&q[2]>=X0&&q[1]<=Y1&&q[3]>=Y0):(q[0]>=X0&&q[2]<=X1&&q[1]>=Y0&&q[3]<=Y1))S.sel.add(e)}}
-ui();redraw()}
+if(!w.ck)expandG();ui();redraw()}
 const rel=e=>{const r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]};
 cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);const[x,y]=rel(e);ci.focus();
 if(e.button==1||(st.tool=='pan'&&e.button==0)){pan={x,y,ox:V.ox,oy:V.oy};e.preventDefault();return}
 if(e.button==2){enter('');return}if(e.button!=0)return;mvc(x,y);
-if(st.tool=='select'||st.pick||(st.tool=='stretch'&&!st.sw)){win={x0:x,y0:y,x1:x,y1:y,sh:e.shiftKey};return}pt(curS.p)});
+if(st.tool=='select'||st.pick||(st.tool=='stretch'&&!st.sw)){win={x0:x,y0:y,x1:x,y1:y,sh:e.shiftKey,ck:e.ctrlKey||e.metaKey};return}pt(curS.p)});
 cv.addEventListener('pointermove',e=>{const[x,y]=rel(e);if(pan){V.ox=pan.ox+x-pan.x;V.oy=pan.oy+y-pan.y}mvc(x,y);if(win){win.x1=x;win.y1=y}redraw()});
 cv.addEventListener('pointerup',()=>{pan=null;if(win){const w=win;win=null;doSel(w)}});
 cv.addEventListener('pointerleave',()=>{mouse=null;redraw()});cv.addEventListener('contextmenu',e=>e.preventDefault());
