@@ -3386,6 +3386,69 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
   .path-btn{min-width:0;max-width:100%;}
   .paths-form{grid-template-columns:1fr;}
 }
+
+/* ═══ MODE COMPACT : gagne un max de place en hauteur ═══ */
+/* En-tête : une seule ligne au lieu de deux */
+header{flex-direction:row;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:6px 14px;}
+header .header-row{display:contents;}
+h1{font-size:1.1rem;gap:6px;}
+h1 .spine{width:7px;height:16px;}
+.search-wrap{flex:1 1 180px;min-width:140px;max-width:320px;}
+.search-wrap input{padding:5px 28px 5px 30px;font-size:0.78rem;}
+.search-icon{left:11px;font-size:0.78rem;}
+.search-clear{width:18px;height:18px;right:6px;}
+#saveStatus{margin-left:auto;min-width:0;}
+.storage-badge{padding:2px 8px;font-size:0.64rem;}
+.header-actions{gap:5px;}
+.btn{padding:4px 9px;font-size:0.7rem;border-radius:7px;}
+
+/* Bandeaux : plus fins (l'astuce est déjà dans l'aide « ? ») */
+.link-hint{display:none;}
+.breadcrumb-bar{padding:3px 14px;font-size:0.68rem;}
+.backup-banner{padding:3px 14px;font-size:0.72rem;gap:8px;}
+
+/* Barre Dossiers */
+.paths-bar{padding:4px 12px 5px;}
+.paths-head{gap:8px;}
+.paths-hint{display:none;}
+.paths-toggle{width:18px;height:18px;font-size:0.64rem;}
+.paths-add{padding:3px 8px;}
+
+/* Colonnes : en-têtes et barres d'outils resserrés */
+.text-col{position:relative;border-top-width:4px;}
+.col-head{padding:4px 12px;gap:6px;}
+.col-label{font-size:0.8rem;gap:6px;}
+.mode-badge{padding:1px 8px;font-size:0.6rem;}
+.col-tools{gap:4px;row-gap:4px;}
+.col-tools button{padding:3px 7px;font-size:0.64rem;}
+.text-col[data-mode="edit"] .col-head{border-bottom-width:2px;}
+.md-toolbar{padding:3px 12px;gap:3px;}
+.md-btn{width:26px;height:24px;font-size:0.74rem;}
+.text-col:not([data-mode="edit"]) .md-toolbar{padding:2px 12px;}
+.find-bar{padding:4px 12px;}
+
+/* Compteur de caractères : superposé en bas à droite, ne prend plus de ligne */
+.char-count{
+  position:absolute;right:18px;bottom:4px;padding:1px 8px;border:none;border-radius:999px;
+  background:color-mix(in srgb,var(--paper) 85%,transparent);font-size:0.62rem;
+  pointer-events:none;z-index:2;
+}
+
+/* Colonne des onglets */
+.tabs-list{padding:4px 0;}
+.add-tab-wrap{padding:6px 10px 8px;}
+.add-tab-btn{padding:6px;}
+.content-tags-bar{padding:6px 10px;}
+
+@media(max-width:820px){
+  header{padding:6px 10px;gap:5px 8px;}
+  .header-actions{flex:1 1 100%;flex-wrap:nowrap;overflow-x:auto;}
+  .header-actions .btn{padding:4px 8px;white-space:nowrap;flex-shrink:0;}
+  .mobile-col-toggle{padding:4px 10px;}
+  .mobile-col-toggle button{padding:5px;font-size:0.72rem;}
+  .tabs-col{max-height:150px;}
+  .text-col{min-height:240px;}
+}
 </style>
 </head>
 <body>
