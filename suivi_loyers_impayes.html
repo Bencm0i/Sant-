@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Suivi loyers impayés</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23b42318'/%3E%3Cpath d='M12 32 32 14l20 18v18H12z' fill='%23fff'/%3E%3Ccircle cx='32' cy='38' r='9' fill='%23b42318'/%3E%3Ctext x='32' y='43' font-size='13' font-family='Arial' font-weight='700' text-anchor='middle' fill='%23fff'%3E%E2%82%AC%3C/text%3E%3C/svg%3E">
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--txt:#1b1f27;--mut:#667085;--bd:#e4e7ec;--acc:#b42318;--ok:#067647;--warn:#b54708;--blue:#175cd3;--in:#fff}
+@media (prefers-color-scheme:dark){:root{--bg:#12141a;--card:#1b1e26;--txt:#e8eaf0;--mut:#98a2b3;--bd:#2c303b;--acc:#f97066;--ok:#47cd89;--warn:#fdb022;--blue:#84adff;--in:#12141a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{padding:16px;max-width:980px;margin:0 auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:space-between}
+h1{font-size:20px;margin:0}
+main{max-width:980px;margin:0 auto;padding:0 16px 40px;display:grid;gap:14px}
+section{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px}
+h2{font-size:16px;margin:0 0 10px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kpi{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px}
+.kpi small{color:var(--mut);display:block}
+.kpi b{font-size:20px}
+.red{color:var(--acc)}.green{color:var(--ok)}.orange{color:var(--warn)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+label{display:block;font-size:12px;color:var(--mut);margin-bottom:3px}
+input,select,textarea{width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--in);color:var(--txt);font:inherit}
+textarea{min-height:70px;resize:vertical}
+button{padding:8px 12px;border:1px solid var(--bd);border-radius:8px;background:var(--card);color:var(--txt);font:inherit;cursor:pointer}
+button.p{background:var(--acc);border-color:var(--acc);color:#fff}
+button.s{padding:4px 8px;font-size:13px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.item{border:1px solid var(--bd);border-radius:10px;padding:10px;margin-top:8px}
+.item .top{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.tag{display:inline-block;padding:1px 8px;border-radius:99px;font-size:12px;border:1px solid var(--bd);color:var(--mut)}
+.mut{color:var(--mut);font-size:13px}
+.act{margin-top:6px;padding:6px 8px;border-left:3px solid var(--warn);background:rgba(181,71,8,.08);border-radius:4px;font-size:14px}
+.act.done{border-color:var(--ok);background:rgba(6,118,71,.08);text-decoration:line-through;color:var(--mut)}
+.chk label{display:flex;gap:8px;align-items:flex-start;color:var(--txt);font-size:14px;margin:6px 0}
+.chk input{width:auto;margin-top:3px}
+.empty{color:var(--mut);text-align:center;padding:14px}
+details summary{cursor:pointer;font-weight:600}
+@media print{header button,.noprint,form,.row button{display:none!important}body{background:#fff;color:#000}section,.kpi{border-color:#999}}
+</style>
+</head>
+<body>
+<header>
+  <h1>🏠 Suivi des loyers impayés</h1>
+  <div class="row noprint">
+    <button onclick="exportJSON()">Sauvegarde JSON</button>
+    <button onclick="document.getElementById('imp').click()">Importer</button>
+    <button onclick="exportCSV()">Export CSV</button>
+    <button onclick="window.print()">Imprimer</button>
+    <input type="file" id="imp" accept=".json" hidden onchange="importJSON(this)">
+  </div>
+</header>
+
+<main>
+  <div class="kpis" id="kpis"></div>
+
+  <section>
+    <details>
+      <summary>Dossier (locataire, bien, loyer)</summary>
+      <div class="grid" style="margin-top:10px">
+        <div><label>Locataire(s)</label><input id="d_loc"></div>
+        <div><label>Bien / adresse</label><input id="d_bien"></div>
+        <div><label>Contact locataire (tél / mail)</label><input id="d_contact"></div>
+        <div><label>Loyer hors charges (€)</label><input id="d_loyer" type="number" step="0.01"></div>
+        <div><label>Charges (€)</label><input id="d_charges" type="number" step="0.01"></div>
+        <div><label>Jour d'échéance du loyer</label><input id="d_jour" type="number" min="1" max="31"></div>
+        <div><label>Dépôt de garantie (€)</label><input id="d_caution" type="number" step="0.01"></div>
+        <div><label>Garant / assurance GLI</label><input id="d_garant"></div>
+        <div><label>Date de début du bail</label><input id="d_bail" type="date"></div>
+      </div>
+      <div class="row" style="margin-top:10px"><button class="p" onclick="saveDossier()">Enregistrer le dossier</button></div>
+    </details>
+  </section>
+
+  <section>
+    <h2>Échéances <button class="s noprint" onclick="addMonth()">+ Ajouter le mois courant</button></h2>
+    <form class="grid noprint" onsubmit="addEch(event)">
+      <div><label>Mois</label><input id="e_mois" type="month" required></div>
+      <div><label>Montant dû (€)</label><input id="e_du" type="number" step="0.01" required></div>
+      <div><label>Montant payé (€)</label><input id="e_paye" type="number" step="0.01" value="0"></div>
+      <div><label>Note</label><input id="e_note"></div>
+      <div style="align-self:end"><button class="p" style="width:100%">Ajouter</button></div>
+    </form>
+    <div id="echs"></div>
+  </section>
+
+  <section>
+    <h2 id="jTitle">Nouvel événement</h2>
+    <form id="jform" onsubmit="saveEvt(event)">
+      <div class="grid">
+        <div><label>Date et heure</label>
+          <div class="row" style="flex-wrap:nowrap"><input id="j_ts" type="datetime-local" required><button type="button" class="s" onclick="setNow()">Maintenant</button></div></div>
+        <div><label>Type</label><select id="j_type"></select></div>
+        <div><label>Montant concerné (€)</label><input id="j_montant" type="number" step="0.01"></div>
+      </div>
+      <div style="margin-top:10px"><label>Description (ce qui s'est passé, ce qui a été dit, référence LRAR, n° de suivi…)</label><textarea id="j_desc" required></textarea></div>
+      <div class="grid" style="margin-top:10px">
+        <div><label>Prochaine action à mener</label><input id="j_action"></div>
+        <div><label>Échéance de l'action</label><input id="j_echeance" type="date"></div>
+        <div><label>Preuve / pièce jointe (nom du fichier, lien)</label><input id="j_preuve"></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="p">Enregistrer</button>
+        <button type="button" id="cancelEdit" onclick="resetForm()" hidden>Annuler</button>
+      </div>
+    </form>
+  </section>
+
+  <section>
+    <h2>Journal <span class="mut" id="jCount"></span></h2>
+    <div class="row noprint"><select id="filtre" onchange="render()" style="max-width:260px"><option value="">Tous les types</option></select></div>
+    <div id="journal"></div>
+  </section>
+
+  <section class="chk">
+    <details>
+      <summary>Check-list de procédure (repère indicatif, à vérifier auprès d'un professionnel)</summary>
+      <div id="checklist" style="margin-top:8px"></div>
+      <p class="mut">Les délais légaux et la procédure évoluent : vérifier auprès de l'ADIL, d'un commissaire de justice ou d'un avocat avant toute étape formelle.</p>
+    </details>
+  </section>
+</main>
+
+<script>
+const KEY='suivi_loyers_impayes_v1';
+const TYPES={
+ constat:['⚠️','Impayé constaté'],
+ sms:['💬','Relance SMS'],
+ mail:['✉️','Relance e-mail'],
+ appel:['📞','Appel téléphonique'],
+ visite:['🚪','Rencontre / visite'],
+ lrar:['📮','Courrier recommandé (LRAR)'],
+ mise_demeure:['📜','Mise en demeure'],
+ garant:['🤝','Contact garant / GLI'],
+ echeancier:['📅','Accord / plan d\'apurement'],
+ paiement_partiel:['💶','Paiement partiel reçu'],
+ paiement:['✅','Paiement complet reçu'],
+ caf:['🏛️','CAF / organisme social'],
+ commandement:['⚖️','Commandement de payer'],
+ justice:['🧑‍⚖️','Procédure judiciaire'],
+ autre:['📝','Autre']
+};
+const CHECK=[
+ 'Constater l\'impayé et consigner la date (journal)',
+ 'Relance amiable rapide (SMS / appel / mail) avec trace écrite',
+ 'Courrier de relance puis mise en demeure en recommandé avec AR',
+ 'Prévenir le garant (caution) ou l\'assureur GLI dans les délais du contrat',
+ 'Proposer un plan d\'apurement écrit si le locataire est de bonne foi',
+ 'Vérifier les aides / organismes (CAF, fonds de solidarité logement)',
+ 'Si échec : commandement de payer par commissaire de justice',
+ 'Conserver toutes les preuves : relevés bancaires, bail, quittances, accusés de réception'
+];
+const eur=n=>new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(+n||0);
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let S=load(), editing=null;
+
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s)return s}catch(e){}return seed()}
+function seed(){return{
+ dossier:{locataire:'M. et Mme M.',bien:'',contact:'',loyer:832,charges:0,jour:'',caution:0,garant:'À vérifier (garant / assurance loyers impayés ?)',bail:''},
+ echeances:[
+  {id:'e-2026-08',mois:'2026-08',du:832,paye:350,note:'Chèque de 350 € remis le 17/09'},
+  {id:'e-2026-09',mois:'2026-09',du:832,paye:0,note:''},
+  {id:'e-2026-10',mois:'2026-10',du:832,paye:0,note:'Ni loyer ni versement complémentaire de 350 € constatés au 14/10'}
+ ],
+ journal:[
+  {id:'j1',ts:'2026-09-17T14:10',type:'visite',desc:'Rencontre avec M. et Mme M. Ils déclarent des difficultés pour régler août et septembre (1 664 € au total) et remettent un chèque de 350 € en paiement partiel d\'août. Reste dû : 1 314 €.\nProposition orale des locataires : à partir d\'octobre, loyer habituel + 350 € d\'apurement, soit 1 182 € par mois, jusqu\'à extinction de la dette.',montant:350,action:'Obtenir un échéancier écrit et signé',echeance:'',preuve:'Chèque de 350 € (copie / remise à noter)',fait:false},
+  {id:'j2',ts:'2026-10-14T15:01',type:'constat',desc:'Constat : le loyer d\'octobre et le versement complémentaire de 350 € ne sont pas reçus. Premier mois du plan déjà en défaut.',montant:1182,action:'',echeance:'',preuve:'',fait:false},
+  {id:'j3',ts:'2026-10-14T15:01',type:'appel',desc:'Message laissé sur le portable de M. et Mme M. par le gestionnaire. En attente de retour.',montant:null,action:'',echeance:'',preuve:'',fait:false},
+  {id:'j4',ts:'2026-10-14T15:37',type:'appel',desc:'Rappel de Mme M. : sa banque aurait dû faire le virement, car elle lui aurait communiqué notre RIB par LRAR « depuis cet été ». La banque n\'aurait pas enregistré le RIB et doit le faire pour le virement du mois et les suivants.\nPoint d\'attention : le 17/09 les locataires évoquaient des difficultés financières, pas un problème bancaire. Changement de version à noter.',montant:null,action:'Confirmation de la banque attendue de Mme M. (prévue le 15/10, rien reçu à ce jour)',echeance:'2026-10-15',preuve:'',fait:false},
+  {id:'j5',ts:'2026-10-16T12:00',type:'visite',desc:'Visite aux locataires (heure approximative). Ils affirment avoir fait un virement de 700 € vendredi (date et réalité à vérifier). Montant incohérent avec les attendus : loyer d\'octobre 832 €, plan annoncé 1 182 €. Si les 700 € arrivent, le solde dû serait d\'environ 1 446 €.',montant:700,action:'Demander la preuve du virement (date, montant, IBAN destinataire)',echeance:'2026-10-18',preuve:'',fait:false},
+  {id:'j6',ts:'2026-10-17T17:02',type:'constat',desc:'Décision : attendre jusqu\'à mardi 20/10. Si aucun virement n\'est reçu, envoi d\'une mise en demeure en LRAR. Même en cas de réception des 700 €, courrier sur le solde et échéancier écrit à signer.',montant:2146,action:'Envoyer la LRAR de mise en demeure si rien n\'est reçu',echeance:'2026-10-20',preuve:'',fait:false},
+  {id:'j7',ts:'2026-10-17T17:02',type:'garant',desc:'À vérifier : existence d\'un garant ou d\'une assurance loyers impayés (GLI). Ces contrats imposent souvent un délai court de déclaration après le premier impayé.',montant:null,action:'Vérifier le contrat de garant / GLI et ses délais de déclaration',echeance:'',preuve:'',fait:false},
+  {id:'j8',ts:'2026-10-17T17:02',type:'caf',desc:'À vérifier : les locataires perçoivent-ils l\'APL ? Dans ce cas, la CAF peut intervenir.',montant:null,action:'Se renseigner sur l\'APL / CAF',echeance:'',preuve:'',fait:false}
+ ],
+ checks:{}
+}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){alert('Stockage local indisponible : pensez à utiliser la sauvegarde JSON.')}}
+function nowLocal(){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,16)}
+function fmtTs(ts){return new Date(ts).toLocaleString('fr-FR',{weekday:'short',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}
+function setNow(){$('j_ts').value=nowLocal()}
+
+function init(){
+  const sel=$('j_type'),f=$('filtre');
+  for(const k in TYPES){sel.add(new Option(TYPES[k][0]+' '+TYPES[k][1],k));f.add(new Option(TYPES[k][0]+' '+TYPES[k][1],k))}
+  const d=S.dossier||{};
+  [['loc','locataire'],['bien','bien'],['contact','contact'],['loyer','loyer'],['charges','charges'],['jour','jour'],['caution','caution'],['garant','garant'],['bail','bail']].forEach(([i,k])=>$('d_'+i).value=d[k]??'');
+  $('e_mois').value=nowLocal().slice(0,7);
+  const dd=(d.loyer||0)+(d.charges||0); if(dd)$('e_du').value=dd.toFixed(2);
+  setNow(); render();
+}
+function saveDossier(){
+  S.dossier={locataire:$('d_loc').value,bien:$('d_bien').value,contact:$('d_contact').value,loyer:+$('d_loyer').value||0,charges:+$('d_charges').value||0,jour:+$('d_jour').value||1,caution:+$('d_caution').value||0,garant:$('d_garant').value,bail:$('d_bail').value};
+  save();render();
+  const dd=S.dossier.loyer+S.dossier.charges; if(dd)$('e_du').value=dd.toFixed(2);
+}
+function addMonth(){
+  const d=S.dossier||{}, due=(d.loyer||0)+(d.charges||0);
+  if(!due){alert('Renseignez d\'abord loyer et charges dans le dossier.');return}
+  const m=nowLocal().slice(0,7);
+  if(S.echeances.some(e=>e.mois===m)){alert('Ce mois existe déjà.');return}
+  S.echeances.push({id:uid(),mois:m,du:due,paye:0,note:''});save();render();
+}
+function addEch(ev){
+  ev.preventDefault();
+  S.echeances.push({id:uid(),mois:$('e_mois').value,du:+$('e_du').value,paye:+$('e_paye').value||0,note:$('e_note').value});
+  $('e_note').value='';save();render();
+}
+function payEch(id){
+  const e=S.echeances.find(x=>x.id===id);if(!e)return;
+  const v=prompt('Montant reçu à ajouter (€) :',(e.du-e.paye).toFixed(2));
+  if(v===null)return;const n=parseFloat(String(v).replace(',','.'));if(isNaN(n))return;
+  e.paye=+(e.paye+n).toFixed(2);
+  S.journal.push({id:uid(),ts:nowLocal(),type:e.paye>=e.du?'paiement':'paiement_partiel',desc:'Paiement de '+eur(n)+' imputé sur '+e.mois+' (reste '+eur(Math.max(e.du-e.paye,0))+').',montant:n,action:'',echeance:'',preuve:'',fait:false});
+  save();render();
+}
+function delEch(id){if(confirm('Supprimer cette échéance ?')){S.echeances=S.echeances.filter(x=>x.id!==id);save();render()}}
+
+function saveEvt(ev){
+  ev.preventDefault();
+  const o={id:editing||uid(),ts:$('j_ts').value,type:$('j_type').value,desc:$('j_desc').value,montant:$('j_montant').value===''?null:+$('j_montant').value,action:$('j_action').value,echeance:$('j_echeance').value,preuve:$('j_preuve').value,fait:false};
+  if(editing){const i=S.journal.findIndex(x=>x.id===editing);o.fait=S.journal[i].fait;S.journal[i]=o}else S.journal.push(o);
+  save();resetForm();render();
+}
+function editEvt(id){
+  const o=S.journal.find(x=>x.id===id);if(!o)return;editing=id;
+  $('j_ts').value=o.ts;$('j_type').value=o.type;$('j_desc').value=o.desc;$('j_montant').value=o.montant??'';$('j_action').value=o.action;$('j_echeance').value=o.echeance;$('j_preuve').value=o.preuve;
+  $('jTitle').textContent='Modifier l\'événement';$('cancelEdit').hidden=false;$('jform').scrollIntoView({behavior:'smooth'});
+}
+function resetForm(){editing=null;$('jform').reset();setNow();$('jTitle').textContent='Nouvel événement';$('cancelEdit').hidden=true}
+function delEvt(id){if(confirm('Supprimer cet événement ?')){S.journal=S.journal.filter(x=>x.id!==id);save();render()}}
+function toggleDone(id){const o=S.journal.find(x=>x.id===id);o.fait=!o.fait;save();render()}
+
+function render(){
+  // KPIs
+  const unpaid=S.echeances.filter(e=>e.du-e.paye>0.004).sort((a,b)=>a.mois.localeCompare(b.mois));
+  const total=unpaid.reduce((s,e)=>s+e.du-e.paye,0);
+  let retard='—';
+  if(unpaid.length){
+    const j=(S.dossier.jour||1), [y,m]=unpaid[0].mois.split('-').map(Number);
+    const dt=new Date(y,m-1,Math.min(j,28));const days=Math.floor((Date.now()-dt)/864e5);
+    retard=days>0?days+' j':'0 j';
+  }
+  const nextA=S.journal.filter(x=>x.action&&!x.fait).sort((a,b)=>(a.echeance||'9999').localeCompare(b.echeance||'9999'))[0];
+  const last=[...S.journal].sort((a,b)=>b.ts.localeCompare(a.ts))[0];
+  $('kpis').innerHTML=
+   `<div class="kpi"><small>Total impayé</small><b class="${total>0?'red':'green'}">${eur(total)}</b></div>
+    <div class="kpi"><small>Mois impayés</small><b class="${unpaid.length?'red':'green'}">${unpaid.length}</b></div>
+    <div class="kpi"><small>Retard du plus ancien</small><b class="${unpaid.length?'orange':''}">${retard}</b></div>
+    <div class="kpi"><small>Dernier événement</small><b style="font-size:14px">${last?esc(fmtTs(last.ts)):'—'}</b></div>
+    <div class="kpi"><small>Prochaine action</small><b style="font-size:14px">${nextA?esc(nextA.action)+(nextA.echeance?' <span class="mut">('+new Date(nextA.echeance).toLocaleDateString('fr-FR')+')</span>':''):'—'}</b></div>`;
+
+  // Echéances
+  const es=[...S.echeances].sort((a,b)=>b.mois.localeCompare(a.mois));
+  $('echs').innerHTML=es.length?es.map(e=>{
+    const r=e.du-e.paye, st=r<=0.004?['Soldé','green']:(e.paye>0?['Partiel','orange']:['Impayé','red']);
+    return `<div class="item"><div class="top"><div><b>${esc(e.mois)}</b> <span class="tag ${st[1]}">${st[0]}</span></div>
+      <div>Dû ${eur(e.du)} · Payé ${eur(e.paye)} · <b class="${st[1]}">Reste ${eur(Math.max(r,0))}</b></div></div>
+      ${e.note?`<div class="mut">${esc(e.note)}</div>`:''}
+      <div class="row noprint" style="margin-top:6px">${r>0.004?`<button class="s" onclick="payEch('${e.id}')">+ Paiement reçu</button>`:''}<button class="s" onclick="delEch('${e.id}')">Supprimer</button></div></div>`}).join(''):'<div class="empty">Aucune échéance enregistrée.</div>';
+
+  // Journal
+  const f=$('filtre').value;
+  const js=S.journal.filter(x=>!f||x.type===f).sort((a,b)=>b.ts.localeCompare(a.ts));
+  $('jCount').textContent=js.length+' entrée(s)';
+  $('journal').innerHTML=js.length?js.map(o=>{
+    const t=TYPES[o.type]||TYPES.autre;
+    return `<div class="item"><div class="top"><div><b>${t[0]} ${esc(t[1])}</b>${o.montant!=null?` · <span class="tag">${eur(o.montant)}</span>`:''}</div><span class="mut">${esc(fmtTs(o.ts))}</span></div>
+      <div style="margin-top:4px;white-space:pre-wrap">${esc(o.desc)}</div>
+      ${o.preuve?`<div class="mut">📎 ${esc(o.preuve)}</div>`:''}
+      ${o.action?`<div class="act ${o.fait?'done':''}">➡️ ${esc(o.action)}${o.echeance?' — pour le '+new Date(o.echeance).toLocaleDateString('fr-FR'):''}</div>`:''}
+      <div class="row noprint" style="margin-top:6px">${o.action?`<button class="s" onclick="toggleDone('${o.id}')">${o.fait?'Rouvrir':'Marquer fait'}</button>`:''}<button class="s" onclick="editEvt('${o.id}')">Modifier</button><button class="s" onclick="delEvt('${o.id}')">Supprimer</button></div></div>`}).join(''):'<div class="empty">Aucun événement.</div>';
+
+  // Checklist
+  $('checklist').innerHTML=CHECK.map((c,i)=>`<label><input type="checkbox" ${S.checks?.[i]?'checked':''} onchange="S.checks=S.checks||{};S.checks[${i}]=this.checked;save()"> ${esc(c)}</label>`).join('');
+}
+
+function dl(name,content,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
+function exportJSON(){dl('suivi_loyers_'+nowLocal().slice(0,10)+'.json',JSON.stringify(S,null,2),'application/json')}
+function exportCSV(){
+  const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  const rows=[['Horodatage','Type','Description','Montant','Action','Echéance action','Fait','Preuve'].map(q).join(';')];
+  [...S.journal].sort((a,b)=>a.ts.localeCompare(b.ts)).forEach(o=>rows.push([o.ts,(TYPES[o.type]||TYPES.autre)[1],o.desc,o.montant??'',o.action,o.echeance,o.fait?'oui':'non',o.preuve].map(q).join(';')));
+  dl('journal_loyers_'+nowLocal().slice(0,10)+'.csv','\ufeff'+rows.join('\n'),'text/csv');
+}
+function importJSON(inp){
+  const f=inp.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{const s=JSON.parse(r.result);if(!s.journal||!s.echeances)throw 0;if(confirm('Remplacer les données actuelles ?')){S=s;save();init()}}catch(e){alert('Fichier invalide.')}};
+  r.readAsText(f);inp.value='';
+}
+init();
+</script>
+</body>
+</html>
