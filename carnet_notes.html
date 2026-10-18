@@ -3449,6 +3449,14 @@ h1 .spine{width:7px;height:16px;}
   .tabs-col{max-height:150px;}
   .text-col{min-height:240px;}
 }
+/* ZOOM DE LECTURE */
+:root{--zoom:1;}
+.note-preview{zoom:var(--zoom);}
+.zoom-ctl{display:inline-flex;align-items:center;gap:0;border:1.5px solid var(--line);border-radius:7px;background:#fff;overflow:hidden;}
+.zoom-ctl button{font-family:'IBM Plex Mono',monospace;font-size:0.72rem;font-weight:700;padding:4px 8px;border:none;background:transparent;color:var(--ink-soft);cursor:pointer;}
+.zoom-ctl button:hover{color:var(--accent);background:var(--paper-dim);}
+.zoom-ctl #zoomVal{min-width:44px;text-align:center;border-left:1px solid var(--line);border-right:1px solid var(--line);}
+
 </style>
 </head>
 <body>
@@ -3469,6 +3477,11 @@ h1 .spine{width:7px;height:16px;}
     <button class="storage-badge" id="margesBadge" onclick="toggleMargesPanel()" title="Toutes les lignes balisées (★ ❓ 💡…), tous onglets confondus (Alt+G)">🔖 …</button>
     <button class="storage-badge" id="storageBadge" onclick="toggleStoragePanel()" title="État de la mémoire de sauvegarde du carnet (les images sont stockées à part)">💾 …</button>
     <div class="header-actions">
+      <div class="zoom-ctl" title="Zoom de lecture (Alt +/−, Alt 0, ou Ctrl+molette sur la lecture)">
+        <button type="button" onclick="zoomStep(-1)" title="Zoom arrière">−</button>
+        <button type="button" id="zoomVal" onclick="zoomSet(1)" title="Revenir à 100 %">100%</button>
+        <button type="button" onclick="zoomStep(1)" title="Zoom avant">+</button>
+      </div>
       <button class="btn" onclick="toggleSidebar()" title="Afficher/masquer la liste des onglets (Alt+S)">☰ Onglets</button>
       <button class="btn" onclick="toggleMosaic()" title="Voir tous les onglets en mosaïque et y coller un résumé (Alt+M)">▦ Mosaïque</button>
       <button class="btn" onclick="toggleHelp()" title="Raccourcis clavier (touche ?)">⌨</button>
@@ -8327,6 +8340,32 @@ document.addEventListener('keydown', (e)=>{
   if(e.key === 'Escape' && open){ e.preventDefault(); toggleMosaic(); return; }
   if(e.altKey && !e.ctrlKey && !e.metaKey && e.key.toLowerCase() === 'm'){ e.preventDefault(); toggleMosaic(); }
 });
+
+// ── ZOOM DE LECTURE ──
+let readZoom = 1;
+function zoomSet(z){
+  readZoom = Math.min(2, Math.max(0.7, Math.round(z*10)/10));
+  document.documentElement.style.setProperty('--zoom', readZoom);
+  const v = document.getElementById('zoomVal');
+  if(v) v.textContent = Math.round(readZoom*100) + '%';
+  try{ localStorage.setItem('carnet_read_zoom', String(readZoom)); }catch(e){}
+}
+function zoomStep(dir){ zoomSet(readZoom + dir*0.1); }
+(function(){
+  let z = 1;
+  try{ z = parseFloat(localStorage.getItem('carnet_read_zoom')) || 1; }catch(e){}
+  zoomSet(z);
+  document.addEventListener('keydown', (e)=>{
+    if(!e.altKey || e.ctrlKey || e.metaKey) return;
+    if(e.key === '+' || e.key === '='){ e.preventDefault(); zoomStep(1); }
+    else if(e.key === '-' || e.key === '−'){ e.preventDefault(); zoomStep(-1); }
+    else if(e.key === '0'){ e.preventDefault(); zoomSet(1); }
+  });
+  document.addEventListener('wheel', (e)=>{
+    if(!e.ctrlKey || !e.target.closest || !e.target.closest('.note-preview')) return;
+    e.preventDefault(); zoomStep(e.deltaY < 0 ? 1 : -1);
+  }, {passive:false});
+})();
 </script>
 </body>
 </html>
