@@ -1187,6 +1187,38 @@ button, input, select { touch-action: manipulation; }
 }
 #reset-modal .btn-reset.ready:hover { background: rgba(192,90,90,0.25); }
 
+
+/* ═══ ONGLET PUBLIC (montants masqués) ═══ */
+.pub-hero { background: var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px 16px; margin-bottom:14px; text-align:center; }
+.pub-hero-label { font-family:'Syne',sans-serif; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
+.pub-hero-val { font-family:'Syne',sans-serif; font-size:34px; font-weight:800; margin:6px 0 2px; }
+.pub-hero-sub { font-size:11px; color:var(--muted); }
+.pub-bar { display:flex; height:12px; border-radius:6px; overflow:hidden; margin:14px 0 10px; background:var(--surface2); }
+.pub-bar > span { display:block; height:100%; }
+.pub-legend { display:flex; flex-wrap:wrap; gap:6px 12px; justify-content:center; font-size:10px; color:var(--muted); font-family:'DM Mono',monospace; }
+.pub-legend i { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:5px; vertical-align:middle; }
+.pub-cat { background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; margin-bottom:12px; }
+.pub-cat-head { background:var(--surface2); padding:10px 16px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); }
+.pub-cat-title { font-family:'Syne',sans-serif; font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; display:flex; align-items:center; gap:8px; }
+.pub-cat-title i { width:9px; height:9px; border-radius:50%; display:inline-block; }
+.pub-cat-meta { font-family:'DM Mono',monospace; font-size:11px; color:var(--muted); }
+.pub-row { padding:10px 16px; border-bottom:1px solid var(--border); }
+.pub-row:last-child { border-bottom:none; }
+.pub-row-top { display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
+.pub-row-name { font-size:13px; color:var(--text); font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pub-row-perf { font-family:'DM Mono',monospace; font-size:13px; font-weight:700; white-space:nowrap; }
+.pub-row-bar { height:4px; background:var(--surface2); border-radius:2px; margin-top:7px; overflow:hidden; }
+.pub-row-bar > span { display:block; height:100%; border-radius:2px; }
+.pub-row-sub { display:flex; justify-content:space-between; font-size:10px; color:var(--muted); font-family:'DM Mono',monospace; margin-top:4px; }
+.pub-toolbar { display:flex; gap:8px; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:14px; }
+.pub-btn { background:var(--surface2); border:1px solid var(--border); color:var(--text); font-family:'DM Mono',monospace; font-size:11px; padding:7px 12px; border-radius:8px; cursor:pointer; }
+.pub-btn.primary { border-color:var(--accent); color:var(--accent); }
+.pub-note { font-size:10px; color:var(--muted); text-align:center; margin-top:10px; line-height:1.5; }
+#pub-exit { display:none; position:fixed; top:calc(10px + env(safe-area-inset-top,0px)); right:10px; z-index:999; opacity:.55; }
+#pub-exit:hover { opacity:1; }
+body.public-mode .header, body.public-mode .ticker-band, body.public-mode .tabs-bar { display:none !important; }
+body.public-mode #pub-exit { display:block; }
+body.public-mode .pub-toolbar .pub-hide-in-public { display:none; }
 </style>
 </head>
 <body>
@@ -1221,6 +1253,7 @@ button, input, select { touch-action: manipulation; }
   <button class="tab-btn" onclick="switchTab('poches')">🗂️ Poches</button>
   <button class="tab-btn" onclick="switchTab('depenses')">💸 Dépenses</button>
   <button class="tab-btn" onclick="switchTab('heritage')">🎁 Héritage</button>
+  <button class="tab-btn" onclick="switchTab('public')">🌐 Public</button>
 </div>
 
 <!-- ═══ PANEL : BANQUES ═══ -->
@@ -1429,6 +1462,17 @@ button, input, select { touch-action: manipulation; }
 </div>
 
 <!-- ═══ PANEL : DCA ═══ -->
+<div class="panel" id="panel-public">
+  <button class="pub-btn" id="pub-exit" onclick="togglePublicMode(false)">✕ Quitter</button>
+  <div class="pub-toolbar">
+    <label class="pub-btn pub-hide-in-public" style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+      <input type="checkbox" id="pub-incl-livrets" onchange="renderPublic()"> Inclure livrets
+    </label>
+    <button class="pub-btn primary" onclick="togglePublicMode(true)">🖥️ Mode présentation</button>
+  </div>
+  <div id="pub-content"></div>
+</div>
+
 <div class="panel" id="panel-dca">
   <div class="section accent-blue">
     <div class="section-head">
@@ -1894,13 +1938,112 @@ else initAccordions();
 // ─── TAB SWITCHING ─────────────────────────────────────────────────────────
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  const map = {kpi:0,dca:1,banques:2,investissements:3,scpi:4,actifs:5,immobilier:6,poches:7,depenses:8,heritage:9};
+  const map = {kpi:0,dca:1,banques:2,investissements:3,scpi:4,actifs:5,immobilier:6,poches:7,depenses:8,heritage:9,public:10};
   document.querySelectorAll('.tab-btn')[map[name]].classList.add('active');
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-'+name).classList.add('active');
   if (name === 'kpi') { if (typeof renderKPIPanel === 'function') renderKPIPanel(); }
   if (name === 'dca') { if (typeof renderDCA === 'function') renderDCA(); if (typeof renderDcaRegleCash === 'function') renderDcaRegleCash(); }
   if (name === 'poches') { if (typeof renderPoches === 'function') renderPoches(); }
+  if (name === 'public') { renderPublic(); }
+}
+
+
+// ─── ONGLET PUBLIC : répartition + performance, SANS aucun montant ─────────
+const PUB_COLORS = {pea:'#7eb8d4', cto:'#5aab7a', crypto:'#f7931a', av:'#a855f7', scpi:'#e5534b', pee:'#c8a96e', usd:'#4df0c8', livrets:'#6b7585'};
+function pubEsc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function pubPct(v, d) { return (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(d == null ? 1 : d).replace('.', ',') + ' %'; }
+function pubCol(v) { return v > 0.0001 ? 'var(--green)' : v < -0.0001 ? 'var(--red)' : 'var(--muted)'; }
+
+function pubCollect(inclLivrets) {
+  const inv = DATA.investissements || {};
+  const cats = [];
+  const lineRows = (rows, labelFn) => (rows || []).map(r => {
+    const qte = r.qte || 0, pr = r.pr || 0, cours = r.coursActuel || 0;
+    const val = qte * (cours || pr), cost = qte * pr;
+    return { label: labelFn(r), val, cost, perf: cost > 0 && cours > 0 ? (val / cost - 1) * 100 : null, day: r.varJour || null };
+  }).filter(x => x.val > 0);
+
+  cats.push({ key:'pea', title:'PEA', lines: lineRows(inv.pea, r => r.ticker || r.nom) });
+  cats.push({ key:'cto', title:'CTO', lines: lineRows(inv.cto, r => r.ticker || r.nom) });
+  cats.push({ key:'crypto', title:'Crypto & Or', lines: lineRows(inv.revolut, r => (r.ticker === 'BTC' || /bitcoin/i.test(r.nom||'')) ? 'Bitcoin' : (r.ticker === 'XAU' || /^or\b/i.test(r.nom||'')) ? 'Or' : (r.ticker || r.nom)) });
+
+  cats.push({ key:'av', title:'Assurance-vie', lines: (inv.assurance_vie || []).map(r => {
+    const val = r.valeurActuelle || 0, cost = r.versements || 0;
+    return { label: r.assureur || r.nom, val, cost, perf: cost > 0 && val > 0 ? (val / cost - 1) * 100 : null };
+  }).filter(x => x.val > 0) });
+
+  cats.push({ key:'scpi', title:'SCPI', lines: (DATA.scpi || []).map(r => {
+    const val = r.totalActuel || (r.parts||0) * (r.pxActuel||0) || 0;
+    const cost = r.montantPlace || (r.parts||0) * (r.pxAchat||0) || 0;
+    return { label: r.produit || r.gestionnaire, val, cost, perf: cost > 0 && val > 0 ? (val / cost - 1) * 100 : null };
+  }).filter(x => x.val > 0) });
+
+  cats.push({ key:'pee', title:'Épargne salariale', lines: (inv.epargne_entreprise || []).map(r => {
+    const val = r.valeurActuelle || 0, cost = (r.parts||0) * (r.pr||0);
+    return { label: r.nom, val, cost, perf: cost > 0 && val > 0 ? (val / cost - 1) * 100 : null };
+  }).filter(x => x.val > 0) });
+
+  cats.push({ key:'usd', title:'Compte USD rémunéré', lines: (inv.compte_usd || []).map(r => {
+    const c = (typeof usdCalc === 'function') ? usdCalc(r) : {valEUR:0, coutEUR:0};
+    return { label: 'Compte USD', val: c.valEUR || 0, cost: c.coutEUR || 0, perf: c.coutEUR > 0 && c.valEUR > 0 ? (c.valEUR / c.coutEUR - 1) * 100 : null, taux: r.apy ? r.apy : null };
+  }).filter(x => x.val > 0) });
+
+  if (inclLivrets) cats.push({ key:'livrets', title:'Livrets & épargne', lines: (inv.epargne_bloquee || []).map(r => ({
+    label: r.type || r.nom, val: r.montant || 0, cost: 0, perf: null, taux: r.tauxAnnuel || null
+  })).filter(x => x.val > 0) });
+
+  return cats.filter(c => c.lines.length);
+}
+
+function renderPublic() {
+  const box = document.getElementById('pub-content');
+  if (!box) return;
+  const incl = !!document.getElementById('pub-incl-livrets')?.checked;
+  const cats = pubCollect(incl);
+  cats.forEach(c => { c.val = c.lines.reduce((s,l) => s + l.val, 0); const w = c.lines.filter(l => l.perf !== null); c.wVal = w.reduce((s,l)=>s+l.val,0); c.wCost = w.reduce((s,l)=>s+l.cost,0); c.perf = c.wCost > 0 ? (c.wVal / c.wCost - 1) * 100 : null; });
+  const total = cats.reduce((s,c) => s + c.val, 0);
+  if (!(total > 0)) { box.innerHTML = '<div class="pub-note" style="padding:40px 0;">Aucune position valorisée pour le moment.<br>Renseigne tes quantités / cours dans l’onglet Invest.</div>'; return; }
+
+  const wVal = cats.reduce((s,c)=>s+c.wVal,0), wCost = cats.reduce((s,c)=>s+c.wCost,0);
+  const globalPerf = wCost > 0 ? (wVal / wCost - 1) * 100 : null;
+  const share = v => v / total * 100;
+
+  const bar = cats.map(c => `<span style="width:${share(c.val)}%;background:${PUB_COLORS[c.key]}" title="${pubEsc(c.title)} ${share(c.val).toFixed(1)} %"></span>`).join('');
+  const legend = cats.map(c => `<span><i style="background:${PUB_COLORS[c.key]}"></i>${pubEsc(c.title)} ${share(c.val).toFixed(1).replace('.',',')} %</span>`).join('');
+
+  let html = `<div class="pub-hero">
+    <div class="pub-hero-label">Performance globale</div>
+    <div class="pub-hero-val" style="color:${globalPerf === null ? 'var(--muted)' : pubCol(globalPerf)}">${globalPerf === null ? '—' : pubPct(globalPerf)}</div>
+    <div class="pub-hero-sub">depuis l’investissement · hors livrets</div>
+    <div class="pub-bar">${bar}</div>
+    <div class="pub-legend">${legend}</div>
+  </div>`;
+
+  cats.forEach(c => {
+    const lines = c.lines.slice().sort((a,b) => b.val - a.val);
+    html += `<div class="pub-cat">
+      <div class="pub-cat-head">
+        <span class="pub-cat-title"><i style="background:${PUB_COLORS[c.key]}"></i>${pubEsc(c.title)}</span>
+        <span class="pub-cat-meta">${share(c.val).toFixed(1).replace('.',',')} % du total${c.perf !== null ? ' · <span style="color:'+pubCol(c.perf)+';font-weight:700">'+pubPct(c.perf)+'</span>' : ''}</span>
+      </div>` + lines.map(l => {
+        const perfTxt = l.perf !== null ? pubPct(l.perf) : (l.taux ? l.taux.toString().replace('.',',') + ' % / an' : '—');
+        const perfCol = l.perf !== null ? pubCol(l.perf) : 'var(--muted)';
+        return `<div class="pub-row">
+          <div class="pub-row-top"><span class="pub-row-name">${pubEsc(l.label)}</span><span class="pub-row-perf" style="color:${perfCol}">${perfTxt}</span></div>
+          <div class="pub-row-bar"><span style="width:${Math.max(1.5, share(l.val))}%;background:${PUB_COLORS[c.key]}"></span></div>
+          <div class="pub-row-sub"><span>${share(l.val).toFixed(1).replace('.',',')} % du total</span>${l.day ? `<span style="color:${pubCol(l.day)}">jour ${pubPct(l.day, 2)}</span>` : '<span></span>'}</div>
+        </div>`;
+      }).join('') + `</div>`;
+  });
+
+  html += `<div class="pub-note">Aucun montant affiché · pourcentages uniquement<br>Performances passées, non garanties pour l’avenir</div>`;
+  box.innerHTML = html;
+}
+
+function togglePublicMode(on) {
+  document.body.classList.toggle('public-mode', !!on);
+  if (on) { switchTab('public'); window.scrollTo(0, 0); }
 }
 
 // ─── RENDER BANK ROWS ──────────────────────────────────────────────────────
