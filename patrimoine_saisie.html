@@ -5133,6 +5133,8 @@ window.addEventListener('DOMContentLoaded', () => {
     { id:'wpea', sym:'WPEA',      gfSym:'EPA:WPEA',           yf:'WPEA.PA',   fmt:'eur',  dot:'#a855f7', yfOnly:false, url:'https://www.boursorama.com/bourse/trackers/cours/1rTWPEA/' },
     { id:'iwda', sym:'IWDA',      gfSym:'AMS:IWDA',           yf:'IWDA.AS',   fmt:'eur',  dot:'#3fa9c9', yfOnly:false, url:'https://www.boursorama.com/bourse/trackers/cours/1rAIWDA/' },
     { id:'vall', sym:'VALL',      gfSym:'BIT:VALL',           yf:'VALL.MI',   fmt:'eur',  dot:'#e5534b', yfOnly:true, url:'https://www.boursorama.com/bourse/trackers/cours/1gVALL/' },
+    { id:'aggh', sym:'AGGH',      gfSym:'AMS:AGGH',           yf:'AGGH.AS',   yfAlt:['AGGH.MI','EUNA.DE'], fmt:'eur', dot:'#2dd4a7', yfOnly:true, url:'https://www.boursorama.com/bourse/trackers/cours/1rAAGGH/' },
+    { id:'vix',  sym:'VIX',       gfSym:'INDEXCBOE:VIX',      yf:'^VIX',      fmt:'idx',  dot:'#facc15', yfOnly:true, url:'https://finance.yahoo.com/quote/%5EVIX/' },
     { id:'eur',  sym:'EUR/USD',   gfSym:'CURRENCY:EURUSD',    yf:'EURUSD=X',  fmt:'fx',   dot:'#4df0c8', yfOnly:true, hidden:true },
     // { id:'gold' } — supprimé (OR retiré du ticker)
     // { id:'nas' } — supprimé (NASDAQ retiré du ticker)
@@ -5287,8 +5289,12 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   async function fetchYahoo(t) {
-    const base = `https://query1.finance.yahoo.com/v8/finance/chart/${t.yf}?interval=1d&range=2d`;
-    const urls = [base, ...CORS_PROXIES.map(p => p(base))];
+    const syms = [t.yf, ...(t.yfAlt || [])];
+    const urls = [];
+    syms.forEach(sym => {
+      const base = `https://query1.finance.yahoo.com/v8/finance/chart/${sym.replace('^','%5E')}?interval=1d&range=2d`;
+      urls.push(base, ...CORS_PROXIES.map(p => p(base)));
+    });
     for (const url of urls) {
       try {
         const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
