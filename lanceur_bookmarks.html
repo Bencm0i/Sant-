@@ -26,13 +26,14 @@
     background: linear-gradient(var(--overlay), var(--overlay));
   }
   #launch {
-    padding: 22px 48px;
-    font-size: 1.4rem;
-    font-weight: 600;
+    padding: 44px 96px;
+    font-size: 2.6rem;
+    font-weight: 700;
     color: #fff;
-    background: rgba(255,255,255,0.12);
-    border: 2px solid rgba(255,255,255,0.5);
-    border-radius: 14px;
+    background: rgba(255,255,255,0.14);
+    border: 3px solid rgba(255,255,255,0.6);
+    border-radius: 24px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.35);
     backdrop-filter: blur(6px);
     cursor: pointer;
     transition: background .2s, transform .1s;
@@ -313,6 +314,9 @@
     <label>Overlay
       <input type="range" id="overlayRange" min="0" max="90" value="35">
     </label>
+    <label title="Passe au fond suivant à chaque ouverture de la page">
+      <input type="checkbox" id="autoRotate"> Changer à chaque lancement
+    </label>
     <input type="file" id="bgFile" accept="image/*" style="display:none">
     <button id="addBg">+ Ajouter un fond</button>
   </div>
@@ -448,6 +452,20 @@
       div.appendChild(del);
       galleryEl.appendChild(div);
     });
+  }
+
+  // Changement automatique à chaque lancement : on passe au fond suivant
+  // de la bibliothèque et on l'enregistre comme fond actif.
+  const autoRotate = document.getElementById('autoRotate');
+  autoRotate.checked = localStorage.getItem('lanceur_autorotate') !== '0'; // activé par défaut
+  autoRotate.addEventListener('change', () => {
+    localStorage.setItem('lanceur_autorotate', autoRotate.checked ? '1' : '0');
+  });
+
+  if (autoRotate.checked && lib.list.length > 1) {
+    const i = lib.list.findIndex(w => w.id === lib.activeId);
+    lib.activeId = lib.list[(i + 1) % lib.list.length].id;
+    saveLib(lib);
   }
 
   // Applique le fond actif au chargement
