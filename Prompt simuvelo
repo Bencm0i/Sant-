@@ -1,0 +1,41 @@
+Je veux créer un simulateur de home training en HTML/JavaScript pur (sans framework, sans build), qui tourne en ouvrant index.html directement dans le navigateur.
+
+## Contraintes
+- Scripts classiques (<script src>), PAS de modules ES (import/export), pour fonctionner en file://.
+- Chaque fichier expose un seul objet global (namespace) : Skeleton, Renderer, Exercises, Animator, UI.
+- Projet découpé en fichiers indépendants : je dois pouvoir te redonner UN seul fichier à modifier sans que tu aies besoin des autres. Chaque module a une interface minimale et documentée en commentaire d'en-tête.
+- Code commenté en français, lisible, sans dépendance externe.
+
+## Architecture
+simulateur/
+├── index.html      page, canvas, conteneur UI, chargement des scripts dans l'ordre
+├── main.js         boucle principale (requestAnimationFrame), assemble les modules
+├── skeleton.js     modèle du corps : articulations, longueurs de segments, cinématique directe (angles -> positions)
+├── renderer.js     moteur de rendu basique canvas 2D : ne connaît que des points et des segments (tête = cercle, membres = traits)
+├── exercises.js    données uniquement : chaque exercice = liste de poses clés (angles d'articulation) + durée
+├── animator.js     interpolation entre poses, timing, comptage des répétitions
+└── ui.js           choix de l'exercice, démarrer/pause, compteur de reps, minuteur, vitesse
+
+## Interfaces attendues
+- Skeleton.computePose(angles) -> { joint: {x, y}, ... }
+- Renderer.init(canvas), Renderer.draw(pose)
+- Exercises.list -> [{ id, nom, poses: [{ angles, duree }], reps }]
+- Animator.start(exercise), Animator.update(dt) -> angles courants, Animator.onRep(callback)
+- UI.init({ onSelect, onPause, onSpeedChange })
+
+## Fonctionnalités v1
+- Mannequin fil de fer vu de profil, centré sur le canvas, redimensionnable.
+- 3 exercices de démo : squats, pompes, gainage (planche).
+- Boucle d'animation fluide avec interpolation douce (easing).
+- Compteur de répétitions et minuteur.
+- Pause/reprise et réglage de la vitesse.
+
+## Façon de travailler
+1. Commence par me proposer en quelques lignes le contrat exact de chaque module (fonctions, paramètres, format des données).
+2. Après mon accord, génère les fichiers un par un, en commençant par skeleton.js + renderer.js + index.html + main.js avec UN seul exercice (squat) pour valider le rendu.
+3. N'ajoute les autres modules et exercices qu'une fois la base validée.
+4. Quand je te demande une modification, ne renvoie que le fichier concerné (complet), sans régénérer les autres.
+
+## Évolutions possibles (à ne pas implémenter maintenant, juste ne pas les bloquer)
+- Remplacer renderer.js par du WebGL/Three.js sans toucher aux autres modules.
+- Vue de face, séances enchaînées, sauvegarde de programmes.
