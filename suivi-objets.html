@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Suivi d'objets – coût à l'année</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f766e'/%3E%3Cpath d='M14 44 L26 30 L34 38 L50 18' fill='none' stroke='white' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='50' cy='18' r='5' fill='%23fbbf24'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--txt:#1f2937;--muted:#6b7280;--line:#e5e7eb;--pri:#0f766e;--ok:#15803d;--bad:#b91c1c;--warn:#b45309}
+@media (prefers-color-scheme:dark){:root{--bg:#111418;--card:#1a1f26;--txt:#e5e7eb;--muted:#9ca3af;--line:#2d343d;--pri:#2dd4bf;--ok:#4ade80;--bad:#f87171;--warn:#fbbf24}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:22px;margin:0 0 4px}
+h2{font-size:16px;margin:0 0 12px}
+.sub{color:var(--muted);margin:0 0 18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.kpi small{display:block;color:var(--muted);font-size:12px}
+.kpi b{font-size:21px}
+form{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end}
+label{display:flex;flex-direction:column;font-size:12px;color:var(--muted);gap:4px}
+input,select{font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--txt);width:100%}
+button{font:inherit;cursor:pointer;border:0;border-radius:8px;padding:9px 14px;background:var(--pri);color:#fff;font-weight:600}
+button.sec{background:transparent;color:var(--txt);border:1px solid var(--line);font-weight:500}
+button.x{background:transparent;color:var(--bad);padding:4px 8px;border:0}
+.tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.tools .grow{flex:1}
+.wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:760px}
+th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:12px;color:var(--muted);cursor:pointer;user-select:none}
+td.n,th.n{text-align:right}
+.tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:12px;font-weight:600}
+.tag.ok{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}
+.tag.no{background:color-mix(in srgb,var(--bad) 18%,transparent);color:var(--bad)}
+.tag.na{background:var(--line);color:var(--muted)}
+.bar{height:6px;background:var(--line);border-radius:4px;min-width:80px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--pri)}
+.empty{color:var(--muted);text-align:center;padding:24px}
+.note{color:var(--muted);font-size:12px;margin-top:10px}
+</style>
+</head>
+<body>
+<main>
+<h1>📈 Suivi d'objets</h1>
+<p class="sub">Prix, date d'achat, coût à l'année et seuil de rentabilité. Les données restent dans ton navigateur.</p>
+
+<section class="kpis" id="kpis"></section>
+
+<section class="card">
+  <h2 id="formTitle">Ajouter un objet</h2>
+  <form id="f">
+    <label>Objet<input name="nom" required placeholder="Ex. Perceuse"></label>
+    <label>Catégorie<input name="cat" placeholder="Ex. Outils" list="cats"></label>
+    <datalist id="cats"></datalist>
+    <label>Prix d'achat (€)<input name="prix" type="number" step="0.01" min="0" required></label>
+    <label>Date d'achat<input name="date" type="date" required></label>
+    <label>Seuil de rentabilité (€/an)<input name="seuil" type="number" step="0.01" min="0" placeholder="Défaut ci-dessous"></label>
+    <label>Valeur de revente (€)<input name="revente" type="number" step="0.01" min="0" placeholder="0"></label>
+    <div style="display:flex;gap:8px"><button type="submit" id="sub">Ajouter</button><button type="button" class="sec" id="cancel" hidden>Annuler</button></div>
+  </form>
+  <div class="tools" style="margin-top:14px">
+    <label style="flex-direction:row;align-items:center;gap:8px">Seuil par défaut (€/an)
+      <input id="seuilDef" type="number" step="0.01" min="0" style="width:110px"></label>
+    <span class="note" style="margin:0">Un objet est « rentable » quand son coût annuel passe sous son seuil. Le seuil est à définir selon ton usage (ex. ce que tu accepterais de payer par an pour cet objet).</span>
+  </div>
+</section>
+
+<section class="card">
+  <div class="tools">
+    <h2 style="margin:0" class="grow">Objets</h2>
+    <input id="q" placeholder="Rechercher…" style="max-width:200px">
+    <button class="sec" id="csv">Export CSV</button>
+    <button class="sec" id="json">Sauvegarde JSON</button>
+    <button class="sec" id="imp">Importer</button>
+    <input type="file" id="file" accept=".json" hidden>
+  </div>
+  <div class="wrap"><table>
+    <thead><tr id="head"></tr></thead>
+    <tbody id="body"></tbody>
+  </table></div>
+  <p class="note">Coût annuel = (prix − revente) ÷ années de possession (minimum 1 mois). « Seuil atteint le » = date à laquelle le coût annuel passe sous le seuil.</p>
+</section>
+</main>
+
+<script>
+const KEY='suivi-objets-v1';
+let S={items:[],seuilDef:100};
+let sort={k:'cout',d:-1}, editId=null;
+const $=id=>document.getElementById(id);
+const eur=n=>isFinite(n)?n.toLocaleString('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:2}):'—';
+const fdate=d=>d?new Date(d).toLocaleDateString('fr-FR'):'—';
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+try{const r=localStorage.getItem(KEY);if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+
+function calc(it){
+  const t0=new Date(it.date).getTime(), now=Date.now();
+  const ans=Math.max((now-t0)/31557600000,1/12);
+  const net=Math.max(it.prix-(it.revente||0),0);
+  const cout=net/ans;
+  const seuil=it.seuil>0?it.seuil:S.seuilDef;
+  const rentable=seuil>0?cout<=seuil:null;
+  const dateSeuil=seuil>0?new Date(t0+net/seuil*31557600000):null;
+  const progres=seuil>0?Math.min(100,seuil/cout*100):0;
+  return {...it,ans,net,cout,seuil,rentable,dateSeuil,progres};
+}
+
+const cols=[['nom','Objet'],['cat','Catégorie'],['date','Achat'],['prix','Prix','n'],['ans','Âge (ans)','n'],['cout','Coût/an','n'],['seuil','Seuil/an','n'],['dateSeuil','Seuil atteint le'],['progres','Statut'],['','']];
+$('head').innerHTML=cols.map(([k,l,c])=>`<th class="${c||''}" data-k="${k}">${l}</th>`).join('');
+$('head').onclick=e=>{const k=e.target.dataset.k;if(!k)return;sort=sort.k===k?{k,d:-sort.d}:{k,d:1};render()};
+
+function render(){
+  $('seuilDef').value=S.seuilDef;
+  const q=$('q').value.toLowerCase();
+  let rows=S.items.map(calc);
+  $('cats').innerHTML=[...new Set(S.items.map(i=>i.cat).filter(Boolean))].map(c=>`<option value="${esc(c)}">`).join('');
+  // KPIs
+  const tot=rows.reduce((a,r)=>a+r.prix,0), coutAn=rows.reduce((a,r)=>a+r.cout,0);
+  const rent=rows.filter(r=>r.rentable).length;
+  const age=rows.length?rows.reduce((a,r)=>a+r.ans,0)/rows.length:0;
+  const worst=[...rows].sort((a,b)=>b.cout-a.cout)[0];
+  const kp=[['Objets',rows.length],['Total investi',eur(tot)],['Coût annuel total',eur(coutAn)],['Coût moyen / objet / an',eur(rows.length?coutAn/rows.length:0)],
+    ['Objets rentables',rows.length?`${rent}/${rows.length} (${Math.round(rent/rows.length*100)} %)`:'—'],['Âge moyen',rows.length?age.toFixed(1)+' ans':'—'],['Plus coûteux / an',worst?esc(worst.nom)+' · '+eur(worst.cout):'—']];
+  $('kpis').innerHTML=kp.map(([l,v])=>`<div class="kpi"><small>${l}</small><b>${v}</b></div>`).join('');
+  // table
+  rows=rows.filter(r=>!q||(r.nom+' '+(r.cat||'')).toLowerCase().includes(q));
+  rows.sort((a,b)=>{let x=a[sort.k],y=b[sort.k];if(x instanceof Date){x=+x;y=+y}
+    return (typeof x==='string'?x.localeCompare(y):(x-y))*sort.d});
+  $('body').innerHTML=rows.length?rows.map(r=>`<tr>
+    <td><b>${esc(r.nom)}</b></td><td>${esc(r.cat)||'—'}</td><td>${fdate(r.date)}</td>
+    <td class="n">${eur(r.prix)}</td><td class="n">${r.ans.toFixed(2)}</td><td class="n"><b>${eur(r.cout)}</b></td>
+    <td class="n">${r.seuil>0?eur(r.seuil):'—'}</td><td>${r.dateSeuil?fdate(r.dateSeuil):'—'}</td>
+    <td>${r.rentable===null?'<span class="tag na">Seuil ?</span>':r.rentable?'<span class="tag ok">Rentable</span>':'<span class="tag no">À amortir</span>'}
+      <div class="bar" title="${Math.round(r.progres)} % du seuil"><i style="width:${r.progres}%"></i></div></td>
+    <td><button class="x" data-e="${r.id}" style="color:var(--pri)">✎</button><button class="x" data-d="${r.id}">✕</button></td></tr>`).join('')
+    :'<tr><td colspan="10" class="empty">Aucun objet pour le moment.</td></tr>';
+}
+
+$('body').onclick=e=>{
+  const d=e.target.dataset.d,ed=e.target.dataset.e;
+  if(d&&confirm('Supprimer cet objet ?')){S.items=S.items.filter(i=>i.id!==d);save();render()}
+  if(ed){const it=S.items.find(i=>i.id===ed);editId=ed;const f=$('f');
+    for(const k of ['nom','cat','prix','date','seuil','revente'])f[k].value=it[k]??'';
+    $('formTitle').textContent='Modifier l\'objet';$('sub').textContent='Enregistrer';$('cancel').hidden=false;f.scrollIntoView({behavior:'smooth'})}
+};
+function resetForm(){editId=null;$('f').reset();$('formTitle').textContent='Ajouter un objet';$('sub').textContent='Ajouter';$('cancel').hidden=true}
+$('cancel').onclick=resetForm;
+$('f').onsubmit=e=>{e.preventDefault();const f=e.target;
+  const it={id:editId||Date.now().toString(36),nom:f.nom.value.trim(),cat:f.cat.value.trim(),prix:+f.prix.value,date:f.date.value,seuil:+f.seuil.value||0,revente:+f.revente.value||0};
+  if(editId)S.items=S.items.map(i=>i.id===editId?it:i);else S.items.push(it);
+  save();resetForm();render()};
+$('seuilDef').oninput=e=>{S.seuilDef=+e.target.value||0;save();render()};
+$('q').oninput=render;
+
+function dl(name,txt,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type}));a.download=name;a.click()}
+$('json').onclick=()=>dl('suivi-objets.json',JSON.stringify(S,null,2),'application/json');
+$('csv').onclick=()=>{const h=['Objet','Catégorie','Date achat','Prix','Revente','Âge (ans)','Coût/an','Seuil/an','Seuil atteint le','Rentable'];
+  const l=S.items.map(calc).map(r=>[r.nom,r.cat,r.date,r.prix,r.revente||0,r.ans.toFixed(2),r.cout.toFixed(2),r.seuil,r.dateSeuil?r.dateSeuil.toISOString().slice(0,10):'',r.rentable===null?'':r.rentable?'oui':'non']
+    .map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(';'));
+  dl('suivi-objets.csv','\ufeff'+[h.join(';'),...l].join('\n'),'text/csv')};
+$('imp').onclick=()=>$('file').click();
+$('file').onchange=e=>{const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!Array.isArray(d.items))throw 0;S=Object.assign({items:[],seuilDef:100},d);save();render()}catch(_){alert('Fichier invalide.')}};r.readAsText(e.target.files[0])};
+
+$('f').date.valueAsDate=new Date();
+render();
+</script>
+</body>
+</html>
