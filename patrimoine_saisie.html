@@ -1587,6 +1587,13 @@ body.public-mode .pub-toolbar .pub-hide-in-public { display:none; }
             oninput="DATA.hypotheses=DATA.hypotheses||{};DATA.hypotheses.inflation=parseFloat(this.value)||0;autoSave();if(typeof renderKPIPanel==='function')renderKPIPanel();">
         </div>
       </div>
+      <div class="field-row">
+        <div class="field-label">Âge<small>Règle : âge = % du patrimoine sans risque (ex. 48 ans → 48 % sans risque · 52 % en risque)</small></div>
+        <div class="field-input-wrap">
+          <input type="number" id="hypAge" min="0" max="100" step="1" inputmode="numeric" autocomplete="off" placeholder="ex. 48"
+            oninput="DATA.age=(this.value===''?null:Math.max(0,Math.min(100,parseFloat(this.value)||0)));autoSave();if(typeof renderKPIPanel==='function')renderKPIPanel();">
+        </div>
+      </div>
       <div id="kpi-ratios"></div>
     </div>
   </div>
@@ -1719,6 +1726,7 @@ let DATA = {
   impotAnnee:0,
   // Hypothèses pour l'indicateur "Indépendance totale (corrigée inflation)"
   hypotheses:{ rendement:4, inflation:2.5 },
+  age:null,
   ath:[],
   indepHist:[],
   heritage:[],
@@ -4633,7 +4641,59 @@ window.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>`;
 
-    el.innerHTML = patrimoineCard + investiCard + niCard + resumeCard + banquesCard + athCard + pruCard + rendementCard + battleCard + depensesCard + impotCard + achatCard + cards.map(c => `
+    // ── CARD ÂGE = % SANS RISQUE (cible vs réel) ──
+    // Base = actifs financiers (hors immobilier). Sans risque : comptes courants, livrets, espèces, épargne bloquée.
+    // En risque : PEA, CTO, Revolut investi (BTC, Or…), PEE, assurance vie, SCPI.
+    const ageVal = (DATA.age !== null && DATA.age !== undefined && isFinite(DATA.age)) ? Math.max(0, Math.min(100, DATA.age)) : null;
+    const srReel   = (k.ccTotal || 0) + (k.ebVal || 0);
+    const rkReel   = (k.peaVal||0) + (k.ctoVal||0) + (k.revInvVal||0) + (k.eeVal||0) + (k.avVal||0) + (k.scpiVal||0);
+    const baseFin  = srReel + rkReel;
+    const pctSRReel = baseFin > 0 ? srReel / baseFin * 100 : null;
+    let ageCard;
+    if (ageVal === null) {
+      ageCard = `
+      <div class="kpi-card full" style="border-top:2px solid var(--green);">
+        <div class="kpi-card-label">🛡️ Âge = % sans risque</div>
+        <div class="kpi-card-value" style="color:var(--muted);">— renseigner l'âge</div>
+        <div class="kpi-card-sub">Saisir l'âge dans « Taux d'épargne & ratios »</div>
+      </div>`;
+    } else {
+      const cibleSR = ageVal, cibleRK = 100 - ageVal;
+      const ecart = pctSRReel === null ? null : pctSRReel - cibleSR;      // >0 : trop prudent · <0 : trop de risque
+      const ok = ecart !== null && Math.abs(ecart) <= 5;
+      const verdictCol = ecart === null ? 'var(--muted)' : ok ? 'var(--green)' : (ecart < 0 ? 'var(--red)' : 'var(--gold)');
+      const verdict = ecart === null ? 'Aucun actif financier saisi'
+        : ok ? '✓ Conforme à la règle (±5 pts)'
+        : ecart < 0 ? `⚠ Trop de risque : ${Math.abs(ecart).toFixed(1).replace('.',',')} pts en trop`
+        : `Trop prudent : ${ecart.toFixed(1).replace('.',',')} pts de sans risque en trop`;
+      const aDeplacer = ecart === null ? 0 : Math.abs(ecart) / 100 * baseFin;
+      const sens = ecart === null || ok ? '' : (ecart < 0
+        ? `→ Sécuriser ≈ ${fmtK(aDeplacer)} (risque → sans risque)`
+        : `→ Pourrait investir ≈ ${fmtK(aDeplacer)} (sans risque → risque)`);
+      ageCard = `
+      <div class="kpi-card full" style="border-top:2px solid ${verdictCol};">
+        <div class="kpi-card-label">🛡️ Âge = % sans risque</div>
+        <div class="kpi-card-value" style="color:${verdictCol};">${ageVal} ans → cible ${cibleSR} % sans risque</div>
+        <div class="kpi-card-sub">Cible : ${cibleSR} % sans risque · ${cibleRK} % en risque — base ${fmtK(baseFin)} d'actifs financiers (hors immobilier)</div>
+        <div style="margin-top:10px;font-size:10px;color:var(--muted);">CIBLE</div>
+        <div style="display:flex;height:10px;border-radius:5px;overflow:hidden;margin-top:3px;background:var(--surface2);">
+          <div style="width:${cibleSR}%;background:var(--green);"></div><div style="width:${cibleRK}%;background:var(--red);"></div>
+        </div>
+        <div style="margin-top:8px;font-size:10px;color:var(--muted);">RÉEL</div>
+        <div style="display:flex;height:10px;border-radius:5px;overflow:hidden;margin-top:3px;background:var(--surface2);">
+          <div style="width:${(pctSRReel||0)}%;background:var(--green);"></div><div style="width:${pctSRReel===null?0:100-pctSRReel}%;background:var(--red);"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px;">
+          <span style="color:var(--green);">🛡️ Sans risque ${pctSRReel===null?'—':pctSRReel.toFixed(1).replace('.',',')+' %'} · ${fmtK(srReel)}</span>
+          <span style="color:var(--red);">⚡ En risque ${pctSRReel===null?'—':(100-pctSRReel).toFixed(1).replace('.',',')+' %'} · ${fmtK(rkReel)}</span>
+        </div>
+        <div style="margin-top:8px;font-size:12px;font-weight:700;color:${verdictCol};">${verdict}</div>
+        ${sens ? `<div style="font-size:11px;color:var(--muted);margin-top:2px;">${sens}</div>` : ''}
+        <div style="font-size:9px;color:var(--muted);margin-top:8px;line-height:1.5;">Sans risque = comptes courants, livrets, espèces, épargne bloquée. En risque = PEA, CTO, Revolut investi (BTC, Or…), PEE, assurance vie, SCPI.</div>
+      </div>`;
+    }
+
+    el.innerHTML = ageCard + patrimoineCard + investiCard + niCard + resumeCard + banquesCard + athCard + pruCard + rendementCard + battleCard + depensesCard + impotCard + achatCard + cards.map(c => `
       <div class="kpi-card${c.full?' full':''}">
         <div class="kpi-card-label">${c.label}</div>
         <div class="kpi-card-value ${c.cls}">${c.value}</div>
@@ -5283,6 +5343,8 @@ window.addEventListener('DOMContentLoaded', () => {
           ? 'Auto : « ≈ Supposé / an » de la carte Taux de rendement moyen'
           : 'Auto indisponible : renseignez les dates de début dans la carte Taux de rendement moyen (défaut 4 %)');
     if (hypInflEl && document.activeElement !== hypInflEl) hypInflEl.value = DATA.hypotheses.inflation;
+    const hypAgeEl = document.getElementById('hypAge');
+    if (hypAgeEl && document.activeElement !== hypAgeEl) hypAgeEl.value = (DATA.age ?? '');
     renderRatios(k);
     recordIndepSnapshot(k);
     updateKPITickers();
