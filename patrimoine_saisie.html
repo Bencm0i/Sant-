@@ -4670,6 +4670,47 @@ window.addEventListener('DOMContentLoaded', () => {
       const sens = ecart === null || ok ? '' : (ecart < 0
         ? `→ Sécuriser ≈ ${fmtK(aDeplacer)} (risque → sans risque)`
         : `→ Pourrait investir ≈ ${fmtK(aDeplacer)} (sans risque → risque)`);
+      // ── Conseils pour « flécher » ──
+      const fmtE = v => fmt(Math.round(v));
+      const conseils = [];
+      if (ecart === null) {
+        conseils.push('Saisir vos actifs (comptes, livrets, PEA, CTO…) pour obtenir des conseils de fléchage.');
+      } else if (ok) {
+        conseils.push(`<b>Nouveaux versements</b> : flécher au prorata de la cible — ${cibleSR} % sans risque / ${cibleRK} % en risque.`);
+        if (epargne > 0) conseils.push(`Sur votre épargne mensuelle de ${fmtE(epargne)} : <b>${fmtE(epargne*cibleSR/100)}</b> vers livrets / sans risque · <b>${fmtE(epargne*cibleRK/100)}</b> vers PEA / actions.`);
+        conseils.push('Re-vérifier à chaque anniversaire : chaque année d\'âge en plus = +1 pt de sans risque à viser.');
+      } else if (ecart < 0) {
+        // Trop de risque
+        conseils.push('<b>1. Stopper</b> les nouveaux versements / DCA sur les poches en risque tant que la cible n\'est pas atteinte.');
+        if (epargne > 0) {
+          const mois = aDeplacer / epargne;
+          conseils.push(`<b>2. Flécher 100 % de l'épargne mensuelle</b> (${fmtE(epargne)}) vers Livret A / LDDS / fonds euro : cible atteinte en ≈ ${mois < 1 ? 'moins d\'1 mois' : Math.ceil(mois) + ' mois'} sans rien vendre.`);
+        } else {
+          conseils.push('<b>2.</b> Pas d\'épargne mensuelle positive détectée : le rééquilibrage passe par des arbitrages (étape 3).');
+        }
+        const vendables = [
+          { l:'PEA', v:k.peaVal }, { l:'CTO', v:k.ctoVal }, { l:'Revolut investi', v:k.revInvVal }, { l:'Assurance vie', v:k.avVal }
+        ].filter(x => x.v > 0);
+        const totV = vendables.reduce((a,x)=>a+x.v,0);
+        if (totV > 0) {
+          const lignes = vendables.map(x => `${x.l} : −${fmtE(aDeplacer * x.v / totV)}`).join(' · ');
+          conseils.push(`<b>3. Si vous préférez arbitrer</b> (au prorata des poches liquides) : ${lignes}. Privilégier les lignes en moins-value ou l'assurance vie (pas d'impôt sur arbitrage) ; PEE bloqué et SCPI peu liquides : ne pas y toucher.`);
+        }
+      } else {
+        // Trop prudent
+        const tranches = 12;
+        conseils.push(`<b>1. Ne pas tout investir d'un coup</b> : lisser les ≈ ${fmtE(aDeplacer)} en ${tranches} versements (≈ ${fmtE(aDeplacer/tranches)}/mois) depuis livrets / compte courant.`);
+        conseils.push('<b>2. Ordre de remplissage</b> : PEA d\'abord (fiscalité douce après 5 ans), puis assurance vie, puis CTO.');
+        if (epargne > 0) conseils.push(`<b>3.</b> Votre épargne mensuelle de ${fmtE(epargne)} peut aller à 100 % vers les poches en risque jusqu'à la cible.`);
+        conseils.push('Garder une réserve de précaution (≈ 3 à 6 mois de dépenses) sur livrets avant d\'investir davantage.');
+      }
+      const conseilsHTML = `
+        <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px;">
+          <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px;">🧭 Conseils pour flécher</div>
+          ${conseils.map(c => `<div style="font-size:11px;line-height:1.55;color:var(--text);padding:4px 0;">${c}</div>`).join('')}
+          <div style="font-size:9px;color:var(--muted);margin-top:6px;">Indications générales basées sur la règle « âge = % sans risque », pas un conseil financier personnalisé.</div>
+        </div>`;
+
       ageCard = `
       <div class="kpi-card full" style="border-top:2px solid ${verdictCol};">
         <div class="kpi-card-label">🛡️ Âge = % sans risque</div>
@@ -4689,6 +4730,7 @@ window.addEventListener('DOMContentLoaded', () => {
         </div>
         <div style="margin-top:8px;font-size:12px;font-weight:700;color:${verdictCol};">${verdict}</div>
         ${sens ? `<div style="font-size:11px;color:var(--muted);margin-top:2px;">${sens}</div>` : ''}
+        ${conseilsHTML}
         <div style="font-size:9px;color:var(--muted);margin-top:8px;line-height:1.5;">Sans risque = comptes courants, livrets, espèces, épargne bloquée. En risque = PEA, CTO, Revolut investi (BTC, Or…), PEE, assurance vie, SCPI.</div>
       </div>`;
     }
