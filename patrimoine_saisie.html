@@ -892,6 +892,24 @@ button, input, select { touch-action: manipulation; }
   gap: 4px;
 }
 .kpi-card.full { grid-column: 1 / -1; }
+/* Numérotation automatique des KPI (dans l'ordre d'affichage) */
+.kpi-grid { counter-reset: kpi; }
+.kpi-grid > .kpi-card { counter-increment: kpi; }
+.kpi-grid > .kpi-card .kpi-card-label::before {
+  content: counter(kpi, decimal-leading-zero);
+  display: inline-block;
+  min-width: 18px;
+  margin-right: 7px;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--surface2);
+  color: var(--accent);
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-align: center;
+}
 .kpi-card-label {
   font-size: 9px;
   letter-spacing: 1.5px;
@@ -1553,17 +1571,6 @@ body.public-mode .pub-toolbar .pub-hide-in-public { display:none; }
     </div>
   </div>
 
-  <!-- RÉPARTITION RISQUE -->
-  <div class="section accent-gold" style="margin-bottom:16px;cursor:pointer;" onclick="openRiskDetail()" title="Cliquer pour voir le détail">
-    <div class="section-head">
-      <div class="section-title">⚖️ Répartition par niveau de risque</div>
-      <span style="font-size:10px;color:var(--muted);">👆 détail</span>
-    </div>
-    <div class="section-body" style="padding:16px;">
-      <canvas id="chart-risque" height="160"></canvas>
-    </div>
-  </div>
-
   <!-- TAUX D'ÉPARGNE -->
   <div class="section accent-green" style="margin-bottom:16px;">
     <div class="section-head">
@@ -1605,6 +1612,17 @@ body.public-mode .pub-toolbar .pub-hide-in-public { display:none; }
     </div>
     <div class="section-body" style="padding:16px;">
       <canvas id="chart-pmv" height="180"></canvas>
+    </div>
+  </div>
+
+  <!-- RÉPARTITION RISQUE -->
+  <div class="section accent-gold" style="margin-bottom:16px;cursor:pointer;" onclick="openRiskDetail()" title="Cliquer pour voir le détail">
+    <div class="section-head">
+      <div class="section-title">⚖️ Répartition par niveau de risque</div>
+      <span style="font-size:10px;color:var(--muted);">👆 détail</span>
+    </div>
+    <div class="section-body" style="padding:16px;">
+      <canvas id="chart-risque" height="160"></canvas>
     </div>
   </div>
 
@@ -3838,6 +3856,7 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   const fmt  = v => new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v);
+  const fmtM = v => new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',minimumFractionDigits:1,maximumFractionDigits:1}).format(v);
   const fmtK = v => v >= 1000 ? (v/1000).toFixed(1)+'k\u202f€' : v.toFixed(0)+'\u202f€';
   const pct  = v => v.toFixed(1)+'%';
   const fmtAnnees = v => (!isFinite(v)) ? '∞ (auto-suffisant)' : v.toFixed(1).replace('.',',')+' ans';
@@ -4433,7 +4452,7 @@ window.addEventListener('DOMContentLoaded', () => {
               : ''}
           </div>
           <div class="pru-detail" style="display:none;margin-top:12px;padding-top:10px;border-top:1px solid var(--border);">
-            <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:4px 10px;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding-bottom:5px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:4px;">
+            <div style="display:grid;grid-template-columns:1fr auto auto auto auto;gap:4px 10px;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding-bottom:5px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:4px;">
               <span>Actif</span><span style="text-align:right;">PRU→Cours</span><span style="text-align:right;">Gain €</span><span style="text-align:right;">Gain %</span>
             </div>
             ${pruAssets.map(a => {
@@ -4441,7 +4460,7 @@ window.addEventListener('DOMContentLoaded', () => {
               const sign = a.gainPct >= 0 ? '+' : '';
               // bar width = min(|pct|,100)/100 * 100px, capped
               const barW = Math.min(Math.abs(a.gainPct), 100).toFixed(0);
-              return `<div style="display:grid;grid-template-columns:1fr auto auto auto;gap:4px 10px;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+              return `<div style="display:grid;grid-template-columns:1fr auto auto auto auto;gap:4px 10px;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
                 <div>
                   <div style="font-size:11px;color:var(--text);">${a.nom}</div>
                   <div style="font-size:9px;color:var(--muted);">${a.source}${a.ticker?' · '+a.ticker:''}</div>
@@ -4569,6 +4588,12 @@ window.addEventListener('DOMContentLoaded', () => {
         p.dateStr = dateStr;
       }
     });
+    // ── Montant retirable par mois = capital investi × taux annuel estimé ÷ 12 (0 si taux négatif/inconnu)
+    rendPockets.forEach(p => {
+      p.mensuel = (p.tauxAnnee !== null && p.tauxAnnee !== undefined && p.tauxAnnee > 0) ? (p.cout * p.tauxAnnee / 100 / 12) : 0;
+    });
+    const mensuelTotal = rendPockets.reduce((s,p) => s + (p.mensuel||0), 0);
+    const mensuelPct   = capitalInvestiTot > 0 ? (mensuelTotal * 12 / capitalInvestiTot * 100) : 0;
     const pocketsAnnualises = rendPockets.filter(p => p.tauxAnnee !== null && p.tauxAnnee !== undefined);
     const capitalAnnualise  = pocketsAnnualises.reduce((s,p) => s+p.cout, 0);
     const tauxAnnuelEstime  = capitalAnnualise > 0
@@ -4592,11 +4617,15 @@ window.addEventListener('DOMContentLoaded', () => {
             <div class="kpi-card-value" style="color:${tauxAnnuelEstime===null?'var(--muted)':(tauxAnnuelEstime>=0?'var(--gold)':'#c05a5a')};">${tauxAnnuelEstime!==null ? (tauxAnnuelEstime>=0?'+':'')+tauxAnnuelEstime.toFixed(1)+'%' : '—'}</div>
             <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">≈ Supposé / an</div>
           </div>
+          <div>
+            <div class="kpi-card-value" style="color:${mensuelTotal>0?'var(--green)':'var(--muted)'};">${mensuelTotal>0 ? fmtM(mensuelTotal) : '—'}</div>
+            <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">Dispo / mois${mensuelTotal>0 ? ' · '+(mensuelPct/12).toFixed(2).replace('.',',')+'%' : ''}</div>
+          </div>
         </div>
         <div class="kpi-card-sub">Cumulé depuis l'origine — ${(gainPondereTot>=0?'+':'')+fmtK(gainPondereTot)} / ${fmtK(capitalInvestiTot)} investis${tauxAnnuelEstime===null?' · ajoute des dates ci-dessous pour estimer un taux annuel':''}</div>
         <div class="rend-detail" style="display:none;margin-top:12px;padding-top:10px;border-top:1px solid var(--border);">
-          <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:4px 10px;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding-bottom:5px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:4px;">
-            <span>Poche</span><span style="text-align:right;">Investi</span><span style="text-align:right;">Cumulé</span><span style="text-align:right;">≈ /an</span>
+          <div style="display:grid;grid-template-columns:1fr auto auto auto auto;gap:4px 10px;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding-bottom:5px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:4px;">
+            <span>Poche</span><span style="text-align:right;">Investi</span><span style="text-align:right;">Cumulé</span><span style="text-align:right;">≈ /an</span><span style="text-align:right;">€ / mois</span>
           </div>
           ${rendPockets.map(p => {
             const pPct = p.cout > 0 ? (p.gain / p.cout * 100) : 0;
@@ -4613,7 +4642,7 @@ window.addEventListener('DOMContentLoaded', () => {
                     style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:'DM Mono',monospace;font-size:10px;padding:2px 6px;"
                     onchange="DATA.rendementDates=DATA.rendementDates||{};DATA.rendementDates['${p.key}']=this.value;autoSave();if(typeof renderKPIPanel==='function')renderKPIPanel();">
                 </div>` : (p.dureeAns !== null && p.dureeAns !== undefined ? `<div style="font-size:9px;color:var(--muted);margin-top:4px;">Date moy. pondérée des lignes SCPI</div>` : `<div style="font-size:9px;color:var(--muted);margin-top:4px;">Renseigne une date d'achat sur les lignes SCPI</div>`);
-            return `<div style="display:grid;grid-template-columns:1fr auto auto auto;gap:4px 10px;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+            return `<div style="display:grid;grid-template-columns:1fr auto auto auto auto;gap:4px 10px;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
               <div>
                 <div style="font-size:11px;color:var(--text);">${p.icon} ${p.label}</div>
                 ${p.loyers > 0 ? `<div style="font-size:9px;color:var(--muted);">dont ${fmtK(p.loyers)} loyers perçus</div>` : ''}
@@ -4625,6 +4654,7 @@ window.addEventListener('DOMContentLoaded', () => {
               <div style="text-align:right;font-size:10px;color:var(--muted);white-space:nowrap;">${fmtK(p.cout)}</div>
               <div style="text-align:right;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:${c};white-space:nowrap;">${sign}${pPct.toFixed(1)}%</div>
               <div style="text-align:right;font-family:'Syne',sans-serif;font-size:12px;font-weight:800;color:${p.tauxAnnee>0?'#5aab7a':(p.tauxAnnee<0?'#c05a5a':'var(--muted)')};white-space:nowrap;">${anTxt}</div>
+              <div style="text-align:right;font-family:'Syne',sans-serif;font-size:12px;font-weight:800;color:${p.mensuel>0?'var(--green)':'var(--muted)'};white-space:nowrap;">${p.mensuel>0 ? fmtM(p.mensuel) : '—'}</div>
             </div>`;
           }).join('')}
           <div style="display:flex;align-items:center;justify-content:space-between;padding-top:8px;margin-top:4px;border-top:1px solid var(--border);flex-wrap:wrap;gap:6px;">
@@ -4632,10 +4662,12 @@ window.addEventListener('DOMContentLoaded', () => {
             <span style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:${rendCls};">
               Origine ${gainPondereTot>=0?'+':''}${fmtK(gainPondereTot)} (${rendementMoyen>=0?'+':''}${rendementMoyen.toFixed(1)}%)
               <span style="color:${tauxAnnuelEstime===null?'var(--muted)':'var(--gold)'};margin-left:8px;">· ≈/an ${tauxAnnuelEstime!==null ? (tauxAnnuelEstime>=0?'+':'')+tauxAnnuelEstime.toFixed(1)+'%' : '—'}</span>
+              <span style="color:${mensuelTotal>0?'var(--green)':'var(--muted)'};margin-left:8px;">· ${mensuelTotal>0 ? fmtM(mensuelTotal)+' / mois' : '— / mois'}</span>
             </span>
           </div>
           <div class="kpi-card-sub" style="margin-top:8px;">
             Épargne bloquée (Livret A, LDDS…) exclue : capital garanti sans cours vs PR suivi ici.<br>
+            « € / mois » = capital investi × taux ≈/an ÷ 12 (ex. 1 000 € à 10 %/an → 100 €/an → 8,3 €/mois) : montant retirable sans entamer le capital, variable selon la performance. Poches sans taux annuel ou à taux négatif = 0.<br>
             Estimation "≈/an" : approximation par CAGR sur une durée effective ≈ moitié du temps écoulé depuis le premier versement (hypothèse : apports réguliers). Pas un TRI exact — donne un ordre de grandeur, pas une valeur précise.
           </div>
         </div>
@@ -4735,12 +4767,12 @@ window.addEventListener('DOMContentLoaded', () => {
       </div>`;
     }
 
-    el.innerHTML = ageCard + patrimoineCard + investiCard + niCard + resumeCard + banquesCard + athCard + pruCard + rendementCard + battleCard + depensesCard + impotCard + achatCard + cards.map(c => `
+    el.innerHTML = patrimoineCard + investiCard + niCard + resumeCard + banquesCard + athCard + pruCard + rendementCard + battleCard + depensesCard + impotCard + achatCard + cards.map(c => `
       <div class="kpi-card${c.full?' full':''}">
         <div class="kpi-card-label">${c.label}</div>
         <div class="kpi-card-value ${c.cls}">${c.value}</div>
         <div class="kpi-card-sub">${c.sub}</div>
-      </div>`).join('');
+      </div>`).join('') + ageCard;
   }
 
   function renderChartPatrimoine(k) {
