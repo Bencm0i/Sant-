@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Feuille de clé</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#e6e6e6;color:#000}
+.bar{padding:10px;background:#222;color:#fff;font-size:14px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.bar label{display:flex;gap:6px;align-items:center}
+.bar input{padding:6px;font-size:15px;border:0;border-radius:4px}
+.bar input[type=number]{width:5em}
+.bar button{padding:8px 12px;border:0;border-radius:4px;cursor:pointer}
+.bar .warn{flex-basis:100%;color:#ffd27a;font-size:13px}
+.sheet{width:210mm;height:296mm;margin:10px auto;background:#fff;padding:10mm;overflow:hidden;box-shadow:0 0 6px #0006;break-after:page;--bw:15mm;--bh:19mm;--gap:3.5mm}
+h1{font-size:14pt;margin:0 0 2mm}
+.meta{font-size:10pt;margin-bottom:3mm}
+.pre{font-size:10pt;margin-bottom:4mm}
+.pre b{font-family:"Courier New",monospace;font-size:14pt;letter-spacing:1px}
+.row{display:flex;align-items:flex-end;margin-bottom:var(--gap)}
+.lab{width:9mm;font-size:9pt;font-weight:bold}
+.grp{display:flex;gap:1.6mm;margin-right:5mm}
+.box{position:relative;width:var(--bw);height:var(--bh);border:.4mm solid #000;background:#fff}
+.box i{position:absolute;left:0;right:0;border-top:.2mm dashed #444}
+.box .n{position:absolute;left:.6mm;top:.2mm;font-size:5.5pt}
+.cb{position:relative;width:11mm;height:var(--bh);border:.4mm solid #000;margin-left:1.6mm}
+.cb small{position:absolute;top:.4mm;left:0;right:0;text-align:center;font-size:6pt}
+.note{font-size:8.5pt;line-height:1.4;margin:5mm 0 0}
+.note li{margin-bottom:1mm}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:6mm;margin-bottom:4mm}
+.head h1{margin:0 0 2mm}
+.head .meta{margin-bottom:2mm}
+.head .pre{margin-bottom:0}
+.ex{display:flex;gap:2.5mm;flex-shrink:0}
+.ex>div{text-align:center;font-size:6.5pt}
+.ex .box{margin:0 auto 1mm}
+.ex svg{position:absolute;left:0;top:0;width:100%;height:100%}
+@page{size:A4;margin:0}
+@media print{
+  body{background:#fff}
+  .bar{display:none}
+  .sheet{margin:0;box-shadow:none}
+  .sheet:last-child{break-after:auto}
+}
+</style>
+</head>
+<body>
+<div class="bar">
+  <label>Caractères <input type="number" id="n" value="52" min="1" max="64" oninput="build()"></label>
+  <label>Préfixe pré-imprimé <input type="text" id="pre" placeholder="ex. p2wpkh:" oninput="build()"></label>
+  <label>Feuilles <input type="number" id="c" value="1" min="1" max="10" oninput="build()"></label>
+  <button onclick="window.print()">Imprimer</button>
+  <span class="warn">Gabarit vierge : ne rien saisir ici. Imprime, puis écris au stylo hors connexion. Impression : A4, échelle 100 %, noir et blanc.</span>
+</div>
+<div id="out"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = t => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+const G3 = '<i style="top:22%"></i><i style="top:48%"></i><i style="top:80%"></i>';
+const ex = (ch, size, label) => `<div><div class="box">${G3}<svg viewBox="0 0 15 19"><text x="7.5" y="15.2" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="${size}">${ch}</text></svg></div>${label}</div>`;
+const EX = `<div class="ex">${ex('K', 15.4, 'Majuscule')}${ex('g', 11.75, 'minuscule')}${ex('7', 15.4, 'Chiffre')}</div>`;
+
+function build() {
+  const N = Math.max(1, Math.min(64, +$('#n').value || 52));
+  const pre = $('#pre').value.trim();
+  const copies = Math.max(1, Math.min(10, +$('#c').value || 1));
+  const rows = Math.ceil(N / 8);
+  let sheets = '';
+  for (let s = 1; s <= copies; s++) {
+    let body = '';
+    for (let r = 0; r < rows; r++) {
+      const start = r * 8;
+      let groups = '';
+      for (let gI = 0; gI < 2; gI++) {
+        let boxes = '';
+        for (let k = 0; k < 4; k++) {
+          const idx = start + gI * 4 + k;
+          if (idx >= N) break;
+          boxes += `<div class="box"><i style="top:22%"></i><i style="top:48%"></i><i style="top:80%"></i><span class="n">${idx + 1}</span></div>`;
+        }
+        if (boxes) groups += `<div class="grp">${boxes}</div>`;
+      }
+      body += `<div class="row"><div class="lab">L${r + 1}</div>${groups}<div class="cb"><small>Maj.</small></div><div class="cb"><small>Chif.</small></div></div>`;
+    }
+    const preLine = pre ? `<div class="pre">Préfixe pré-imprimé : <b>${esc(pre)}</b> (à ne pas recopier dans la grille)</div>` : '';
+    sheets += `<div class="sheet">
+      <div class="head">
+        <div>
+          <h1>CLÉ PRIVÉE — ${N} CARACTÈRES</h1>
+          <div class="meta">Wallet n° ________ &nbsp; Date ____________ &nbsp; Feuille ${s} / ${copies}</div>
+          ${preLine}
+        </div>
+        ${EX}
+      </div>
+      ${body}
+      <ul class="note">
+        <li>Une case par caractère, en lettres d'imprimerie. Repères pointillés : <b>haut</b> = majuscules, chiffres et hampes (b, d, f, h, k, l) ; <b>milieu</b> = haut des minuscules ; <b>bas</b> = ligne de base (g, j, p, q, y descendent en dessous).</li>
+        <li>Colonnes <b>Maj.</b> et <b>Chif.</b> : nombre de majuscules et de chiffres de la ligne, à compter après écriture puis à recompter à chaque relecture.</li>
+        <li>Format base58 : la clé ne contient ni 0, ni O, ni I, ni l. Si tu hésites sur un de ces caractères, c'est une erreur de lecture.</li>
+        <li>Vérification finale : réimporter la clé depuis le papier dans Electrum (sous Tails, hors ligne) et comparer l'adresse obtenue avec celle du wallet d'origine.</li>
+      </ul>
+    </div>`;
+  }
+  $('#out').innerHTML = sheets;
+}
+build();
+</script>
+</body>
+</html>
