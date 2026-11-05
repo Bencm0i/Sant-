@@ -2824,6 +2824,9 @@ body:has(#editorPanel:not(.editor-hidden)) .ha-tab{ top:calc(50% + 60px); }
           <button class="bg-btn vault-btn" onclick="document.getElementById('vaultImport').click()" title="Restaurer une sauvegarde complète (nouveau PC compris)">⬆ Importer tout</button>
         </div>
         <div class="vault-btn-row" style="padding:0 16px 16px;">
+          <button class="bg-btn vault-btn" onclick="bkOpenManual()" title="Rappel : ouvrir mon fichier de gestion des backups (fréquence, report, lien)">⏰ Rappel backups</button>
+        </div>
+        <div class="vault-btn-row" style="padding:0 16px 16px;">
           <button class="bg-btn vault-btn" onclick="resetDashboardVersion()" title="Remet le compteur de version à 0" style="color:#b3564f;border-color:rgba(179,86,79,0.3)">↺ Réinit. version (v<span id="versionResetLabel">0</span>)</button>
         </div>
       </div>
@@ -9871,5 +9874,335 @@ function ghLinkGenerate(){
 })();
 </script>
 
+
+<!-- ═══════════ RAPPEL DE SAUVEGARDE (popup périodique, réglable) ═══════════ -->
+<style>
+#bkModal{position:fixed;inset:0;z-index:640;background:rgba(0,0,0,0.45);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;}
+#bkModal.open{display:flex;}
+#bkModal .bk-box{width:340px;max-width:92vw;max-height:90vh;overflow-y:auto;}
+.bk-msg{font-size:0.74rem;font-weight:600;color:var(--text);line-height:1.5;}
+.bk-msg small{display:block;color:var(--muted);font-weight:700;margin-top:2px;}
+.bk-lbl{font-size:0.62rem;font-weight:800;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:3px;}
+.bk-row{display:flex;align-items:center;gap:8px;}
+.bk-row .launcher-modal-input{flex:1;min-width:0;}
+.bk-link-open{flex-shrink:0;padding:8px 10px;border-radius:10px;border:1.5px solid var(--border);background:rgba(255,255,255,0.55);font-family:'Inter',sans-serif;font-size:0.72rem;font-weight:800;color:var(--c2);cursor:pointer;text-decoration:none;}
+.bk-link-open:hover{background:rgba(255,255,255,0.85);}
+.bk-settings{display:none;flex-direction:column;gap:9px;border-top:1.5px solid rgba(61,90,115,0.15);padding-top:10px;}
+.bk-settings.open{display:flex;}
+.bk-set-toggle{background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.68rem;font-weight:800;color:var(--muted);text-align:left;padding:0;}
+.bk-set-toggle:hover{color:var(--c2);}
+.bk-num{width:64px !important;flex:none !important;text-align:center;}
+.bk-select{padding:8px 6px;border-radius:10px;border:1.5px solid rgba(61,90,115,0.25);background:rgba(61,90,115,0.07);font-family:'Inter',sans-serif;font-size:0.74rem;font-weight:700;color:var(--text);}
+.bk-ok{font-size:0.62rem;font-weight:800;color:var(--c4);opacity:0;transition:opacity .3s;}
+.bk-ok.show{opacity:1;}
+</style>
+
+<style>
+#bkToast{position:fixed;top:100px;right:16px;z-index:975;width:340px;max-width:calc(100vw - 24px);display:flex;gap:12px;align-items:flex-start;padding:14px 14px 12px;border-radius:12px;background:rgba(38,40,44,0.97);color:#f1f1f1;border:1px solid rgba(255,255,255,0.12);box-shadow:0 10px 34px rgba(0,0,0,0.45);font-family:'Inter',sans-serif;transform:translateX(130%);opacity:0;pointer-events:none;transition:transform .35s cubic-bezier(.2,.8,.2,1),opacity .25s;}
+#bkToast.show{transform:translateX(0);opacity:1;pointer-events:auto;}
+#bkToast .bkt-ic{flex:none;width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#6a9955,#3d7a5c);display:flex;align-items:center;justify-content:center;font-size:20px;}
+#bkToast .bkt-main{flex:1;min-width:0;}
+#bkToast .bkt-title{font-size:0.82rem;font-weight:800;margin-bottom:2px;}
+#bkToast .bkt-body{font-size:0.72rem;font-weight:500;color:#c9ccd1;line-height:1.4;}
+#bkToast .bkt-btns{display:flex;gap:6px;margin-top:10px;}
+#bkToast .bkt-btns button{padding:6px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.08);color:#f1f1f1;font-family:'Inter',sans-serif;font-size:0.7rem;font-weight:700;cursor:pointer;transition:background .15s;}
+#bkToast .bkt-btns button:hover{background:rgba(255,255,255,0.18);}
+#bkToast .bkt-btns button.main{background:#4f8f63;border-color:#4f8f63;}
+#bkToast .bkt-btns button.main:hover{background:#5ea474;}
+#bkToast .bkt-x{position:absolute;top:6px;right:8px;background:none;border:none;color:#9aa0a8;cursor:pointer;font-size:0.8rem;}
+#bkToast .bkt-x:hover{color:#fff;}
+</style>
+<style>
+#bkTray{position:fixed;bottom:41px;left:calc(50% - 72px);z-index:500;width:38px;height:38px;border-radius:50%;background:rgba(12,6,35,0.75);backdrop-filter:blur(12px);border:1.5px solid rgba(61,90,115,0.4);color:#fff;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,0.3);transition:all .15s;}
+#bkTray:hover{background:rgba(61,90,115,0.35);border-color:rgba(61,90,115,0.8);}
+#bkTray .bk-dot{display:none;position:absolute;top:-3px;right:-3px;width:13px;height:13px;border-radius:50%;background:#ff2d2d;border:2px solid #fff;box-shadow:0 0 0 0 rgba(255,45,45,.6);animation:bkPulse 1.6s infinite;}
+#bkTray.pending .bk-dot{display:block;}
+@keyframes bkPulse{0%{box-shadow:0 0 0 0 rgba(255,45,45,.55);}70%{box-shadow:0 0 0 8px rgba(255,45,45,0);}100%{box-shadow:0 0 0 0 rgba(255,45,45,0);}}
+</style>
+<button id="bkTray" onclick="bkOpenManual()" title="Rappel des backups"><span>🗂️</span><i class="bk-dot"></i></button>
+
+<div id="bkToast" role="alert">
+  <div class="bkt-ic">🗂️</div>
+  <div class="bkt-main">
+    <div class="bkt-title">Gestion des backups</div>
+    <div class="bkt-body" id="bkToastBody"></div>
+    <div class="bkt-btns">
+      <button class="main" onclick="bkToastOpen()">Ouvrir</button>
+      <button onclick="bkToastSnooze()">Plus tard</button>
+      <button onclick="bkToastSettings()" title="Réglages">⚙️</button>
+    </div>
+  </div>
+  <button class="bkt-x" onclick="bkToastSnooze()" title="Fermer (reporte le rappel)">✕</button>
+</div>
+
+<div id="bkModal" onmousedown="if(event.target===this)bkSnooze()">
+  <div class="launcher-modal-box bk-box">
+    <div class="launcher-modal-title" id="bkTitle">🗂️ Gestion des backups</div>
+    <div class="bk-msg" id="bkMsg"></div>
+
+    <div>
+      <div class="bk-lbl">Fichier Excel de gestion des backups (lien modifiable)</div>
+      <div class="bk-row">
+        <input class="launcher-modal-input" id="bkLink" placeholder="Lien OneDrive / Google Sheets… ou chemin du fichier" oninput="bkSaveSettings(true)">
+        <a class="bk-link-open" id="bkLinkOpen" href="#" target="_blank" rel="noopener" onclick="return bkOpenLink(event)">↗ Tester</a>
+      </div>
+    </div>
+
+    <div class="launcher-modal-btns" style="flex-wrap:wrap;">
+      <button class="launcher-modal-save" style="flex:1 1 100%" onclick="bkOpenFile()" id="bkMainBtn">📂 Ouvrir le fichier de backups</button>
+      <button class="launcher-modal-cancel" onclick="bkSnooze()" id="bkSnoozeBtn">⏰ Plus tard</button>
+      <button class="launcher-modal-cancel" onclick="bkMarkDoneClick()" title="J'ai déjà vérifié mes backups">✓ Déjà fait</button>
+    </div>
+
+    <button class="bk-set-toggle" onclick="bkToggleSettings()" id="bkSetToggle">⚙️ Réglages du rappel ▸</button>
+    <div class="bk-settings" id="bkSettings">
+      <div class="bk-row" style="justify-content:space-between;">
+        <span class="bk-msg">Rappel activé</span>
+        <button id="bkEnabledSwitch" class="mini-switch" onclick="bkToggleEnabled()"><span class="mini-switch-knob"></span></button>
+      </div>
+      <div>
+        <div class="bk-lbl">Fréquence : rappeler tous les</div>
+        <div class="bk-row"><input type="number" min="1" max="365" class="launcher-modal-input bk-num" id="bkFreq" oninput="bkSaveSettings(true)"><span class="bk-msg">jours</span></div>
+      </div>
+      <div>
+        <div class="bk-lbl">Durée du « Plus tard » (report)</div>
+        <div class="bk-row">
+          <input type="number" min="1" max="999" class="launcher-modal-input bk-num" id="bkSnoozeVal" oninput="bkSaveSettings(true)">
+          <select class="bk-select" id="bkSnoozeUnit" onchange="bkSaveSettings(true)">
+            <option value="m">minutes</option><option value="h">heures</option><option value="d">jours</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <div class="bk-lbl">Notification : disparition automatique après</div>
+        <div class="bk-row"><input type="number" min="0" max="600" class="launcher-modal-input bk-num" id="bkToastSec" oninput="bkSaveSettings(true)"><span class="bk-msg">secondes (0 = reste affichée)</span></div>
+      </div>
+      <div class="bk-row" style="justify-content:space-between;">
+        <span class="bk-msg">Notification système du navigateur<small>Visible même si l'onglet est en arrière-plan</small></span>
+        <button id="bkSysSwitch" class="mini-switch" onclick="bkToggleSysNotif()"><span class="mini-switch-knob"></span></button>
+      </div>
+      <button class="launcher-modal-cancel" style="padding:7px 10px;border-radius:10px;border:1.5px solid rgba(61,90,115,0.25);cursor:pointer;font-family:'Inter',sans-serif;font-weight:800;font-size:0.7rem;" onclick="bkTestToast()">🔔 Tester la notification</button>
+      <div class="bk-row" style="justify-content:space-between;">
+        <button class="launcher-modal-cancel" style="flex:none;padding:7px 10px;border-radius:10px;border:1.5px solid rgba(61,90,115,0.25);cursor:pointer;font-family:'Inter',sans-serif;font-weight:800;font-size:0.7rem;" onclick="bkSaveSettings();bkClose()">Fermer</button>
+        <span class="bk-ok" id="bkSaved">✓ enregistré</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const KEY = 'dashboard_backup_reminder_v2';
+  const DEF = { enabled:true, freqDays:7, snoozeVal:1, snoozeUnit:'d', link:'', lastBackup:0, snoozeUntil:0, firstSeen:0, toastSec:0, sysNotif:false };
+  let st = Object.assign({}, DEF);
+  try{ Object.assign(st, JSON.parse(localStorage.getItem(KEY) || '{}')); }catch(e){}
+  // Première utilisation : le compteur démarre aujourd'hui (pas de popup immédiat)
+  if(!st.firstSeen){ st.firstSeen = Date.now(); }
+  function persist(){ lsSet(KEY, JSON.stringify(st)); }
+  persist();
+
+  const $ = id => document.getElementById(id);
+  const DAY = 86400000;
+  const snoozeMs = () => (Number(st.snoozeVal)||1) * ({m:60000, h:3600000, d:DAY}[st.snoozeUnit] || DAY);
+  const refTs = () => st.lastBackup || st.firstSeen;
+  // Jamais sauvegardé (selon ce rappel) : dû immédiatement ; sinon dernière sauvegarde + fréquence
+  const dueAt = () => st.lastBackup ? Math.max(st.lastBackup + (Number(st.freqDays)||7) * DAY, st.snoozeUntil || 0) : (st.snoozeUntil || 0);
+
+  function fmtDate(ts){ return new Date(ts).toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'}); }
+  function daysAgo(ts){ return Math.floor((Date.now() - ts) / DAY); }
+
+  function renderMsg(manual){
+    const m = $('bkMsg');
+    let html;
+    if(st.lastBackup){
+      const d = daysAgo(st.lastBackup);
+      html = manual ? '<b>' + d + ' jour' + (d>1?'s':'') + '</b> depuis la dernière ouverture du fichier<small>' + fmtDate(st.lastBackup) + '</small>' : 'Ça fait <b>' + d + ' jour' + (d>1?'s':'') + '</b> : pense à mettre à jour ton fichier de gestion des backups.<small>Dernière ouverture : ' + fmtDate(st.lastBackup) + '</small>';
+    } else {
+      html = 'Pense à ouvrir ton fichier Excel de gestion des backups.<small>' + (st.link ? '' : 'Colle d\'abord son lien ci-dessous (⚙️ ou champ du lien).') + '</small>';
+    }
+    if(manual && st.enabled) html += '<small>Prochain rappel : ' + fmtDate(dueAt()) + '</small>';
+    if(manual && !st.enabled) html += '<small>Rappel désactivé</small>';
+    m.innerHTML = html;
+  }
+
+  function fillForm(){
+    $('bkLink').value = st.link || '';
+    $('bkFreq').value = st.freqDays;
+    $('bkSnoozeVal').value = st.snoozeVal;
+    $('bkSnoozeUnit').value = st.snoozeUnit;
+    $('bkToastSec').value = st.toastSec || 0;
+    $('bkSysSwitch').classList.toggle('on', !!st.sysNotif);
+    $('bkEnabledSwitch').classList.toggle('on', !!st.enabled);
+    updateLinkHref();
+  }
+  function updateLinkHref(){
+    let u = ($('bkLink').value || '').trim();
+    if(u && !/^https?:\/\//i.test(u)) u = 'https://' + u;
+    $('bkLinkOpen').href = u || '#';
+    $('bkLinkOpen').style.opacity = u ? '1' : '0.4';
+  }
+
+  let flashT;
+  window.bkSaveSettings = function(quiet){
+    st.link = $('bkLink').value.trim();
+    st.freqDays = Math.max(1, parseInt($('bkFreq').value, 10) || 7);
+    st.snoozeVal = Math.max(1, parseInt($('bkSnoozeVal').value, 10) || 1);
+    st.snoozeUnit = $('bkSnoozeUnit').value;
+    st.toastSec = Math.max(0, parseInt($('bkToastSec').value, 10) || 0);
+    persist(); updateLinkHref(); updateBadge();
+    const ok = $('bkSaved'); ok.classList.add('show'); clearTimeout(flashT); flashT = setTimeout(()=>ok.classList.remove('show'), 1200);
+  };
+  window.bkToggleEnabled = function(){
+    st.enabled = !st.enabled; persist(); updateBadge();
+    $('bkEnabledSwitch').classList.toggle('on', st.enabled);
+  };
+  window.bkToggleSettings = function(){
+    const s = $('bkSettings'); const open = s.classList.toggle('open');
+    $('bkSetToggle').textContent = '⚙️ Réglages du rappel ' + (open ? '▾' : '▸');
+  };
+  const isLocal = u => /^[a-zA-Z]:[\\\/]|^\\\\|^file:|^\//.test(u);
+  window.bkOpenLink = function(e){
+    updateLinkHref();
+    const u = ($('bkLink').value || '').trim();
+    if(!u){ e.preventDefault(); $('bkLink').focus(); return false; }
+    if(isLocal(u)){ e.preventDefault(); copyPath(u); return false; }
+    return true;
+  };
+  function copyPath(u){
+    const done = () => { $('bkSaved').textContent = '✓ chemin copié, colle-le dans l\'explorateur'; $('bkSaved').classList.add('show'); setTimeout(()=>{ $('bkSaved').classList.remove('show'); $('bkSaved').textContent = '✓ enregistré'; }, 3500); };
+    try{ navigator.clipboard.writeText(u.replace(/^file:\/*/i,'')).then(done, ()=>alert('Chemin : ' + u)); }catch(e){ alert('Chemin : ' + u); }
+  }
+
+  function show(manual){
+    fillForm(); renderMsg(manual);
+    $('bkTitle').textContent = manual ? '🗂️ Rappel des backups' : '⏰ Rappel : vérifier mes backups';
+    $('bkSnoozeBtn').textContent = manual ? 'Fermer' : '⏰ Plus tard';
+    $('bkSettings').classList.toggle('open', !!manual);
+    $('bkSetToggle').textContent = '⚙️ Réglages du rappel ' + (manual ? '▾' : '▸');
+    $('bkModal').classList.add('open');
+    $('bkModal').dataset.manual = manual ? '1' : '';
+  }
+  window.bkOpenManual = function(){ show(true); };
+  window.bkClose = function(){ $('bkModal').classList.remove('open'); };
+
+  // « Plus tard » (ou clic à côté / Échap) : reporte, sauf en consultation manuelle
+  window.bkSnooze = function(){
+    const manual = $('bkModal').dataset.manual === '1';
+    if(!manual){ st.snoozeUntil = Date.now() + snoozeMs(); persist(); }
+    bkClose();
+  };
+  window.bkMarkDone = function(){
+    st.lastBackup = Date.now(); st.snoozeUntil = 0; persist(); updateBadge();
+  };
+  window.bkMarkDoneClick = function(){ bkMarkDone(); bkClose(); };
+
+  window.bkOpenFile = function(){
+    bkSaveSettings(true);
+    const u = (st.link || '').trim();
+    if(!u){
+      // pas encore de lien : on ouvre les réglages pour le saisir
+      $('bkSettings').classList.add('open'); $('bkSetToggle').textContent = '⚙️ Réglages du rappel ▾';
+      $('bkLink').focus(); return;
+    }
+    if(isLocal(u)){ copyPath(u); }
+    else { window.open(/^https?:\/\//i.test(u) ? u : 'https://' + u, '_blank', 'noopener'); }
+    bkMarkDone(); bkClose();
+  };
+
+  let toastT;
+  function toastText(){
+    const d = st.lastBackup ? daysAgo(st.lastBackup) : null;
+    return d === null ? 'Pense à ouvrir ton fichier de gestion des backups.' : 'Dernière ouverture il y a ' + d + ' jour' + (d>1?'s':'') + '. Pense à mettre à jour ton fichier de backups.';
+  }
+  function showToast(){
+    if($('bkToast').classList.contains('show')) return;
+    $('bkToastBody').textContent = toastText();
+    $('bkToast').classList.add('show');
+    clearTimeout(toastT);
+    const sec = parseInt(st.toastSec, 10) || 0;
+    if(sec > 0) toastT = setTimeout(() => bkToastSnooze(), sec * 1000);
+    if(st.sysNotif && 'Notification' in window && Notification.permission === 'granted'){
+      try{ const n = new Notification('Gestion des backups', { body: toastText(), tag: 'bk-reminder' }); n.onclick = () => { window.focus(); n.close(); }; }catch(e){}
+    }
+  }
+  window.bkToastClose = function(){ clearTimeout(toastT); $('bkToast').classList.remove('show'); };
+  window.bkToastSnooze = function(){ st.snoozeUntil = Date.now() + snoozeMs(); persist(); bkToastClose(); };
+  window.bkToastOpen = function(){ bkToastClose(); if(!(st.link || '').trim()){ show(true); return; } bkOpenFile(); };
+  window.bkToastSettings = function(){ bkToastClose(); show(true); };
+  window.bkTestToast = function(){ bkClose(); showToast(); };
+  window.bkToggleSysNotif = function(){
+    const sw = () => $('bkSysSwitch').classList.toggle('on', !!st.sysNotif);
+    if(st.sysNotif){ st.sysNotif = false; persist(); sw(); return; }
+    if(!('Notification' in window)){ alert('Les notifications ne sont pas supportées par ce navigateur.'); return; }
+    Notification.requestPermission().then(p => {
+      if(p === 'granted'){ st.sysNotif = true; persist(); sw(); }
+      else alert('Autorisation refusée : active-la dans les réglages du site (cadenas de la barre d\'adresse).');
+    });
+  };
+  fillForm();
+
+  // ── Pastille « barre des tâches » : bouton + point rouge, titre d'onglet, favicon, badge d'appli (PWA) ──
+  const iconEl = document.querySelector('link[rel="icon"]');
+  const iconOrig = iconEl ? iconEl.getAttribute('href') : null;
+  const iconDot = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><path d="M14 6 h36 a4 4 0 0 1 4 4 v46 l-22 -14 l-22 14 v-46 a4 4 0 0 1 4 -4 z" fill="#e0342d" stroke="#a3201b" stroke-width="2" stroke-linejoin="round"/><circle cx="48" cy="16" r="13" fill="#ff2d2d" stroke="#fff" stroke-width="4"/></svg>');
+  let titleBase = null;
+  function isPending(){
+    if(!st.enabled) return false;
+    const ref = st.lastBackup ? st.lastBackup + (Number(st.freqDays)||7) * DAY : 0;
+    return Date.now() >= ref;   // reste vrai après « Plus tard » tant que tu n'as pas ouvert le fichier
+  }
+  function updateBadge(){
+    const p = isPending();
+    $('bkTray').classList.toggle('pending', p);
+    $('bkTray').title = p ? 'Backups : à vérifier (clic pour ouvrir)' : 'Rappel des backups';
+    if(iconEl) iconEl.setAttribute('href', p ? iconDot : iconOrig);
+    if(titleBase === null) titleBase = document.title;
+    if(!/^⏰/.test(document.title)){ // ne touche pas au titre pendant l'alarme de pointage
+      document.title = (p ? '🔴 ' : '') + titleBase.replace(/^🔴 /, '');
+      titleBase = titleBase.replace(/^🔴 /, '');
+    }
+    try{ if(navigator.setAppBadge){ p ? navigator.setAppBadge(1) : navigator.clearAppBadge(); } }catch(e){}
+  }
+  updateBadge();
+
+  function check(){
+    updateBadge();
+    if(!st.enabled) return;
+    if($('bkModal').classList.contains('open')) return;
+    if(Date.now() >= dueAt()) showToast();
+  }
+  document.addEventListener('keydown', e => {
+    if(e.key === 'Escape' && $('bkModal').classList.contains('open')) bkSnooze();
+  });
+  window.addEventListener('load', () => setTimeout(check, 2500));
+  setInterval(check, 10 * 60 * 1000);
+  document.addEventListener('visibilitychange', () => { if(!document.hidden) check(); });
+})();
+</script>
+
+
+<!-- ═══════════ DOCK DU BAS : boutons ronds uniformisés (44 px, même hauteur, même pas) ═══════════ -->
+<style>
+#smBtn, #lchAddBtn, #lchGroupBtn, #bkTray, #ghLinkBtn{
+  width:44px !important; height:44px !important; border-radius:50% !important;
+  font-size:1.15rem !important; line-height:1; padding:0 !important;
+  display:flex; align-items:center; justify-content:center;
+}
+#smBtn{ bottom:38px !important; }
+#lchAddBtn, #lchGroupBtn, #bkTray{ bottom:38px !important; }
+#ghLinkWidget{ bottom:38px !important; }
+/* de gauche à droite : 📁 lien GitHub · 🗂️ backups · ◉ menu · ＋ raccourci · 📁 groupe  (pas de 52 px) */
+#ghLinkWidget{ left:calc(50% - 126px) !important; }
+#bkTray{ left:calc(50% - 74px) !important; }
+#lchAddBtn{ left:calc(50% + 30px) !important; }
+#lchGroupBtn{ left:calc(50% + 82px) !important; }
+#ghLinkBtn{
+  background:rgba(12,6,35,0.75) !important; backdrop-filter:blur(12px);
+  border:1.5px solid rgba(61,90,115,0.4) !important; box-shadow:0 4px 16px rgba(0,0,0,0.3) !important;
+  transition:all .15s;
+}
+#ghLinkBtn:hover{ background:rgba(61,90,115,0.35) !important; border-color:rgba(61,90,115,0.8) !important; }
+#smPanel{ bottom:92px; }
+</style>
 </body>
 </html>
