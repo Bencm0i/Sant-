@@ -3457,6 +3457,62 @@ h1 .spine{width:7px;height:16px;}
 .zoom-ctl button:hover{color:var(--accent);background:var(--paper-dim);}
 .zoom-ctl #zoomVal{min-width:44px;text-align:center;border-left:1px solid var(--line);border-right:1px solid var(--line);}
 
+
+/* ── PLAN DES ONGLETS : colonne masquable (minimap de tous les onglets) + recherche visible ── */
+#planBtn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.plan-col{flex:0 0 var(--plan-w,360px);width:var(--plan-w,360px);display:none;flex-direction:column;min-height:0;background:var(--paper-dim);}
+.plan-col.open{display:flex;}
+.plan-head{display:flex;flex-direction:column;gap:7px;padding:9px 10px 8px;border-bottom:1.5px solid var(--line);flex-shrink:0;background:var(--paper);}
+.plan-title-row{display:flex;align-items:center;gap:8px;}
+.plan-title{font-family:'IBM Plex Mono',monospace;font-size:0.72rem;font-weight:700;color:var(--ink-soft);flex:1;white-space:nowrap;}
+.plan-count{font-weight:500;opacity:.7;margin-left:4px;}
+.plan-search{display:flex;gap:4px;align-items:stretch;}
+.plan-search input{flex:1;min-width:0;font-family:'Inter',sans-serif;font-size:0.78rem;padding:5px 8px;border:1.5px solid var(--line);border-radius:7px;background:#fff;color:var(--ink);}
+.plan-search input:focus{outline:none;border-color:var(--accent);}
+.plan-search button,.plan-seg button,.plan-only{
+  font-family:'IBM Plex Mono',monospace;font-size:0.66rem;font-weight:600;padding:3px 8px;border-radius:6px;
+  border:1.5px solid var(--line);background:#fff;color:var(--ink-soft);cursor:pointer;
+}
+.plan-search button:hover,.plan-seg button:hover,.plan-only:hover{border-color:var(--accent);color:var(--accent);}
+.plan-summary{font-family:'IBM Plex Mono',monospace;font-size:0.66rem;color:var(--ink-soft);min-height:1em;}
+.plan-summary b{color:#c2410c;}
+.plan-ctl{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+.plan-seg{display:flex;border-radius:6px;overflow:hidden;border:1.5px solid var(--line);}
+.plan-seg button{border:none;border-radius:0;}
+.plan-seg button.on,.plan-only.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+.plan-legend{font-size:0.66rem;color:var(--ink-soft);}
+.plan-legend summary{cursor:pointer;font-family:'IBM Plex Mono',monospace;font-weight:600;}
+.plan-legend-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px 10px;margin-top:6px;line-height:1.3;}
+.plan-legend-grid span{display:flex;align-items:center;gap:5px;}
+.plan-sw{display:inline-block;width:9px;height:9px;border-radius:2px;flex-shrink:0;}
+.plan-list{flex:1;overflow-y:auto;padding:8px 8px 24px;display:flex;flex-direction:column;gap:10px;}
+.plan-card{background:#fff;border:1.5px solid var(--line);border-left:6px solid var(--card-color,#8a8272);border-radius:8px;padding:6px 8px 8px;transition:opacity .15s;}
+.plan-card.active{border-color:var(--accent);border-left-color:var(--card-color,var(--accent));box-shadow:var(--shadow);}
+.plan-card.dim{opacity:.32;}
+.plan-card.dim:hover{opacity:.85;}
+.plan-card-name{font-family:'Inter',sans-serif;font-size:0.78rem;font-weight:600;color:var(--ink);cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.plan-card-name:hover{color:var(--accent);}
+.plan-card-name.name-hit{background:rgba(232,89,12,.16);border-radius:3px;}
+.plan-parent{font-size:0.62rem;color:var(--ink-soft);}
+.plan-chips{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;}
+.plan-chip{font-family:'IBM Plex Mono',monospace;font-size:0.6rem;background:var(--paper-dim);border:1px solid var(--line);border-radius:10px;padding:0 6px;color:var(--ink-soft);white-space:nowrap;}
+.plan-snip{font-family:'Inter',sans-serif;font-size:0.7rem;color:var(--ink-soft);cursor:pointer;border-left:3px solid #e8590c;padding:1px 6px;margin-top:3px;background:rgba(232,89,12,.07);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-radius:0 4px 4px 0;}
+.plan-snip:hover{background:rgba(232,89,12,.16);}
+.plan-snip i{font-style:normal;font-family:'IBM Plex Mono',monospace;font-size:0.58rem;opacity:.7;margin-right:5px;}
+.plan-snip mark{background:#f6c27a;}
+.plan-more{font-size:0.62rem;color:var(--ink-soft);margin-top:2px;}
+.plan-strips{display:flex;gap:8px;margin-top:7px;align-items:flex-start;}
+.plan-strip{flex:1;min-width:0;}
+.plan-strip-label{font-family:'IBM Plex Mono',monospace;font-size:0.58rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:2px;}
+.plan-cwrap{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:4px;overflow:hidden;cursor:pointer;}
+.plan-cv{display:block;width:100%;}
+.plan-vp{position:absolute;left:0;right:0;display:none;background:rgba(47,93,98,.13);border-top:1.5px solid var(--accent);border-bottom:1.5px solid var(--accent);pointer-events:none;}
+.plan-empty{font-family:'Lora',serif;font-style:italic;font-size:0.7rem;color:#b8b0a0;padding:6px 4px;}
+.plan-none{font-family:'Lora',serif;font-style:italic;font-size:0.82rem;color:var(--ink-soft);padding:10px 6px;}
+#planTip{position:fixed;z-index:60;max-width:320px;background:#2b2620;color:#fff;font-family:'Inter',sans-serif;font-size:0.7rem;line-height:1.35;padding:4px 8px;border-radius:6px;pointer-events:none;display:none;white-space:pre-wrap;word-break:break-word;}
+@media(max-width:820px){
+  .plan-col{flex:0 0 auto;width:100%;max-height:300px;border-top:1.5px solid var(--line);}
+}
 </style>
 </head>
 <body>
@@ -3484,6 +3540,7 @@ h1 .spine{width:7px;height:16px;}
       </div>
       <button class="btn" onclick="toggleSidebar()" title="Afficher/masquer la liste des onglets (Alt+S)">☰ Onglets</button>
       <button class="btn" onclick="toggleMosaic()" title="Voir tous les onglets en mosaïque et y coller un résumé (Alt+M)">▦ Mosaïque</button>
+      <button class="btn" id="planBtn" onclick="togglePlan()" title="Plan : la mise en page de tous les onglets en un coup d'œil, avec recherche visible (Alt+L)">🗺 Plan</button>
       <button class="btn" onclick="toggleHelp()" title="Raccourcis clavier (touche ?)">⌨</button>
       <button class="btn" id="fileLinkBtn" onclick="toggleFilePanel()" title="Lier un fichier JSON : le carnet s'y enregistre automatiquement et s'en recharge à l'ouverture">🔗 Fichier JSON</button>
       <button class="btn" onclick="document.getElementById('importInput').click()">⬆ Importer JSON</button>
@@ -3520,7 +3577,7 @@ h1 .spine{width:7px;height:16px;}
   <button id="mobileColIA" onclick="setMobileCol('ia')" title="Affiche la colonne Texte (la colonne Marge reste intacte, juste masquée)">👁 Texte</button>
 </div>
 
-<span style="position:fixed;bottom:4px;right:8px;font-size:9px;color:#c7bfae;z-index:1;pointer-events:none;font-family:monospace;">build 2026-10-07-liseres</span>
+<span style="position:fixed;bottom:4px;right:8px;font-size:9px;color:#c7bfae;z-index:1;pointer-events:none;font-family:monospace;">build 2026-11-12-plan</span>
 
 <div class="mosaic-panel" id="mosaicPanel" style="display:none;">
   <div class="mosaic-inner">
@@ -3542,6 +3599,7 @@ h1 .spine{width:7px;height:16px;}
       <li><code>Alt+M</code><span>Mosaïque des onglets (résumés cliquables)</span></li>
       <li><code>Alt+S</code><span>Afficher/masquer les onglets</span></li>
       <li><code>Alt+F</code><span>Aller à la recherche</span></li>
+      <li><code>Alt+L</code><span>Plan des onglets (mise en page de toutes les notes + recherche visible)</span></li>
       <li><code>Alt+P</code><span>Aperçu de la marge</span></li>
       <li><code>Alt+I</code><span>Aperçu du texte</span></li>
       <li><code>Alt+E</code><span>Basculer Aperçu/Édition (colonne active)</span></li>
@@ -3783,7 +3841,54 @@ h1 .spine{width:7px;height:16px;}
     </div>
     <div class="char-count" id="iaCount">0 caractère</div>
   </div>
+  <aside class="plan-col" id="planCol" aria-label="Plan de tous les onglets">
+    <div class="plan-head">
+      <div class="plan-title-row">
+        <span class="plan-title">🗺 Plan des onglets<span class="plan-count" id="planCount"></span></span>
+        <button type="button" class="tl-close" onclick="togglePlan()" title="Masquer le plan (Alt+L)">✕</button>
+      </div>
+      <div class="plan-search">
+        <input type="text" id="planSearch" placeholder="Chercher dans tous les onglets…" oninput="planSearchInput()" onkeydown="planSearchKey(event)">
+        <button type="button" onclick="planNextHit(-1)" title="Résultat précédent (Maj+Entrée)">↑</button>
+        <button type="button" onclick="planNextHit(1)" title="Résultat suivant (Entrée)">↓</button>
+        <button type="button" onclick="planClearSearch()" title="Vider la recherche (Échap)">✕</button>
+      </div>
+      <div class="plan-summary" id="planSummary"></div>
+      <div class="plan-ctl">
+        <span class="plan-seg" title="Colonnes à dessiner">
+          <button type="button" id="planModeRaw" onclick="planSetMode('raw')">Marge</button>
+          <button type="button" id="planModeBoth" onclick="planSetMode('both')">Les deux</button>
+          <button type="button" id="planModeIa" onclick="planSetMode('ia')">Texte</button>
+        </span>
+        <span class="plan-seg" title="Taille du dessin">
+          <button type="button" id="planSizeS" onclick="planSetSize('s')">S</button>
+          <button type="button" id="planSizeM" onclick="planSetSize('m')">M</button>
+          <button type="button" id="planSizeL" onclick="planSetSize('l')">L</button>
+        </span>
+        <button type="button" class="plan-only" id="planOnlyBtn" onclick="planToggleOnly()" title="Ne montrer que les onglets qui contiennent le mot cherché">🎯 Trouvés</button>
+      </div>
+      <details class="plan-legend">
+        <summary>Légende</summary>
+        <div class="plan-legend-grid">
+          <span><i class="plan-sw" style="background:#c98a2c"></i>Bande 1 : tag de marge (couleur du tag)</span>
+          <span><i class="plan-sw" style="background:#2f5d62"></i>Bande 2 : tâche à faire · <i class="plan-sw" style="background:#9bbf8a"></i>faite</span>
+          <span><i class="plan-sw" style="background:#45566b"></i>Bande 3 : horodatage</span>
+          <span><i class="plan-sw" style="background:#8a5a2b"></i>chemin de fichier</span>
+          <span><i class="plan-sw" style="background:#2e8fb0"></i>image (bloc bleu)</span>
+          <span><i class="plan-sw" style="background:#e0b400"></i>surlignage ==…==</span>
+          <span><i class="plan-sw" style="background:#7a5a8f"></i>lien [[…]]</span>
+          <span><i class="plan-sw" style="background:#2b2620"></i>titre (barre épaisse)</span>
+          <span><i class="plan-sw" style="background:#6b4a6b"></i>section #balise</span>
+          <span><i class="plan-sw" style="background:#8a8272"></i>bloc de code (fond gris)</span>
+          <span><i class="plan-sw" style="background:#e8590c"></i>mot trouvé (orange)</span>
+          <span><i class="plan-sw" style="background:rgba(47,93,98,.35)"></i>cadre = partie visible</span>
+        </div>
+      </details>
+    </div>
+    <div class="plan-list" id="planList"></div>
+  </aside>
 </div>
+<div id="planTip"></div>
 
 <script>
 /* DOMPurify 3.4.16 (Apache-2.0 / MPL-2.0) — https://github.com/cure53/DOMPurify */
@@ -8366,6 +8471,603 @@ function zoomStep(dir){ zoomSet(readZoom + dir*0.1); }
     e.preventDefault(); zoomStep(e.deltaY < 0 ? 1 : -1);
   }, {passive:false});
 })();
+
+// ── PLAN DES ONGLETS ─────────────────────────────────────────────────────────
+// Colonne masquable (Alt+L) : un dessin de la mise en page de CHAQUE onglet (Marge / Texte), à faire défiler.
+// Trois « bandes » à gauche de chaque dessin repèrent les signes distinctifs d'une ligne :
+//   1 = tag de marge, 2 = tâche, 3 = horodatage / chemin / image / surlignage / lien.
+// La recherche (celle de l'en-tête, ou celle du plan : elles sont liées) colore en orange les lignes trouvées
+// dans TOUS les onglets, affiche des extraits cliquables et permet de naviguer de résultat en résultat.
+const PLAN_OPEN_KEY = 'carnet_notes_plan_open';
+const PLAN_PREFS_KEY = 'carnet_notes_plan_prefs';
+const PLAN_SIZES = { s:{ unit:2, w:300 }, m:{ unit:3, w:360 }, l:{ unit:5, w:440 } };
+const PLAN_WRAP = 90;        // caractères par ligne « visuelle » (pour estimer le retour à la ligne)
+const PLAN_MAX_H = 1100;     // hauteur max d'un dessin : au-delà, la note est compressée
+const PLAN_PATH_RE = /`[^`\n]*[\\\/][^`\n]*`|\b[A-Za-z]:\\\S|\\\\[\w.$-]+\\/;
+const PLAN_HL_RE = /==(?:\{(?:jaune|vert|rose|bleu)\})?[^=\n]+==/;
+const PLAN_LINK_RE = /\[\[[^\]\n]+\]\]/;
+const PLAN_IMG_RE = /!\[[^\]]*\]\([^)]*\)/;
+const PLAN_CB_RE = /^\s*(?:>\s*)*(?:[-*+]|\d+[.)])\s+\[([ xX])\]/;
+const PLAN_LANE = { img:'#2e8fb0', ts:'#45566b', path:'#8a5a2b', hl:'#e0b400', lnk:'#7a5a8f' };
+
+let planPrefs = { mode:'both', size:'m', only:false };
+let planOpen = false;
+let planUserClosed = false;      // fermé à la main : la recherche ne le rouvre plus tant que la requête n'est pas vidée
+const planCards = new Map();     // id d'onglet -> { el, key, fields, hits, hitCount }
+let planHits = [];               // tous les résultats, dans l'ordre d'affichage
+let planHitPos = -1;
+let planTimer = null;
+let planIO = null;
+let planVpRaf = 0;
+
+function planLoadPrefs(){
+  try{
+    const p = JSON.parse(localStorage.getItem(PLAN_PREFS_KEY) || 'null');
+    if(p && typeof p === 'object'){
+      if(['both','raw','ia'].indexOf(p.mode) >= 0) planPrefs.mode = p.mode;
+      if(PLAN_SIZES[p.size]) planPrefs.size = p.size;
+      planPrefs.only = !!p.only;
+    }
+  }catch(e){}
+  let o = null;
+  try{ o = localStorage.getItem(PLAN_OPEN_KEY); }catch(e){}
+  planOpen = (o === null) ? window.innerWidth >= 1200 : o === '1';
+}
+function planSavePrefs(){
+  try{
+    localStorage.setItem(PLAN_PREFS_KEY, JSON.stringify(planPrefs));
+    localStorage.setItem(PLAN_OPEN_KEY, planOpen ? '1' : '0');
+  }catch(e){}
+}
+function planSyncUI(){
+  const on = (id, v)=>{ const b = document.getElementById(id); if(b) b.classList.toggle('on', !!v); };
+  on('planModeRaw', planPrefs.mode === 'raw'); on('planModeBoth', planPrefs.mode === 'both'); on('planModeIa', planPrefs.mode === 'ia');
+  on('planSizeS', planPrefs.size === 's'); on('planSizeM', planPrefs.size === 'm'); on('planSizeL', planPrefs.size === 'l');
+  on('planOnlyBtn', planPrefs.only);
+}
+function planApplyOpen(){
+  document.getElementById('planCol').classList.toggle('open', planOpen);
+  document.getElementById('planBtn').classList.toggle('active', planOpen);
+  if(planOpen) planRender();
+}
+function togglePlan(force){
+  const forced = (typeof force === 'boolean');
+  planOpen = forced ? force : !planOpen;
+  if(!forced && !planOpen) planUserClosed = true;
+  planSavePrefs();
+  planApplyOpen();
+  if(planOpen) setTimeout(planMarkActive, 60);
+}
+function planSetMode(m){ planPrefs.mode = m; planSavePrefs(); planSyncUI(); planRender(); }
+function planSetSize(s){ planPrefs.size = s; planSavePrefs(); planSyncUI(); planRender(); }
+function planToggleOnly(){ planPrefs.only = !planPrefs.only; planSavePrefs(); planSyncUI(); planRender(); }
+
+// ── Recherche (liée à la barre de recherche de l'en-tête) ───────────────────
+function planOnSearch(){
+  const q = currentSearchQuery();
+  const pi = document.getElementById('planSearch');
+  const hv = document.getElementById('searchInput').value;
+  if(pi && pi.value !== hv) pi.value = hv;
+  if(!q) planUserClosed = false;
+  else if(!planOpen && !planUserClosed){ togglePlan(true); return; }
+  planHitPos = -1;
+  planRender();
+}
+function planSearchInput(){
+  const v = document.getElementById('planSearch').value;
+  document.getElementById('searchInput').value = v;
+  onSearch();
+}
+function planClearSearch(){
+  const pi = document.getElementById('planSearch');
+  pi.value = '';
+  document.getElementById('searchInput').value = '';
+  onSearch();
+  pi.focus();
+}
+function planSearchKey(e){
+  if(e.key === 'Enter'){ e.preventDefault(); planNextHit(e.shiftKey ? -1 : 1); }
+  else if(e.key === 'Escape'){ e.preventDefault(); planClearSearch(); }
+}
+function planNextHit(dir){
+  const n = planHits.length;
+  if(!n) return;
+  if(planHitPos < 0) planHitPos = dir > 0 ? 0 : n - 1;
+  else planHitPos = (planHitPos + dir + n) % n;
+  const h = planHits[planHitPos];
+  planJump(h.id, h.field, h.line, true);
+  planShowHitPos();
+  const e = planCards.get(h.id);
+  if(e && e.el.isConnected) e.el.scrollIntoView({ block:'nearest' });
+}
+function planShowHitPos(){
+  const s = document.getElementById('planSummary');
+  if(!s || !s.dataset.base) return;
+  s.innerHTML = s.dataset.base + (planHitPos >= 0 ? ' · résultat <b>' + (planHitPos + 1) + '/' + planHits.length + '</b>' : '');
+}
+
+// ── Analyse d'une colonne : une entrée par ligne ────────────────────────────
+function planSig(s){
+  s = s || '';
+  let h = 5381;
+  for(let i = 0; i < s.length; i++) h = (((h << 5) + h) + s.charCodeAt(i)) | 0;
+  return s.length + ':' + h;
+}
+function planParse(text){
+  const items = [];
+  const c = { h:0, tags:0, tasks:0, done:0, stamps:0, imgs:0, paths:0, code:0, hl:0, links:0, sects:0 };
+  if(!text || !text.trim()) return { items, c, empty:true };
+  const stampRe = new RegExp(TIMESTAMP_RE.source);
+  const lines = text.split('\n');
+  let fence = false;
+  for(let i = 0; i < lines.length; i++){
+    const ln = lines[i];
+    const it = { i, len:ln.length, k:'p', ind:0, lvl:0, tag:null, task:0, lane:null, txt:ln };
+    if(/^\s*(```|~~~)/.test(ln)){ fence = !fence; if(fence) c.code++; it.k = 'fence'; items.push(it); continue; }
+    if(fence){ it.k = 'code'; items.push(it); continue; }
+    if(!ln.trim()){ it.k = 'blank'; items.push(it); continue; }
+    if(/^\s*([-*_])(?:\s*\1){2,}\s*$/.test(ln)){ it.k = 'hr'; items.push(it); continue; }
+    if(TAG_SECTION_RE.test(ln)){ it.k = 'sect'; c.sects++; }
+    else if(/^\s{0,3}#{1,6}\s/.test(ln)){ it.k = 'h'; it.lvl = ln.match(/^\s*(#+)/)[1].length; c.h++; }
+    else if(/^\s*>/.test(ln)) it.k = 'q';
+    else if(/^\s*(?:[-*+]|\d+[.)])\s/.test(ln)){
+      it.k = 'li';
+      it.ind = Math.min(6, Math.floor(ln.match(/^\s*/)[0].replace(/\t/g, '  ').length / 2));
+    }
+    const cb = ln.match(PLAN_CB_RE);
+    if(cb){ it.task = cb[1] === ' ' ? 1 : 2; c.tasks++; if(it.task === 2) c.done++; }
+    let m = null;
+    try{ m = matchMarginTag(ln); }catch(e){}
+    if(m){ it.tag = (m.tag && m.tag.color) || '#8a8272'; c.tags++; }
+    if(PLAN_IMG_RE.test(ln)){ it.k = 'img'; it.lane = 'img'; c.imgs++; }
+    if(stampRe.test(ln)){ c.stamps++; if(!it.lane) it.lane = 'ts'; }
+    if(PLAN_PATH_RE.test(ln)){ c.paths++; if(!it.lane) it.lane = 'path'; }
+    if(PLAN_HL_RE.test(ln)){ c.hl++; if(!it.lane) it.lane = 'hl'; }
+    if(PLAN_LINK_RE.test(ln)){ c.links++; if(!it.lane) it.lane = 'lnk'; }
+    items.push(it);
+  }
+  return { items, c, empty:false };
+}
+function planUnits(it){
+  switch(it.k){
+    case 'blank': return 0.7;
+    case 'h': return it.lvl === 1 ? 2.4 : (it.lvl === 2 ? 1.9 : 1.5);
+    case 'sect': return 1.7;
+    case 'img': return 5;
+    case 'hr': return 1;
+    case 'fence': return 1;
+    default: return Math.min(6, Math.max(1, Math.ceil(it.len / PLAN_WRAP)));
+  }
+}
+function planLayout(items, unit, qlow){
+  const n = items.length;
+  const ys = new Array(n), hs = new Array(n), hit = new Array(n);
+  let y = 3, hits = 0;
+  for(let k = 0; k < n; k++){
+    const it = items[k];
+    const h = planUnits(it) * unit;
+    ys[k] = y; hs[k] = h; y += h;
+    hit[k] = !!(qlow && it.k !== 'blank' && it.txt.toLowerCase().indexOf(qlow) >= 0);
+    if(hit[k]) hits++;
+  }
+  let total = y + 3, f = 1;
+  if(total > PLAN_MAX_H){
+    f = (PLAN_MAX_H - 6) / (total - 6);
+    for(let k = 0; k < n; k++){ ys[k] = 3 + (ys[k] - 3) * f; hs[k] *= f; }
+    total = PLAN_MAX_H;
+  }
+  return { ys, hs, hit, hits, height:Math.ceil(total), f, unit };
+}
+function planLineAt(lay, y){
+  let lo = 0, hi = lay.ys.length - 1;
+  while(lo < hi){
+    const mid = (lo + hi + 1) >> 1;
+    if(lay.ys[mid] <= y) lo = mid; else hi = mid - 1;
+  }
+  return lo;
+}
+
+// ── Dessin (canvas) ─────────────────────────────────────────────────────────
+function planDraw(cv, items, lay){
+  const dpr = Math.max(1, window.devicePixelRatio || 1);
+  const W = cv.clientWidth || 140, H = lay.height;
+  cv.width = Math.round(W * dpr);
+  cv.height = Math.round(H * dpr);
+  const ctx = cv.getContext('2d');
+  if(!ctx) return;
+  ctx.scale(dpr, dpr);
+  const bx = 13, bw = Math.max(20, W - bx - 5);
+  const rowPx = lay.unit * lay.f;
+  const gap = rowPx >= 3 ? 1 : 0.5;
+  const ORANGE = '#e8590c';
+  for(let k = 0; k < items.length; k++){
+    const it = items[k];
+    if(it.k === 'blank') continue;
+    const y = lay.ys[k], h = lay.hs[k], hit = lay.hit[k];
+    const laneH = Math.max(1, Math.min(h, rowPx) - gap / 2);
+    // bandes de signes distinctifs
+    if(it.tag){ ctx.fillStyle = it.tag; ctx.fillRect(0, y, 3, laneH); }
+    if(it.task){ ctx.fillStyle = it.task === 1 ? '#2f5d62' : '#9bbf8a'; ctx.fillRect(4, y, 3, laneH); }
+    if(it.lane){ ctx.fillStyle = PLAN_LANE[it.lane]; ctx.fillRect(8, y, 3, laneH); }
+    // fonds
+    if(hit){ ctx.fillStyle = 'rgba(232,89,12,.16)'; ctx.fillRect(bx - 1, y - 0.5, bw + 2, h); }
+    else if(it.k === 'code' || it.k === 'fence'){ ctx.fillStyle = 'rgba(138,130,114,.16)'; ctx.fillRect(bx - 1, y - 0.5, bw + 2, h); }
+    // corps de la ligne
+    const barH = Math.max(0.8, rowPx - gap);
+    if(it.k === 'h'){
+      const ratio = Math.max(0.15, Math.min(1, it.len / 60));
+      const hh = Math.max(1.4, h - gap * 1.5);
+      ctx.fillStyle = hit ? ORANGE : 'rgba(43,38,32,.88)';
+      ctx.fillRect(bx, y + (h - hh) / 2, bw * ratio, hh);
+    } else if(it.k === 'sect'){
+      const ratio = Math.max(0.2, Math.min(1, it.len / 50));
+      ctx.fillStyle = hit ? ORANGE : 'rgba(107,74,107,.85)';
+      ctx.fillRect(bx, y, bw * ratio, Math.max(1.2, h - gap));
+      ctx.fillRect(bx - 3, y, 2, Math.max(1.2, h - gap));
+    } else if(it.k === 'img'){
+      ctx.fillStyle = 'rgba(46,143,176,.22)'; ctx.fillRect(bx, y + 0.5, bw, Math.max(1, h - 1));
+      ctx.strokeStyle = hit ? ORANGE : 'rgba(46,143,176,.85)'; ctx.lineWidth = 0.8;
+      ctx.strokeRect(bx + 0.4, y + 0.9, bw - 0.8, Math.max(1, h - 1.8));
+      ctx.beginPath(); ctx.moveTo(bx, y + h - 1); ctx.lineTo(bx + bw * 0.4, y + h * 0.4);
+      ctx.lineTo(bx + bw * 0.65, y + h * 0.7); ctx.lineTo(bx + bw, y + h * 0.3); ctx.stroke();
+    } else if(it.k === 'hr'){
+      ctx.fillStyle = hit ? ORANGE : 'rgba(43,38,32,.28)';
+      ctx.fillRect(bx, y + h / 2 - 0.4, bw, 0.8);
+    } else if(it.k === 'fence'){
+      ctx.fillStyle = 'rgba(90,82,69,.75)';
+      ctx.fillRect(bx, y + h / 2 - 0.5, bw * 0.5, 1);
+    } else {
+      const rows = Math.min(6, Math.max(1, Math.ceil(it.len / PLAN_WRAP)));
+      const indPx = it.k === 'li' ? it.ind * bw * 0.04 : 0;
+      for(let r = 0; r < rows; r++){
+        const ratio = r < rows - 1 ? 1 : Math.max(0.05, Math.min(1, (it.len - r * PLAN_WRAP) / PLAN_WRAP));
+        let x0 = bx + indPx;
+        if(it.k === 'li') x0 += 3.5;
+        if(it.k === 'q') x0 += 3;
+        const w = Math.max(2, (bx + bw - x0) * ratio);
+        const yy = y + r * rowPx;
+        if(hit) ctx.fillStyle = ORANGE;
+        else if(it.tag){ ctx.globalAlpha = 0.9; ctx.fillStyle = it.tag; }
+        else if(it.k === 'code') ctx.fillStyle = 'rgba(90,82,69,.55)';
+        else if(it.k === 'q') ctx.fillStyle = 'rgba(201,138,44,.55)';
+        else if(it.k === 'li') ctx.fillStyle = 'rgba(43,38,32,.36)';
+        else ctx.fillStyle = 'rgba(43,38,32,.28)';
+        ctx.fillRect(x0, yy, w, barH);
+        ctx.globalAlpha = 1;
+        if(r === 0 && it.k === 'li'){ ctx.fillStyle = hit ? ORANGE : 'rgba(43,38,32,.6)'; ctx.fillRect(bx + indPx, yy + barH / 2 - 0.6, 1.8, 1.8); }
+        if(r === 0 && it.k === 'q'){ ctx.fillStyle = 'rgba(201,138,44,.95)'; ctx.fillRect(bx + indPx, yy, 1.6, Math.max(1, rows * rowPx - gap)); }
+      }
+    }
+    if(hit){ ctx.fillStyle = ORANGE; ctx.fillRect(W - 3, y, 3, Math.max(2, h)); }
+  }
+}
+function planObserve(cv){
+  if(!planIO){
+    planIO = new IntersectionObserver(entries=>{
+      entries.forEach(en=>{
+        if(!en.isIntersecting) return;
+        const c = en.target;
+        if(!c._drawn && c._plan){ c._drawn = true; planDraw(c, c._plan.items, c._plan.lay); }
+      });
+    }, { root:document.getElementById('planList'), rootMargin:'400px 0px' });
+  }
+  planIO.observe(cv);
+}
+function planRedrawAll(){
+  planCards.forEach(en=>{
+    en.el.querySelectorAll('canvas').forEach(cv=>{
+      cv._drawn = false;
+      if(planIO){ planIO.unobserve(cv); planIO.observe(cv); }
+    });
+  });
+}
+
+// ── Construction d'une carte d'onglet ───────────────────────────────────────
+function planTip(e, text){
+  const tip = document.getElementById('planTip');
+  if(!tip) return;
+  if(text == null){ tip.style.display = 'none'; return; }
+  tip.textContent = text;
+  tip.style.display = 'block';
+  tip.style.left = Math.max(8, e.clientX - tip.offsetWidth - 14) + 'px';
+  tip.style.top = Math.min(window.innerHeight - tip.offsetHeight - 8, e.clientY + 12) + 'px';
+}
+function planSnippetHtml(line, q){
+  const low = line.toLowerCase(), idx = low.indexOf(q.toLowerCase());
+  if(idx < 0) return escapeHtml(line.trim().slice(0, 90));
+  const s = Math.max(0, idx - 28), e = Math.min(line.length, idx + q.length + 52);
+  return (s > 0 ? '…' : '') + escapeHtml(line.slice(s, idx)) + '<mark>' + escapeHtml(line.slice(idx, idx + q.length)) + '</mark>' +
+         escapeHtml(line.slice(idx + q.length, e)) + (e < line.length ? '…' : '');
+}
+function planBuildStrip(entry, id, field, parsed, qlow, unit){
+  const strip = document.createElement('div');
+  strip.className = 'plan-strip';
+  strip.dataset.field = field;
+  const lab = document.createElement('div');
+  lab.className = 'plan-strip-label';
+  lab.textContent = field === 'raw' ? 'Marge' : 'Texte';
+  strip.appendChild(lab);
+  if(parsed.empty){
+    const e = document.createElement('div');
+    e.className = 'plan-empty';
+    e.textContent = '(vide)';
+    strip.appendChild(e);
+    return strip;
+  }
+  const lay = planLayout(parsed.items, unit, qlow);
+  entry.fields[field] = { items:parsed.items, lay };
+  const wrap = document.createElement('div');
+  wrap.className = 'plan-cwrap';
+  const cv = document.createElement('canvas');
+  cv.className = 'plan-cv';
+  cv.style.height = lay.height + 'px';
+  const vp = document.createElement('div');
+  vp.className = 'plan-vp';
+  wrap.appendChild(cv); wrap.appendChild(vp);
+  strip.appendChild(wrap);
+  cv._plan = { items:parsed.items, lay };
+  cv.addEventListener('click', e=>{
+    const y = e.clientY - cv.getBoundingClientRect().top;
+    planJump(id, field, parsed.items[planLineAt(lay, y)].i, false);
+  });
+  cv.addEventListener('mousemove', e=>{
+    const y = e.clientY - cv.getBoundingClientRect().top;
+    const it = parsed.items[planLineAt(lay, y)];
+    planTip(e, 'L' + (it.i + 1) + (it.txt.trim() ? ' — ' + it.txt.trim().slice(0, 140) : ' (ligne vide)'));
+  });
+  cv.addEventListener('mouseleave', ()=> planTip(null, null));
+  planObserve(cv);
+  return strip;
+}
+function planBuildCard(id, t, q, qlow, sz){
+  const entry = { el:null, key:'', fields:{}, hits:[], hitCount:0 };
+  const card = document.createElement('div');
+  card.className = 'plan-card';
+  card.dataset.id = id;
+  card.style.setProperty('--card-color', t.color || '#8a8272');
+  entry.el = card;
+
+  const name = (id === BROUILLON_ID ? 'Brouillon' : (t.name || 'Sans titre'));
+  const nameEl = document.createElement('div');
+  nameEl.className = 'plan-card-name';
+  nameEl.textContent = (t.pinned ? '📌 ' : '') + (id === BROUILLON_ID ? '📝 ' : '') + name;
+  nameEl.title = 'Ouvrir cet onglet';
+  nameEl.onclick = ()=> selectTab(id);
+  card.appendChild(nameEl);
+  if(qlow && name.toLowerCase().indexOf(qlow) >= 0){
+    nameEl.classList.add('name-hit');
+    entry.hits.push({ id, field:null, line:-1 });
+    entry.hitCount++;
+  }
+  const parent = (t.parentId && state.tabs[t.parentId]) ? state.tabs[t.parentId] : null;
+  if(parent){
+    const p = document.createElement('div');
+    p.className = 'plan-parent';
+    p.textContent = '↳ ' + (parent.name || 'Sans titre');
+    card.appendChild(p);
+  }
+
+  const parsedRaw = planParse(t.raw || '');
+  const parsedIa = planParse(t.ia || '');
+  const c = {};
+  Object.keys(parsedRaw.c).forEach(k=>{ c[k] = parsedRaw.c[k] + parsedIa.c[k]; });
+  const chips = document.createElement('div');
+  chips.className = 'plan-chips';
+  const addChip = (txt, title)=>{
+    const s = document.createElement('span');
+    s.className = 'plan-chip'; s.textContent = txt; s.title = title;
+    chips.appendChild(s);
+  };
+  if(c.h) addChip('H ' + c.h, 'titres');
+  if(c.sects) addChip('🏷 ' + c.sects, 'sections à balise (#balise : …)');
+  if(c.tags) addChip('🔖 ' + c.tags, 'lignes avec tag de marge');
+  if(c.tasks) addChip('☐ ' + c.done + '/' + c.tasks, 'tâches faites / total');
+  if(c.stamps) addChip('🕒 ' + c.stamps, 'horodatages');
+  if(c.imgs) addChip('🖼 ' + c.imgs, 'images');
+  if(c.paths) addChip('📂 ' + c.paths, 'chemins de fichiers');
+  if(c.code) addChip('{ } ' + c.code, 'blocs de code');
+  if(c.hl) addChip('🖍 ' + c.hl, 'surlignages');
+  if(c.links) addChip('🔗 ' + c.links, 'liens [[…]]');
+  const words = countWords((t.raw || '') + ' ' + (t.ia || ''));
+  addChip(words + ' mot' + (words !== 1 ? 's' : ''), 'taille de la note');
+  card.appendChild(chips);
+
+  const strips = document.createElement('div');
+  strips.className = 'plan-strips';
+  const fields = planPrefs.mode === 'both' ? ['raw', 'ia'] : [planPrefs.mode];
+  fields.forEach(f=>{
+    strips.appendChild(planBuildStrip(entry, id, f, f === 'raw' ? parsedRaw : parsedIa, qlow, sz.unit));
+  });
+
+  // extraits des lignes trouvées (tous champs affichés ou non : la recherche porte sur tout l'onglet)
+  if(qlow){
+    const all = [];
+    [['raw', parsedRaw], ['ia', parsedIa]].forEach(([f, p])=>{
+      p.items.forEach(it=>{
+        if(it.k !== 'blank' && it.txt.toLowerCase().indexOf(qlow) >= 0) all.push({ f, it });
+      });
+    });
+    all.forEach(a=>{ entry.hits.push({ id, field:a.f, line:a.it.i }); entry.hitCount++; });
+    all.slice(0, 3).forEach(a=>{
+      const s = document.createElement('div');
+      s.className = 'plan-snip';
+      s.innerHTML = '<i>' + (a.f === 'raw' ? 'M' : 'T') + ' L' + (a.it.i + 1) + '</i>' + planSnippetHtml(a.it.txt, q);
+      s.title = 'Aller à cette ligne';
+      s.onclick = ()=> planJump(id, a.f, a.it.i, false);
+      card.appendChild(s);
+    });
+    if(all.length > 3){
+      const m = document.createElement('div');
+      m.className = 'plan-more';
+      m.textContent = '+ ' + (all.length - 3) + ' autre' + (all.length - 3 > 1 ? 's' : '') + ' ligne' + (all.length - 3 > 1 ? 's' : '') + ' (en orange sur le dessin)';
+      card.appendChild(m);
+    }
+  }
+  card.appendChild(strips);
+  return entry;
+}
+function planDropEntry(entry){
+  if(planIO) entry.el.querySelectorAll('canvas').forEach(cv=> planIO.unobserve(cv));
+}
+
+// ── Rendu de toute la colonne (les cartes inchangées sont réutilisées) ──────
+function planRender(){
+  if(!planOpen) return;
+  const list = document.getElementById('planList');
+  if(!list) return;
+  const q = currentSearchQuery(), qlow = q.toLowerCase();
+  const sz = PLAN_SIZES[planPrefs.size] || PLAN_SIZES.m;
+  document.getElementById('planCol').style.setProperty('--plan-w', sz.w + 'px');
+  const order = computeDisplayOrder().map(o=>o.id).filter(id=>{ const t = state.tabs[id]; return t && t.type !== 'separator'; });
+  const alive = new Set();
+  const nodes = [];
+  planHits = [];
+  let hitTabs = 0, hitLines = 0;
+  const keepTop = list.scrollTop;
+  order.forEach(id=>{
+    const t = state.tabs[id];
+    alive.add(id);
+    const key = [t.name, t.color, t.parentId, t.pinned ? 1 : 0, planPrefs.mode, planPrefs.size, qlow, planSig(t.raw), planSig(t.ia), id === BROUILLON_ID ? 'b' : ''].join('\u0001');
+    let entry = planCards.get(id);
+    if(!entry || entry.key !== key){
+      if(entry) planDropEntry(entry);
+      entry = planBuildCard(id, t, q, qlow, sz);
+      entry.key = key;
+      planCards.set(id, entry);
+    }
+    entry.el.classList.toggle('active', id === activeId);
+    const has = entry.hitCount > 0;
+    entry.el.classList.toggle('dim', !!q && !has);
+    if(has){ hitTabs++; hitLines += entry.hitCount; entry.hits.forEach(h=> planHits.push(h)); }
+    if(planPrefs.only && q && !has) return;
+    nodes.push(entry.el);
+  });
+  planCards.forEach((en, id)=>{ if(!alive.has(id)){ planDropEntry(en); planCards.delete(id); } });
+  if(!nodes.length){
+    const e = document.createElement('div');
+    e.className = 'plan-none';
+    e.textContent = q ? 'Aucun onglet ne contient « ' + q + ' ».' : 'Aucun onglet.';
+    nodes.push(e);
+  }
+  list.replaceChildren(...nodes);
+  list.scrollTop = keepTop;
+  document.getElementById('planCount').textContent = ' · ' + order.length;
+  const s = document.getElementById('planSummary');
+  s.dataset.base = q ? ('<b>' + hitLines + '</b> résultat' + (hitLines !== 1 ? 's' : '') + ' dans <b>' + hitTabs + '</b> onglet' + (hitTabs !== 1 ? 's' : '') + ' sur ' + order.length) : '';
+  if(q) planShowHitPos();
+  else s.textContent = 'Clique un dessin pour aller à la ligne · survole pour la lire';
+  planVpSoon();
+}
+function planRenderSoon(delay){
+  if(!planOpen) return;
+  clearTimeout(planTimer);
+  planTimer = setTimeout(planRender, delay == null ? 80 : delay);
+}
+
+// ── Aller à une ligne ───────────────────────────────────────────────────────
+function planJump(id, field, line, keepFocus){
+  if(id !== activeId) selectTab(id);
+  if(!field) return;
+  setMobileCol(field);
+  setTimeout(()=>{
+    const mode = field === 'raw' ? rawViewMode : iaViewMode;
+    const area = document.getElementById(field + 'Area');
+    if(!area) return;
+    if(mode === 'edit'){
+      const lines = area.value.split('\n');
+      let start = 0;
+      for(let i = 0; i < line && i < lines.length; i++) start += lines[i].length + 1;
+      const end = start + (lines[line] || '').length;
+      if(!keepFocus){ area.focus(); try{ area.setSelectionRange(start, end); }catch(e){} }
+      area.scrollTop = Math.max(0, textareaOffsetTop(area, start) - area.clientHeight / 3);
+      flash(field + 'Col');
+      planVpSoon();
+      return;
+    }
+    const cont = document.getElementById(mode === 'accordion' ? field + 'AccordionView' : field + 'Preview');
+    if(!cont) return;
+    const src = (area.value.split('\n')[line] || '');
+    const snip = src.replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+      .replace(/^\s*(?:>\s*)*(?:[-*+]|\d+[.)])?\s*(?:\[[ xX]\]\s*)?#*\s*/, '')
+      .replace(/[`*_=~\[\]{}]/g, '').replace(/\s+/g, ' ').trim().slice(0, 28);
+    let el = null;
+    if(snip.length >= 4){
+      const cands = cont.querySelectorAll('p,li,h1,h2,h3,h4,h5,h6,blockquote,td,th,pre,summary');
+      for(let i = 0; i < cands.length; i++){
+        if(cands[i].textContent.replace(/\s+/g, ' ').indexOf(snip) >= 0){ el = cands[i]; break; }
+      }
+    }
+    if(el){
+      let d = el.closest('details');
+      while(d){ d.open = true; d = d.parentElement && d.parentElement.closest('details'); }
+      el.scrollIntoView({ block:'center', behavior:'smooth' });
+      el.classList.remove('mtag-flash'); void el.offsetWidth; el.classList.add('mtag-flash');
+    } else {
+      const total = Math.max(1, area.value.split('\n').length);
+      cont.scrollTo({ top:Math.max(0, (line / total) * cont.scrollHeight - cont.clientHeight / 3), behavior:'smooth' });
+    }
+    setTimeout(planVpSoon, 400);
+  }, 80);
+}
+
+// ── Cadre « partie visible » sur l'onglet actif ─────────────────────────────
+function planUpdateViewport(){
+  planCards.forEach((entry, id)=>{
+    entry.el.querySelectorAll('.plan-vp').forEach(vp=>{ if(id !== activeId) vp.style.display = 'none'; });
+  });
+  const entry = planCards.get(activeId);
+  if(!entry || !entry.el.isConnected) return;
+  ['raw', 'ia'].forEach(f=>{
+    const vp = entry.el.querySelector('.plan-strip[data-field="' + f + '"] .plan-vp');
+    if(!vp) return;
+    const mode = f === 'raw' ? rawViewMode : iaViewMode;
+    const sc = document.getElementById(mode === 'edit' ? f + 'Area' : (mode === 'accordion' ? f + 'AccordionView' : f + 'Preview'));
+    if(!sc || !sc.scrollHeight){ vp.style.display = 'none'; return; }
+    vp.style.display = 'block';
+    vp.style.top = (sc.scrollTop / sc.scrollHeight * 100) + '%';
+    vp.style.height = Math.min(100, sc.clientHeight / sc.scrollHeight * 100) + '%';
+  });
+}
+function planVpSoon(){
+  if(planVpRaf) return;
+  planVpRaf = requestAnimationFrame(()=>{ planVpRaf = 0; planUpdateViewport(); });
+}
+function planMarkActive(){
+  planCards.forEach((en, id)=> en.el.classList.toggle('active', id === activeId));
+  const e = planCards.get(activeId);
+  if(planOpen && e && e.el.isConnected) e.el.scrollIntoView({ block:'nearest' });
+  planVpSoon();
+}
+
+// ── Branchements sur le reste du carnet ─────────────────────────────────────
+(function(){
+  const _onSearch = onSearch;
+  onSearch = function(){ const r = _onSearch.apply(this, arguments); planOnSearch(); return r; };
+  const _clearSearch = clearSearch;
+  clearSearch = function(){ const r = _clearSearch.apply(this, arguments); planOnSearch(); return r; };
+  const _renderTabs = renderTabs;
+  renderTabs = function(){ const r = _renderTabs.apply(this, arguments); planRenderSoon(); return r; };
+  const _onEdit = onEdit;
+  onEdit = function(){ const r = _onEdit.apply(this, arguments); planRenderSoon(500); return r; };
+  const _selectTab = selectTab;
+  selectTab = function(){ const r = _selectTab.apply(this, arguments); planMarkActive(); return r; };
+  const _renderViewState = renderViewState;
+  renderViewState = function(){ const r = _renderViewState.apply(this, arguments); planVpSoon(); return r; };
+})();
+['rawArea', 'iaArea', 'rawPreview', 'iaPreview', 'rawAccordionView', 'iaAccordionView'].forEach(id=>{
+  const el = document.getElementById(id);
+  if(el) el.addEventListener('scroll', planVpSoon, { passive:true });
+});
+document.addEventListener('keydown', e=>{
+  if(e.altKey && !e.ctrlKey && !e.metaKey && e.key.toLowerCase() === 'l'){ e.preventDefault(); togglePlan(); }
+});
+(function(){
+  let t = null;
+  window.addEventListener('resize', ()=>{ clearTimeout(t); t = setTimeout(()=>{ if(planOpen) planRedrawAll(); }, 250); });
+})();
+planLoadPrefs();
+planSyncUI();
+planApplyOpen();
 </script>
 </body>
 </html>
