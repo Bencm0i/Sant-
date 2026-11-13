@@ -361,6 +361,36 @@ canvas#c:focus-visible{ outline:none; }
 /* ---------- Réarrangement des photos par glisser-déposer ---------- */
 .thumb.dragging{ opacity:.35; }
 .thumb.drag-over{ outline:2px dashed var(--accent); outline-offset:2px; }
+
+/* ---------- Bullage / comptage ---------- */
+canvas#c.mode-balloon{ cursor:crosshair; }
+.b-series{
+  display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:8px;
+  border:1px solid var(--line); margin-bottom:6px; cursor:pointer; background:#0a1620;
+}
+.b-series:hover{ border-color:var(--accent-dim); }
+.b-series.active{ border-color:var(--accent); background:#0c3f38; }
+.b-color{
+  -webkit-appearance:none; appearance:none; width:22px; height:22px; padding:0;
+  border:none; background:none; cursor:pointer; flex:none;
+}
+.b-color::-webkit-color-swatch-wrapper{ padding:0; }
+.b-color::-webkit-color-swatch{ border:2px solid var(--ink); border-radius:50%; }
+.b-color::-moz-color-swatch{ border:2px solid var(--ink); border-radius:50%; }
+.b-name{
+  flex:1; min-width:0; background:transparent; border:none; color:var(--ink);
+  font-family:var(--sans); font-size:12.5px; padding:3px 4px; border-radius:4px;
+}
+.b-name:focus{ outline:none; background:#0a1620; box-shadow:inset 0 0 0 1px var(--accent); }
+.b-count{ font-family:var(--mono); font-size:13px; font-weight:700; color:var(--ink); white-space:nowrap; }
+.b-count .b-sep{ color:var(--ink-dim); font-weight:400; font-size:11px; }
+.b-del{
+  background:none; border:none; color:var(--ink-dim); cursor:pointer; font-size:16px;
+  padding:2px 6px; border-radius:4px; line-height:1;
+}
+.b-del:hover:not(:disabled){ color:var(--warn); background:#2a1a1a; }
+.b-del:disabled{ opacity:.25; cursor:not-allowed; }
+.b-color:focus-visible, .b-name:focus-visible, .b-del:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
 </style>
 </head>
 <body>
@@ -476,6 +506,27 @@ canvas#c:focus-visible{ outline:none; }
       </div>
     </div>
 
+    <div class="section">
+      <h2><span class="num">6</span>Bullage / comptage</h2>
+      <button class="btn" id="balloonBtn" disabled title="Poser des bulles numérotées pour compter (B)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M10 9l2-1.5V16"/></svg>
+        Poser des bulles<span class="kbd" style="margin-left:auto;">B</span>
+      </button>
+      <div id="bSeriesList"></div>
+      <button class="btn" id="bAddSeriesBtn" type="button" title="Démarrer une nouvelle numérotation (nouvelle couleur, repart à 1)">＋ Nouvelle numérotation (couleur)</button>
+      <div class="hl-size" id="bSizes" style="margin-bottom:8px;">
+        <button data-frac="0.006">Petit</button>
+        <button class="active" data-frac="0.010">Moyen</button>
+        <button data-frac="0.015">Grand</button>
+      </div>
+      <div class="calib-status" id="bTotals">—</div>
+      <div class="mode-row" style="margin-top:8px; margin-bottom:8px;">
+        <button class="btn" id="bUndoBtn" type="button" title="Retirer la dernière bulle posée (Ctrl+Z en mode bullage)">↩ Dernière bulle</button>
+        <button class="btn" id="bResetBtn" type="button" title="Supprimer les bulles de la série active sur cette photo : la numérotation repart à 1">↺ Remise à 0</button>
+      </div>
+      <button class="btn" id="bClearAllBtn" type="button" title="Supprimer toutes les bulles de cette photo">🗑 Effacer toutes les bulles (photo)</button>
+    </div>
+
     <div class="section" style="border-bottom:none; flex:0;">
       <h2><span class="num">#</span>Cotes relevées</h2>
     </div>
@@ -538,9 +589,10 @@ canvas#c:focus-visible{ outline:none; }
         <div><span class="kbd">M</span> Commentaire</div>
         <div><span class="kbd">S</span> Surligneur</div>
         <div><span class="kbd">G</span> Gomme</div>
+        <div><span class="kbd">B</span> Bullage (comptage) — <span class="kbd">1</span>…<span class="kbd">9</span> choisir la série, clic droit / <span class="kbd">Maj</span>+clic pour supprimer une bulle</div>
         <div><span class="kbd">Tab</span> Masquer/afficher toutes les cotes</div>
         <div><span class="kbd">Échap</span> Désélectionner</div>
-        <div><span class="kbd">Ctrl</span>+<span class="kbd">Z</span> Annuler la dernière cote</div>
+        <div><span class="kbd">Ctrl</span>+<span class="kbd">Z</span> Annuler la dernière cote (ou la dernière bulle en mode bullage)</div>
         <div><span class="kbd">+</span> / <span class="kbd">−</span> Zoom</div>
         <div><span class="kbd">0</span> Ajuster à la fenêtre</div>
         <div><span class="kbd">Ctrl</span>+<span class="kbd">←</span>/<span class="kbd">→</span> Photo précédente / suivante (toujours actif)</div>
@@ -582,6 +634,258 @@ canvas#c:focus-visible{ outline:none; }
   const hlSizes = document.getElementById('hlSizes');
   const hlUndoBtn = document.getElementById('hlUndoBtn');
   const hlClearBtn = document.getElementById('hlClearBtn');
+
+  // ---------- Bullage / comptage (bulles numérotées, plusieurs séries de couleurs) ----------
+  // Chaque série = une numérotation indépendante (nom + couleur). Le numéro affiché d'une bulle est son rang
+  // dans sa série sur la photo (1, 2, 3…) : supprimer une bulle renumérote automatiquement les suivantes.
+  const balloonBtn = document.getElementById('balloonBtn');
+  const bSeriesList = document.getElementById('bSeriesList');
+  const bAddSeriesBtn = document.getElementById('bAddSeriesBtn');
+  const bSizes = document.getElementById('bSizes');
+  const bTotals = document.getElementById('bTotals');
+  const bUndoBtn = document.getElementById('bUndoBtn');
+  const bResetBtn = document.getElementById('bResetBtn');
+  const bClearAllBtn = document.getElementById('bClearAllBtn');
+  const B_PALETTE = ['#ff5c5c','#00e0b8','#7aa7ff','#f6c945','#ff6ba6','#9b8bff','#ff8a5c','#6cff9e'];
+  let bSeries = [{ id:1, name:'Série 1', color:B_PALETTE[0] }]; // commun à toute la session
+  let bActiveId = 1;
+  let nextSeriesId = 2;
+  let balloons = []; // bulles de la photo active : { id, sid, x, y } (coord. image)
+  let nextBalloonId = 1;
+  let balloonSizeFrac = 0.010;
+  let draggingBalloon = null;
+
+  function seriesById(id){ return bSeries.find(x=> x.id===id); }
+  function activeSeries(){ return seriesById(bActiveId) || bSeries[0]; }
+  function balloonsOfPhoto(p){ return p.id===activePhotoId ? balloons : (Array.isArray(p.balloons) ? p.balloons : []); }
+  function countSeries(sid){
+    const photo = balloons.filter(b=> b.sid===sid).length;
+    let total = 0;
+    session.forEach(p=>{ total += balloonsOfPhoto(p).filter(b=> b.sid===sid).length; });
+    if(!session.length) total = photo;
+    return { photo, total };
+  }
+  function balloonRadiusImg(){ return imgLoaded ? Math.max(4, img.width*balloonSizeFrac) : 12; }
+  function balloonRadiusScreen(){ return Math.max(9, balloonRadiusImg()*view.scale); }
+  function contrastText(hex){
+    const h = (hex||'#888888').replace('#','');
+    const v = h.length===3 ? h.split('').map(c=>c+c).join('') : h;
+    const r = parseInt(v.slice(0,2),16)||0, g = parseInt(v.slice(2,4),16)||0, b = parseInt(v.slice(4,6),16)||0;
+    return (0.299*r + 0.587*g + 0.114*b) > 150 ? '#0d1c28' : '#ffffff';
+  }
+  function drawBalloonShape(c2, x, y, r, color, label, alpha, lw){
+    c2.save();
+    c2.globalAlpha = alpha;
+    c2.beginPath(); c2.arc(x, y, r, 0, Math.PI*2);
+    c2.fillStyle = color; c2.fill();
+    c2.lineWidth = lw; c2.strokeStyle = '#ffffff'; c2.stroke();
+    c2.beginPath(); c2.arc(x, y, r + lw*0.9, 0, Math.PI*2);
+    c2.lineWidth = Math.max(1, lw*0.6); c2.strokeStyle = 'rgba(13,28,40,.85)'; c2.stroke();
+    let fs = r*1.1;
+    c2.font = '700 '+fs+'px "SFMono-Regular",Consolas,monospace';
+    const maxW = r*1.6, w = c2.measureText(label).width;
+    if(w > maxW){ fs = fs*maxW/w; c2.font = '700 '+fs+'px "SFMono-Regular",Consolas,monospace'; }
+    c2.fillStyle = contrastText(color);
+    c2.textAlign = 'center'; c2.textBaseline = 'middle';
+    c2.fillText(label, x, y + fs*0.06);
+    c2.restore();
+  }
+  function drawBalloons(){
+    if(!balloons.length) return;
+    const r = balloonRadiusScreen();
+    const counters = {};
+    balloons.forEach(b=>{
+      const se = seriesById(b.sid);
+      if(!se) return;
+      counters[b.sid] = (counters[b.sid]||0) + 1;
+      const p = imgToScreen(b);
+      drawBalloonShape(ctx, p.x, p.y, r, se.color, String(counters[b.sid]), 1, 2);
+    });
+  }
+  function drawBalloonGhost(){
+    const se = activeSeries();
+    if(!se || !hoverImagePt) return;
+    const p = imgToScreen(hoverImagePt);
+    const n = balloons.filter(b=> b.sid===se.id).length + 1;
+    drawBalloonShape(ctx, p.x, p.y, balloonRadiusScreen(), se.color, String(n), 0.55, 2);
+  }
+  function drawBalloonsOn(ectx, sc){
+    if(!balloons.length) return;
+    const r = Math.max(balloonRadiusImg(), 9*sc);
+    const counters = {};
+    balloons.forEach(b=>{
+      const se = seriesById(b.sid);
+      if(!se) return;
+      counters[b.sid] = (counters[b.sid]||0) + 1;
+      drawBalloonShape(ectx, b.x, b.y, r, se.color, String(counters[b.sid]), 1, Math.max(1.5, 2*sc));
+    });
+  }
+  // Petite légende (nom de série + total) en haut à gauche de l'export PNG
+  function drawBalloonLegendOn(ectx, sc){
+    const rows = bSeries.map(se=>({ se, n: balloons.filter(b=> b.sid===se.id).length })).filter(x=> x.n>0);
+    if(!rows.length) return;
+    const fs = Math.max(12, Math.round(14*sc)), pad = 8*sc, lineH = fs*1.6, dot = fs*0.9, gap = 8*sc;
+    ectx.save();
+    ectx.font = '600 '+fs+'px "Inter","Segoe UI",system-ui,sans-serif';
+    const labels = rows.map(x=> x.se.name+' : '+x.n);
+    const w = Math.max(...labels.map(l=> ectx.measureText(l).width)) + pad*2 + dot + gap;
+    const h = pad*2 + rows.length*lineH;
+    const x0 = 16*sc, y0 = 16*sc;
+    ectx.globalAlpha = 0.92;
+    ectx.fillStyle = '#0d1c28';
+    roundRect(ectx, x0, y0, w, h, 8*sc); ectx.fill();
+    ectx.globalAlpha = 1;
+    ectx.textBaseline = 'middle'; ectx.textAlign = 'left';
+    rows.forEach((x, i)=>{
+      const cy = y0 + pad + i*lineH + lineH/2;
+      ectx.fillStyle = x.se.color;
+      ectx.beginPath(); ectx.arc(x0+pad+dot/2, cy, dot/2, 0, Math.PI*2); ectx.fill();
+      ectx.fillStyle = '#e8f1f8';
+      ectx.fillText(labels[i], x0+pad+dot+gap, cy);
+    });
+    ectx.restore();
+  }
+
+  function findBalloonAt(p){
+    const sp = imgToScreen(p);
+    const r = balloonRadiusScreen() + 3;
+    for(let i=balloons.length-1; i>=0; i--){
+      const q = imgToScreen(balloons[i]);
+      if(Math.hypot(q.x-sp.x, q.y-sp.y) <= r) return balloons[i];
+    }
+    return null;
+  }
+  function afterBalloonChange(){
+    renderBalloonPanel(); renderPhotoStrip(); draw(); markDirty(); scheduleAutosave();
+  }
+  function addBalloon(p){
+    const se = activeSeries();
+    if(!se) return;
+    balloons.push({ id: nextBalloonId++, sid: se.id, x: p.x, y: p.y });
+    afterBalloonChange();
+  }
+  function removeBalloon(b){
+    balloons = balloons.filter(x=> x!==b);
+    afterBalloonChange();
+  }
+  function undoBalloon(){
+    if(!balloons.length) return;
+    balloons.pop();
+    afterBalloonChange();
+  }
+  function resetActiveSeries(){
+    const se = activeSeries();
+    if(!se) return;
+    const n = balloons.filter(b=> b.sid===se.id).length;
+    if(!n){ hintBar.textContent = 'La série « '+se.name+' » est déjà vide sur cette photo.'; return; }
+    if(!confirm('Remettre à zéro la série « '+se.name+' » sur cette photo ? Les '+n+' bulle(s) seront supprimées et la numérotation repartira à 1.')) return;
+    balloons = balloons.filter(b=> b.sid!==se.id);
+    afterBalloonChange();
+  }
+  function clearAllBalloons(){
+    if(!balloons.length) return;
+    if(!confirm('Supprimer les '+balloons.length+' bulle(s) de cette photo (toutes séries) ? Cette action est irréversible.')) return;
+    balloons = [];
+    afterBalloonChange();
+  }
+  function removeSeries(id){
+    if(bSeries.length <= 1) return;
+    const se = seriesById(id);
+    if(!se) return;
+    const c = countSeries(id);
+    if(c.total>0 && !confirm('Supprimer la série « '+se.name+' » et ses '+c.total+' bulle(s) dans toute la session ? Cette action est irréversible.')) return;
+    bSeries = bSeries.filter(x=> x.id!==id);
+    balloons = balloons.filter(b=> b.sid!==id);
+    session.forEach(p=>{ if(p.id!==activePhotoId && Array.isArray(p.balloons)) p.balloons = p.balloons.filter(b=> b.sid!==id); });
+    if(bActiveId===id) bActiveId = bSeries[0].id;
+    afterBalloonChange();
+  }
+  function setActiveSeries(id){
+    bActiveId = id;
+    bSeriesList.querySelectorAll('.b-series').forEach(r=> r.classList.toggle('active', Number(r.dataset.sid)===id));
+    draw();
+  }
+  function restoreBalloonSeries(arr){
+    if(Array.isArray(arr) && arr.length){
+      bSeries = arr.map((x,i)=>({
+        id: x.id!=null ? x.id : i+1,
+        name: x.name || ('Série '+(i+1)),
+        color: x.color || B_PALETTE[i % B_PALETTE.length]
+      }));
+    }
+    if(!bSeries.length) bSeries = [{ id:1, name:'Série 1', color:B_PALETTE[0] }];
+    bActiveId = bSeries[0].id;
+    nextSeriesId = bSeries.reduce((m,x)=> Math.max(m,(x.id||0)+1), 1);
+  }
+
+  function renderBalloonPanel(){
+    bSeriesList.innerHTML = '';
+    bSeries.forEach((se, i)=>{
+      const row = document.createElement('div');
+      row.className = 'b-series' + (se.id===bActiveId ? ' active' : '');
+      row.dataset.sid = se.id;
+      const c = countSeries(se.id);
+      row.innerHTML = `
+        <input type="color" class="b-color" value="${se.color}" title="Changer la couleur de cette numérotation">
+        <input type="text" class="b-name" maxlength="30" title="Nom de la numérotation (ex : Trous Ø10)">
+        ${i<9 ? `<span class="kbd" title="Touche ${i+1} en mode bullage">${i+1}</span>` : ''}
+        <span class="b-count" title="Bulles sur cette photo / dans toute la session">${c.photo}<span class="b-sep"> / ${c.total}</span></span>
+        <button type="button" class="b-del" title="Supprimer cette numérotation"${bSeries.length<=1 ? ' disabled' : ''}>×</button>
+      `;
+      const nameIn = row.querySelector('.b-name');
+      const colorIn = row.querySelector('.b-color');
+      const delBtn = row.querySelector('.b-del');
+      nameIn.value = se.name;
+      row.addEventListener('click', e=>{
+        if(e.target.closest('input,button')) return;
+        setActiveSeries(se.id);
+      });
+      nameIn.addEventListener('focus', ()=> setActiveSeries(se.id));
+      nameIn.addEventListener('input', ()=>{ se.name = nameIn.value || ('Série '+(i+1)); markDirty(); scheduleAutosave(); });
+      nameIn.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); nameIn.blur(); } });
+      colorIn.addEventListener('click', ()=> setActiveSeries(se.id));
+      colorIn.addEventListener('input', ()=>{ se.color = colorIn.value; draw(); markDirty(); scheduleAutosave(); });
+      colorIn.addEventListener('change', ()=> colorIn.blur()); // rend la main aux raccourcis clavier
+      delBtn.addEventListener('click', e=>{ e.stopPropagation(); removeSeries(se.id); });
+      bSeriesList.appendChild(row);
+    });
+    let totalPhoto = balloons.length, totalSession = 0;
+    session.forEach(p=>{ totalSession += balloonsOfPhoto(p).length; });
+    if(!session.length) totalSession = totalPhoto;
+    bTotals.innerHTML = 'Cette photo : <span class="scale-val">'+totalPhoto+'</span> bulle(s)<br>Session : <span class="scale-val">'+totalSession+'</span> bulle(s)';
+    bUndoBtn.disabled = !balloons.length;
+    bResetBtn.disabled = !balloons.some(b=> b.sid===bActiveId);
+    bClearAllBtn.disabled = !balloons.length;
+  }
+
+  balloonBtn.addEventListener('click', ()=> setMode(mode==='balloon' ? null : 'balloon'));
+  bAddSeriesBtn.addEventListener('click', ()=>{
+    const used = new Set(bSeries.map(x=> x.color.toLowerCase()));
+    const color = B_PALETTE.find(c=> !used.has(c)) || B_PALETTE[bSeries.length % B_PALETTE.length];
+    const se = { id: nextSeriesId++, name: 'Série '+(bSeries.length+1), color };
+    bSeries.push(se);
+    bActiveId = se.id;
+    renderBalloonPanel(); draw(); markDirty(); scheduleAutosave();
+    const ni = bSeriesList.querySelector('.b-series.active .b-name');
+    if(ni){ ni.focus(); ni.select(); }
+  });
+  bSizes.querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      balloonSizeFrac = parseFloat(b.dataset.frac);
+      bSizes.querySelectorAll('button').forEach(x=> x.classList.toggle('active', x===b));
+      draw();
+    });
+  });
+  bUndoBtn.addEventListener('click', undoBalloon);
+  bResetBtn.addEventListener('click', resetActiveSeries);
+  bClearAllBtn.addEventListener('click', clearAllBalloons);
+  // Clic droit sur une bulle (mode bullage) = suppression
+  canvas.addEventListener('contextmenu', e=>{
+    if(mode!=='balloon' || !imgLoaded) return;
+    e.preventDefault();
+    const hit = findBalloonAt(getPointerImagePos(e));
+    if(hit) removeBalloon(hit);
+  });
   let highlights = []; // { id, color, width(image px), points:[{x,y},...] }
   let activeStroke = null;
   let nextHighlightId = 1;
@@ -753,7 +1057,8 @@ canvas#c:focus-visible{ outline:none; }
         calibration: null,
         measurements: [],
         comments: [],
-        highlights: []
+        highlights: [],
+        balloons: []
       };
       session.push(entry);
       if(firstNewId===null) firstNewId = entry.id;
@@ -851,6 +1156,7 @@ canvas#c:focus-visible{ outline:none; }
     commentBtn.classList.toggle('active', m==='comment');
     highlightBtn.classList.toggle('active', m==='highlight');
     eraserBtn.classList.toggle('active', m==='erase');
+    balloonBtn.classList.toggle('active', m==='balloon');
     canvas.className = m ? 'mode-'+m : '';
     if(m==='calib') hintBar.innerHTML = "Cliquez le <b>premier point</b> de la cote connue, puis le second point. <span class='kbd'>Échap</span> pour annuler.";
     else if(m==='h') hintBar.innerHTML = "Mode <b>horizontal</b> : cliquez un point, puis un second — la distance horizontale sera cotée. <span class='kbd'>V</span> vertical • <span class='kbd'>L</span> libre";
@@ -860,6 +1166,7 @@ canvas#c:focus-visible{ outline:none; }
     else if(m==='comment') hintBar.innerHTML = "Mode <b>commentaire</b> : cliquez sur la photo pour poser une note déplaçable.";
     else if(m==='highlight') hintBar.innerHTML = "Mode <b>surligneur</b> : maintenez le clic et tracez pour marquer une zone à checker. Maintenez <span class='kbd'>Maj</span> (ou activez « Surligner horizontalement ») pour contraindre le trait à l'horizontale.";
     else if(m==='erase') hintBar.innerHTML = "Mode <b>gomme</b> : maintenez le clic et passez sur un surlignage pour l'effacer (entièrement ou en partie).";
+    else if(m==='balloon') hintBar.innerHTML = "Mode <b>bullage</b> : cliquez pour poser une bulle numérotée dans la série active. Touches <span class='kbd'>1</span>…<span class='kbd'>9</span> pour changer de série • glissez une bulle pour la déplacer • clic droit ou <span class='kbd'>Maj</span>+clic pour la supprimer • <span class='kbd'>Ctrl</span>+<span class='kbd'>Z</span> annule la dernière.";
     else hintBar.innerHTML = "Molette pour zoomer • choisissez un mode de mesure ci-contre, ou appuyez sur <span class='kbd'>?</span> pour voir tous les raccourcis.";
     draw();
   }
@@ -870,8 +1177,8 @@ canvas#c:focus-visible{ outline:none; }
 
   // ---------- Raccourcis clavier ----------
   // Lettre -> mode. Ignorés si le focus est dans un champ de saisie, ou si le bouton correspondant est désactivé.
-  const keyToMode = { h:'h', v:'v', l:'free', p:'pan', c:'calib', m:'comment', s:'highlight', g:'erase' };
-  const modeButtonEl = { h:modeBtns.h, v:modeBtns.v, free:modeBtns.free, pan:modeBtns.pan, calib:calibBtn, comment:commentBtn, highlight:highlightBtn, erase:eraserBtn };
+  const keyToMode = { h:'h', v:'v', l:'free', p:'pan', c:'calib', m:'comment', s:'highlight', g:'erase', b:'balloon' };
+  const modeButtonEl = { h:modeBtns.h, v:modeBtns.v, free:modeBtns.free, pan:modeBtns.pan, calib:calibBtn, comment:commentBtn, highlight:highlightBtn, erase:eraserBtn, balloon:balloonBtn };
   let spaceHeldPrevMode = null; // mode restauré au relâchement de la barre d'espace (pan temporaire)
   let annotationsHidden = false; // Tab : masque cotes/réf/surlignages/commentaires pour voir la photo "propre"
   function setAnnotationsHidden(v){
@@ -894,6 +1201,7 @@ canvas#c:focus-visible{ outline:none; }
     // Annuler (Ctrl/Cmd+Z)
     if((e.ctrlKey||e.metaKey) && !e.shiftKey && e.key.toLowerCase()==='z'){
       e.preventDefault();
+      if(mode==='balloon'){ undoBalloon(); return; }
       if(measurements.length){ measurements.pop(); renderMeasureList(); draw(); markDirty(); scheduleAutosave(); }
       return;
     }
@@ -915,6 +1223,13 @@ canvas#c:focus-visible{ outline:none; }
         if(spaceHeldPrevMode===null) spaceHeldPrevMode = mode;
         setMode('pan');
       }
+      return;
+    }
+
+    // Bullage : touches 1…9 = choix de la série active
+    if(mode==='balloon' && /^[1-9]$/.test(e.key)){
+      const se = bSeries[parseInt(e.key,10)-1];
+      if(se){ e.preventDefault(); setActiveSeries(se.id); }
       return;
     }
 
@@ -1050,6 +1365,19 @@ canvas#c:focus-visible{ outline:none; }
       setTimeout(()=>{ if(ta) ta.focus(); }, 0);
       return;
     }
+    if(mode==='balloon'){
+      if(e.button!==0) return; // le clic droit est géré par 'contextmenu'
+      const pb = getPointerImagePos(e);
+      const hit = findBalloonAt(pb);
+      if(hit && e.shiftKey){ removeBalloon(hit); return; }
+      if(hit){
+        draggingBalloon = { b:hit, dx:hit.x-pb.x, dy:hit.y-pb.y, moved:false, sx:e.clientX, sy:e.clientY };
+        canvas.setPointerCapture(e.pointerId);
+        return;
+      }
+      addBalloon(pb);
+      return;
+    }
     if(!mode) return;
     const p = getPointerImagePos(e);
     if(!pendingPoint){
@@ -1069,6 +1397,16 @@ canvas#c:focus-visible{ outline:none; }
       return;
     }
     if(!imgLoaded) return;
+    if(draggingBalloon){
+      if(!draggingBalloon.moved && Math.hypot(e.clientX-draggingBalloon.sx, e.clientY-draggingBalloon.sy) < 3) return;
+      const pm = getPointerImagePos(e);
+      draggingBalloon.moved = true;
+      draggingBalloon.b.x = pm.x + draggingBalloon.dx;
+      draggingBalloon.b.y = pm.y + draggingBalloon.dy;
+      hoverImagePt = pm;
+      draw();
+      return;
+    }
     if(activeStroke){
       const p = getPointerImagePos(e);
       if((highlightConstrainH || e.shiftKey) && activeStroke.points.length){
@@ -1095,6 +1433,13 @@ canvas#c:focus-visible{ outline:none; }
 
   canvas.addEventListener('pointerup', e=>{
     if(isPanning){ isPanning=false; canvas.classList.remove('panning'); }
+    if(draggingBalloon){
+      try{ canvas.releasePointerCapture(e.pointerId); }catch(err){}
+      const wasMoved = draggingBalloon.moved;
+      draggingBalloon = null;
+      if(wasMoved){ markDirty(); scheduleAutosave(); }
+      draw();
+    }
     if(activeStroke){
       canvas.releasePointerCapture(e.pointerId);
       activeStroke = null;
@@ -1449,6 +1794,7 @@ canvas#c:focus-visible{ outline:none; }
     entry.measurements = measurements.map(m=>({...m}));
     entry.comments = comments.map(c=>({ id:c.id, x:c.x, y:c.y, text:c.text, color:c.color, grayed:c.grayed, locked:c.locked, todos: Array.isArray(c.todos) ? c.todos.map(t=>({...t})) : [] }));
     entry.highlights = highlights.map(h=>({ id:h.id, color:h.color, width:h.width, points:h.points.map(p=>({x:p.x,y:p.y})) }));
+    entry.balloons = balloons.map(b=>({...b}));
   }
 
   function loadSessionEntryIntoView(entry, cb){
@@ -1471,7 +1817,10 @@ canvas#c:focus-visible{ outline:none; }
       activeStroke = null;
       highlights = Array.isArray(entry.highlights) ? entry.highlights.map(h=>({ ...h, points:(h.points||[]).map(p=>({...p})) })) : [];
       nextHighlightId = highlights.reduce((m,x)=> Math.max(m,(x.id||0)+1), 1);
-      [calibBtn, realLenInput, unitSelect, commentBtn, highlightBtn, eraserBtn, exportPngBtn].forEach(el=>el.disabled=false);
+      draggingBalloon = null;
+      balloons = Array.isArray(entry.balloons) ? entry.balloons.map(b=>({...b})) : [];
+      nextBalloonId = balloons.reduce((m,x)=> Math.max(m,(x.id||0)+1), 1);
+      [calibBtn, realLenInput, unitSelect, commentBtn, highlightBtn, eraserBtn, exportPngBtn, balloonBtn].forEach(el=>el.disabled=false);
       Object.values(modeBtns).forEach(b=>b.disabled = !calibration);
       calibApplyAllBtn.disabled = !calibration;
       statusPill.innerHTML = '<b>'+img.width+'×'+img.height+'px</b>';
@@ -1482,6 +1831,7 @@ canvas#c:focus-visible{ outline:none; }
       setMode(null);
       resizeCanvas();
       fitToScreen();
+      renderBalloonPanel();
       renderPhotoStrip();
       if(cb) cb();
     };
@@ -1512,16 +1862,18 @@ canvas#c:focus-visible{ outline:none; }
       calibration = null; measurements = []; pendingPoint = null;
       clearCommentsDOM();
       highlights = []; activeStroke = null;
+      balloons = []; draggingBalloon = null;
       dropZone.style.display = 'flex';
       statusPill.textContent = 'Aucune image chargée';
       calibStatus.className = 'calib-status';
       calibStatus.textContent = "Non étalonné — chargez une photo puis tracez un segment sur une cote connue.";
-      [calibBtn, realLenInput, unitSelect, commentBtn, highlightBtn, eraserBtn, exportPngBtn].forEach(el=>el.disabled=true);
+      [calibBtn, realLenInput, unitSelect, commentBtn, highlightBtn, eraserBtn, exportPngBtn, balloonBtn].forEach(el=>el.disabled=true);
       Object.values(modeBtns).forEach(b=>b.disabled=true);
       calibApplyAllBtn.disabled = true;
       renderMeasureList();
       setMode(null);
       draw();
+      renderBalloonPanel();
       renderPhotoStrip();
       return;
     }
@@ -1530,6 +1882,7 @@ canvas#c:focus-visible{ outline:none; }
       activePhotoId = null; // force full reload, nothing to snapshot back into a removed entry
       switchToPhoto(nextEntry.id);
     } else {
+      renderBalloonPanel();
       renderPhotoStrip();
     }
   }
@@ -1566,6 +1919,7 @@ canvas#c:focus-visible{ outline:none; }
       const nMeas = p.id===activePhotoId ? measurements.length : (p.measurements||[]).length;
       const nCom = p.id===activePhotoId ? comments.length : (p.comments||[]).length;
       const nHl = p.id===activePhotoId ? highlights.length : (p.highlights||[]).length;
+      const nBal = balloonsOfPhoto(p).length;
       t.innerHTML = `
         <img src="${p.image}" alt="">
         <span class="t-idx">${idx+1}</span>
@@ -1573,6 +1927,7 @@ canvas#c:focus-visible{ outline:none; }
           ${nMeas ? `<span class="t-badge" title="${nMeas} cote(s)">📏${nMeas}</span>` : ''}
           ${nCom ? `<span class="t-badge c" title="${nCom} commentaire(s)">💬${nCom}</span>` : ''}
           ${nHl ? `<span class="t-badge" style="background:#f6c945" title="${nHl} surlignage(s)">🖍${nHl}</span>` : ''}
+          ${nBal ? `<span class="t-badge" style="background:#ff5c5c;color:#fff" title="${nBal} bulle(s)">●${nBal}</span>` : ''}
         </div>
         <button type="button" class="t-del" title="Retirer de la session">×</button>
       `;
@@ -1626,7 +1981,8 @@ canvas#c:focus-visible{ outline:none; }
         const nMeasP = p.id===activePhotoId ? measurements.length : (p.measurements||[]).length;
         const nComP = p.id===activePhotoId ? comments.length : (p.comments||[]).length;
         const nHlP = p.id===activePhotoId ? highlights.length : (p.highlights||[]).length;
-        if((nMeasP+nComP+nHlP)>0 && !confirm('Cette photo contient des cotes, commentaires ou surlignages. La retirer de la session ? Cette action est irréversible.')) return;
+        const nBalP = balloonsOfPhoto(p).length;
+        if((nMeasP+nComP+nHlP+nBalP)>0 && !confirm('Cette photo contient des cotes, commentaires ou surlignages. La retirer de la session ? Cette action est irréversible.')) return;
         deletePhoto(p.id);
       });
       sessionStrip.appendChild(t);
@@ -1673,6 +2029,7 @@ canvas#c:focus-visible{ outline:none; }
       version: 2,
       savedAt: new Date().toISOString(),
       activePhotoId: activePhotoId,
+      balloonSeries: bSeries.map(x=>({...x})),
       photos: session.map(p=>({
         id: p.id,
         name: p.name,
@@ -1680,7 +2037,8 @@ canvas#c:focus-visible{ outline:none; }
         calibration: p.calibration,
         measurements: p.measurements,
         comments: p.comments,
-        highlights: p.highlights
+        highlights: p.highlights,
+        balloons: Array.isArray(p.balloons) ? p.balloons : []
       }))
     };
   }
@@ -1710,6 +2068,7 @@ canvas#c:focus-visible{ outline:none; }
         hintBar.innerHTML = '<b style="color:#ff8a5c">Ce fichier de session ne contient aucune photo.</b>';
         return;
       }
+      restoreBalloonSeries(data.balloonSeries);
       session = data.photos.map(p=>({
         id: nextPhotoId++,
         name: p.name || 'Photo',
@@ -1717,7 +2076,8 @@ canvas#c:focus-visible{ outline:none; }
         calibration: p.calibration || null,
         measurements: Array.isArray(p.measurements) ? p.measurements : [],
         comments: Array.isArray(p.comments) ? p.comments : [],
-        highlights: Array.isArray(p.highlights) ? p.highlights : []
+        highlights: Array.isArray(p.highlights) ? p.highlights : [],
+        balloons: Array.isArray(p.balloons) ? p.balloons : []
       }));
       activePhotoId = null;
       const wanted = session[0]; // (activePhotoId from file doesn't map to new ids, always start on first)
@@ -1894,6 +2254,8 @@ canvas#c:focus-visible{ outline:none; }
         const val = calibration ? fmt(m.valueUnits)+' '+unit : Math.round(m.pxDist)+'px';
         drawDimensionLine(m.p1, m.p2, val, m.color, false, false, idx, m.validated);
       });
+
+      drawBalloons();
     }
 
     // pending first point + rubber band
@@ -1913,6 +2275,8 @@ canvas#c:focus-visible{ outline:none; }
       }
       ctx.restore();
     }
+
+    if(mode==='balloon' && hoverImagePt && !draggingBalloon && !isPanning) drawBalloonGhost();
 
     if(mode==='erase' && hoverImagePt){
       const c = imgToScreen(hoverImagePt);
@@ -2235,7 +2599,9 @@ canvas#c:focus-visible{ outline:none; }
       const col = m.validated ? '#5c7080' : m.color;
       drawDimensionLineOn(ectx, m.p1, m.p2, val, col, false, s);
     });
+    drawBalloonsOn(ectx, s);
     drawCommentsOn(ectx, s);
+    drawBalloonLegendOn(ectx, s);
 
     ec.toBlob(blob=>{
       if(!blob){
@@ -2314,6 +2680,7 @@ canvas#c:focus-visible{ outline:none; }
     h2.addEventListener('click', ()=> sec.classList.toggle('collapsed'));
   });
 
+  renderBalloonPanel();
   resizeCanvas();
   tryRestoreAutosave();
 })();
