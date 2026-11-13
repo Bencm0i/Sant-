@@ -3076,6 +3076,39 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
 .tag-accordion-item .accordion-body{padding:12px 16px;border-top:1.5px solid var(--line);}
 .tag-accordion-item .accordion-body > *:last-child{margin-bottom:0;}
 
+/* MAILS COLLÉS (carte repliable : objet + expéditeur toujours visibles) */
+.mail-card{
+  border:1.5px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;
+  margin:10px 0;overflow:hidden;background:#fff;
+}
+.mail-card summary{
+  cursor:pointer;padding:8px 14px;list-style:none;user-select:none;
+  display:flex;align-items:flex-start;gap:10px;background:rgba(47,93,98,0.06);
+}
+.mail-card summary::-webkit-details-marker{display:none;}
+.mail-card summary::before{content:'▸';display:inline-block;transition:transform .15s;flex-shrink:0;color:var(--accent);margin-top:1px;}
+.mail-card[open] summary::before{transform:rotate(90deg);}
+.mail-badge{
+  font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:0.68rem;letter-spacing:.04em;
+  color:var(--accent);background:#fff;border:1.5px solid var(--accent);border-radius:999px;
+  padding:1px 9px;flex-shrink:0;margin-top:1px;
+}
+.mail-head{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+.mail-subject{font-weight:700;font-size:0.95rem;color:var(--ink);overflow-wrap:anywhere;}
+.mail-subject.empty{font-weight:500;font-style:italic;color:var(--ink-soft);}
+.mail-from{font-size:0.82rem;color:var(--ink-soft);overflow-wrap:anywhere;}
+.mail-from .mail-k{font-family:'IBM Plex Mono',monospace;font-size:0.72rem;margin-right:4px;}
+.mail-from strong{color:var(--ink);}
+.mail-addr{font-family:'IBM Plex Mono',monospace;font-size:0.74rem;}
+.mail-date{font-family:'IBM Plex Mono',monospace;font-size:0.72rem;margin-left:8px;white-space:nowrap;}
+.mail-meta{
+  padding:6px 16px;border-top:1.5px solid var(--line);font-size:0.8rem;color:var(--ink-soft);
+  display:grid;grid-template-columns:auto 1fr;gap:2px 10px;background:var(--paper-dim);
+}
+.mail-meta .mail-k{font-family:'IBM Plex Mono',monospace;font-size:0.72rem;font-weight:600;}
+.mail-card .accordion-body{padding:12px 16px;border-top:1.5px solid var(--line);}
+.mail-card .accordion-body > *:last-child{margin-bottom:0;}
+
 /* SAVE STATUS + SIDEBAR COLLAPSE */
 .save-status{font-family:'IBM Plex Mono',monospace;font-size:0.68rem;color:var(--ink-soft);white-space:nowrap;min-width:84px;}
 .storage-badge{
@@ -5549,10 +5582,133 @@ function sanitizeHtml(html){
   return window.DOMPurify ? DOMPurify.sanitize(html, PURIFY_CFG) : '<pre>' + escapeHtml(html) + '</pre>';
 }
 
+// ── MAILS COLLÉS ─────────────────────────────────────────────────────────────
+// Quand on colle un mail (en-têtes Objet / De / Date / À…), il est converti en bloc :
+//   :::mail
+//   Objet: …
+//   De: Nom <adresse>
+//   Date: …
+//   (ligne vide)
+//   corps du mail
+//   :::
+// et affiché en aperçu comme une carte repliable portant l'objet et l'expéditeur.
+const MAIL_KEYS = [
+  ['subject', /^(?:objet|subject|sujet)$/i],
+  ['from',    /^(?:de|from|exp[ée]diteur)$/i],
+  ['date',    /^(?:date|envoy[ée]|sent)$/i],
+  ['to',      /^(?:à|a|to)$/i],
+  ['cc',      /^(?:cc|copie)$/i]
+];
+const MAIL_LABEL = { subject:'Objet', from:'De', date:'Date', to:'À', cc:'Cc' };
+function mailKey(k){
+  k = (k || '').trim();
+  for(const [id, re] of MAIL_KEYS){ if(re.test(k)) return id; }
+  return null;
+}
+function mailHeaderMatch(line){
+  const m = line.match(/^\s*([A-Za-zÀ-ÿ-]{1,12})\s*:\s*(.*)$/);
+  const key = m && mailKey(m[1]);
+  return key ? { key, val: m[2].trim() } : null;
+}
+
+// Texte collé → bloc :::mail, ou null si ça ne ressemble pas à un mail
+function parseMailPaste(raw){
+  if(!raw || raw.length < 20) return null;
+  const lines = raw.replace(/\r\n?/g, '\n').split('\n');
+  let i = 0;
+  // saute lignes vides et séparateurs (« ---- Message transféré ---- », « -----Message d'origine----- »…)
+  while(i < lines.length && (/^\s*$/.test(lines[i]) || /^\s*[-_=*]{2,}.*[-_=*]{2,}\s*$/.test(lines[i]))) i++;
+  const h = {};
+  let count = 0;
+  while(i < lines.length){
+    const hm = mailHeaderMatch(lines[i]);
+    if(!hm) break;
+    i++;
+    let val = hm.val;
+    if(!val && i < lines.length && lines[i].trim() && !mailHeaderMatch(lines[i])){
+      val = lines[i].trim(); i++; // Outlook : la valeur est parfois sur la ligne suivante
+    }
+    if(!(hm.key in h)) h[hm.key] = val;
+    count++;
+  }
+  if(count < 2 || !(h.from || h.subject)) return null;
+  while(i < lines.length && !lines[i].trim()) i++;
+  const body = lines.slice(i).join('\n').replace(/\s+$/, '').replace(/^:::/gm, ' :::');
+  const out = [':::mail'];
+  ['subject','from','date','to','cc'].forEach(k=>{
+    if(h[k]) out.push(MAIL_LABEL[k] + ': ' + h[k].replace(/\s+/g, ' '));
+  });
+  out.push('', body, ':::');
+  return out.join('\n');
+}
+
+function insertMailBlock(area, which, block){
+  const s0 = area.selectionStart, e0 = area.selectionEnd;
+  const before = area.value.slice(0, s0);
+  const ins = (before && !before.endsWith('\n') ? '\n' : '') + block + '\n';
+  area.focus();
+  let ok = false;
+  try{ ok = document.execCommand('insertText', false, ins); }catch(_){ ok = false; }
+  if(!ok){
+    area.setRangeText(ins, s0, e0, 'end');
+    onEdit(which);
+  }
+}
+
+const MAIL_BLOCK_RE = /^:::mail[ \t]*\n([\s\S]*?)\n:::[ \t]*$/gm;
+function extractMailBlocks(text){
+  const mails = [];
+  const out = text.replace(MAIL_BLOCK_RE, (m, inner)=>{
+    mails.push(inner);
+    return '\n\n§§MAIL' + (mails.length - 1) + '§§\n\n';
+  });
+  return { text: out, mails };
+}
+
+function mailSenderHtml(from){
+  const m = from.match(/^\s*"?([^"<]*?)"?\s*<([^>]+)>\s*$/);
+  if(m && m[1].trim()){
+    return '<strong>' + escapeHtml(m[1].trim()) + '</strong> <span class="mail-addr">&lt;' + escapeHtml(m[2].trim()) + '&gt;</span>';
+  }
+  return '<strong>' + escapeHtml(from) + '</strong>';
+}
+
+function renderMailCard(inner){
+  const lines = inner.split('\n');
+  const h = {};
+  let i = 0;
+  while(i < lines.length && lines[i].trim()){
+    const hm = mailHeaderMatch(lines[i]);
+    if(hm) h[hm.key] = hm.val; else break;
+    i++;
+  }
+  const body = lines.slice(i).join('\n').trim();
+  let html = '<details class="mail-card" open><summary>'
+    + '<span class="mail-badge">✉ MAIL</span>'
+    + '<span class="mail-head">'
+    + (h.subject
+        ? '<span class="mail-subject">' + escapeHtml(h.subject) + '</span>'
+        : '<span class="mail-subject empty">(sans objet)</span>')
+    + '<span class="mail-from">'
+    + (h.from ? '<span class="mail-k">de</span>' + mailSenderHtml(h.from) : '<em>expéditeur inconnu</em>')
+    + (h.date ? '<span class="mail-date">' + escapeHtml(h.date) + '</span>' : '')
+    + '</span></span></summary>';
+  const meta = [];
+  if(h.to) meta.push('<span class="mail-k">À</span><span>' + escapeHtml(h.to) + '</span>');
+  if(h.cc) meta.push('<span class="mail-k">Cc</span><span>' + escapeHtml(h.cc) + '</span>');
+  if(meta.length) html += '<div class="mail-meta">' + meta.join('') + '</div>';
+  if(body) html += '<div class="accordion-body">' + renderMarkdown(body) + '</div>';
+  return html + '</details>';
+}
+
 function renderMarkdown(text){
   if(!text || !text.trim()){
     return '<p style="opacity:.55;font-style:italic;">Rien à prévisualiser…</p>';
   }
+  // Mails collés (blocs :::mail) : mis de côté, rendus en carte à la fin
+  const mx = extractMailBlocks(text);
+  text = mx.text;
+  const mails = mx.mails;
   text = autoWrapPaths(text);
   text = isolateMarginLines(text);
   // Protège temporairement les [[liens]] pour que le parseur markdown ne les touche pas
@@ -5587,6 +5743,9 @@ function renderMarkdown(text){
     const exists = !!findTabIdByName(name);
     return '<a href="#" class="wikilink' + (exists?'':' missing') + '" data-wikilink="' + escapeHtml(name) + '">' + escapeHtml(name) + '</a>';
   });
+  if(mails.length){
+    html = html.replace(/(?:<p>\s*)?§§MAIL(\d+)§§(?:\s*<\/p>)?/g, (m, i)=> renderMailCard(mails[Number(i)] || ''));
+  }
   return sanitizeHtml(decorateMarginLines(html));
 }
 
@@ -6826,6 +6985,9 @@ function insertPathWithDescription(area, which, path){
 function handleAreaPaste(e){
   const areaId = e.target.id;
   const which = areaId === 'rawArea' ? 'raw' : 'ia';
+  // Mail collé (en-têtes Objet / De / Date…) : converti en bloc :::mail, affiché en carte en aperçu
+  const mailBlock = parseMailPaste(e.clipboardData ? e.clipboardData.getData('text') : '');
+  if(mailBlock){ e.preventDefault(); insertMailBlock(e.target, which, mailBlock); return; }
   const items = (e.clipboardData && e.clipboardData.items) || [];
   let imageItem = null;
   for(const item of items){
