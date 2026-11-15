@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Suivi bois – Poêle</title>
+<link id="fav" rel="icon" type="image/svg+xml" href="">
+<style>
+:root{--bg:#f6f3ef;--card:#fff;--tx:#1f1b17;--mut:#7a6f64;--line:#e4ddd4;--acc:#e8731a;--acc2:#2a7f62;--bar:#e8731a;--tline:#2f6fb5;--grid:#e9e3db;--warn:#c0392b}
+@media (prefers-color-scheme:dark){:root{--bg:#171310;--card:#221c17;--tx:#f1ebe4;--mut:#a79b8f;--line:#38302a;--acc:#ff8a1f;--acc2:#4cc19a;--bar:#ff8a1f;--tline:#6fb1ff;--grid:#322b25;--warn:#ff6b5b}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.wrap{max-width:1100px;margin:0 auto;padding:16px}
+header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+header img{width:44px;height:44px;border-radius:10px}
+h1{font-size:22px;margin:0}
+h2{font-size:16px;margin:22px 0 10px;display:flex;align-items:center;gap:8px}
+h2 img{width:22px;height:22px;border-radius:5px}
+.sub{color:var(--mut);font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:10px}
+.kpi,.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.k-l{font-size:12px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;display:flex;align-items:center;gap:6px}
+.k-l img{width:14px;height:14px;border-radius:3px}
+.k-v{font-size:24px;font-weight:650;margin-top:2px}
+.k-v.alt{font-size:18px;color:var(--acc2);margin-top:0}
+.k-s{font-size:12.5px;color:var(--mut)}
+.warn{color:var(--warn)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:end}
+label{font-size:12px;color:var(--mut);display:flex;flex-direction:column;gap:3px}
+input,select,button{font:inherit;padding:7px 9px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--tx)}
+input[type=checkbox]{width:18px;height:18px;padding:0}
+button{cursor:pointer;background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+button.sec{background:transparent;color:var(--tx);border-color:var(--line);font-weight:500}
+button.x{padding:2px 8px;background:transparent;color:var(--warn);border-color:var(--line)}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:10px}
+svg{width:100%;height:auto;display:block}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--mut);font-weight:500;font-size:12px}
+.scroll{max-height:320px;overflow:auto}
+details{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+summary{cursor:pointer;font-weight:600}
+.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:10px}
+.tw{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.note{font-size:12.5px;color:var(--mut);margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <img id="logo" alt="">
+  <div><h1>Suivi bois – Poêle</h1><div class="sub" id="prodline"></div></div>
+</header>
+
+<details>
+  <summary>⚙️ Paramètres (bois, prix, remise, météo)</summary>
+  <div class="sgrid" id="settings"></div>
+  <div class="note">« DJU » = degrés-jours unitaires : max(0, T° de base − T° moyenne du jour). C'est ce qui relie la conso à la météo. Les DJU annuels normaux (≈2 400 pour Lyon en base 18) sont une valeur indicative à ajuster.</div>
+</details>
+
+<h2><img class="fav" alt="">Indicateurs (KPI)</h2>
+<div class="grid" id="kpis"></div>
+
+<h2>Saisies</h2>
+<div class="two">
+  <div class="card">
+    <b>🔥 Consommation</b>
+    <div class="row" style="margin-top:8px">
+      <label>Date<input type="date" id="u-date"></label>
+      <label>Quantité<input type="number" id="u-q" step="0.25" min="0" value="1" style="width:80px"></label>
+      <label>Unité<select id="u-unit"><option value="bag">sacs</option><option value="log">bûches</option><option value="kg">kg</option></select></label>
+      <label>T° moy. (opt.)<input type="number" id="u-t" step="0.1" placeholder="auto" style="width:80px"></label>
+      <label>Note<input type="text" id="u-note" style="width:120px"></label>
+      <button id="u-add">Ajouter</button>
+    </div>
+  </div>
+  <div class="card">
+    <b>🛒 Achat</b>
+    <div class="row" style="margin-top:8px">
+      <label>Date<input type="date" id="p-date"></label>
+      <label>Sacs<input type="number" id="p-bags" step="1" min="1" value="1" style="width:70px"></label>
+      <label>Prix/sac (€)<input type="number" id="p-price" step="0.01" style="width:90px"></label>
+      <label>Remise<span style="display:flex;gap:6px;align-items:center;height:34px"><input type="checkbox" id="p-disc"><span id="p-disc-l"></span></span></label>
+      <button id="p-add">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<h2>Suivi temporel & stock</h2>
+<div class="tw">
+  <span class="sub" id="wxstat"></span>
+  <div class="row">
+    <label>Période<select id="range"><option value="30">30 jours</option><option value="90">90 jours</option><option value="180">6 mois</option><option value="0" selected>Tout</option></select></label>
+    <button class="sec" id="wx-btn">↻ Météo</button>
+  </div>
+</div>
+<div class="two">
+  <div class="card"><b>Conso journalière (kg) & température</b><div id="ch1"></div></div>
+  <div class="card"><b>État du stock (kg)</b><div id="ch2"></div></div>
+</div>
+
+<h2>Corrélation météo</h2>
+<div class="two">
+  <div class="card"><b>Conso (kg/jour) vs DJU</b><div id="ch3"></div><div class="note" id="corr"></div></div>
+  <div class="card"><b>Bilan mensuel</b><div class="scroll"><table id="monthly"></table></div></div>
+</div>
+
+<h2>Historique</h2>
+<div class="two">
+  <div class="card"><b>Consommations</b><div class="scroll"><table id="t-usage"></table></div></div>
+  <div class="card"><b>Achats</b><div class="scroll"><table id="t-pur"></table></div></div>
+</div>
+
+<h2>Données</h2>
+<div class="row">
+  <button class="sec" id="exp">Exporter JSON</button>
+  <label style="flex-direction:row;align-items:center">Importer <input type="file" id="imp" accept=".json"></label>
+  <button class="sec" id="demo">Charger des données d'exemple</button>
+  <button class="sec" id="clr">Tout effacer</button>
+</div>
+<div class="note">Les données restent dans ce navigateur (localStorage) : pense à exporter de temps en temps. Chaque jour sans saisie compte pour 0 kg dans la corrélation et les estimations.</div>
+</div>
+
+<script>
+const FAV_SVG=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#2b1d14"/><path d="M32 8c3 9 14 15 14 30a14 14 0 0 1-28 0c0-8 4-12 8-16 0 6 3 8 5 8-2-8-1-14 1-22z" fill="#ff8a1f"/><path d="M32 30c2 5 7 8 7 14a7 7 0 0 1-14 0c0-4 3-6 4-9 1 2 2 3 3 3z" fill="#ffd36b"/></svg>`;
+const FAV='data:image/svg+xml,'+encodeURIComponent(FAV_SVG);
+document.getElementById('fav').href=FAV;
+document.getElementById('logo').src=FAV;
+document.querySelectorAll('img.fav').forEach(i=>i.src=FAV);
+
+const $=s=>document.querySelector(s);
+const KEY='poele_bois_v1';
+const DEF={product:'Woodstock densifié Ø 8,5 × 24 cm (XL)',bagPrice:7.99,bagKg:12,logsBag:8,pci:4.6,humid:10,ash:1.5,disc:5,eff:75,infl:3,base:18,djuYear:2400,seasonDays:210,initBags:0,city:'Lyon',lat:45.76,lon:4.84};
+const SET=[['product','Produit','text',''],['bagPrice','Prix du sac','number','€'],['bagKg','Poids net / sac','number','kg'],['logsBag','Bûches / sac','number',''],['pci','PCI','number','kWh/kg'],['humid','Humidité brute (max)','number','%'],['ash','Taux de cendres','number','%'],['disc','Remise Leroy Merlin','number','%'],['eff','Rendement poêle','number','%'],['infl','Hausse prix an prochain','number','%'],['base','T° de base DJU','number','°C'],['djuYear','DJU annuels normaux','number',''],['seasonDays','Jours de chauffe (sans météo)','number','j'],['initBags','Stock initial','number','sacs'],['city','Ville météo','text',''],['lat','Latitude','number',''],['lon','Longitude','number','']];
+
+function load(){try{const j=JSON.parse(localStorage.getItem(KEY));if(j&&j.settings&&j.settings.product==='Woodstock densifié Ø 8,5 XL')j.settings.product=DEF.product;if(j)return{settings:{...DEF,...j.settings},purchases:j.purchases||[],usage:j.usage||[],wx:j.wx||{}}}catch(e){}return{settings:{...DEF},purchases:[],usage:[],wx:{}}}
+let S=load();
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+
+const iso=d=>{const z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,10)};
+const today=()=>iso(new Date());
+const addDays=(s,n)=>{const d=new Date(s+'T12:00:00');d.setDate(d.getDate()+n);return iso(d)};
+const diffDays=(a,b)=>Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/864e5);
+const range=(a,b)=>{const r=[];for(let d=a;d<=b;d=addDays(d,1))r.push(d);return r};
+const nf=(v,d=1)=>isFinite(v)?v.toLocaleString('fr-FR',{minimumFractionDigits:d,maximumFractionDigits:d}):'—';
+const eur=(v,d=2)=>isFinite(v)?v.toLocaleString('fr-FR',{style:'currency',currency:'EUR',minimumFractionDigits:d,maximumFractionDigits:d}):'—';
+const dm=s=>s.slice(8,10)+'/'+s.slice(5,7);
+const uid=()=>Math.random().toString(36).slice(2,9);
+
+function usedByDay(){const o={};S.usage.forEach(u=>o[u.date]=(o[u.date]||0)+u.kg);return o}
+function manualT(d){const u=S.usage.find(u=>u.date===d&&typeof u.t==='number');return u?u.t:null}
+function tempOf(d){const m=manualT(d);if(m!==null)return m;const w=S.wx[d];return w&&typeof w.tm==='number'?w.tm:null}
+function regress(pts){const n=pts.length;if(n<5)return null;let sx=0,sy=0;pts.forEach(p=>{sx+=p[0];sy+=p[1]});const mx=sx/n,my=sy/n;let sxx=0,syy=0,sxy=0;pts.forEach(p=>{const dx=p[0]-mx,dy=p[1]-my;sxx+=dx*dx;syy+=dy*dy;sxy+=dx*dy});if(!sxx||!syy)return null;const b=sxy/sxx;return{n,b,a:my-b*mx,r:sxy/Math.sqrt(sxx*syy)}}
+
+function compute(){
+  const s=S.settings,ubd=usedByDay(),dates=Object.keys(ubd).sort();
+  const used=S.usage.reduce((a,u)=>a+u.kg,0);
+  const bought=S.purchases.reduce((a,p)=>a+p.bags*s.bagKg,0);
+  const stock=s.initBags*s.bagKg+bought-used;
+  const c={s,ubd,dates,used,bought,stock};
+  const t=today();
+  if(dates.length){
+    c.first=dates[0];c.last=dates[dates.length-1];
+    c.days=diffDays(c.first,c.last)+1;c.perDay=used/c.days;
+    let dju=0,kgK=0,pts=[];
+    range(c.first,c.last).forEach(d=>{const tm=tempOf(d);if(tm!==null){const j=Math.max(0,s.base-tm);dju+=j;kgK+=ubd[d]||0;pts.push([j,ubd[d]||0])}});
+    c.dju=dju;c.ratio=dju>0?kgK/dju:null;c.reg=regress(pts);c.pts=pts;
+    const st=c.first>addDays(t,-13)?c.first:addDays(t,-13);
+    const dW=Math.max(1,diffDays(st,t)+1);
+    let k14=0;range(st,t).forEach(d=>k14+=ubd[d]||0);
+    c.rate=k14/dW;c.daysLeft=c.rate>0?c.stock/c.rate:null;
+  }
+  // prévision 7 jours
+  c.fc=null;
+  if(c.ratio){let k=0,n=0;for(let i=1;i<=7;i++){const w=S.wx[addDays(t,i)];if(w&&typeof w.tm==='number'){k+=c.ratio*Math.max(0,s.base-w.tm);n++}}if(n>=4)c.fc=k*7/n}
+  // annuel
+  if(c.ratio){c.annKg=c.ratio*s.djuYear;c.method='kg/DJU × DJU annuels normaux'}
+  else if(c.perDay){c.annKg=c.perDay*s.seasonDays;c.method='moyenne kg/jour × jours de chauffe (pas de météo exploitable)'}
+  if(c.annKg!=null){
+    c.annBags=Math.ceil(c.annKg/s.bagKg);c.annLogs=Math.ceil(c.annKg/(s.bagKg/s.logsBag));
+    c.c0=c.annBags*s.bagPrice;c.c1=c.c0*(1-s.disc/100);
+    c.n0=c.c0*(1+s.infl/100);c.n1=c.c1*(1+s.infl/100);
+  }
+  c.kwhBag=s.bagKg*s.pci;
+  c.ekwh0=s.bagPrice/c.kwhBag;c.ekwh1=c.ekwh0*(1-s.disc/100);
+  c.ekwhU0=c.ekwh0/(s.eff/100);c.ekwhU1=c.ekwh1/(s.eff/100);
+  c.spent0=S.purchases.reduce((a,p)=>a+p.bags*p.price,0);
+  c.spent=S.purchases.reduce((a,p)=>a+p.bags*p.price*(p.disc?1-s.disc/100:1),0);
+  return c;
+}
+
+function kpi(l,v,sub,cls=''){return `<div class="kpi"><div class="k-l"><img src="${FAV}" alt="">${l}</div><div class="k-v ${cls}">${v}</div>${sub?`<div class="k-s">${sub}</div>`:''}</div>`}
+function dual(l,a,b,sub){const d=S.settings.disc;return `<div class="kpi"><div class="k-l"><img src="${FAV}" alt="">${l}</div><div class="k-v">${a}</div><div class="k-v alt">${b}</div><div class="k-s">sans remise / avec −${nf(d,0)} % ${sub?'· '+sub:''}</div></div>`}
+
+function renderKPI(c){
+  const s=c.s,K=[];
+  K.push(kpi('Stock restant',nf(c.stock,0)+' kg',`${nf(c.stock/s.bagKg,1)} sacs · ≈ ${nf(c.stock/(s.bagKg/s.logsBag),0)} bûches`+(c.daysLeft!=null?` · ≈ ${nf(c.daysLeft,0)} j au rythme actuel`:''),c.stock<s.bagKg*2?'warn':''));
+  K.push(kpi('Consommé',nf(c.used,0)+' kg',`${nf(c.used/s.bagKg,1)} sacs`+(c.perDay!=null?` · ${nf(c.perDay,2)} kg/j de moyenne`:'')));
+  K.push(kpi('Rythme (14 derniers jours)',c.rate!=null?nf(c.rate,2)+' kg/j':'—',c.fc!=null?`Prévision 7 j : ≈ ${nf(c.fc,0)} kg`:'Prévision 7 j : besoin de la météo'));
+  K.push(kpi('Sensibilité météo',c.ratio!=null?nf(c.ratio,3)+' kg/DJU':'—',c.reg?`corrélation r = ${nf(c.reg.r,2)} (R² ${nf(c.reg.r*c.reg.r,2)})`:'données insuffisantes'));
+  K.push(dual('Poids nécessaire / an',c.annKg!=null?nf(c.annKg,0)+' kg':'—',c.annKg!=null?nf(c.annKg,0)+' kg':'—',c.annKg!=null?`${c.annBags} sacs · ≈ ${c.annLogs} bûches`:''));
+  K.push(dual('Coût annuel estimé',c.c0!=null?eur(c.c0,0):'—',c.c1!=null?eur(c.c1,0):'—',c.annBags!=null?`${c.annBags} sacs à ${eur(s.bagPrice)}`:''));
+  K.push(dual('Coût année prochaine (+'+nf(s.infl,1)+' %)',c.n0!=null?eur(c.n0,0):'—',c.n1!=null?eur(c.n1,0):'—',c.annBags!=null?`sac ≈ ${eur(s.bagPrice*(1+s.infl/100))} / ${eur(s.bagPrice*(1+s.infl/100)*(1-s.disc/100))}`:''));
+  K.push(dual('Prix du kWh brut',eur(c.ekwh0,3),eur(c.ekwh1,3),`${eur(s.bagPrice/s.bagKg)}/kg · ${nf(c.kwhBag,1)} kWh/sac`));
+  K.push(dual('Prix du kWh utile',eur(c.ekwhU0,3),eur(c.ekwhU1,3),`rendement ${nf(s.eff,0)} %`));
+  K.push(kpi('Énergie consommée',nf(c.used*s.pci,0)+' kWh',`utile ≈ ${nf(c.used*s.pci*s.eff/100,0)} kWh`));
+  K.push(kpi('Cendres produites',nf(c.used*s.ash/100,1)+' kg',`taux ${nf(s.ash,1)} % · humidité < ${nf(s.humid,0)} %`));
+  K.push(kpi('Dépensé à ce jour',eur(c.spent,2),`sans remise ${eur(c.spent0,2)} · économisé ${eur(c.spent0-c.spent,2)}`));
+  $('#kpis').innerHTML=K.join('');
+  $('#prodline').textContent=`${s.product} · PCI ${nf(s.pci,1)} kWh/kg · sac ${nf(s.bagKg,0)} kg (${nf(s.logsBag,0)} bûches ≈ ${nf(s.bagKg/s.logsBag,2)} kg) · ${eur(s.bagPrice)} · remise ${nf(s.disc,0)} %`;
+}
+
+/* ---------- graphiques ---------- */
+function niceMax(v){if(v<=0)return 1;const p=Math.pow(10,Math.floor(Math.log10(v))),m=v/p;return(m<=1?1:m<=2?2:m<=5?5:10)*p}
+const W=800,H=300,L=46,R=46,T=14,B=30;
+function empty(m){return `<div class="note" style="padding:30px 0;text-align:center">${m}</div>`}
+function xLabels(ds,xf){const n=ds.length,k=Math.min(6,n);let o='';for(let i=0;i<k;i++){const idx=k===1?0:Math.round(i*(n-1)/(k-1));o+=`<text x="${xf(idx)}" y="${H-8}" text-anchor="middle" font-size="11" fill="var(--mut)">${dm(ds[idx])}</text>`}return o}
+
+function chartDaily(ds,c){
+  if(!ds.length)return empty('Aucune donnée.');
+  const iw=W-L-R,ih=H-T-B,n=ds.length;
+  const kg=ds.map(d=>c.ubd[d]||0),ts=ds.map(tempOf);
+  const ymax=niceMax(Math.max(...kg,1));
+  const tv=ts.filter(v=>v!==null);
+  const tmin=Math.floor(Math.min(...tv,0)/5)*5,tmax=Math.ceil(Math.max(...tv,10)/5)*5;
+  const x=i=>L+(i+.5)*iw/n,yk=v=>T+ih-v/ymax*ih,yt=v=>T+ih-(v-tmin)/(tmax-tmin)*ih;
+  let o='';
+  for(let i=0;i<=4;i++){const y=T+ih*i/4;o+=`<line x1="${L}" x2="${W-R}" y1="${y}" y2="${y}" stroke="var(--grid)"/><text x="${L-6}" y="${y+4}" text-anchor="end" font-size="11" fill="var(--mut)">${nf(ymax*(1-i/4),ymax<5?1:0)}</text><text x="${W-R+6}" y="${y+4}" font-size="11" fill="var(--tline)">${nf(tmax-(tmax-tmin)*i/4,0)}°</text>`}
+  const bw=Math.max(1,iw/n*.7);
+  kg.forEach((v,i)=>{if(v>0)o+=`<rect x="${x(i)-bw/2}" y="${yk(v)}" width="${bw}" height="${T+ih-yk(v)}" fill="var(--bar)" rx="1"><title>${dm(ds[i])} : ${nf(v,2)} kg</title></rect>`});
+  let p='',pen=false;ts.forEach((v,i)=>{if(v===null){pen=false;return}p+=(pen?'L':'M')+x(i)+' '+yt(v);pen=true});
+  if(p)o+=`<path d="${p}" fill="none" stroke="var(--tline)" stroke-width="1.8"/>`;
+  o+=xLabels(ds,x);
+  o+=`<text x="${L}" y="10" font-size="11" fill="var(--bar)">■ kg/jour</text><text x="${L+70}" y="10" font-size="11" fill="var(--tline)">— T° moyenne</text>`;
+  return `<svg viewBox="0 0 ${W} ${H}">${o}</svg>`;
+}
+
+function chartStock(ds,c){
+  if(!ds.length)return empty('Aucune donnée.');
+  const s=c.s;let run=s.initBags*s.bagKg;
+  const pur={};S.purchases.forEach(p=>pur[p.date]=(pur[p.date]||0)+p.bags*s.bagKg);
+  const allEv=[...Object.keys(pur),...Object.keys(c.ubd)].sort();
+  const start=allEv[0];
+  const series={};
+  if(start){range(start<ds[0]?start:ds[0],ds[ds.length-1]).forEach(d=>{run+=(pur[d]||0)-(c.ubd[d]||0);series[d]=run})}
+  const vals=ds.map(d=>series[d]!==undefined?series[d]:s.initBags*s.bagKg);
+  const iw=W-L-R,ih=H-T-B,n=ds.length;
+  const mx=niceMax(Math.max(...vals,1)),mn=Math.min(0,...vals);
+  const x=i=>L+(i+.5)*iw/n,y=v=>T+ih-(v-mn)/(mx-mn)*ih;
+  let o='';
+  for(let i=0;i<=4;i++){const yy=T+ih*i/4;o+=`<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="var(--grid)"/><text x="${L-6}" y="${yy+4}" text-anchor="end" font-size="11" fill="var(--mut)">${nf(mx-(mx-mn)*i/4,0)}</text>`}
+  let p='M'+x(0)+' '+y(vals[0]);vals.forEach((v,i)=>{if(i)p+=`L${x(i)} ${y(vals[i-1])}L${x(i)} ${y(v)}`});
+  o+=`<path d="${p}L${x(n-1)} ${y(0)}L${x(0)} ${y(0)}Z" fill="var(--acc2)" opacity=".18"/><path d="${p}" fill="none" stroke="var(--acc2)" stroke-width="2"/>`;
+  if(mn<0)o+=`<line x1="${L}" x2="${W-R}" y1="${y(0)}" y2="${y(0)}" stroke="var(--warn)" stroke-dasharray="4 3"/>`;
+  o+=xLabels(ds,x);
+  return `<svg viewBox="0 0 ${W} ${H}">${o}</svg>`;
+}
+
+function chartScatter(c){
+  if(!c.pts||c.pts.length<5)return empty('Pas assez de jours avec température (≥ 5). Clique sur « ↻ Météo » ou saisis des températures.');
+  const iw=W-L-R,ih=H-T-B;
+  const xm=niceMax(Math.max(...c.pts.map(p=>p[0]),1)),ym=niceMax(Math.max(...c.pts.map(p=>p[1]),1));
+  const x=v=>L+v/xm*iw,y=v=>T+ih-v/ym*ih;
+  let o='';
+  for(let i=0;i<=4;i++){const yy=T+ih*i/4,xx=L+iw*i/4;o+=`<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="var(--grid)"/><text x="${L-6}" y="${yy+4}" text-anchor="end" font-size="11" fill="var(--mut)">${nf(ym*(1-i/4),ym<5?1:0)}</text><text x="${xx}" y="${H-8}" text-anchor="middle" font-size="11" fill="var(--mut)">${nf(xm*i/4,0)}</text>`}
+  c.pts.forEach(p=>o+=`<circle cx="${x(p[0])}" cy="${y(p[1])}" r="3.5" fill="var(--bar)" opacity=".55"/>`);
+  const g=c.reg;
+  if(g){const y0=Math.max(0,g.a),y1=g.a+g.b*xm;o+=`<line x1="${x(0)}" y1="${y(Math.min(ym,Math.max(0,g.a)))}" x2="${x(xm)}" y2="${y(Math.min(ym,Math.max(0,y1)))}" stroke="var(--tline)" stroke-width="2"/>`}
+  o+=`<text x="${W-R}" y="${H-8}" text-anchor="end" font-size="11" fill="var(--mut)">DJU du jour →</text>`;
+  return `<svg viewBox="0 0 ${W} ${H}">${o}</svg>`;
+}
+
+function renderCorr(c){
+  const g=c.reg;
+  if(!g){$('#corr').textContent='Corrélation indisponible : il faut au moins 5 jours avec une température connue.';return}
+  const a=Math.abs(g.r),q=a>=.7?'forte':a>=.4?'modérée':'faible';
+  $('#corr').innerHTML=`Corrélation <b>${q}</b> (r = ${nf(g.r,2)}, ${g.n} jours) : environ <b>${nf(g.b,3)} kg</b> de bois en plus par degré-jour, et ${nf(g.a,2)} kg/jour de base quand il ne fait pas froid.`;
+}
+
+function renderCharts(c){
+  const t=today(),r=parseInt($('#range').value);
+  const evDates=[...c.dates,...S.purchases.map(p=>p.date)].sort();
+  if(!evDates.length){['#ch1','#ch2'].forEach(i=>$(i).innerHTML=empty('Ajoute une consommation ou un achat pour démarrer.'));}
+  else{
+    let st=r?addDays(t,-(r-1)):evDates[0];if(!r&&evDates[0]>t)st=t;
+    const ds=range(st,t>evDates[evDates.length-1]?t:evDates[evDates.length-1]);
+    $('#ch1').innerHTML=chartDaily(ds,c);$('#ch2').innerHTML=chartStock(ds,c);
+  }
+  $('#ch3').innerHTML=chartScatter(c);renderCorr(c);
+}
+
+/* ---------- tableaux ---------- */
+function renderTables(c){
+  const s=c.s,m={};
+  c.dates.forEach(d=>{const k=d.slice(0,7);(m[k]=m[k]||{kg:0,ts:[]}).kg+=c.ubd[d]});
+  Object.keys(m).forEach(k=>{const a=k+'-01',e=addDays(addDays(a,32).slice(0,8)+'01',-1);range(a>c.first?a:c.first,e<c.last?e:c.last).forEach(d=>{const v=tempOf(d);if(v!==null)m[k].ts.push(v)})});
+  const ks=Object.keys(m).sort().reverse();
+  $('#monthly').innerHTML=`<tr><th>Mois</th><th>kg</th><th>Sacs</th><th>T° moy.</th><th>Coût</th><th>Avec −${nf(s.disc,0)} %</th></tr>`+(ks.length?ks.map(k=>{const v=m[k],b=v.kg/s.bagKg,t=v.ts.length?v.ts.reduce((a,b)=>a+b,0)/v.ts.length:null;return `<tr><td>${k.slice(5)}/${k.slice(0,4)}</td><td>${nf(v.kg,1)}</td><td>${nf(b,1)}</td><td>${t!==null?nf(t,1)+'°':'—'}</td><td>${eur(b*s.bagPrice)}</td><td>${eur(b*s.bagPrice*(1-s.disc/100))}</td></tr>`}).join(''):'<tr><td colspan="6">—</td></tr>');
+  const us=[...S.usage].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,150);
+  $('#t-usage').innerHTML=`<tr><th>Date</th><th>kg</th><th>T°</th><th>Note</th><th></th></tr>`+(us.length?us.map(u=>{const t=tempOf(u.date);return `<tr><td>${dm(u.date)}/${u.date.slice(0,4)}</td><td>${nf(u.kg,2)}</td><td>${t!==null?nf(t,1)+'°':'—'}</td><td style="text-align:left">${(u.note||'').replace(/</g,'&lt;')}</td><td><button class="x" data-du="${u.id}">✕</button></td></tr>`}).join(''):'<tr><td colspan="5">—</td></tr>');
+  const ps=[...S.purchases].sort((a,b)=>b.date.localeCompare(a.date));
+  $('#t-pur').innerHTML=`<tr><th>Date</th><th>Sacs</th><th>Prix/sac</th><th>Total</th><th></th></tr>`+(ps.length?ps.map(p=>{const tot=p.bags*p.price*(p.disc?1-s.disc/100:1);return `<tr><td>${dm(p.date)}/${p.date.slice(0,4)}</td><td>${p.bags}</td><td>${eur(p.price)}</td><td>${eur(tot)}${p.disc?` <span class="sub">(−${nf(s.disc,0)} %)</span>`:''}</td><td><button class="x" data-dp="${p.id}">✕</button></td></tr>`}).join(''):'<tr><td colspan="5">—</td></tr>');
+}
+
+function render(){const c=compute();renderKPI(c);renderCharts(c);renderTables(c);$('#p-disc-l').textContent='−'+nf(S.settings.disc,0)+' %';document.title='Suivi bois – '+nf(c.stock,0)+' kg en stock'}
+
+/* ---------- paramètres ---------- */
+function buildSettings(){
+  $('#settings').innerHTML=SET.map(([k,l,t,u])=>`<label>${l}${u?' ('+u+')':''}<input data-k="${k}" type="${t}" ${t==='number'?'step="any"':''} value="${S.settings[k]}"></label>`).join('');
+  $('#settings').querySelectorAll('input').forEach(i=>i.addEventListener('change',()=>{const k=i.dataset.k;const v=i.type==='number'?parseFloat(i.value):i.value;if(i.type==='number'&&!isFinite(v))return;S.settings[k]=v;save();$('#p-price').value=S.settings.bagPrice;render();if(k==='lat'||k==='lon'||k==='base')fetchWeather()}));
+}
+
+/* ---------- météo (Open-Meteo) ---------- */
+async function fetchWeather(){
+  const s=S.settings,st=$('#wxstat'),t=today();
+  const ud=S.usage.map(u=>u.date).sort();
+  const start=ud.length?ud[0]:addDays(t,-30),cut=addDays(t,-8);
+  st.textContent='Météo : chargement…';
+  const merge=j=>{if(!j||!j.daily)return;j.daily.time.forEach((d,i)=>{const v=j.daily.temperature_2m_mean[i];if(typeof v==='number')S.wx[d]={tm:v}})};
+  try{
+    if(start<=cut){merge(await(await fetch(`https://archive-api.open-meteo.com/v1/archive?latitude=${s.lat}&longitude=${s.lon}&start_date=${start}&end_date=${cut}&daily=temperature_2m_mean&timezone=Europe%2FParis`)).json())}
+    merge(await(await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${s.lat}&longitude=${s.lon}&daily=temperature_2m_mean&past_days=10&forecast_days=8&timezone=Europe%2FParis`)).json());
+    save();st.textContent=`Météo : ${s.city} · mise à jour ${new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`;
+  }catch(e){st.textContent='Météo indisponible (hors ligne ?) — saisis la T° à la main si besoin.'}
+  render();
+}
+
+/* ---------- actions ---------- */
+$('#u-add').onclick=()=>{
+  const q=parseFloat($('#u-q').value);if(!(q>0))return;
+  const un=$('#u-unit').value,kg=un==='bag'?q*S.settings.bagKg:un==='log'?q*S.settings.bagKg/S.settings.logsBag:q;
+  const t=parseFloat($('#u-t').value);
+  S.usage.push({id:uid(),date:$('#u-date').value||today(),kg,t:isFinite(t)?t:undefined,note:$('#u-note').value.trim()});
+  $('#u-t').value='';$('#u-note').value='';save();render();
+};
+$('#p-add').onclick=()=>{
+  const b=parseFloat($('#p-bags').value),p=parseFloat($('#p-price').value);if(!(b>0)||!(p>=0))return;
+  S.purchases.push({id:uid(),date:$('#p-date').value||today(),bags:b,price:p,disc:$('#p-disc').checked});save();render();
+};
+document.addEventListener('click',e=>{
+  const a=e.target.dataset;
+  if(a.du){S.usage=S.usage.filter(u=>u.id!==a.du);save();render()}
+  if(a.dp){S.purchases=S.purchases.filter(p=>p.id!==a.dp);save();render()}
+});
+$('#range').onchange=render;
+$('#wx-btn').onclick=fetchWeather;
+$('#exp').onclick=()=>{const b=new Blob([JSON.stringify(S,null,1)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='suivi-bois-'+today()+'.json';a.click()};
+$('#imp').onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(x=>{try{const j=JSON.parse(x);S={settings:{...DEF,...j.settings},purchases:j.purchases||[],usage:j.usage||[],wx:j.wx||{}};save();buildSettings();render()}catch(_){alert('Fichier invalide')}})};
+$('#clr').onclick=()=>{if(confirm('Effacer toutes les données (le paramétrage est conservé) ?')){S.usage=[];S.purchases=[];S.wx={};save();render()}};
+$('#demo').onclick=()=>{
+  if((S.usage.length||S.purchases.length)&&!confirm('Remplacer les données actuelles par un exemple ?'))return;
+  const t=today();S.usage=[];S.purchases=[{id:uid(),date:addDays(t,-62),bags:16,price:S.settings.bagPrice,disc:false},{id:uid(),date:addDays(t,-20),bags:8,price:S.settings.bagPrice,disc:true}];
+  range(addDays(t,-60),t).forEach((d,i)=>{const tm=9+5*Math.sin(i/9)+((i*7)%5-2)*.8-i*.04;const need=Math.max(0,S.settings.base-tm)*0.085;const kg=Math.round(need*(0.85+((i*13)%7)/20)/0.5)*0.5;if(kg>0)S.usage.push({id:uid(),date:d,kg,t:Math.round(tm*10)/10,note:''})});
+  save();render();
+};
+
+$('#u-date').value=today();$('#p-date').value=today();$('#p-price').value=S.settings.bagPrice;
+buildSettings();render();fetchWeather();
+</script>
+</body>
+</html>
