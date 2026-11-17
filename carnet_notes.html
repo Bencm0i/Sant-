@@ -3205,53 +3205,59 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
 }
 
 
-/* MOSAÏQUE DES ONGLETS */
-.mosaic-panel{
+/* EXPLORATEUR DES ONGLETS (liste à colonnes réglables) */
+.xp-panel{
   position:fixed;inset:0;background:rgba(43,38,32,0.45);z-index:55;
   display:none;align-items:stretch;justify-content:center;padding:20px;
 }
-.mosaic-inner{
+.xp-inner{
   background:var(--paper);border:1.5px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);
   width:100%;max-width:1280px;display:flex;flex-direction:column;min-height:0;overflow:hidden;
 }
-.mosaic-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 18px;border-bottom:1.5px solid var(--line);flex-shrink:0;}
-.mosaic-head h2{font-family:'Lora',serif;font-weight:700;font-size:1.1rem;margin-right:auto;}
-.mosaic-count{font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:var(--ink-soft);}
-.mosaic-filter{
+.xp-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 18px;border-bottom:1.5px solid var(--line);flex-shrink:0;}
+.xp-head h2{font-family:'Lora',serif;font-weight:700;font-size:1.1rem;margin-right:auto;}
+.xp-count{font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:var(--ink-soft);}
+.xp-filter{
   font-family:'Inter',sans-serif;font-size:0.82rem;padding:7px 12px;border-radius:999px;
   border:1.5px solid var(--line);background:#fff;color:var(--ink);outline:none;min-width:180px;
 }
-.mosaic-filter:focus{border-color:var(--accent);}
-.mosaic-grid{
-  flex:1;min-height:0;overflow-y:auto;padding:18px;
-  display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;align-content:start;
+.xp-filter:focus{border-color:var(--accent);}
+.xp-scroll{flex:1;min-height:0;overflow:auto;background:#fff;}
+.xp-table{min-width:max-content;--xp-name:300px;--xp-desc:420px;--xp-created:150px;--xp-mod:150px;}
+.xp-row{
+  display:grid;grid-template-columns:var(--xp-name) var(--xp-desc) var(--xp-created) var(--xp-mod);
+  border-bottom:1px solid var(--line);align-items:center;
 }
-.mosaic-card{
-  display:flex;flex-direction:column;gap:8px;text-align:left;cursor:default;
-  background:#fff;border:1.5px solid var(--line);border-top:6px solid var(--card-color,#8a8272);border-radius:10px;
-  padding:12px 14px 12px;align-self:start;
-  font-family:'Inter',sans-serif;color:var(--ink);transition:transform .15s,box-shadow .15s,border-color .15s;
+.xp-hrow{position:sticky;top:0;z-index:2;background:var(--paper-dim);border-bottom:1.5px solid var(--line);}
+.xp-hcell{
+  position:relative;display:flex;align-items:center;gap:6px;padding:8px 12px;cursor:pointer;user-select:none;
+  font-family:'Inter',sans-serif;font-size:0.76rem;font-weight:700;color:var(--ink-soft);
+  border-right:1px solid var(--line);overflow:hidden;white-space:nowrap;
 }
-.mosaic-card:hover{box-shadow:var(--shadow);border-color:var(--accent);}
-.mosaic-card.active{outline:2px solid var(--accent);outline-offset:2px;}
-.mosaic-card.child{border-left:4px dashed var(--card-color,#8a8272);}
-.mosaic-title{font-family:'Lora',serif;font-weight:700;font-size:0.95rem;line-height:1.25;display:flex;align-items:flex-start;gap:6px;word-break:break-word;}
-.mosaic-parent{font-family:'IBM Plex Mono',monospace;font-size:0.64rem;color:var(--ink-soft);}
-.mosaic-summary{
-  font-family:'Inter',sans-serif;font-size:0.8rem;line-height:1.5;color:var(--ink);
-  width:100%;flex:none;resize:none;overflow:hidden;box-sizing:border-box;display:block;
-  background:var(--paper-dim);border:1.5px solid var(--line);border-radius:8px;padding:7px 9px;outline:none;
+.xp-hcell:hover{color:var(--accent);background:rgba(47,93,98,0.06);}
+.xp-hcell:last-child{border-right:none;}
+.xp-sort{color:var(--accent);font-size:0.7rem;}
+.xp-grip{position:absolute;top:0;right:0;width:9px;height:100%;cursor:col-resize;z-index:1;}
+.xp-grip::after{content:'';position:absolute;top:22%;bottom:22%;right:3px;width:2px;border-radius:2px;background:transparent;transition:background .15s;}
+.xp-hcell:hover .xp-grip::after,.xp-grip.dragging::after{background:var(--accent);}
+.xp-body .xp-row{cursor:pointer;transition:background .1s;}
+.xp-body .xp-row:hover{background:rgba(47,93,98,0.07);}
+.xp-body .xp-row.active{background:rgba(47,93,98,0.14);}
+.xp-cell{padding:7px 12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Inter',sans-serif;font-size:0.82rem;color:var(--ink);}
+.xp-date{font-family:'IBM Plex Mono',monospace;font-size:0.74rem;color:var(--ink-soft);}
+.xp-date.none{opacity:.4;}
+.xp-name{display:flex;align-items:center;gap:8px;font-family:'Lora',serif;font-weight:600;}
+.xp-name .xp-ico{width:10px;height:14px;border-radius:2px;flex-shrink:0;}
+.xp-name .xp-txt{overflow:hidden;text-overflow:ellipsis;}
+.xp-desc-input{
+  width:100%;font:inherit;color:var(--ink-soft);font-style:italic;background:transparent;border:1.5px solid transparent;
+  border-radius:5px;padding:2px 6px;outline:none;text-overflow:ellipsis;
 }
-.mosaic-summary:focus{border-color:var(--accent);background:#fff;}
-.mosaic-summary::placeholder{color:#b3a996;font-style:italic;}
-.mosaic-more{align-self:flex-start;font-family:'IBM Plex Mono',monospace;font-size:0.68rem;color:var(--ink-soft);background:var(--paper-dim);border:1px solid var(--line);border-radius:999px;padding:2px 10px;cursor:pointer;}
-.mosaic-more:hover{border-color:var(--accent);color:var(--accent);}
-.mosaic-open{align-self:flex-start;font-family:'IBM Plex Mono',monospace;font-size:0.68rem;color:var(--accent);background:none;border:none;padding:0;cursor:pointer;}
-.mosaic-open:hover{text-decoration:underline;}
-.mosaic-foot{display:flex;gap:6px;flex-wrap:wrap;font-family:'IBM Plex Mono',monospace;font-size:0.64rem;color:var(--ink-soft);}
-.mosaic-foot span{background:var(--paper-dim);border:1px solid var(--line);border-radius:999px;padding:1px 7px;}
-.mosaic-empty{grid-column:1/-1;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:0.8rem;color:var(--ink-soft);padding:30px 0;}
-@media (max-width:820px){ .mosaic-panel{padding:8px;} .mosaic-grid{grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;padding:12px;} }
+.xp-desc-input:hover{border-color:var(--line);}
+.xp-desc-input:focus{border-color:var(--accent);background:#fff;font-style:normal;color:var(--ink);}
+.xp-desc-input::placeholder{color:#c2b9a8;}
+.xp-empty{text-align:center;font-family:'IBM Plex Mono',monospace;font-size:0.8rem;color:var(--ink-soft);padding:30px 0;}
+@media (max-width:820px){ .xp-panel{padding:8px;} }
 
 /* ── MARGES : palette de tags, liseré, panneau ── */
 .mtags-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 16px;border-bottom:1.5px solid var(--line);flex-shrink:0;}
@@ -3572,7 +3578,7 @@ h1 .spine{width:7px;height:16px;}
         <button type="button" onclick="zoomStep(1)" title="Zoom avant">+</button>
       </div>
       <button class="btn" onclick="toggleSidebar()" title="Afficher/masquer la liste des onglets (Alt+S)">☰ Onglets</button>
-      <button class="btn" onclick="toggleMosaic()" title="Voir tous les onglets en mosaïque et y coller un résumé (Alt+M)">▦ Mosaïque</button>
+      <button class="btn" onclick="toggleExplorer()" title="Liste de tous les onglets : nom, description, dates, colonnes réglables (Alt+M)">☰ Liste</button>
       <button class="btn" id="planBtn" onclick="togglePlan()" title="Plan : la mise en page de tous les onglets en un coup d'œil, avec recherche visible (Alt+L)">🗺 Plan</button>
       <button class="btn" onclick="toggleHelp()" title="Raccourcis clavier (touche ?)">⌨</button>
       <button class="btn" id="fileLinkBtn" onclick="toggleFilePanel()" title="Lier un fichier JSON : le carnet s'y enregistre automatiquement et s'en recharge à l'ouverture">🔗 Fichier JSON</button>
@@ -3612,15 +3618,15 @@ h1 .spine{width:7px;height:16px;}
 
 <span style="position:fixed;bottom:4px;right:8px;font-size:9px;color:#c7bfae;z-index:1;pointer-events:none;font-family:monospace;">build 2026-11-12-plan</span>
 
-<div class="mosaic-panel" id="mosaicPanel" style="display:none;">
-  <div class="mosaic-inner">
-    <div class="mosaic-head">
-      <h2>▦ Mosaïque des onglets</h2>
-      <span class="mosaic-count" id="mosaicCount"></span>
-      <input type="text" class="mosaic-filter" id="mosaicFilter" placeholder="Filtrer…" oninput="renderMosaic()">
-      <button class="btn" onclick="toggleMosaic()" title="Fermer (Échap)">✕ Fermer</button>
+<div class="xp-panel" id="xpPanel" style="display:none;">
+  <div class="xp-inner">
+    <div class="xp-head">
+      <h2>☰ Liste des onglets</h2>
+      <span class="xp-count" id="xpCount"></span>
+      <input type="text" class="xp-filter" id="xpFilter" placeholder="Filtrer…" oninput="renderExplorer()">
+      <button class="btn" onclick="toggleExplorer()" title="Fermer (Échap)">✕ Fermer</button>
     </div>
-    <div class="mosaic-grid" id="mosaicGrid"></div>
+    <div class="xp-scroll"><div class="xp-table" id="xpTable"></div></div>
   </div>
 </div>
 
@@ -3629,7 +3635,7 @@ h1 .spine{width:7px;height:16px;}
     <h2>Raccourcis clavier</h2>
     <ul>
       <li><code>Alt+N</code><span>Nouvel onglet</span></li>
-      <li><code>Alt+M</code><span>Mosaïque des onglets (résumés cliquables)</span></li>
+      <li><code>Alt+M</code><span>Liste des onglets (nom, description, dates)</span></li>
       <li><code>Alt+S</code><span>Afficher/masquer les onglets</span></li>
       <li><code>Alt+F</code><span>Aller à la recherche</span></li>
       <li><code>Alt+L</code><span>Plan des onglets (mise en page de toutes les notes + recherche visible)</span></li>
@@ -4439,7 +4445,7 @@ function applySavedSidebarState(){
 function addTab(){
   const id = uid();
   const color = PALETTE[state.order.length % PALETTE.length];
-  state.tabs[id] = { name:'Nouvel onglet', color, raw:'', ia:'', description:'', parentId:null };
+  state.tabs[id] = { name:'Nouvel onglet', color, raw:'', ia:'', description:'', parentId:null, createdAt:Date.now(), modifiedAt:Date.now() };
   state.order.push(id);
   activeId = id;
   persist();
@@ -4454,7 +4460,7 @@ function addTab(){
 // ── SÉPARATEURS (simple ligne de rupture visuelle entre onglets, niveau racine) ─
 function addSeparator(){
   const id = uid();
-  state.tabs[id] = { type:'separator', name:'', color:'', raw:'', ia:'', description:'', parentId:null };
+  state.tabs[id] = { type:'separator', name:'', color:'', raw:'', ia:'', description:'', parentId:null, createdAt:Date.now() };
   state.order.push(id);
   persist();
   renderTabs();
@@ -4521,7 +4527,7 @@ function duplicateTab(id){
   const src = state.tabs[id];
   if(!src) return;
   const newId = uid();
-  state.tabs[newId] = { name: (src.name || 'Sans titre') + ' (copie)', color: src.color, raw: src.raw || '', ia: src.ia || '', description: src.description || '', resume: src.resume || '', parentId: src.parentId || null, paths: JSON.parse(JSON.stringify(Array.isArray(src.paths) ? src.paths : [])) };
+  state.tabs[newId] = { name: (src.name || 'Sans titre') + ' (copie)', color: src.color, raw: src.raw || '', ia: src.ia || '', description: src.description || '', resume: src.resume || '', createdAt: Date.now(), modifiedAt: Date.now(), parentId: src.parentId || null, paths: JSON.parse(JSON.stringify(Array.isArray(src.paths) ? src.paths : [])) };
   const idx = state.order.indexOf(id);
   state.order.splice(idx + 1, 0, newId);
   activeId = newId;
@@ -4552,6 +4558,7 @@ function updateActiveRow(){
 function renameTab(id, val){
   if(id === BROUILLON_ID) return;
   state.tabs[id].name = val;
+  state.tabs[id].modifiedAt = Date.now();
   persist();
   const active = state.tabs[activeId];
   if(active && active.parentId === id) updateBreadcrumb();
@@ -4560,6 +4567,7 @@ function renameTab(id, val){
 function describeTab(id, val){
   if(!state.tabs[id]) return;
   state.tabs[id].description = val;
+  state.tabs[id].modifiedAt = Date.now();
   persist();
 }
 
@@ -5101,6 +5109,7 @@ function updateCounts(){
 function onEdit(which){
   if(!activeId) return;
   const t = state.tabs[activeId];
+  t.modifiedAt = Date.now();
   if(which==='raw') t.raw = document.getElementById('rawArea').value;
   else t.ia = document.getElementById('iaArea').value;
   updateCounts();
@@ -5892,6 +5901,7 @@ function toggleTaskGlobal(tabId, field, index){
   });
   if(newValue === text) return;
   t[field] = newValue;
+  t.modifiedAt = Date.now();
   persist();
   if(activeId === tabId){
     const areaId = field === 'raw' ? 'rawArea' : 'iaArea';
@@ -6427,7 +6437,7 @@ function handlePreviewLinkClick(e){
   } else if(confirm(`L'onglet "${name}" n'existe pas encore. Le créer comme sous-onglet ?`)){
     const id = uid();
     const color = PALETTE[state.order.length % PALETTE.length];
-    state.tabs[id] = { name, color, raw:'', ia:'', description:'', parentId: activeId };
+    state.tabs[id] = { name, color, raw:'', ia:'', description:'', parentId: activeId, createdAt:Date.now(), modifiedAt:Date.now() };
     state.order.push(id);
     activeId = id;
     persist();
@@ -7171,7 +7181,7 @@ function handleNoteLinkClick(e){
   } else if(confirm(`L'onglet "${name}" n'existe pas encore. Le créer comme sous-onglet ?`)){
     const id = uid();
     const color = PALETTE[state.order.length % PALETTE.length];
-    state.tabs[id] = { name, color, raw:'', ia:'', description:'', parentId: activeId };
+    state.tabs[id] = { name, color, raw:'', ia:'', description:'', parentId: activeId, createdAt:Date.now(), modifiedAt:Date.now() };
     state.order.push(id);
     activeId = id;
     persist();
@@ -8451,161 +8461,187 @@ async function initApp(){
 }
 initApp();
 
-// ── MOSAÏQUE DES ONGLETS ─────────────────────────────────────────────────────
-// (Plus utilisé par la mosaïque : les résumés sont maintenant collés à la main dans chaque carte.)
-function mosaicExcerpt(t, max){
-  let txt = ((t.ia && t.ia.trim()) ? t.ia : (t.raw || '')).slice(0, 4000);
-  txt = txt
-    .replace(/```[\s\S]*?```/g, ' ')
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
-    .replace(/\[\[([^\]]+)\]\]/g, '$1')
-    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
-    .replace(/^\s*#[a-zA-Z0-9À-ÿ_-]+\s*:\s*/gm, '')
-    .replace(/^\s{0,3}#{1,6}\s+/gm, '')
-    .replace(/^\s*>\s?/gm, '')
-    .replace(/^\s*(?:[-*+]|\d+[.)])\s+(?:\[[ xX]\]\s+)?/gm, '• ')
-    .replace(/=={(?:jaune|vert|rose|bleu)}/g, '')
-    .replace(/(\*\*|__|~~|==|`)/g, '')
-    .replace(/\[\d{2}\/\d{2}\/\d{4}[^\]]*\]/g, '')
-    .replace(/\s*\n\s*/g, ' ')
-    .replace(/\s{2,}/g, ' ')
-    .trim();
-  return txt.length > max ? txt.slice(0, max).replace(/\s+\S*$/, '') + '…' : txt;
+// ── LISTE DES ONGLETS (type explorateur) ─────────────────────────────────────
+// Colonnes : nom, description (modifiable ici), date de création, date de modification.
+// Largeurs réglables en glissant le bord des en-têtes (mémorisées) ; clic sur un en-tête = tri.
+const XP_WIDTHS_KEY = 'carnet_notes_xp_widths';
+const XP_COLS = [
+  { key:'name',    label:'Nom',                  def:300, min:120 },
+  { key:'desc',    label:'Description',          def:420, min:120 },
+  { key:'created', label:'Date de création',     def:150, min:110 },
+  { key:'mod',     label:'Date de modification', def:150, min:110 }
+];
+let xpWidths = {};
+let xpSort = { key:null, dir:1 };   // key null = ordre du carnet (avec hiérarchie)
+try{ xpWidths = JSON.parse(localStorage.getItem(XP_WIDTHS_KEY) || '{}') || {}; }catch(e){ xpWidths = {}; }
+
+function xpFmtDate(ts){
+  if(!ts) return null;
+  const d = new Date(ts), pad = n => String(n).padStart(2,'0');
+  return pad(d.getDate()) + '/' + pad(d.getMonth()+1) + '/' + d.getFullYear() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+function xpApplyWidths(){
+  const tbl = document.getElementById('xpTable');
+  if(!tbl) return;
+  XP_COLS.forEach(c=> tbl.style.setProperty('--xp-' + c.key, (xpWidths[c.key] || c.def) + 'px'));
+}
+function xpStartResize(e, col){
+  e.preventDefault(); e.stopPropagation();
+  const grip = e.currentTarget;
+  const startX = e.clientX, startW = xpWidths[col.key] || col.def;
+  grip.classList.add('dragging');
+  document.body.style.cursor = 'col-resize';
+  document.body.style.userSelect = 'none';
+  const move = ev=>{
+    xpWidths[col.key] = Math.max(col.min, Math.round(startW + ev.clientX - startX));
+    xpApplyWidths();
+  };
+  const up = ()=>{
+    window.removeEventListener('mousemove', move);
+    window.removeEventListener('mouseup', up);
+    grip.classList.remove('dragging');
+    document.body.style.cursor = ''; document.body.style.userSelect = '';
+    try{ localStorage.setItem(XP_WIDTHS_KEY, JSON.stringify(xpWidths)); }catch(_){}
+  };
+  window.addEventListener('mousemove', move);
+  window.addEventListener('mouseup', up);
+}
+function xpSortBy(key){
+  if(xpSort.key !== key) xpSort = { key, dir:1 };
+  else if(xpSort.dir === 1) xpSort.dir = -1;
+  else xpSort = { key:null, dir:1 };   // 3e clic : retour à l'ordre du carnet
+  renderExplorer();
 }
 
-function toggleMosaic(){
-  const p = document.getElementById('mosaicPanel');
+function toggleExplorer(){
+  const p = document.getElementById('xpPanel');
   const opening = p.style.display !== 'flex';
   p.style.display = opening ? 'flex' : 'none';
   if(opening){
-    const f = document.getElementById('mosaicFilter');
+    const f = document.getElementById('xpFilter');
     f.value = '';
-    renderMosaic();
+    renderExplorer();
     f.focus();
   }
 }
-
-function mosaicGo(id){
-  document.getElementById('mosaicPanel').style.display = 'none';
+function xpGo(id){
+  document.getElementById('xpPanel').style.display = 'none';
   if(activeId === id) return;
   selectTab(id);
 }
 
-// Résumé replié sur 8 lignes (lecture rapide). Si le texte est plus long, un bouton permet de le déployer.
-const MOSAIC_LINES = 8;
-function mosaicFit(ta){
-  const card = ta.closest('.mosaic-card');
-  const btn = card && card.querySelector('.mosaic-more');
-  const open = ta.dataset.open === '1';
-  ta.style.height = 'auto';
-  const full = ta.scrollHeight + 2;
-  const lh = parseFloat(getComputedStyle(ta).lineHeight) || 19;
-  const collapsed = Math.round(lh * MOSAIC_LINES + 18);
-  const long = full > collapsed + 4;
-  ta.style.height = ((long && !open) ? collapsed : Math.max(full, collapsed)) + 'px';
-  if(btn){
-    btn.style.display = long ? '' : 'none';
-    btn.textContent = open ? 'Réduire ▴' : 'Déployer ▾';
-  }
-}
-function mosaicFitAll(){
-  document.querySelectorAll('#mosaicGrid .mosaic-summary').forEach(mosaicFit);
-}
-window.addEventListener('resize', ()=>{
-  if(document.getElementById('mosaicPanel').style.display === 'flex') mosaicFitAll();
-});
+function renderExplorer(){
+  const tbl = document.getElementById('xpTable');
+  const q = document.getElementById('xpFilter').value.trim().toLowerCase();
+  tbl.textContent = '';
+  xpApplyWidths();
 
-function renderMosaic(){
-  const grid = document.getElementById('mosaicGrid');
-  const q = document.getElementById('mosaicFilter').value.trim().toLowerCase();
-  grid.innerHTML = '';
-  let n = 0, total = 0;
-  computeDisplayOrder().forEach(({id})=>{
+  // en-têtes
+  const head = document.createElement('div');
+  head.className = 'xp-row xp-hrow';
+  XP_COLS.forEach(col=>{
+    const h = document.createElement('div');
+    h.className = 'xp-hcell';
+    h.title = 'Trier par « ' + col.label + ' »';
+    h.appendChild(document.createTextNode(col.label));
+    if(xpSort.key === col.key){
+      const a = document.createElement('span');
+      a.className = 'xp-sort';
+      a.textContent = xpSort.dir === 1 ? '▲' : '▼';
+      h.appendChild(a);
+    }
+    h.onclick = ()=> xpSortBy(col.key);
+    const grip = document.createElement('span');
+    grip.className = 'xp-grip';
+    grip.title = 'Glisser pour régler la largeur';
+    grip.onclick = e=> e.stopPropagation();
+    grip.onmousedown = e=> xpStartResize(e, col);
+    h.appendChild(grip);
+    head.appendChild(h);
+  });
+  tbl.appendChild(head);
+
+  // lignes
+  let rows = [];
+  computeDisplayOrder().forEach(({id, depth})=>{
     const t = state.tabs[id];
     if(!t || t.type === 'separator') return;
-    total++;
-    const name = id === BROUILLON_ID ? 'Brouillon' : (t.name || 'Sans titre');
-    const resume = (t.resume || '').trim();
-    if(q){
-      const hay = (name + ' ' + resume + ' ' + (t.description || '') + ' ' + (t.raw || '') + ' ' + (t.ia || '')).toLowerCase();
-      if(hay.indexOf(q) < 0) return;
-    }
-    n++;
-    const card = document.createElement('div');
-    const parent = (t.parentId && state.tabs[t.parentId]) ? state.tabs[t.parentId] : null;
-    card.className = 'mosaic-card' + (id === activeId ? ' active' : '') + (parent ? ' child' : '');
-    card.style.setProperty('--card-color', t.color || '#8a8272');
-
-    const title = document.createElement('div');
-    title.className = 'mosaic-title';
-    title.style.cursor = 'pointer';
-    title.title = 'Ouvrir cet onglet';
-    title.textContent = (t.pinned ? '📌 ' : '') + (id === BROUILLON_ID ? '📝 ' : '') + name;
-    title.onclick = ()=> mosaicGo(id);
-    card.appendChild(title);
-
-    if(parent){
-      const par = document.createElement('div');
-      par.className = 'mosaic-parent';
-      par.textContent = '↳ ' + (parent.name || 'Sans titre');
-      card.appendChild(par);
-    }
-
-    // Zone de texte : on y colle un résumé fait ailleurs (IA…), rien n'est généré automatiquement.
-    const sum = document.createElement('textarea');
-    sum.className = 'mosaic-summary';
-    sum.placeholder = 'Colle ici ton résumé…';
-    sum.value = t.resume || '';
-    sum.rows = MOSAIC_LINES;
-    sum.oninput = ()=>{ state.tabs[id].resume = sum.value; persist(); mosaicFit(sum); };
-    sum.onfocus = ()=>{ if(sum.dataset.open !== '1'){ sum.dataset.open = '1'; mosaicFit(sum); } }; // on déploie pour éditer
-    card.appendChild(sum);
-
-    const more = document.createElement('button');
-    more.type = 'button';
-    more.className = 'mosaic-more';
-    more.style.display = 'none';
-    more.onclick = ()=>{ sum.dataset.open = (sum.dataset.open === '1') ? '0' : '1'; mosaicFit(sum); };
-    card.appendChild(more);
-
-    const foot = document.createElement('div');
-    foot.className = 'mosaic-foot';
-    const words = countWords((t.raw || '') + ' ' + (t.ia || ''));
-    const w = document.createElement('span');
-    w.textContent = words + ' mot' + (words !== 1 ? 's' : '');
-    foot.appendChild(w);
-    const tasks = countTasks((t.raw || '') + '\n' + (t.ia || ''));
-    if(tasks.total){
-      const tk = document.createElement('span');
-      tk.textContent = '✓ ' + tasks.done + '/' + tasks.total;
-      foot.appendChild(tk);
-    }
-    const open = document.createElement('button');
-    open.type = 'button';
-    open.className = 'mosaic-open';
-    open.textContent = 'Ouvrir l\'onglet →';
-    open.onclick = ()=> mosaicGo(id);
-    card.appendChild(foot);
-    card.appendChild(open);
-    grid.appendChild(card);
+    rows.push({ id, depth, t, name: id === BROUILLON_ID ? 'Brouillon' : (t.name || 'Sans titre') });
   });
-  if(!n){
-    const e = document.createElement('div');
-    e.className = 'mosaic-empty';
-    e.textContent = total ? 'Aucun onglet ne correspond.' : 'Aucun onglet.';
-    grid.appendChild(e);
+  const total = rows.length;
+  if(q) rows = rows.filter(r=> (r.name + ' ' + (r.t.description || '')).toLowerCase().indexOf(q) >= 0);
+  if(xpSort.key){
+    const val = r => xpSort.key === 'name' ? r.name.toLowerCase()
+                  : xpSort.key === 'desc' ? (r.t.description || '').toLowerCase()
+                  : xpSort.key === 'created' ? (r.t.createdAt || 0)
+                  : (r.t.modifiedAt || 0);
+    rows.sort((a, b)=>{
+      const x = val(a), y = val(b);
+      const c = (typeof x === 'string') ? x.localeCompare(y, 'fr') : (x - y);
+      return c * xpSort.dir;
+    });
   }
-  mosaicFitAll();
-  document.getElementById('mosaicCount').textContent = (q ? n + ' / ' : '') + total + ' onglet' + (total !== 1 ? 's' : '');
+
+  const body = document.createElement('div');
+  body.className = 'xp-body';
+  rows.forEach(r=>{
+    const row = document.createElement('div');
+    row.className = 'xp-row' + (r.id === activeId ? ' active' : '');
+    row.onclick = ()=> xpGo(r.id);
+
+    const nameCell = document.createElement('div');
+    nameCell.className = 'xp-cell xp-name';
+    if(!xpSort.key && r.depth) nameCell.style.paddingLeft = (12 + r.depth * 18) + 'px';
+    const ico = document.createElement('span');
+    ico.className = 'xp-ico';
+    ico.style.background = r.t.color || '#8a8272';
+    const txt = document.createElement('span');
+    txt.className = 'xp-txt';
+    txt.textContent = (r.t.pinned ? '📌 ' : '') + (r.id === BROUILLON_ID ? '📝 ' : '') + r.name;
+    txt.title = r.name;
+    nameCell.append(ico, txt);
+
+    const descCell = document.createElement('div');
+    descCell.className = 'xp-cell';
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.className = 'xp-desc-input';
+    inp.value = r.t.description || '';
+    inp.placeholder = 'Descriptif (optionnel)';
+    inp.onclick = e=> e.stopPropagation();
+    inp.oninput = ()=> describeTab(r.id, inp.value);
+    inp.onchange = ()=> renderTabs();   // met à jour la liste latérale une fois la saisie terminée
+    inp.onkeydown = e=>{ e.stopPropagation(); if(e.key === 'Enter') inp.blur(); };
+    descCell.appendChild(inp);
+
+    const mkDate = ts=>{
+      const c = document.createElement('div');
+      const f = xpFmtDate(ts);
+      c.className = 'xp-cell xp-date' + (f ? '' : ' none');
+      c.textContent = f || '—';
+      if(!f) c.title = 'Date inconnue (onglet antérieur au suivi des dates)';
+      return c;
+    };
+    row.append(nameCell, descCell, mkDate(r.t.createdAt), mkDate(r.t.modifiedAt));
+    body.appendChild(row);
+  });
+  if(!rows.length){
+    const e = document.createElement('div');
+    e.className = 'xp-empty';
+    e.textContent = total ? 'Aucun onglet ne correspond.' : 'Aucun onglet.';
+    body.appendChild(e);
+  }
+  tbl.appendChild(body);
+  document.getElementById('xpCount').textContent = (q ? rows.length + ' / ' : '') + total + ' onglet' + (total !== 1 ? 's' : '');
 }
 
-document.getElementById('mosaicPanel').addEventListener('click', (e)=>{
-  if(e.target.id === 'mosaicPanel') toggleMosaic();
+document.getElementById('xpPanel').addEventListener('click', (e)=>{
+  if(e.target.id === 'xpPanel') toggleExplorer();
 });
 document.addEventListener('keydown', (e)=>{
-  const open = document.getElementById('mosaicPanel').style.display === 'flex';
-  if(e.key === 'Escape' && open){ e.preventDefault(); toggleMosaic(); return; }
-  if(e.altKey && !e.ctrlKey && !e.metaKey && e.key.toLowerCase() === 'm'){ e.preventDefault(); toggleMosaic(); }
+  const open = document.getElementById('xpPanel').style.display === 'flex';
+  if(e.key === 'Escape' && open){ e.preventDefault(); toggleExplorer(); return; }
+  if(e.altKey && !e.ctrlKey && !e.metaKey && e.key.toLowerCase() === 'm'){ e.preventDefault(); toggleExplorer(); }
 });
 
 // ── ZOOM DE LECTURE ──
