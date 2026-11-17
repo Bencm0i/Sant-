@@ -3552,6 +3552,16 @@ h1 .spine{width:7px;height:16px;}
 @media(max-width:820px){
   .plan-col{flex:0 0 auto;width:100%;max-height:300px;border-top:1.5px solid var(--line);}
 }
+
+/* ── COLONNES RÉGLABLES : poignées de redimensionnement ── */
+.tabs-col.collapsed + .col-resizer{display:none;}
+.marge-side.tags-hidden + .col-resizer{display:none;}
+.marge-body > .col-resizer{align-self:stretch;}
+.timeline-side,.plan-col{position:relative;}
+.col-grip{position:absolute;top:0;bottom:0;left:-4px;width:8px;cursor:col-resize;z-index:3;}
+.col-grip::after{content:'';position:absolute;top:50%;left:3px;width:2px;height:32px;transform:translateY(-50%);border-radius:2px;background:transparent;transition:background .15s;}
+.col-grip:hover::after,.col-grip.dragging::after{background:var(--accent);}
+@media(max-width:820px){ .col-grip{display:none;} }
 </style>
 </head>
 <body>
@@ -3780,6 +3790,8 @@ h1 .spine{width:7px;height:16px;}
     </div>
   </div>
 
+  <div class="col-resizer" data-rz="tabs" title="Glisser pour régler la largeur des onglets (double-clic : par défaut)"></div>
+
   <div class="text-col" id="rawCol">
     <div class="col-head">
       <span class="col-label"><span class="active-dot" id="rawDot"></span><span id="rawLabel">Marge</span><span class="mode-badge" id="rawModeBadge"></span></span>
@@ -3794,6 +3806,7 @@ h1 .spine{width:7px;height:16px;}
         </div>
         <div class="mtags-bar" id="mtagsBar"></div>
       </div>
+      <div class="col-resizer" data-rz="tags" title="Glisser pour régler la largeur des tags (double-clic : par défaut)"></div>
       <div class="marge-main">
         <div class="area-wrap" id="rawWrap">
           <textarea class="note-area" id="rawArea" placeholder="Écris ici tes notes de marge… (markdown supporté)" oninput="onEdit('raw')"></textarea>
@@ -3867,6 +3880,7 @@ h1 .spine{width:7px;height:16px;}
     <div class="note-preview" id="iaAccordionView" style="display:none;"></div>
     </div>
     <aside class="timeline-side" id="iaTimeline" aria-label="Chronologie des horodatages">
+      <div class="col-grip" data-rz="tl" title="Glisser pour régler la largeur de la chronologie (double-clic : par défaut)"></div>
       <div class="tl-head">
         <span class="tl-title">🕒 Chronologie<span class="tl-count" id="tlCount"></span></span>
         <button type="button" class="tl-close" onclick="toggleTimeline()" title="Masquer la chronologie (Alt+T)">✕</button>
@@ -3881,6 +3895,7 @@ h1 .spine{width:7px;height:16px;}
     <div class="char-count" id="iaCount">0 caractère</div>
   </div>
   <aside class="plan-col" id="planCol" aria-label="Plan de tous les onglets">
+    <div class="col-grip" data-rz="plan" title="Glisser pour régler la largeur du plan (double-clic : par défaut)"></div>
     <div class="plan-head">
       <div class="plan-title-row">
         <span class="plan-title">🗺 Plan des onglets<span class="plan-count" id="planCount"></span></span>
@@ -8689,6 +8704,7 @@ const PLAN_CB_RE = /^\s*(?:>\s*)*(?:[-*+]|\d+[.)])\s+\[([ xX])\]/;
 const PLAN_LANE = { img:'#2e8fb0', ts:'#45566b', path:'#8a5a2b', hl:'#e0b400', lnk:'#7a5a8f' };
 
 let planPrefs = { mode:'both', size:'m', only:false };
+let planCustomW = null;   // largeur réglée à la main (prioritaire sur S/M/L)
 let planOpen = false;
 let planUserClosed = false;      // fermé à la main : la recherche ne le rouvre plus tant que la requête n'est pas vidée
 const planCards = new Map();     // id d'onglet -> { el, key, fields, hits, hitCount }
@@ -8737,7 +8753,7 @@ function togglePlan(force){
   if(planOpen) setTimeout(planMarkActive, 60);
 }
 function planSetMode(m){ planPrefs.mode = m; planSavePrefs(); planSyncUI(); planRender(); }
-function planSetSize(s){ planPrefs.size = s; planSavePrefs(); planSyncUI(); planRender(); }
+function planSetSize(s){ planPrefs.size = s; planCustomW = null; try{ cwSave('plan', null); }catch(e){} planSavePrefs(); planSyncUI(); planRender(); }
 function planToggleOnly(){ planPrefs.only = !planPrefs.only; planSavePrefs(); planSyncUI(); planRender(); }
 
 // ── Recherche (liée à la barre de recherche de l'en-tête) ───────────────────
@@ -9115,7 +9131,7 @@ function planRender(){
   if(!list) return;
   const q = currentSearchQuery(), qlow = q.toLowerCase();
   const sz = PLAN_SIZES[planPrefs.size] || PLAN_SIZES.m;
-  document.getElementById('planCol').style.setProperty('--plan-w', sz.w + 'px');
+  document.getElementById('planCol').style.setProperty('--plan-w', (planCustomW || sz.w) + 'px');
   const order = computeDisplayOrder().map(o=>o.id).filter(id=>{ const t = state.tabs[id]; return t && t.type !== 'separator'; });
   const alive = new Set();
   const nodes = [];
@@ -9266,6 +9282,73 @@ document.addEventListener('keydown', e=>{
 planLoadPrefs();
 planSyncUI();
 planApplyOpen();
+
+// ── LARGEURS RÉGLABLES : onglets, tags de marge, chronologie, plan ─────────
+// (la colonne Texte garde son propre redimensionneur ; la Marge prend la place restante)
+const CW_KEY = 'carnet_notes_col_widths_v1';
+let cwStore = {};
+try{ cwStore = JSON.parse(localStorage.getItem(CW_KEY) || '{}') || {}; }catch(e){ cwStore = {}; }
+function cwSave(key, w){
+  if(w == null) delete cwStore[key]; else cwStore[key] = w;
+  try{ localStorage.setItem(CW_KEY, JSON.stringify(cwStore)); }catch(e){}
+}
+const CW = {
+  tabs: { sel:'.tabs-col',      dir: 1, min:160, max:520,
+          set:(el,w)=>{ el.style.width = w + 'px'; }, clear:el=>{ el.style.width = ''; } },
+  tags: { sel:'.marge-side',    dir: 1, min:70,  max:320,
+          set:(el,w)=>{ el.style.width = w + 'px'; el.style.maxWidth = 'none'; }, clear:el=>{ el.style.width = ''; el.style.maxWidth = ''; } },
+  tl:   { sel:'#iaTimeline',    dir:-1, min:100, max:480,
+          set:(el,w)=>{ el.style.flex = '0 0 ' + w + 'px'; el.style.width = w + 'px'; }, clear:el=>{ el.style.flex = ''; el.style.width = ''; } },
+  plan: { sel:'#planCol',       dir:-1, min:240, max:900,
+          set:(el,w)=>{ planCustomW = w; el.style.setProperty('--plan-w', w + 'px'); },
+          clear:el=>{ planCustomW = null; el.style.setProperty('--plan-w', (PLAN_SIZES[planPrefs.size] || PLAN_SIZES.m).w + 'px'); } }
+};
+function cwApplyAll(){
+  const wide = window.innerWidth > 820;   // en mobile les colonnes s'empilent : largeurs libres
+  Object.keys(CW).forEach(k=>{
+    const el = document.querySelector(CW[k].sel);
+    if(!el) return;
+    if(wide && cwStore[k]) CW[k].set(el, cwStore[k]); else if(!wide || k !== 'plan') CW[k].clear(el);
+  });
+}
+function cwStart(e, grip){
+  const k = grip.dataset.rz, def = CW[k];
+  const el = def && document.querySelector(def.sel);
+  if(!el) return;
+  e.preventDefault();
+  const x0 = e.touches ? e.touches[0].clientX : e.clientX;
+  const w0 = el.getBoundingClientRect().width;
+  grip.classList.add('dragging');
+  document.body.style.cursor = 'col-resize';
+  document.body.style.userSelect = 'none';
+  const move = ev=>{
+    const x = ev.touches ? ev.touches[0].clientX : ev.clientX;
+    const w = Math.round(Math.max(def.min, Math.min(def.max, w0 + def.dir * (x - x0))));
+    cwStore[k] = w;
+    def.set(el, w);
+  };
+  const up = ()=>{
+    window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up);
+    window.removeEventListener('touchmove', move); window.removeEventListener('touchend', up);
+    grip.classList.remove('dragging');
+    document.body.style.cursor = ''; document.body.style.userSelect = '';
+    cwSave(k, cwStore[k]);
+  };
+  window.addEventListener('mousemove', move); window.addEventListener('mouseup', up);
+  window.addEventListener('touchmove', move, { passive:false }); window.addEventListener('touchend', up);
+}
+document.querySelectorAll('[data-rz]').forEach(g=>{
+  g.addEventListener('mousedown', e=> cwStart(e, g));
+  g.addEventListener('touchstart', e=> cwStart(e, g), { passive:false });
+  g.addEventListener('dblclick', ()=>{
+    const k = g.dataset.rz, el = document.querySelector(CW[k].sel);
+    delete cwStore[k]; cwSave(k, null);
+    if(el) CW[k].clear(el);
+    if(k === 'plan') planRender();
+  });
+});
+window.addEventListener('resize', cwApplyAll);
+cwApplyAll();
 </script>
 </body>
 </html>
