@@ -3565,6 +3565,11 @@ h1 .spine{width:7px;height:16px;}
 #rawCol .col-head .col-tools{flex-direction:row;align-items:center;}
 #rawCol .col-head .col-tools button{width:auto;}
 #mtagsHideBtn{width:100%;}
+@media(min-width:821px){
+  .layout.raw-hidden #rawCol,.layout.raw-hidden #colResizer{display:none;}
+  .layout.raw-hidden #iaCol{flex:1 1 auto !important;border-right-width:10px;}
+}
+#rawShowBtn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
 </style>
 </head>
 <body>
@@ -3801,6 +3806,7 @@ h1 .spine{width:7px;height:16px;}
       <div class="col-tools">
         <button id="rawPreviewBtn" onclick="togglePreview('raw')" title="Basculer entre édition et aperçu markdown">👁 Lecture</button>
         <button id="mtagsPinBtn" onclick="toggleMtagsPin()" title="Afficher/masquer la colonne des tags de marge">☰ Tags</button>
+        <button id="rawHideBtn" onclick="toggleRawCol()" title="Masquer toute la colonne Marge (le bouton « ◧ Marge » dans l'en-tête du Texte la ramène)">◀ Masquer la marge</button>
       </div>
     </div>
     <div class="marge-body">
@@ -3827,6 +3833,7 @@ h1 .spine{width:7px;height:16px;}
     <div class="col-head">
       <span class="col-label"><span class="active-dot" id="iaDot"></span>Texte<span class="mode-badge" id="iaModeBadge"></span></span>
       <div class="col-tools">
+        <button id="rawShowBtn" onclick="toggleRawCol()" title="Afficher / masquer la colonne Marge">◧ Marge</button>
         <button id="iaFindBtn" class="edit-only" onclick="toggleFindBar('ia')" title="Rechercher / remplacer dans ce texte">🔍 Chercher</button>
         <button id="iaPreviewBtn" onclick="togglePreview('ia')" title="Basculer entre édition et aperçu markdown">👁 Lecture</button>
         <button id="iaAccordionBtn" onclick="toggleAccordion('ia')" title="Regrouper le texte en accordéon, une section par horodatage">📑 Accordéon</button>
@@ -4441,7 +4448,22 @@ function applyMobileColView(){
   btnIa.classList.toggle('active', mobileActiveCol === 'ia');
 }
 
+const RAW_HIDDEN_KEY = 'carnet_notes_raw_hidden';
+function applyRawHidden(){
+  let h = false;
+  try{ h = localStorage.getItem(RAW_HIDDEN_KEY) === '1'; }catch(e){}
+  const lay = document.querySelector('.layout');
+  if(lay) lay.classList.toggle('raw-hidden', h);
+  const b = document.getElementById('rawShowBtn');
+  if(b){ b.classList.toggle('active', !h); b.textContent = h ? '◧ Afficher la marge' : '◧ Marge'; }
+}
+function toggleRawCol(){
+  let h = false;
+  try{ h = localStorage.getItem(RAW_HIDDEN_KEY) === '1'; localStorage.setItem(RAW_HIDDEN_KEY, h ? '0' : '1'); }catch(e){}
+  applyRawHidden();
+}
 function setMobileCol(which){
+  if(which === 'raw'){ try{ if(localStorage.getItem(RAW_HIDDEN_KEY) === '1'){ localStorage.setItem(RAW_HIDDEN_KEY, '0'); applyRawHidden(); } }catch(e){} }
   mobileActiveCol = which;
   localStorage.setItem(MOBILE_COL_KEY, which);
   applyMobileColView();
@@ -9351,6 +9373,7 @@ document.querySelectorAll('[data-rz]').forEach(g=>{
 });
 window.addEventListener('resize', cwApplyAll);
 cwApplyAll();
+applyRawHidden();
 </script>
 </body>
 </html>
