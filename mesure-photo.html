@@ -601,6 +601,7 @@ canvas#c.mode-balloon{ cursor:crosshair; }
         <div><span class="kbd">Ctrl</span>+<span class="kbd">S</span> Enregistrer la session (JSON)</div>
         <div><span class="kbd">Maj</span> (en traçant) Surlignage contraint à l'horizontale</div>
         <div>Glissez une miniature pour réordonner les photos</div>
+        <div>Glissez l'étiquette d'une cote pour décaler sa ligne de cote (façon AutoCAD) ; sans mode actif, glissez aussi la ligne. Double-clic sur l'étiquette = recentrer. La valeur mesurée ne change pas.</div>
       </div>
     </div>
   </div>
@@ -997,6 +998,8 @@ canvas#c.mode-balloon{ cursor:crosshair; }
 
   let isPanning = false;
   let panStart = null;
+  let dimHits = []; // étiquettes + lignes de cote dessinées (pour les saisir à la souris)
+  let draggingDim = null; // déplacement en cours d'une ligne de cote / de son étiquette
   let checkboxHitboxes = []; // zones cliquables sur les cotes dessinées : case "validé" et bouton "supprimer"
 
   const colors = ['#00e0b8','#ff8a5c','#7aa7ff','#f6c945','#ff6ba6','#9b8bff'];
@@ -1159,15 +1162,15 @@ canvas#c.mode-balloon{ cursor:crosshair; }
     balloonBtn.classList.toggle('active', m==='balloon');
     canvas.className = m ? 'mode-'+m : '';
     if(m==='calib') hintBar.innerHTML = "Cliquez le <b>premier point</b> de la cote connue, puis le second point. <span class='kbd'>Échap</span> pour annuler.";
-    else if(m==='h') hintBar.innerHTML = "Mode <b>horizontal</b> : cliquez un point, puis un second — la distance horizontale sera cotée. <span class='kbd'>V</span> vertical • <span class='kbd'>L</span> libre";
-    else if(m==='v') hintBar.innerHTML = "Mode <b>vertical</b> : cliquez un point, puis un second — la distance verticale sera cotée. <span class='kbd'>H</span> horizontal • <span class='kbd'>L</span> libre";
-    else if(m==='free') hintBar.innerHTML = "Mode <b>libre</b> : cliquez deux points pour mesurer une distance quelconque. <span class='kbd'>H</span> horizontal • <span class='kbd'>V</span> vertical";
+    else if(m==='h') hintBar.innerHTML = "Mode <b>horizontal</b> : cliquez un point, puis un second — la distance horizontale sera cotée. <span class='kbd'>V</span> vertical • <span class='kbd'>L</span> libre • <b>glissez l'étiquette</b> d'une cote pour décaler sa ligne de cote";
+    else if(m==='v') hintBar.innerHTML = "Mode <b>vertical</b> : cliquez un point, puis un second — la distance verticale sera cotée. <span class='kbd'>H</span> horizontal • <span class='kbd'>L</span> libre • <b>glissez l'étiquette</b> d'une cote pour décaler sa ligne de cote";
+    else if(m==='free') hintBar.innerHTML = "Mode <b>libre</b> : cliquez deux points pour mesurer une distance quelconque. <span class='kbd'>H</span> horizontal • <span class='kbd'>V</span> vertical • <b>glissez l'étiquette</b> d'une cote pour décaler sa ligne de cote";
     else if(m==='pan') hintBar.innerHTML = "Glissez pour déplacer l'image. Molette pour zoomer. (Astuce : maintenez <span class='kbd'>Espace</span> pour un pan temporaire depuis n'importe quel mode)";
     else if(m==='comment') hintBar.innerHTML = "Mode <b>commentaire</b> : cliquez sur la photo pour poser une note déplaçable.";
     else if(m==='highlight') hintBar.innerHTML = "Mode <b>surligneur</b> : maintenez le clic et tracez pour marquer une zone à checker. Maintenez <span class='kbd'>Maj</span> (ou activez « Surligner horizontalement ») pour contraindre le trait à l'horizontale.";
     else if(m==='erase') hintBar.innerHTML = "Mode <b>gomme</b> : maintenez le clic et passez sur un surlignage pour l'effacer (entièrement ou en partie).";
     else if(m==='balloon') hintBar.innerHTML = "Mode <b>bullage</b> : cliquez pour poser une bulle numérotée dans la série active. Touches <span class='kbd'>1</span>…<span class='kbd'>9</span> pour changer de série • glissez une bulle pour la déplacer • clic droit ou <span class='kbd'>Maj</span>+clic pour la supprimer • <span class='kbd'>Ctrl</span>+<span class='kbd'>Z</span> annule la dernière.";
-    else hintBar.innerHTML = "Molette pour zoomer • choisissez un mode de mesure ci-contre, ou appuyez sur <span class='kbd'>?</span> pour voir tous les raccourcis.";
+    else hintBar.innerHTML = "Molette pour zoomer • choisissez un mode de mesure ci-contre, ou appuyez sur <span class='kbd'>?</span> pour voir tous les raccourcis. Glissez l'étiquette ou la ligne d'une cote pour la décaler (double-clic sur l'étiquette = recentrer).";
     draw();
   }
   calibBtn.addEventListener('click', ()=> setMode(mode==='calib' ? null : 'calib'));
@@ -1337,6 +1340,20 @@ canvas#c.mode-balloon{ cursor:crosshair; }
       canvas.setPointerCapture(e.pointerId);
       return;
     }
+    // Saisie d'une cote existante pour la déplacer (étiquette : en mode neutre ou H/V/L ; ligne : en mode neutre)
+    if(!pendingPoint && e.button===0 && (mode===null || mode==='h' || mode==='v' || mode==='free')){
+      const dh = findDimHit(sx0, sy0, mode===null);
+      if(dh){
+        const o = dh.h.obj;
+        const ddx = o.p2.x-o.p1.x, ddy = o.p2.y-o.p1.y, dlen = Math.hypot(ddx,ddy) || 1;
+        draggingDim = {
+          obj:o, P0:getPointerImagePos(e), off0:(o.off||0), t0:(typeof o.t==='number' ? o.t : 0.5),
+          ux:ddx/dlen, uy:ddy/dlen, len:dlen, label:dh.onLabel, moved:false, sx:e.clientX, sy:e.clientY
+        };
+        canvas.setPointerCapture(e.pointerId);
+        return;
+      }
+    }
     if(mode==='highlight'){
       const p = getPointerImagePos(e);
       activeStroke = { id: nextHighlightId++, color: highlightColor, width: highlightWidthPx(), points:[p] };
@@ -1397,6 +1414,17 @@ canvas#c.mode-balloon{ cursor:crosshair; }
       return;
     }
     if(!imgLoaded) return;
+    if(draggingDim){
+      const d = draggingDim;
+      if(!d.moved && Math.hypot(e.clientX-d.sx, e.clientY-d.sy) < 3) return;
+      d.moved = true;
+      const P = getPointerImagePos(e);
+      const dX = P.x-d.P0.x, dY = P.y-d.P0.y;
+      d.obj.off = d.off0 + (dX*(-d.uy) + dY*d.ux);               // décalage perpendiculaire de la ligne de cote
+      if(d.label) d.obj.t = Math.max(-1, Math.min(2, d.t0 + (dX*d.ux + dY*d.uy)/d.len)); // glissement de l'étiquette le long de la ligne
+      draw();
+      return;
+    }
     if(draggingBalloon){
       if(!draggingBalloon.moved && Math.hypot(e.clientX-draggingBalloon.sx, e.clientY-draggingBalloon.sy) < 3) return;
       const pm = getPointerImagePos(e);
@@ -1425,7 +1453,9 @@ canvas#c.mode-balloon{ cursor:crosshair; }
     const r1 = canvas.getBoundingClientRect();
     const sx1 = e.clientX - r1.left, sy1 = e.clientY - r1.top;
     const overCheck = checkboxHitboxes.some(h => sx1>=h.x && sx1<=h.x+h.w && sy1>=h.y && sy1<=h.y+h.h);
-    canvas.style.cursor = overCheck ? 'pointer' : '';
+    let overDim = false;
+    if(!overCheck && !pendingPoint && !isPanning && (mode===null || mode==='h' || mode==='v' || mode==='free')) overDim = !!findDimHit(sx1, sy1, mode===null);
+    canvas.style.cursor = overCheck ? 'pointer' : overDim ? 'move' : '';
     hoverImagePt = getPointerImagePos(e);
     if(pendingPoint) draw();
     else if(mode) draw();
@@ -1433,6 +1463,13 @@ canvas#c.mode-balloon{ cursor:crosshair; }
 
   canvas.addEventListener('pointerup', e=>{
     if(isPanning){ isPanning=false; canvas.classList.remove('panning'); }
+    if(draggingDim){
+      try{ canvas.releasePointerCapture(e.pointerId); }catch(err){}
+      const dimMoved = draggingDim.moved;
+      draggingDim = null;
+      if(dimMoved){ markDirty(); scheduleAutosave(); }
+      draw();
+    }
     if(draggingBalloon){
       try{ canvas.releasePointerCapture(e.pointerId); }catch(err){}
       const wasMoved = draggingBalloon.moved;
@@ -1456,6 +1493,14 @@ canvas#c.mode-balloon{ cursor:crosshair; }
       scheduleAutosave();
     }
   });
+  // Double-clic sur l'étiquette d'une cote : la remet à sa place d'origine (sans décalage, centrée)
+  canvas.addEventListener('dblclick', e=>{
+    if(!imgLoaded || annotationsHidden) return;
+    if(!(mode===null || mode==='h' || mode==='v' || mode==='free')) return;
+    const r = canvas.getBoundingClientRect();
+    const dh = findDimHit(e.clientX - r.left, e.clientY - r.top, false);
+    if(dh){ dh.h.obj.off = 0; dh.h.obj.t = 0.5; draw(); markDirty(); scheduleAutosave(); }
+  });
   canvas.addEventListener('pointerleave', ()=>{ hoverImagePt=null; isErasing=false; if(!isPanning) draw(); });
 
   function finalizeSecondPoint(p2){
@@ -1470,7 +1515,7 @@ canvas#c.mode-balloon{ cursor:crosshair; }
     const pxDist = Math.hypot(effP2.x-p1.x, effP2.y-p1.y);
     const valueUnits = calibration ? pxDist / calibration.pxPerUnit : null;
     measurements.push({
-      id: nextId++, mode, p1, p2: effP2, pxDist, valueUnits,
+      id: nextId++, mode, p1, p2: effP2, pxDist, valueUnits, off: 0, t: 0.5,
       color: colors[(measurements.length) % colors.length],
       validated: false
     });
@@ -2230,7 +2275,7 @@ canvas#c.mode-balloon{ cursor:crosshair; }
     ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
     ctx.clearRect(0,0,r.width,r.height);
     updateAllCommentPositions();
-    if(!imgLoaded){ checkboxHitboxes = []; return; }
+    if(!imgLoaded){ checkboxHitboxes = []; dimHits = []; return; }
 
     ctx.save();
     ctx.translate(view.ox, view.oy);
@@ -2240,19 +2285,20 @@ canvas#c.mode-balloon{ cursor:crosshair; }
     ctx.restore();
 
     checkboxHitboxes = [];
+    dimHits = [];
     if(!annotationsHidden){
       drawHighlights();
 
       // calibration line
       if(calibration){
-        drawDimensionLine(calibration.p1, calibration.p2, calibration.realLen+' '+calibration.unit+' (réf.)', '#f6c945', true);
+        drawDimensionLine(calibration.p1, calibration.p2, calibration.realLen+' '+calibration.unit+' (réf.)', '#f6c945', true, false, null, false, calibration);
       }
 
       // measurements
       measurements.forEach((m, idx)=>{
         const unit = calibration ? calibration.unit : 'px';
         const val = calibration ? fmt(m.valueUnits)+' '+unit : Math.round(m.pxDist)+'px';
-        drawDimensionLine(m.p1, m.p2, val, m.color, false, false, idx, m.validated);
+        drawDimensionLine(m.p1, m.p2, val, m.color, false, false, idx, m.validated, m);
       });
 
       drawBalloons();
@@ -2321,39 +2367,87 @@ canvas#c.mode-balloon{ cursor:crosshair; }
     ctx.stroke();
   }
 
-  function drawDimensionLine(p1img, p2img, label, color, dashed, ghost, measIdx, validated){
+  // ---------- Cotes déplaçables (façon AutoCAD) ----------
+  // Les points mesurés p1/p2 ne bougent jamais : la valeur cotée reste donc inchangée.
+  // Seuls l'« offset » (décalage perpendiculaire de la ligne de cote, en px image) et t (position
+  // de l'étiquette le long de la ligne, 0..1) sont modifiés. offset = 0 → comportement d'origine.
+  function dimGeom(p1, p2, offPx, t){
+    const dx = p2.x-p1.x, dy = p2.y-p1.y, len = Math.hypot(dx,dy) || 1;
+    const ux = dx/len, uy = dy/len, px = -uy, py = ux;
+    const q1 = { x: p1.x + px*offPx, y: p1.y + py*offPx };
+    const q2 = { x: p2.x + px*offPx, y: p2.y + py*offPx };
+    const tt = (typeof t==='number' && isFinite(t)) ? t : 0.5;
+    return { ux, uy, px, py, q1, q2, mx: q1.x + (q2.x-q1.x)*tt, my: q1.y + (q2.y-q1.y)*tt };
+  }
+  // Lignes d'attache : du point mesuré (avec un petit jeu) jusqu'un peu au-delà de la ligne de cote
+  function drawExtensionLines(c2, p1, p2, g, offPx, k){
+    if(Math.abs(offPx) < 1.5*k) return;
+    const sg = offPx > 0 ? 1 : -1, gap = 3*k, over = 5*k;
+    c2.setLineDash([]);
+    [[p1,g.q1],[p2,g.q2]].forEach(pair=>{
+      const a = pair[0], b = pair[1];
+      c2.beginPath();
+      c2.moveTo(a.x + g.px*sg*gap, a.y + g.py*sg*gap);
+      c2.lineTo(b.x + g.px*sg*over, b.y + g.py*sg*over);
+      c2.stroke();
+    });
+  }
+  function distToSegment(x, y, a, b){
+    const dx = b.x-a.x, dy = b.y-a.y, l2 = dx*dx + dy*dy;
+    let u = l2 ? ((x-a.x)*dx + (y-a.y)*dy)/l2 : 0;
+    u = Math.max(0, Math.min(1, u));
+    return Math.hypot(x - (a.x + u*dx), y - (a.y + u*dy));
+  }
+  // Retourne { h, onLabel } pour la cote saisie sous le point écran (sx, sy), ou null.
+  // L'étiquette a toujours priorité ; la ligne n'est saisissable que si allowLine.
+  function findDimHit(sx, sy, allowLine){
+    for(let i = dimHits.length-1; i >= 0; i--){
+      const l = dimHits[i].lab;
+      if(sx>=l.x && sx<=l.x+l.w && sy>=l.y && sy<=l.y+l.h) return { h: dimHits[i], onLabel: true };
+    }
+    if(allowLine){
+      for(let i = dimHits.length-1; i >= 0; i--){
+        if(distToSegment(sx, sy, dimHits[i].a, dimHits[i].b) <= 6) return { h: dimHits[i], onLabel: false };
+      }
+    }
+    return null;
+  }
+
+  function drawDimensionLine(p1img, p2img, label, color, dashed, ghost, measIdx, validated, target){
     const p1 = imgToScreen(p1img), p2 = imgToScreen(p2img);
     const dimColor = validated ? '#5c7080' : color;
+    const offS = (target && target.off) ? target.off*view.scale : 0;
+    const g = dimGeom(p1, p2, offS, target ? target.t : null);
+    const q1 = g.q1, q2 = g.q2, px = g.px, py = g.py;
     ctx.save();
     ctx.strokeStyle = dimColor;
     ctx.fillStyle = dimColor;
     ctx.lineWidth = 2;
-    if(dashed) ctx.setLineDash([6,4]);
     if(ghost) ctx.globalAlpha = 0.75;
 
-    // main line
-    ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y); ctx.stroke();
+    // lignes d'attache (uniquement si la ligne de cote est décalée)
+    ctx.save(); ctx.lineWidth = 1.25; drawExtensionLines(ctx, p1, p2, g, offS, 1); ctx.restore();
 
-    // end ticks (perpendicular)
-    const dx = p2.x-p1.x, dy = p2.y-p1.y;
-    const len = Math.hypot(dx,dy) || 1;
-    const ux = dx/len, uy = dy/len;
-    const px = -uy, py = ux;
+    // ligne de cote
+    if(dashed) ctx.setLineDash([6,4]);
+    ctx.beginPath(); ctx.moveTo(q1.x,q1.y); ctx.lineTo(q2.x,q2.y); ctx.stroke();
+
+    // end ticks (perpendicular) sur la ligne de cote
     const tick = 7;
     ctx.setLineDash([]);
-    [p1,p2].forEach(p=>{
+    [q1,q2].forEach(p=>{
       ctx.beginPath();
       ctx.moveTo(p.x - px*tick, p.y - py*tick);
       ctx.lineTo(p.x + px*tick, p.y + py*tick);
       ctx.stroke();
     });
 
-    // endpoint dots
+    // points réellement mesurés
     ctx.beginPath(); ctx.arc(p1.x,p1.y,3.5,0,Math.PI*2); ctx.fill();
     ctx.beginPath(); ctx.arc(p2.x,p2.y,3.5,0,Math.PI*2); ctx.fill();
 
     // label
-    const mx = (p1.x+p2.x)/2, my = (p1.y+p2.y)/2;
+    const mx = g.mx, my = g.my;
     ctx.font = '600 12px "SFMono-Regular",Consolas,monospace';
     const textW = ctx.measureText(label).width;
     const padX = 6, padY = 4;
@@ -2367,6 +2461,11 @@ canvas#c.mode-balloon{ cursor:crosshair; }
     ctx.fillStyle = dimColor;
     ctx.textBaseline = 'middle';
     ctx.fillText(label, mx - textW/2, ly + labelH/2 + 1);
+
+    // zones saisissables (étiquette + ligne de cote) pour déplacer la cote à la souris
+    if(target && !ghost){
+      dimHits.push({ obj: target, lab: { x: lx, y: ly, w: textW+padX*2, h: labelH }, a: q1, b: q2 });
+    }
 
     // checkbox "validé" + bouton "supprimer" collés à côté de l'étiquette (uniquement pour une vraie mesure, pas la calib ni le fantôme)
     if(measIdx != null){
@@ -2425,18 +2524,19 @@ canvas#c.mode-balloon{ cursor:crosshair; }
   }
 
   // ---------- Export PNG annoté (image + cotes + surlignages + commentaires, résolution native) ----------
-  function drawDimensionLineOn(ectx, p1, p2, label, color, dashed, s){
+  function drawDimensionLineOn(ectx, p1, p2, label, color, dashed, s, off, t){
+    const g = dimGeom(p1, p2, off || 0, t);
+    const q1 = g.q1, q2 = g.q2, px = g.px, py = g.py, tick = 7*s;
     ectx.save();
     ectx.strokeStyle = color;
     ectx.fillStyle = color;
+    ectx.save(); ectx.lineWidth = Math.max(1, 1.25*s); drawExtensionLines(ectx, p1, p2, g, off || 0, s); ectx.restore();
     ectx.lineWidth = Math.max(1.5, 2*s);
     if(dashed) ectx.setLineDash([6*s,4*s]);
-    ectx.beginPath(); ectx.moveTo(p1.x,p1.y); ectx.lineTo(p2.x,p2.y); ectx.stroke();
+    ectx.beginPath(); ectx.moveTo(q1.x,q1.y); ectx.lineTo(q2.x,q2.y); ectx.stroke();
 
-    const dx = p2.x-p1.x, dy = p2.y-p1.y, len = Math.hypot(dx,dy) || 1;
-    const ux = dx/len, uy = dy/len, px = -uy, py = ux, tick = 7*s;
     ectx.setLineDash([]);
-    [p1,p2].forEach(p=>{
+    [q1,q2].forEach(p=>{
       ectx.beginPath();
       ectx.moveTo(p.x - px*tick, p.y - py*tick);
       ectx.lineTo(p.x + px*tick, p.y + py*tick);
@@ -2445,7 +2545,7 @@ canvas#c.mode-balloon{ cursor:crosshair; }
     ectx.beginPath(); ectx.arc(p1.x,p1.y,3.5*s,0,Math.PI*2); ectx.fill();
     ectx.beginPath(); ectx.arc(p2.x,p2.y,3.5*s,0,Math.PI*2); ectx.fill();
 
-    const mx = (p1.x+p2.x)/2, my = (p1.y+p2.y)/2;
+    const mx = g.mx, my = g.my;
     const fontSize = Math.max(11, Math.round(13*s));
     ectx.font = '700 '+fontSize+'px "SFMono-Regular",Consolas,monospace';
     const textW = ectx.measureText(label).width;
@@ -2591,13 +2691,13 @@ canvas#c.mode-balloon{ cursor:crosshair; }
 
     drawHighlightsOn(ectx);
     if(calibration){
-      drawDimensionLineOn(ectx, calibration.p1, calibration.p2, calibration.realLen+' '+calibration.unit+' (réf.)', '#f6c945', true, s);
+      drawDimensionLineOn(ectx, calibration.p1, calibration.p2, calibration.realLen+' '+calibration.unit+' (réf.)', '#f6c945', true, s, calibration.off, calibration.t);
     }
     measurements.forEach(m=>{
       const unit = calibration ? calibration.unit : 'px';
       const val = calibration ? fmt(m.valueUnits)+' '+unit : Math.round(m.pxDist)+'px';
       const col = m.validated ? '#5c7080' : m.color;
-      drawDimensionLineOn(ectx, m.p1, m.p2, val, col, false, s);
+      drawDimensionLineOn(ectx, m.p1, m.p2, val, col, false, s, m.off, m.t);
     });
     drawBalloonsOn(ectx, s);
     drawCommentsOn(ectx, s);
