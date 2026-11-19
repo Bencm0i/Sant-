@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mon portefeuille — cours en direct</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
 <style>
   :root{--bg:#0e1116;--card:#171b22;--line:#262c36;--txt:#e6e9ee;--mut:#8a93a1;--up:#22c55e;--down:#ef4444;--acc:#f5b942}
   *{box-sizing:border-box}
@@ -36,7 +37,7 @@
 </head>
 <body>
 <h1>📊 Mon portefeuille — cours en direct</h1>
-<div class="sub">Cours Yahoo Finance (différés pour les ETF, séances de bourse uniquement). Actualisation automatique toutes les 60 s.</div>
+<div class="sub">Mêmes sources que patrimoine_saisie (Google Apps Script + Yahoo Finance). Actualisation automatique toutes les 60 s.</div>
 
 <div class="total">
   <div><small>Valeur totale (EUR)</small><span class="big" id="tot">—</span></div>
@@ -63,22 +64,24 @@
 <div class="links">
   <a href="https://bencm0i.github.io/Sant-/btc_terminal.html" target="_blank">BTC terminal</a>
   <a href="https://bencm0i.github.io/Sant-/gold_terminal.html" target="_blank">Gold terminal</a>
-  <a href="https://bencm0i.github.io/Sant-/vall_terminal.html" target="_blank">WALL terminal</a>
+  <a href="https://bencm0i.github.io/Sant-/vall_terminal.html" target="_blank">VALL terminal</a>
   <a href="https://bencm0i.github.io/Sant-/iwda_terminal.html" target="_blank">IWDA terminal</a>
   <a href="https://bencm0i.github.io/Sant-/aggh_terminal.html" target="_blank">AGGH terminal</a>
 </div>
 
 <script>
 const DEFAULTS = [
-  {label:"BTC",     ticker:"BTC-EUR",   cost:"", qty:""},
-  {label:"EUR/USD", ticker:"EURUSD=X",  cost:"", qty:"", fx:true},
-  {label:"Gold",    ticker:"GC=F",      cost:"", qty:""},
-  {label:"WPEA",    ticker:"WPEA.PA",   cost:"", qty:""},
-  {label:"WALL",    ticker:"WALL.PA",   cost:"", qty:""},
-  {label:"IWDA",    ticker:"IWDA.AS",   cost:"", qty:""},
-  {label:"AGGH",    ticker:"AGGH.AS",   cost:"", qty:""}
+  {label:"BTC",     ticker:"BTC-EUR",   gas:"btc",  cost:"", qty:""},
+  {label:"EUR/USD", ticker:"EURUSD=X",  fx:true,    cost:"", qty:""},
+  {label:"Gold",    ticker:"XAUEUR=X",  alts:["GC=F"], cost:"", qty:""},
+  {label:"WPEA",    ticker:"WPEA.PA",   gas:"wpea", cost:"", qty:""},
+  {label:"VALL",    ticker:"VALL.MI",   cost:"", qty:""},
+  {label:"IWDA",    ticker:"IWDA.AS",   gas:"iwda", cost:"", qty:""},
+  {label:"AGGH",    ticker:"AGGH.AS",   alts:["AGGH.MI","EUNA.DE"], cost:"", qty:""}
 ];
-const KEY = "portefeuille_v1";
+// Même source de cours que patrimoine_saisie.html (Google Apps Script + Yahoo Finance via proxys CORS)
+const GAS_URL = "https://script.google.com/macros/s/AKfycbyiXiLpcnIxT_ViTV-3Jfo3BrXuzBuMgFeD-l3-V3LU8vfWDs_b-f1keu_H-PjLGzBaKA/exec";
+const KEY = "portefeuille_v2";
 let state;
 try { state = JSON.parse(localStorage.getItem(KEY)) || null; } catch(e){ state = null; }
 if(!state || state.length !== DEFAULTS.length) state = JSON.parse(JSON.stringify(DEFAULTS));
@@ -92,19 +95,48 @@ const PROXIES = [
   u => "https://corsproxy.io/?" + encodeURIComponent(u),
   u => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u)
 ];
-async function fetchQuote(sym){
-  const url = "https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(sym) + "?interval=1d&range=1d";
-  let lastErr;
-  for(const p of PROXIES){
-    try{
-      const r = await fetch(p(url), {cache:"no-store"});
-      if(!r.ok) throw new Error("HTTP " + r.status);
-      const j = await r.json();
-      const m = j.chart.result[0].meta;
-      return {price:m.regularMarketPrice, prev:m.chartPreviousClose ?? m.previousClose, cur:m.currency};
-    }catch(e){ lastErr = e; }
+async function fetchYahoo(syms){
+  for(const sym of syms){
+    const base = "https://query1.finance.yahoo.com/v8/finance/chart/" + sym.replace("^","%5E") + "?interval=1d&range=2d";
+    for(const p of PROXIES){
+      try{
+        const r = await fetch(p(base), {signal:AbortSignal.timeout(6000)});
+        if(!r.ok) continue;
+        const j = await r.json();
+        const m = j?.chart?.result?.[0]?.meta;
+        if(!m) continue;
+        const price = m.regularMarketPrice ?? m.previousClose;
+        if(!price) continue;
+        return {price, prev:m.previousClose || m.chartPreviousClose, cur:m.currency};
+      }catch(e){}
+    }
   }
-  throw lastErr;
+  throw new Error("indisponible");
+}
+let gasCache = null, gasTime = 0;
+async function getGAS(){
+  if(gasCache && Date.now()-gasTime < 20000) return gasCache;
+  const r = await fetch(GAS_URL, {signal:AbortSignal.timeout(14000)});
+  if(!r.ok) throw new Error("GAS "+r.status);
+  const j = await r.json();
+  if(!j.ok) throw new Error("GAS");
+  gasCache = j.data; gasTime = Date.now();
+  return gasCache;
+}
+async function fetchQuote(s){
+  const def = DEFAULTS.find(d=>d.label===s.label);
+  const isDefault = def && def.ticker===s.ticker;
+  // 1) Google Apps Script (BTC, WPEA, IWDA) — comme le bandeau de patrimoine_saisie
+  if(isDefault && s.gas){
+    try{
+      const d = (await getGAS())[s.gas];
+      if(d && !d.error && d.price!=null){
+        return {price:d.price, prev: d.change!=null ? d.price-d.change : null, cur:"EUR"};
+      }
+    }catch(e){}
+  }
+  // 2) Yahoo Finance via proxys CORS
+  return fetchYahoo([s.ticker, ...(isDefault ? (def.alts||[]) : [])]);
 }
 
 const fmt = (n,d=2) => n==null||isNaN(n) ? "—" : n.toLocaleString("fr-FR",{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -184,10 +216,11 @@ function render(){
 async function refresh(){
   const st = document.getElementById("status");
   st.textContent = "Actualisation…";
-  const list = [...new Set([...state.map(s=>s.ticker), "EURUSD=X"])];
-  await Promise.all(list.map(async t=>{
-    try{ quotes[t] = await fetchQuote(t); }
-    catch(e){ quotes[t] = {err:true}; }
+  gasCache = null;
+  const list = [...state, {label:"EUR/USD", ticker:"EURUSD=X"}];
+  await Promise.all(list.map(async s=>{
+    try{ quotes[s.ticker] = await fetchQuote(s); }
+    catch(e){ quotes[s.ticker] = {err:true}; }
   }));
   render();
   st.textContent = "Dernière mise à jour : " + new Date().toLocaleTimeString("fr-FR");
