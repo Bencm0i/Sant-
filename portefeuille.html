@@ -15,7 +15,7 @@
   .total .big{font-size:30px;font-weight:700}
   .total small{display:block;color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.05em}
   .wrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:12px}
-  table{width:100%;border-collapse:collapse;min-width:900px}
+  table{width:100%;border-collapse:collapse;min-width:980px}
   th,td{padding:10px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
   th{color:var(--mut);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
   th:first-child,td:first-child{text-align:left}
@@ -51,7 +51,7 @@
 <div class="wrap">
 <table>
   <thead><tr>
-    <th>Ticker</th><th>Cours</th><th>Cours manuel</th><th>Variation jour</th><th>Prix de revient</th><th class="pos">Quantité</th><th class="pos">Valeur (EUR)</th><th class="pos">+/- vs revient</th>
+    <th>Ticker</th><th>Cours</th><th>Cours manuel</th><th>Variation jour</th><th>Prix de revient</th><th>Écart vs revient</th><th class="pos">Quantité</th><th class="pos">Valeur (EUR)</th><th class="pos">+/- vs revient</th>
   </tr></thead>
   <tbody id="rows"></tbody>
 </table>
@@ -111,7 +111,9 @@ async function fetchYahoo(syms){
         if(!m) continue;
         const price = m.regularMarketPrice ?? m.previousClose;
         if(!price) continue;
-        return {price, prev:m.previousClose || m.chartPreviousClose, cur:m.currency};
+        // Yahoo étiquette parfois XAUEUR=X en "USD" alors que le cours est bien en EUR
+        const cur = /^[A-Z]{3}EUR=X$/.test(sym) ? "EUR" : m.currency;
+        return {price, prev:m.previousClose || m.chartPreviousClose, cur};
       }catch(e){}
     }
   }
@@ -157,6 +159,7 @@ function build(){
       <td><input class="num man" type="number" step="any" value="${s.manual||""}" data-i="${i}" data-f="manual" placeholder="auto"></td>
       <td id="c${i}">…</td>
       <td>${s.fx ? "—" : `<input class="num" type="number" step="any" value="${s.cost}" data-i="${i}" data-f="cost" placeholder="0.00">`}</td>
+      <td id="e${i}">—</td>
       <td class="pos">${s.fx ? "—" : `<input class="num" type="number" step="any" value="${s.qty}" data-i="${i}" data-f="qty" placeholder="0">`}</td>
       <td class="pos" id="v${i}">—</td>
       <td class="pos" id="g${i}">—</td>`;
@@ -194,9 +197,9 @@ function render(){
   state.forEach((s,i)=>{
     const q = getQ(s);
     const pEl = document.getElementById("p"+i), cEl = document.getElementById("c"+i);
-    const vEl = document.getElementById("v"+i), gEl = document.getElementById("g"+i);
+    const vEl = document.getElementById("v"+i), gEl = document.getElementById("g"+i), eEl = document.getElementById("e"+i);
     if(!q){ pEl.textContent="…"; cEl.textContent="…"; return; }
-    if(q.err){ pEl.innerHTML='<span class="err">indisponible</span>'; cEl.textContent="—"; vEl.textContent="—"; gEl.textContent="—"; return; }
+    if(q.err){ pEl.innerHTML='<span class="err">indisponible</span>'; cEl.textContent="—"; vEl.textContent="—"; gEl.textContent="—"; eEl.textContent="—"; return; }
     const dec = s.fx ? 4 : 2;
     pEl.textContent = fmt(q.price,dec) + " " + sym(q.cur) + (q.manual ? " ✎" : "");
     const ch = q.prev ? (q.price-q.prev)/q.prev*100 : null;
@@ -206,6 +209,11 @@ function render(){
       cEl.innerHTML = `<span class="${up?'up':'down'}"><span class="arrow">${up?'▲':'▼'}</span>${up?'+':''}${fmt(ch)} %</span>`;
     }
     const qty = parseFloat(s.qty), cost = parseFloat(s.cost);
+    // écart par unité vs prix de revient (toujours visible, indépendant de la quantité)
+    if(!s.fx && cost>0){
+      const d = q.price-cost, pc = d/cost*100, u = d>=0;
+      eEl.innerHTML = `<span class="${u?'up':'down'}">${u?'▲ +':'▼ '}${fmt(d)} ${sym(q.cur)}<br><small>${u?'+':''}${fmt(pc)} %</small></span>`;
+    } else eEl.textContent = "—";
     // conversion en EUR
     let toEur = 1;
     if(q.cur==="USD") toEur = fx ? 1/fx : NaN;
@@ -219,6 +227,8 @@ function render(){
         const gp = (q.price-cost)/cost*100, up = gp>=0;
         gEl.innerHTML = `<span class="${up?'up':'down'}">${up?'▲ +':'▼ '}${fmt(gp)} %<br><small>${up?'+':''}${fmt(qty*(q.price-cost)*toEur)} €</small></span>`;
       } else gEl.textContent="—";
+    } else if(!s.fx && qty>0 && isNaN(toEur)){
+      vEl.innerHTML = '<span class="err">taux EUR/USD manquant</span>'; gEl.textContent="—";
     } else { vEl.textContent="—"; gEl.textContent="—"; }
   });
   document.getElementById("tot").textContent = anyVal ? fmt(total)+" €" : "—";
