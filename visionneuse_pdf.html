@@ -231,9 +231,9 @@ const endGr=()=>{
   let last=performance.now();
   const step=n=>{
     const dt=Math.min(32,n-last);last=n;
-    const f=Math.pow(.96,dt/16); // friction
+    const f=Math.pow(.978,dt/16); // friction (plus proche de 1 = glisse plus longtemps)
     vel.x*=f;vel.y*=f;
-    if(Math.abs(vel.x)<.05&&Math.abs(vel.y)<.05){mom=0;sc.classList.remove('grabbing');return}
+    if(Math.abs(vel.x)<.03&&Math.abs(vel.y)<.03){mom=0;sc.classList.remove('grabbing');return}
     const bx=sc.scrollLeft,by=sc.scrollTop;
     sc.scrollLeft-=vel.x*dt;sc.scrollTop-=vel.y*dt;
     if(sc.scrollLeft===bx&&sc.scrollTop===by){mom=0;sc.classList.remove('grabbing');return} // bord atteint
