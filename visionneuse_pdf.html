@@ -206,18 +206,43 @@ $('brv').onclick=()=>{S.br=100;applyBr();save()};
 applyBr();
 
 // Grab à la souris (cliquer-glisser pour déplacer la page)
-let gr=null;
+let gr=null,vel={x:0,y:0},lastM=null,mom=0;
+const stopMom=()=>{if(mom){cancelAnimationFrame(mom);mom=0;sc.classList.remove('grabbing')}};
 sc.addEventListener('pointerdown',e=>{
   if(e.pointerType!=='mouse'||e.button!==0)return;
+  stopMom();
   gr={x:e.clientX,y:e.clientY,l:sc.scrollLeft,t:sc.scrollTop};
+  lastM={x:e.clientX,y:e.clientY,t:performance.now()};vel={x:0,y:0};
   sc.classList.add('grabbing');sc.setPointerCapture(e.pointerId);
 });
 sc.addEventListener('pointermove',e=>{
   if(!gr)return;
   sc.scrollLeft=gr.l-(e.clientX-gr.x);sc.scrollTop=gr.t-(e.clientY-gr.y);
+  const n=performance.now(),dt=Math.max(1,n-lastM.t);
+  // vitesse lissée (px/ms)
+  vel.x=.7*vel.x+.3*((e.clientX-lastM.x)/dt);
+  vel.y=.7*vel.y+.3*((e.clientY-lastM.y)/dt);
+  lastM={x:e.clientX,y:e.clientY,t:n};
 });
-const endGr=()=>{if(!gr)return;gr=null;sc.classList.remove('grabbing')};
+const endGr=()=>{
+  if(!gr)return;gr=null;
+  // souris arrêtée avant le relâchement : pas de lancer
+  if(performance.now()-lastM.t>80){sc.classList.remove('grabbing');return}
+  let last=performance.now();
+  const step=n=>{
+    const dt=Math.min(32,n-last);last=n;
+    const f=Math.pow(.96,dt/16); // friction
+    vel.x*=f;vel.y*=f;
+    if(Math.abs(vel.x)<.05&&Math.abs(vel.y)<.05){mom=0;sc.classList.remove('grabbing');return}
+    const bx=sc.scrollLeft,by=sc.scrollTop;
+    sc.scrollLeft-=vel.x*dt;sc.scrollTop-=vel.y*dt;
+    if(sc.scrollLeft===bx&&sc.scrollTop===by){mom=0;sc.classList.remove('grabbing');return} // bord atteint
+    mom=requestAnimationFrame(step);
+  };
+  mom=requestAnimationFrame(step);
+};
 sc.addEventListener('pointerup',endGr);sc.addEventListener('pointercancel',endGr);
+['wheel','touchstart'].forEach(t=>sc.addEventListener(t,stopMom,{passive:true}));
 
 // Glisser-déposer
 const em=$('empty');
