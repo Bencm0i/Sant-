@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Visionneuse PDF vertical</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='14' y='4' width='36' height='56' rx='5' fill='%234aa3ff'/%3E%3Crect x='19' y='10' width='26' height='44' fill='%23fff'/%3E%3Cpath d='M23 18h18M23 26h18M23 34h18M23 42h11' stroke='%23999' stroke-width='3'/%3E%3C/svg%3E">
+<style>
+:root{color-scheme:dark;--bg:#0e0f12;--fg:#eee;--ac:#4aa3ff;--bar:#1c1e24}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:15px system-ui,sans-serif;overflow:hidden;overscroll-behavior:none}
+#sc{position:absolute;inset:0;overflow:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;cursor:grab;user-select:none;-webkit-user-select:none}
+#sc::-webkit-scrollbar{display:none}
+#sc.snap{scroll-snap-type:y mandatory}
+#sc.grabbing{cursor:grabbing;scroll-snap-type:none}
+.pg canvas{filter:brightness(var(--br,1))}
+#brw{display:flex;align-items:center;gap:10px;flex:1 1 100%;max-width:440px;font-size:20px}
+#brw input{flex:1;height:32px;accent-color:var(--ac)}
+#brv{font-size:14px;min-width:56px;text-align:right;min-height:0;padding:0;border:0;background:none}
+.pg{display:flex;align-items:center;justify-content:flex-start;scroll-snap-align:start}
+.pg canvas{display:block;background:#fff;margin:0 auto}
+#sc.inv canvas{filter:invert(1) hue-rotate(180deg) brightness(var(--br,1))}
+#empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px}
+#empty.drag{outline:3px dashed var(--ac);outline-offset:-12px}
+#empty p{margin:0;opacity:.6}
+button{font:inherit;color:var(--fg);background:#2a2d36;border:1px solid #3a3e4a;border-radius:10px;min-height:48px;min-width:48px;padding:0 14px;touch-action:manipulation}
+button:active{background:#3a3e4a}
+button.on{background:var(--ac);color:#04121f;border-color:var(--ac)}
+.big{font-size:20px;min-height:64px;padding:0 28px;background:var(--ac);color:#04121f;border:0}
+#bar{position:fixed;left:0;right:0;bottom:0;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center;padding:10px 10px calc(10px + env(safe-area-inset-bottom,0px));background:var(--bar);border-top:1px solid #333;transition:transform .2s;z-index:5}
+#bar.hide{transform:translateY(110%)}
+#info{min-width:70px;text-align:center;font-variant-numeric:tabular-nums}
+#fab{position:fixed;right:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));width:44px;height:44px;min-height:0;min-width:0;padding:0;border-radius:50%;opacity:.35;z-index:6;font-size:20px}
+#fab:active,#fab.up{opacity:1}
+#bar:not(.hide)~#fab{bottom:auto;top:10px;opacity:.8}
+#st{position:fixed;top:10px;left:50%;transform:translateX(-50%);background:var(--bar);padding:6px 14px;border-radius:20px;z-index:7;display:none}
+</style>
+</head>
+<body>
+<div id="sc"></div>
+<div id="empty">
+  <button class="big" id="open">Ouvrir un PDF</button>
+  <p>ou glisser-déposer un fichier ici</p>
+</div>
+<div id="st"></div>
+<div id="bar">
+  <button id="bOpen" title="Ouvrir">📂</button>
+  <button id="bPrev" title="Page précédente">◀</button>
+  <span id="info">–</span>
+  <button id="bNext" title="Page suivante">▶</button>
+  <button id="bMode" title="Mode d’affichage">Largeur</button>
+  <button id="bCrop" class="on" title="Rogner les marges blanches">✂ Marges</button>
+  <button id="bZm" title="Zoom −">−</button>
+  <button id="bZp" title="Zoom +">+</button>
+  <button id="bRot" title="Pivoter">⟳</button>
+  <button id="bInv" title="Mode sombre (inverser)">◐</button>
+  <button id="bFs" title="Plein écran">⛶</button>
+  <label id="brw" title="Luminosité">☼ <input type="range" id="br" min="20" max="150" step="5" value="100"><button id="brv" title="Remettre à 100 %">100 %</button></label>
+</div>
+<button id="fab" title="Barre d’outils">☰</button>
+<input type="file" id="file" accept="application/pdf,.pdf" hidden>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const $=id=>document.getElementById(id);
+const sc=$('sc'),bar=$('bar');
+let S={mode:'width',crop:true,invert:false,zoom:1,rot:0,br:100};
+try{Object.assign(S,JSON.parse(localStorage.getItem('vpdf')||'{}'),{zoom:1,rot:0})}catch(e){}
+const save=()=>{try{localStorage.setItem('vpdf',JSON.stringify({mode:S.mode,crop:S.crop,invert:S.invert,br:S.br}))}catch(e){}};
+let pdf=null,items=[],W=0,H=0,gen=0;
+
+const io=new IntersectionObserver(es=>{
+  es.forEach(e=>{const it=e.target._it;it.vis=e.isIntersecting;
+    if(!it.vis&&it.rendered&&!it.busy){it.canvas.width=it.canvas.height=0;it.rendered=false}});
+  renderVisible();
+},{root:sc,rootMargin:'100% 0px'});
+
+function status(t){const s=$('st');s.style.display=t?'block':'none';s.textContent=t||''}
+
+async function load(buf){
+  const g=++gen;
+  items.forEach(it=>io.unobserve(it.div));
+  sc.innerHTML='';items=[];
+  $('empty').style.display='none';
+  try{pdf=await pdfjsLib.getDocument({data:buf}).promise}catch(e){status('PDF illisible');$('empty').style.display='flex';return}
+  for(let n=1;n<=pdf.numPages;n++){
+    const page=await pdf.getPage(n);
+    const div=document.createElement('div');div.className='pg';
+    const canvas=document.createElement('canvas');div.appendChild(canvas);sc.appendChild(div);
+    const it={n,page,div,canvas,vis:false,rendered:false,busy:false};div._it=it;items.push(it);
+  }
+  await analyseAll(g);
+  if(g!==gen)return;
+  status('');layout(true);
+  items.forEach(it=>io.observe(it.div));
+  bar.classList.add('hide');
+}
+
+function pageRot(it){return(it.page.rotate+S.rot)%360}
+
+async function analyse(it){
+  const vp1=it.page.getViewport({scale:1,rotation:pageRot(it)});
+  it.full={x:0,y:0,w:vp1.width,h:vp1.height};
+  if(!S.crop){it.crop=it.full;return}
+  const k=0.6,vp=it.page.getViewport({scale:k,rotation:pageRot(it)});
+  const cv=document.createElement('canvas');cv.width=Math.ceil(vp.width);cv.height=Math.ceil(vp.height);
+  const ctx=cv.getContext('2d',{willReadFrequently:true});
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,cv.width,cv.height);
+  try{await it.page.render({canvasContext:ctx,viewport:vp}).promise}catch(e){it.crop=it.full;return}
+  const d=ctx.getImageData(0,0,cv.width,cv.height).data,w=cv.width,h=cv.height;
+  let x0=w,y0=h,x1=-1,y1=-1;
+  for(let y=0;y<h;y++){for(let x=0;x<w;x++){const i=(y*w+x)*4;
+    if(d[i]<240||d[i+1]<240||d[i+2]<240){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}}}
+  if(x1<0){it.crop=it.full;return}
+  const p=8/k; // marge de sécurité (points)
+  const cx=Math.max(0,x0/k-p),cy=Math.max(0,y0/k-p);
+  const cr=Math.min(it.full.w,(x1+1)/k+p),cb=Math.min(it.full.h,(y1+1)/k+p);
+  it.crop={x:cx,y:cy,w:cr-cx,h:cb-cy};
+}
+async function analyseAll(g){
+  for(let i=0;i<items.length;i++){
+    if(g!==gen)return;
+    if(S.crop||i===0||!items[i].crop)status('Analyse des marges '+(i+1)+'/'+items.length);
+    await analyse(items[i]);
+  }
+}
+
+function curPos(){
+  if(!items.length)return{i:0,f:0};
+  const top=sc.scrollTop;let i=0;
+  for(let k=0;k<items.length;k++){if(items[k].div.offsetTop<=top+4)i=k;else break}
+  const d=items[i].div;return{i,f:(top-d.offsetTop)/Math.max(1,d.offsetHeight)};
+}
+function layout(first){
+  if(!items.length)return;
+  const pos=first?{i:0,f:0}:curPos();
+  W=sc.clientWidth;H=sc.clientHeight;
+  sc.classList.toggle('snap',S.mode==='page');
+  sc.classList.toggle('inv',S.invert);
+  items.forEach(it=>{
+    const c=it.crop;
+    let s=S.mode==='page'?Math.min(W/c.w,H/c.h):W/c.w;
+    s*=S.zoom;it.s=s;it.cw=c.w*s;it.ch=c.h*s;
+    it.div.style.width=Math.max(W,it.cw)+'px';
+    it.div.style.height=(S.mode==='page'?Math.max(H,it.ch):it.ch)+'px';
+    it.canvas.style.width=it.cw+'px';it.canvas.style.height=it.ch+'px';
+    it.rendered=false;
+  });
+  const d=items[pos.i].div;sc.scrollTop=d.offsetTop+pos.f*d.offsetHeight;
+  renderVisible();ui();
+}
+function renderVisible(){items.forEach(it=>{if(it.vis&&!it.rendered)render(it)})}
+async function render(it){
+  if(it.busy){it.again=true;return}
+  it.busy=true;it.rendered=true;
+  const my=gen;
+  let s=it.s*Math.min(window.devicePixelRatio||1,3);const c=it.crop;
+  const area=c.w*s*c.h*s;if(area>16e6)s*=Math.sqrt(16e6/area);
+  const cv=it.canvas;cv.width=Math.max(1,Math.round(c.w*s));cv.height=Math.max(1,Math.round(c.h*s));
+  const vp=it.page.getViewport({scale:s,rotation:pageRot(it)});
+  try{await it.page.render({canvasContext:cv.getContext('2d'),viewport:vp,transform:[1,0,0,1,-c.x*s,-c.y*s]}).promise}catch(e){}
+  it.busy=false;
+  if(it.again&&my===gen){it.again=false;it.rendered=false;renderVisible()}
+}
+
+function ui(){
+  const p=curPos();
+  $('info').textContent=items.length?(p.i+1)+' / '+items.length:'–';
+  $('bMode').textContent=S.mode==='page'?'Page':'Largeur';
+  $('bCrop').classList.toggle('on',S.crop);
+  $('bInv').classList.toggle('on',S.invert);
+}
+let raf=0;sc.addEventListener('scroll',()=>{if(!raf)raf=requestAnimationFrame(()=>{raf=0;ui()})},{passive:true});
+function go(d){const p=curPos();let i=Math.min(items.length-1,Math.max(0,p.i+d));
+  if(items[i])sc.scrollTo({top:items[i].div.offsetTop,behavior:'smooth'})}
+
+// --- Actions ---
+$('open').onclick=$('bOpen').onclick=()=>$('file').click();
+$('file').onchange=async e=>{const f=e.target.files[0];if(f){load(await f.arrayBuffer())};e.target.value=''};
+$('bPrev').onclick=()=>go(-1);$('bNext').onclick=()=>go(1);
+$('bMode').onclick=()=>{S.mode=S.mode==='page'?'width':'page';S.zoom=1;save();layout()};
+$('bCrop').onclick=async()=>{S.crop=!S.crop;save();const g=gen;await analyseAll(g);status('');layout()};
+$('bZp').onclick=()=>{S.zoom=Math.min(5,S.zoom*1.25);layout()};
+$('bZm').onclick=()=>{S.zoom=Math.max(.5,S.zoom/1.25);layout()};
+$('bRot').onclick=async()=>{S.rot=(S.rot+90)%360;const g=gen;await analyseAll(g);status('');layout()};
+$('bInv').onclick=()=>{S.invert=!S.invert;save();layout()};
+$('bFs').onclick=()=>{document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen?.()};
+$('fab').onclick=()=>bar.classList.toggle('hide');
+$('info').onclick=()=>{S.zoom=1;layout()};
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key==='PageDown')go(1);
+  if(e.key==='ArrowLeft'||e.key==='PageUp')go(-1);
+});
+
+// Ajustement automatique à la taille / l’orientation de l’écran
+let lw=0,lh=0,tm=0;
+new ResizeObserver(()=>{clearTimeout(tm);tm=setTimeout(()=>{
+  if(sc.clientWidth!==lw||sc.clientHeight!==lh){lw=sc.clientWidth;lh=sc.clientHeight;layout()}},150)}).observe(sc);
+
+// Luminosité
+function applyBr(){sc.style.setProperty('--br',S.br/100);$('br').value=S.br;$('brv').textContent=S.br+' %'}
+$('br').oninput=e=>{S.br=+e.target.value;applyBr();save()};
+$('brv').onclick=()=>{S.br=100;applyBr();save()};
+applyBr();
+
+// Grab à la souris (cliquer-glisser pour déplacer la page)
+let gr=null;
+sc.addEventListener('pointerdown',e=>{
+  if(e.pointerType!=='mouse'||e.button!==0)return;
+  gr={x:e.clientX,y:e.clientY,l:sc.scrollLeft,t:sc.scrollTop};
+  sc.classList.add('grabbing');sc.setPointerCapture(e.pointerId);
+});
+sc.addEventListener('pointermove',e=>{
+  if(!gr)return;
+  sc.scrollLeft=gr.l-(e.clientX-gr.x);sc.scrollTop=gr.t-(e.clientY-gr.y);
+});
+const endGr=()=>{if(!gr)return;gr=null;sc.classList.remove('grabbing')};
+sc.addEventListener('pointerup',endGr);sc.addEventListener('pointercancel',endGr);
+
+// Glisser-déposer
+const em=$('empty');
+['dragover','dragenter'].forEach(t=>document.addEventListener(t,e=>{e.preventDefault();em.classList.add('drag')}));
+['dragleave','drop'].forEach(t=>document.addEventListener(t,e=>{e.preventDefault();em.classList.remove('drag')}));
+document.addEventListener('drop',async e=>{const f=e.dataTransfer.files[0];if(f&&/pdf/i.test(f.type+f.name))load(await f.arrayBuffer())});
+</script>
+</body>
+</html>
