@@ -87,10 +87,15 @@
   #desc{width:100%}
   @media (min-width: 641px){
     /* Les boutons d'action passent à la ligne au lieu de faire déborder le tableau */
-    .actions-col{white-space:normal; width:250px}
-    .actions-col button{padding:6px 9px; font-size:.76rem; margin:2px 0 2px 4px}
+    .actions-col{white-space:nowrap; width:1%}
+    .actions-col button{padding:5px 8px; font-size:.74rem; margin:0 0 0 3px}
     td code{word-break:break-all}
+    .footer-row .row{gap:6px; flex-wrap:nowrap}
+    .footer-row .row button, .footer-row .row .linkbtn{padding:7px 10px; font-size:.76rem; white-space:nowrap}
   }
+  th.sortable{cursor:pointer; user-select:none; white-space:nowrap}
+  th.sortable:hover{color:var(--text)}
+  .sortbtn{display:none}
 
   /* Mot de passe masqué / affichable */
   .pwcell{display:inline-flex; align-items:center; gap:8px}
@@ -121,6 +126,7 @@
     .row > div[style*="align-self:flex-end"]{flex:1 1 100%}
     select, input{width:100%; padding:11px 10px; font-size:16px} /* 16px avoids iOS zoom-on-focus */
     input.chk{width:22px; height:22px; padding:0}
+    .sortbtn{display:block}
     .emailcell{flex:1; justify-content:flex-end; text-align:right}
     .linkbtn.inline{width:100%; justify-content:center; padding:12px 14px; font-size:.9rem}
     button{padding:12px 14px; font-size:.9rem; width:100%}
@@ -244,13 +250,13 @@
   <div class="footer-row">
     <strong style="font-size:.9rem">Historique</strong>
     <div class="row">
-      <button class="btn-ghost" onclick="exportJson()">🔐 Exporter JSON chiffré</button>
+      <button class="btn-ghost" onclick="exportJson()" title="Exporter JSON chiffré">🔐 Export chiffré</button>
       <a class="linkbtn inline" href="https://claude.ai" target="_blank" rel="noopener">🤖 Claude</a>
       <a class="linkbtn inline" href="https://mail.proton.me" target="_blank" rel="noopener">🔒 Proton Mail</a>
-      <button class="btn-ghost" onclick="document.getElementById('importFile').click()">⬆ Importer JSON</button>
+      <button class="btn-ghost" onclick="document.getElementById('importFile').click()" title="Importer JSON">⬆ Import</button>
       <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importJson(event)">
-      <button class="btn-ghost" onclick="uncheckAll()">☐ Tout décocher</button>
-      <button class="btn-danger" onclick="clearAll()">🗑 Tout effacer</button>
+      <button class="btn-ghost" onclick="uncheckAll()" title="Tout décocher">☐ Décocher</button>
+      <button class="btn-danger" onclick="clearAll()" title="Tout effacer">🗑 Effacer</button>
     </div>
   </div>
   <div class="row" style="margin-top:12px">
@@ -259,9 +265,10 @@
       <input id="search" placeholder="ex : forum X..." oninput="renderTable()" style="width:100%">
     </div>
   </div>
+  <button class="btn-ghost sortbtn" id="sortBtn" onclick="toggleDateSort()" style="margin-top:12px">📅 Date ▼</button>
   <table id="table" style="margin-top:12px">
     <thead>
-      <tr><th>Créé le</th><th>Email</th><th>Mot de passe</th><th class="actions-col">Actions</th></tr>
+      <tr><th class="sortable" id="thDate" onclick="toggleDateSort()" title="Trier par date">Créé le <span id="sortArrow">▼</span></th><th>Email</th><th>Mot de passe</th><th class="actions-col">Actions</th></tr>
     </thead>
     <tbody id="tbody"></tbody>
   </table>
@@ -292,6 +299,7 @@ const KDF_ITER = 250000;
 let current = null;
 let resultShown = false;
 let editingIdx = null;
+let dateSortDir = 'desc'; // 'desc' = plus récent d'abord
 
 const WORDS = ['nova','orion','cobalt','ember','quartz','lumen','onyx','drift','pixel','vale',
   'raven','cedar','ionis','flux','nimbus','sable','tundra','opal','vertex','solace'];
@@ -461,7 +469,13 @@ function renderTable(){
     .map((item, idx) => ({ item, idx }))
     .filter(({item}) => !q || (item.description||'').toLowerCase().includes(q) || item.email.toLowerCase().includes(q))
     // Organisation auto : les cochés descendent en bas (tri stable, ordre d'origine conservé)
-    .sort((a, b) => (a.item.done ? 1 : 0) - (b.item.done ? 1 : 0));
+    .sort((a, b) =>
+      ((a.item.done ? 1 : 0) - (b.item.done ? 1 : 0)) ||
+      (dateSortDir === 'desc' ? -1 : 1) * (new Date(a.item.createdAt) - new Date(b.item.createdAt))
+    );
+  const arrow = dateSortDir === 'desc' ? '▼' : '▲';
+  el('sortArrow').textContent = arrow;
+  el('sortBtn').textContent = `📅 Date ${arrow}`;
 
   el('emptyMsg').textContent = list.length && !filtered.length ? 'Aucun résultat pour cette recherche.' : 'Aucune identité enregistrée pour l\'instant.';
   el('emptyMsg').style.display = filtered.length ? 'none' : 'block';
@@ -511,14 +525,19 @@ function renderTable(){
         </span>
       </td>
       <td class="actions-col" data-label="Actions">
-        <button class="btn-ghost" onclick="copyField(${idx}, 'email')">Copier email</button>
+        <button class="btn-ghost" onclick="copyField(${idx}, 'email')" title="Copier l'email">Email</button>
         <button class="btn-ghost" onclick="copyField(${idx}, 'local')" title="Copier sans le @domaine">Sans @</button>
-        <button class="btn-ghost" onclick="copyField(${idx}, 'password')">Copier mdp</button>
-        <button class="btn-ghost" onclick="startEdit(${idx})">✏ Éditer</button>
-        <button class="btn-danger" onclick="deleteItem(${idx})">Suppr</button>
+        <button class="btn-ghost" onclick="copyField(${idx}, 'password')" title="Copier le mot de passe">Mdp</button>
+        <button class="btn-ghost" onclick="startEdit(${idx})" title="Éditer">✏</button>
+        <button class="btn-danger" onclick="deleteItem(${idx})" title="Supprimer">✕</button>
       </td>`;
     tbody.appendChild(tr);
   });
+}
+
+function toggleDateSort(){
+  dateSortDir = dateSortDir === 'desc' ? 'asc' : 'desc';
+  renderTable();
 }
 
 function startEdit(idx){
