@@ -176,6 +176,7 @@
 <div class="topnav">
   <a class="linkbtn" href="https://claude.ai" target="_blank" rel="noopener">🤖 Claude</a>
   <a class="linkbtn" href="https://mail.proton.me" target="_blank" rel="noopener">🔒 Proton Mail</a>
+  <a class="linkbtn" href="https://outlook.live.com/mail/" target="_blank" rel="noopener">📬 Outlook</a>
 </div>
 
 <div class="card">
@@ -186,6 +187,9 @@
         <option value="proton.me">proton.me</option>
         <option value="protonmail.com">protonmail.com</option>
         <option value="pm.me">pm.me</option>
+        <option value="outlook.com">outlook.com</option>
+        <option value="outlook.fr">outlook.fr</option>
+        <option value="hotmail.com">hotmail.com</option>
         <option value="custom">— personnalisé —</option>
       </select>
     </div>
@@ -253,6 +257,7 @@
       <button class="btn-ghost" onclick="exportJson()" title="Exporter JSON chiffré">🔐 Export chiffré</button>
       <a class="linkbtn inline" href="https://claude.ai" target="_blank" rel="noopener">🤖 Claude</a>
       <a class="linkbtn inline" href="https://mail.proton.me" target="_blank" rel="noopener">🔒 Proton Mail</a>
+      <a class="linkbtn inline" href="https://outlook.live.com/mail/" target="_blank" rel="noopener">📬 Outlook</a>
       <button class="btn-ghost" onclick="document.getElementById('importFile').click()" title="Importer JSON">⬆ Import</button>
       <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importJson(event)">
       <button class="btn-ghost" onclick="uncheckAll()" title="Tout décocher">☐ Décocher</button>
