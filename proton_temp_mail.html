@@ -74,6 +74,24 @@
   }
   .linkbtn:hover{opacity:.8}
 
+  /* Case à cocher type liste de tâches */
+  .emailcell{display:flex; align-items:flex-start; gap:10px}
+  .emailcell .txt{min-width:0; flex:1}
+  input.chk{
+    width:18px; height:18px; padding:0; margin:2px 0 0; flex-shrink:0;
+    accent-color:var(--ok); cursor:pointer;
+  }
+  tr.done code, tr.done .desc-line{text-decoration:line-through; opacity:.5}
+  tr.done{opacity:.75}
+  .linkbtn.inline{padding:9px 14px; font-size:.85rem}
+  #desc{width:100%}
+  @media (min-width: 641px){
+    /* Les boutons d'action passent à la ligne au lieu de faire déborder le tableau */
+    .actions-col{white-space:normal; width:250px}
+    .actions-col button{padding:6px 9px; font-size:.76rem; margin:2px 0 2px 4px}
+    td code{word-break:break-all}
+  }
+
   /* Mot de passe masqué / affichable */
   .pwcell{display:inline-flex; align-items:center; gap:8px}
   .pw{letter-spacing:.08em}
@@ -102,6 +120,9 @@
     .row > div{flex:1 1 100%; min-width:0}
     .row > div[style*="align-self:flex-end"]{flex:1 1 100%}
     select, input{width:100%; padding:11px 10px; font-size:16px} /* 16px avoids iOS zoom-on-focus */
+    input.chk{width:22px; height:22px; padding:0}
+    .emailcell{flex:1; justify-content:flex-end; text-align:right}
+    .linkbtn.inline{width:100%; justify-content:center; padding:12px 14px; font-size:.9rem}
     button{padding:12px 14px; font-size:.9rem; width:100%}
     .row .btn-main{width:100%}
     .topnav .linkbtn{width:auto; padding:9px 12px}
@@ -178,6 +199,13 @@
       <label>Longueur mot de passe</label>
       <input id="pwlen" type="number" min="8" max="64" value="18" style="width:70px">
     </div>
+    <div>
+      <label>Compteur (démarre à)</label>
+      <div style="display:flex; gap:8px; align-items:center">
+        <input id="counterOn" type="checkbox" class="chk" checked title="Activer le compteur" aria-label="Activer le compteur" onchange="saveCounterPrefs()">
+        <input id="counterStart" type="number" min="0" max="9999" value="1" style="width:80px" oninput="saveCounterPrefs()">
+      </div>
+    </div>
     <div style="align-self:flex-end">
       <button class="btn-main" onclick="generate()">⚡ Générer</button>
     </div>
@@ -194,6 +222,7 @@
       <span class="k">Email</span>
       <code id="outEmail"></code>
       <button class="btn-ghost" onclick="copyText('outEmail')">Copier</button>
+      <button class="btn-ghost" onclick="copyRaw(localPart(current.email))" title="Copier sans le @domaine">Sans @</button>
     </div>
     <div class="field">
       <span class="k">Mot de passe</span>
@@ -216,6 +245,8 @@
     <strong style="font-size:.9rem">Historique</strong>
     <div class="row">
       <button class="btn-ghost" onclick="exportJson()">🔐 Exporter JSON chiffré</button>
+      <a class="linkbtn inline" href="https://claude.ai" target="_blank" rel="noopener">🤖 Claude</a>
+      <a class="linkbtn inline" href="https://mail.proton.me" target="_blank" rel="noopener">🔒 Proton Mail</a>
       <button class="btn-ghost" onclick="document.getElementById('importFile').click()">⬆ Importer JSON</button>
       <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importJson(event)">
       <button class="btn-danger" onclick="clearAll()">🗑 Tout effacer</button>
@@ -255,6 +286,7 @@
 
 <script>
 const STORE_KEY = 'temp_identities_v1';
+const COUNTER_KEY = 'temp_identities_counter_v1';
 const KDF_ITER = 250000;
 let current = null;
 let resultShown = false;
@@ -316,13 +348,15 @@ function generate(){
   const style = el('style').value;
   const pwlen = Math.min(64, Math.max(8, parseInt(el('pwlen').value) || 18));
 
-  const local = randomLocalPart(style);
+  const counter = el('counterOn').checked ? Math.max(0, parseInt(el('counterStart').value) || 0) : null;
+  const prefix = counter !== null ? String(counter).padStart(2, '0') + '_' : '';
+  const local = prefix + randomLocalPart(style);
   const email = `${local}@${domain}`;
   const password = generatePassword(pwlen);
 
   const description = el('desc').value.trim();
 
-  current = { email, password, description, createdAt: new Date().toISOString() };
+  current = { email, password, description, createdAt: new Date().toISOString(), counter };
 
   el('outEmail').textContent = email;
   if(description){
@@ -388,8 +422,32 @@ function saveCurrent(){
   list.unshift(current);
   if(!saveStore(list)) return;
   el('desc').value = '';
+  // Le compteur avance seulement quand l'adresse est sauvegardée (régénérer ne grille pas de numéro)
+  if(current.counter !== null && current.counter !== undefined && el('counterOn').checked){
+    el('counterStart').value = current.counter + 1;
+    saveCounterPrefs();
+  }
   renderTable();
   toast('Identité sauvegardée');
+}
+
+function saveCounterPrefs(){
+  try{
+    localStorage.setItem(COUNTER_KEY, JSON.stringify({
+      on: el('counterOn').checked,
+      start: el('counterStart').value
+    }));
+  }catch(e){}
+}
+
+function loadCounterPrefs(){
+  try{
+    const p = JSON.parse(localStorage.getItem(COUNTER_KEY) || 'null');
+    if(p){
+      el('counterOn').checked = !!p.on;
+      if(p.start !== undefined && p.start !== '') el('counterStart').value = p.start;
+    }
+  }catch(e){}
 }
 
 function renderTable(){
@@ -400,11 +458,16 @@ function renderTable(){
   const q = (el('search') ? el('search').value : '').trim().toLowerCase();
   const filtered = list
     .map((item, idx) => ({ item, idx }))
-    .filter(({item}) => !q || (item.description||'').toLowerCase().includes(q) || item.email.toLowerCase().includes(q));
+    .filter(({item}) => !q || (item.description||'').toLowerCase().includes(q) || item.email.toLowerCase().includes(q))
+    // Organisation auto : les cochés descendent en bas (tri stable, ordre d'origine conservé)
+    .sort((a, b) => (a.item.done ? 1 : 0) - (b.item.done ? 1 : 0));
 
   el('emptyMsg').textContent = list.length && !filtered.length ? 'Aucun résultat pour cette recherche.' : 'Aucune identité enregistrée pour l\'instant.';
   el('emptyMsg').style.display = filtered.length ? 'none' : 'block';
-  el('count').textContent = list.length ? `${filtered.length} / ${list.length} identité(s)` : '';
+  const nbDone = list.filter(x => x.done).length;
+  el('count').textContent = list.length
+    ? `${filtered.length} / ${list.length} identité(s) · ${nbDone} cochée(s)`
+    : '';
 
   filtered.forEach(({item, idx}) => {
     const tr = document.createElement('tr');
@@ -428,11 +491,17 @@ function renderTable(){
       return;
     }
 
+    if(item.done) tr.classList.add('done');
     tr.innerHTML = `
       <td data-label="Créé le">${escapeHtml(date)}</td>
       <td data-label="Email">
-        <code>${escapeHtml(item.email)}</code>
-        ${item.description ? `<div class="desc-line">${escapeHtml(item.description)}</div>` : ''}
+        <div class="emailcell">
+          <input type="checkbox" class="chk" ${item.done ? 'checked' : ''} onchange="toggleDone(${idx}, this.checked)" title="Cocher / décocher" aria-label="Marquer comme fait">
+          <div class="txt">
+            <code>${escapeHtml(item.email)}</code>
+            ${item.description ? `<div class="desc-line">${escapeHtml(item.description)}</div>` : ''}
+          </div>
+        </div>
       </td>
       <td data-label="Mot de passe">
         <span class="pwcell">
@@ -442,6 +511,7 @@ function renderTable(){
       </td>
       <td class="actions-col" data-label="Actions">
         <button class="btn-ghost" onclick="copyField(${idx}, 'email')">Copier email</button>
+        <button class="btn-ghost" onclick="copyField(${idx}, 'local')" title="Copier sans le @domaine">Sans @</button>
         <button class="btn-ghost" onclick="copyField(${idx}, 'password')">Copier mdp</button>
         <button class="btn-ghost" onclick="startEdit(${idx})">✏ Éditer</button>
         <button class="btn-danger" onclick="deleteItem(${idx})">Suppr</button>
@@ -475,9 +545,23 @@ function saveEdit(idx){
   toast('Identité mise à jour');
 }
 
+function localPart(email){
+  const i = String(email).indexOf('@');
+  return i === -1 ? String(email) : String(email).slice(0, i);
+}
+
 function copyField(idx, field){
   const item = loadStore()[idx];
-  if(item) copyRaw(item[field]);
+  if(!item) return;
+  copyRaw(field === 'local' ? localPart(item.email) : item[field]);
+}
+
+function toggleDone(idx, checked){
+  const list = loadStore();
+  if(!list[idx]) return;
+  list[idx].done = !!checked;
+  saveStore(list);
+  renderTable();
 }
 
 function deleteItem(idx){
@@ -554,6 +638,7 @@ function sanitizeList(arr){
       email: x.email,
       password: x.password,
       description: typeof x.description === 'string' ? x.description : '',
+      done: x.done === true,
       createdAt: isNaN(new Date(x.createdAt)) ? new Date().toISOString() : x.createdAt
     }));
 }
@@ -701,6 +786,7 @@ function toast(msg){
   toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
 }
 
+loadCounterPrefs();
 renderTable();
 </script>
 </body>
