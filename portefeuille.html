@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mon portefeuille — cours en direct</title>
+<style>
+  :root{--bg:#0e1116;--card:#171b22;--line:#262c36;--txt:#e6e9ee;--mut:#8a93a1;--up:#22c55e;--down:#ef4444;--acc:#f5b942}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.4 system-ui,-apple-system,Segoe UI,sans-serif;padding:20px}
+  h1{font-size:20px;margin:0 0 4px}
+  .sub{color:var(--mut);font-size:13px;margin-bottom:16px}
+  .total{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:24px;align-items:center}
+  .total .big{font-size:30px;font-weight:700}
+  .total small{display:block;color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+  .wrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:12px}
+  table{width:100%;border-collapse:collapse;min-width:900px}
+  th,td{padding:10px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{color:var(--mut);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+  th:first-child,td:first-child{text-align:left}
+  tr:last-child td{border-bottom:0}
+  input{background:#0e1116;border:1px solid var(--line);color:var(--txt);border-radius:6px;padding:6px 8px;font:inherit}
+  input.tk{width:110px;text-transform:uppercase;font-weight:600}
+  input.num{width:100px;text-align:right}
+  .name{color:var(--mut);font-size:12px}
+  .up{color:var(--up)} .down{color:var(--down)}
+  .arrow{font-size:18px;margin-right:4px}
+  .btns{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  button{background:var(--acc);color:#111;border:0;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer}
+  button.ghost{background:transparent;color:var(--txt);border:1px solid var(--line)}
+  .status{color:var(--mut);font-size:12px}
+  .err{color:var(--down);font-size:12px}
+  .links{margin-top:18px;font-size:13px}
+  .links a{color:var(--acc);margin-right:14px;text-decoration:none}
+</style>
+</head>
+<body>
+<h1>📊 Mon portefeuille — cours en direct</h1>
+<div class="sub">Cours Yahoo Finance (différés pour les ETF, séances de bourse uniquement). Actualisation automatique toutes les 60 s.</div>
+
+<div class="total">
+  <div><small>Valeur totale (EUR)</small><span class="big" id="tot">—</span></div>
+  <div><small>Investi (EUR)</small><span id="inv">—</span></div>
+  <div><small>Plus / moins-value</small><span id="pl">—</span></div>
+</div>
+
+<div class="wrap">
+<table>
+  <thead><tr>
+    <th>Ticker</th><th>Cours</th><th>Variation jour</th><th>Prix de revient</th><th>Quantité</th><th>Valeur (EUR)</th><th>+/- vs revient</th>
+  </tr></thead>
+  <tbody id="rows"></tbody>
+</table>
+</div>
+
+<div class="btns">
+  <button onclick="refresh()">⟳ Actualiser</button>
+  <button class="ghost" onclick="resetAll()">Réinitialiser</button>
+  <span class="status" id="status"></span>
+</div>
+<div class="sub" style="margin-top:10px">Les tickers sont modifiables (format Yahoo : <b>IWDA.AS</b>, <b>WPEA.PA</b>, <b>BTC-EUR</b>, <b>GC=F</b>, <b>EURUSD=X</b>…). Les valeurs en USD sont converties en EUR avec le cours EUR/USD. Prix de revient dans la devise du ticker. Vos saisies sont mémorisées dans ce navigateur.</div>
+
+<div class="links">
+  <a href="https://bencm0i.github.io/Sant-/btc_terminal.html" target="_blank">BTC terminal</a>
+  <a href="https://bencm0i.github.io/Sant-/gold_terminal.html" target="_blank">Gold terminal</a>
+  <a href="https://bencm0i.github.io/Sant-/vall_terminal.html" target="_blank">WALL terminal</a>
+  <a href="https://bencm0i.github.io/Sant-/iwda_terminal.html" target="_blank">IWDA terminal</a>
+  <a href="https://bencm0i.github.io/Sant-/aggh_terminal.html" target="_blank">AGGH terminal</a>
+</div>
+
+<script>
+const DEFAULTS = [
+  {label:"BTC",     ticker:"BTC-EUR",   cost:"", qty:""},
+  {label:"EUR/USD", ticker:"EURUSD=X",  cost:"", qty:"", fx:true},
+  {label:"Gold",    ticker:"GC=F",      cost:"", qty:""},
+  {label:"WPEA",    ticker:"WPEA.PA",   cost:"", qty:""},
+  {label:"WALL",    ticker:"WALL.PA",   cost:"", qty:""},
+  {label:"IWDA",    ticker:"IWDA.AS",   cost:"", qty:""},
+  {label:"AGGH",    ticker:"AGGH.AS",   cost:"", qty:""}
+];
+const KEY = "portefeuille_v1";
+let state;
+try { state = JSON.parse(localStorage.getItem(KEY)) || null; } catch(e){ state = null; }
+if(!state || state.length !== DEFAULTS.length) state = JSON.parse(JSON.stringify(DEFAULTS));
+const quotes = {}; // ticker -> {price, prev, cur, err}
+
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+function resetAll(){ if(confirm("Tout réinitialiser ?")){ state = JSON.parse(JSON.stringify(DEFAULTS)); save(); build(); refresh(); } }
+
+const PROXIES = [
+  u => u,
+  u => "https://corsproxy.io/?" + encodeURIComponent(u),
+  u => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u)
+];
+async function fetchQuote(sym){
+  const url = "https://query1.finance.yahoo.com/v8/finance/chart/" + encodeURIComponent(sym) + "?interval=1d&range=1d";
+  let lastErr;
+  for(const p of PROXIES){
+    try{
+      const r = await fetch(p(url), {cache:"no-store"});
+      if(!r.ok) throw new Error("HTTP " + r.status);
+      const j = await r.json();
+      const m = j.chart.result[0].meta;
+      return {price:m.regularMarketPrice, prev:m.chartPreviousClose ?? m.previousClose, cur:m.currency};
+    }catch(e){ lastErr = e; }
+  }
+  throw lastErr;
+}
+
+const fmt = (n,d=2) => n==null||isNaN(n) ? "—" : n.toLocaleString("fr-FR",{minimumFractionDigits:d,maximumFractionDigits:d});
+const sym = c => ({EUR:"€",USD:"$",GBp:"p",GBP:"£"}[c] || c || "");
+
+function build(){
+  const tb = document.getElementById("rows");
+  tb.innerHTML = "";
+  state.forEach((s,i)=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><input class="tk" value="${s.ticker}" data-i="${i}" data-f="ticker"><div class="name">${s.label}</div></td>
+      <td id="p${i}">…</td>
+      <td id="c${i}">…</td>
+      <td>${s.fx ? "—" : `<input class="num" type="number" step="any" value="${s.cost}" data-i="${i}" data-f="cost" placeholder="0.00">`}</td>
+      <td>${s.fx ? "—" : `<input class="num" type="number" step="any" value="${s.qty}" data-i="${i}" data-f="qty" placeholder="0">`}</td>
+      <td id="v${i}">—</td>
+      <td id="g${i}">—</td>`;
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll("input").forEach(inp=>{
+    inp.addEventListener("input", e=>{
+      const {i,f} = e.target.dataset;
+      state[i][f] = f==="ticker" ? e.target.value.trim().toUpperCase() : e.target.value;
+      save();
+      if(f!=="ticker") render();
+    });
+    inp.addEventListener("change", e=>{ if(e.target.dataset.f==="ticker") refresh(); });
+  });
+  render();
+}
+
+function eurRate(){ const q = quotes["EURUSD=X"]; return q && q.price ? q.price : null; }
+
+function render(){
+  let total=0, invested=0, anyVal=false;
+  const fx = eurRate();
+  state.forEach((s,i)=>{
+    const q = quotes[s.ticker];
+    const pEl = document.getElementById("p"+i), cEl = document.getElementById("c"+i);
+    const vEl = document.getElementById("v"+i), gEl = document.getElementById("g"+i);
+    if(!q){ pEl.textContent="…"; cEl.textContent="…"; return; }
+    if(q.err){ pEl.innerHTML='<span class="err">indisponible</span>'; cEl.textContent="—"; vEl.textContent="—"; gEl.textContent="—"; return; }
+    const dec = s.fx ? 4 : 2;
+    pEl.textContent = fmt(q.price,dec) + " " + sym(q.cur);
+    const ch = q.prev ? (q.price-q.prev)/q.prev*100 : null;
+    if(ch==null) cEl.textContent="—";
+    else{
+      const up = ch>=0;
+      cEl.innerHTML = `<span class="${up?'up':'down'}"><span class="arrow">${up?'▲':'▼'}</span>${up?'+':''}${fmt(ch)} %</span>`;
+    }
+    const qty = parseFloat(s.qty), cost = parseFloat(s.cost);
+    // conversion en EUR
+    let toEur = 1;
+    if(q.cur==="USD") toEur = fx ? 1/fx : NaN;
+    else if(q.cur==="GBp") toEur = NaN;
+    if(!s.fx && qty>0 && !isNaN(toEur)){
+      const val = qty*q.price*toEur;
+      vEl.textContent = fmt(val)+" €";
+      total += val; anyVal = true;
+      if(cost>0){
+        invested += qty*cost*toEur;
+        const gp = (q.price-cost)/cost*100, up = gp>=0;
+        gEl.innerHTML = `<span class="${up?'up':'down'}">${up?'▲ +':'▼ '}${fmt(gp)} %<br><small>${up?'+':''}${fmt(qty*(q.price-cost)*toEur)} €</small></span>`;
+      } else gEl.textContent="—";
+    } else { vEl.textContent="—"; gEl.textContent="—"; }
+  });
+  document.getElementById("tot").textContent = anyVal ? fmt(total)+" €" : "—";
+  document.getElementById("inv").textContent = invested ? fmt(invested)+" €" : "—";
+  const plEl = document.getElementById("pl");
+  if(invested){
+    const d = total-invested, up = d>=0;
+    plEl.innerHTML = `<span class="${up?'up':'down'}">${up?'▲ +':'▼ '}${fmt(d)} € (${up?'+':''}${fmt(d/invested*100)} %)</span>`;
+  } else plEl.textContent = "—";
+}
+
+async function refresh(){
+  const st = document.getElementById("status");
+  st.textContent = "Actualisation…";
+  const list = [...new Set([...state.map(s=>s.ticker), "EURUSD=X"])];
+  await Promise.all(list.map(async t=>{
+    try{ quotes[t] = await fetchQuote(t); }
+    catch(e){ quotes[t] = {err:true}; }
+  }));
+  render();
+  st.textContent = "Dernière mise à jour : " + new Date().toLocaleTimeString("fr-FR");
+}
+
+build();
+refresh();
+setInterval(refresh, 60000);
+</script>
+</body>
+</html>
