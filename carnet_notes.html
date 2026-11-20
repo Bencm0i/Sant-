@@ -3570,6 +3570,21 @@ h1 .spine{width:7px;height:16px;}
   .layout.raw-hidden #iaCol{flex:1 1 auto !important;border-right-width:10px;}
 }
 #rawShowBtn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+/* ═══ RACCOURCIS ÉDITABLES (barre sous l'en-tête) ═══ */
+.sc-bar{flex:0 0 100%;width:100%;display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding-top:2px;}
+.sc-chip{display:inline-flex;align-items:center;gap:4px;font-family:'IBM Plex Mono',monospace;font-size:0.74rem;padding:3px 10px;border:1.5px solid var(--line);border-radius:999px;background:#fff;color:var(--ink);cursor:pointer;max-width:240px;}
+.sc-chip:hover{border-color:var(--accent);}
+.sc-chip.sc-empty{color:var(--ink-soft);border-style:dashed;}
+.sc-chip.sc-ok{background:rgba(47,93,98,0.12);border-color:var(--accent);}
+.sc-chip .sc-lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sc-edit{display:inline-flex;align-items:center;gap:3px;padding:2px 4px;border:1.5px solid rgba(47,93,98,0.4);border-radius:8px;background:rgba(47,93,98,0.07);}
+.sc-edit input{font-family:'IBM Plex Mono',monospace;font-size:0.72rem;padding:2px 6px;border:1px solid var(--line);border-radius:5px;background:#fff;color:var(--ink);}
+.sc-edit input.sc-i-lbl{width:110px;}
+.sc-edit input.sc-i-path{width:260px;}
+.sc-edit button,.sc-tool{font-size:0.72rem;border:1px solid var(--line);background:#fff;border-radius:6px;padding:1px 6px;cursor:pointer;color:var(--ink-soft);}
+.sc-tool:hover,.sc-edit button:hover{border-color:var(--accent);color:var(--accent);}
+.sc-tool.on{background:rgba(47,93,98,0.12);border-color:var(--accent);color:var(--accent);}
 </style>
 </head>
 <body>
@@ -3605,6 +3620,7 @@ h1 .spine{width:7px;height:16px;}
       <button class="btn primary" onclick="exportJSON()">⬇ Exporter JSON</button>
     </div>
   </div>
+  <div class="sc-bar" id="scBar"></div>
 </header>
 
 <div class="link-hint">🔗 <code>[[Nom]]</code> + <strong>Ctrl+clic</strong> pour lier/créer un sous-onglet · 👁 <strong>Aperçu</strong> pour le rendu markdown · appuie sur <button class="link-hint-btn" onclick="toggleHelp()">⌨ ? pour tous les raccourcis</button></div>
@@ -8234,6 +8250,8 @@ function togglePathsCompact(){
 function renderPathsBar(){
   const bar = document.getElementById('pathsBar');
   if(!bar) return;
+  // Section « Dossiers » retirée de l'affichage (remplacée par la barre de raccourcis du haut) ; données conservées.
+  bar.style.display = 'none'; pathsForm = null; return;
   const t = state.tabs[activeId];
   if(!t || t.type === 'separator'){ bar.style.display = 'none'; pathsForm = null; return; }
   bar.style.display = '';
@@ -9374,6 +9392,65 @@ document.querySelectorAll('[data-rz]').forEach(g=>{
 window.addEventListener('resize', cwApplyAll);
 cwApplyAll();
 applyRawHidden();
+</script>
+<script>
+// ── RACCOURCIS ÉDITABLES (dossiers / chemins), copie au clic ────────────────
+(function(){
+  const KEY='carnet_notes_shortcuts_v1';
+  const DEFAULTS=[
+    {label:'Dossier projet',path:''},
+    {label:'Affaire',path:''},
+    {label:'PMC',path:''},
+    {label:'Données d\u2019entrée',path:''}
+  ];
+  let items, editing=false;
+  try{ const r=JSON.parse(localStorage.getItem(KEY)||'null'); items=Array.isArray(r)&&r.length?r:null; }catch(e){ items=null; }
+  if(!items) items=DEFAULTS.map(x=>({...x}));
+  function save(){ try{ localStorage.setItem(KEY,JSON.stringify(items)); }catch(e){} }
+  function clean(p){ return (p||'').trim().replace(/^[`"']+|[`"']+$/g,''); }
+  const bar=document.getElementById('scBar');
+  function render(){
+    bar.innerHTML='';
+    items.forEach((it,idx)=>{
+      if(editing){
+        const w=document.createElement('span'); w.className='sc-edit';
+        const l=document.createElement('input'); l.className='sc-i-lbl'; l.value=it.label; l.placeholder='Nom';
+        const pa=document.createElement('input'); pa.className='sc-i-path'; pa.value=it.path; pa.placeholder='Chemin (ex. D:\\Affaires\\…)';
+        l.oninput=()=>{ it.label=l.value; save(); };
+        pa.oninput=()=>{ it.path=pa.value; save(); };
+        const d=document.createElement('button'); d.textContent='✕'; d.title='Supprimer ce raccourci';
+        d.onclick=()=>{ items.splice(idx,1); save(); render(); };
+        w.append(l,pa,d); bar.appendChild(w);
+      }else{
+        const c=document.createElement('button'); c.type='button';
+        const has=!!clean(it.path);
+        c.className='sc-chip'+(has?'':' sc-empty');
+        c.title=has?('Copier le chemin : '+clean(it.path)+' (puis Win+R)'):'Aucun chemin : clique pour le renseigner';
+        c.innerHTML='<span>📁</span><span class="sc-lbl"></span>';
+        c.querySelector('.sc-lbl').textContent=it.label||'(sans nom)';
+        c.onclick=()=>{
+          if(!has){ editing=true; render(); const el=bar.querySelectorAll('.sc-i-path')[idx]; if(el) el.focus(); return; }
+          copyTextToClipboard(clean(it.path)).then(()=>{
+            c.classList.add('sc-ok'); const o=c.querySelector('.sc-lbl').textContent;
+            c.querySelector('.sc-lbl').textContent='✓ copié';
+            setTimeout(()=>{ c.classList.remove('sc-ok'); c.querySelector('.sc-lbl').textContent=o; },900);
+          }).catch(()=>alert('❌ La copie a échoué.'));
+        };
+        bar.appendChild(c);
+      }
+    });
+    if(editing){
+      const a=document.createElement('button'); a.className='sc-tool'; a.textContent='＋'; a.title='Ajouter un raccourci';
+      a.onclick=()=>{ items.push({label:'',path:''}); save(); render(); const ls=bar.querySelectorAll('.sc-i-lbl'); ls[ls.length-1].focus(); };
+      bar.appendChild(a);
+    }
+    const t=document.createElement('button'); t.className='sc-tool'+(editing?' on':'');
+    t.textContent=editing?'✓ OK':'✎'; t.title=editing?'Terminer l\u2019édition':'Modifier les raccourcis';
+    t.onclick=()=>{ editing=!editing; render(); };
+    bar.appendChild(t);
+  }
+  render();
+})();
 </script>
 </body>
 </html>
