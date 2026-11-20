@@ -8251,7 +8251,9 @@ function renderPathsBar(){
   const bar = document.getElementById('pathsBar');
   if(!bar) return;
   // Section « Dossiers » retirée de l'affichage (remplacée par la barre de raccourcis du haut) ; données conservées.
-  bar.style.display = 'none'; pathsForm = null; return;
+  bar.style.display = 'none'; pathsForm = null;
+  if(window.scRender) window.scRender();
+  return;
   const t = state.tabs[activeId];
   if(!t || t.type === 'separator'){ bar.style.display = 'none'; pathsForm = null; return; }
   bar.style.display = '';
@@ -9394,32 +9396,37 @@ cwApplyAll();
 applyRawHidden();
 </script>
 <script>
-// ── RACCOURCIS ÉDITABLES (dossiers / chemins), copie au clic ────────────────
+// ── RACCOURCIS ÉDITABLES, PROPRES À CHAQUE ONGLET (stockés dans l'onglet) ──
 (function(){
-  const KEY='carnet_notes_shortcuts_v1';
-  const DEFAULTS=[
+  const DEFAULTS=()=>[
     {label:'Dossier projet',path:''},
     {label:'Affaire',path:''},
     {label:'PMC',path:''},
     {label:'Données d\u2019entrée',path:''}
   ];
-  let items, editing=false;
-  try{ const r=JSON.parse(localStorage.getItem(KEY)||'null'); items=Array.isArray(r)&&r.length?r:null; }catch(e){ items=null; }
-  if(!items) items=DEFAULTS.map(x=>({...x}));
-  function save(){ try{ localStorage.setItem(KEY,JSON.stringify(items)); }catch(e){} }
+  let editing=false;
   function clean(p){ return (p||'').trim().replace(/^[`"']+|[`"']+$/g,''); }
   const bar=document.getElementById('scBar');
+  function tab(){ return (typeof state!=='undefined' && state.tabs) ? state.tabs[activeId] : null; }
+  function list(t){ return Array.isArray(t.shortcuts)?t.shortcuts:(t.shortcuts=DEFAULTS()); }
+  function save(){ try{ persist(); }catch(e){} }
   function render(){
     bar.innerHTML='';
+    const t=tab();
+    if(!t || t.type==='separator'){ bar.style.display='none'; return; }
+    bar.style.display='';
+    const items=Array.isArray(t.shortcuts)?t.shortcuts:DEFAULTS();
+    // matérialise la liste dans l'onglet seulement dès la première modification
+    const own=()=>list(t);
     items.forEach((it,idx)=>{
       if(editing){
         const w=document.createElement('span'); w.className='sc-edit';
         const l=document.createElement('input'); l.className='sc-i-lbl'; l.value=it.label; l.placeholder='Nom';
         const pa=document.createElement('input'); pa.className='sc-i-path'; pa.value=it.path; pa.placeholder='Chemin (ex. D:\\Affaires\\…)';
-        l.oninput=()=>{ it.label=l.value; save(); };
-        pa.oninput=()=>{ it.path=pa.value; save(); };
+        l.oninput=()=>{ own()[idx].label=l.value; save(); };
+        pa.oninput=()=>{ own()[idx].path=pa.value; save(); };
         const d=document.createElement('button'); d.textContent='✕'; d.title='Supprimer ce raccourci';
-        d.onclick=()=>{ items.splice(idx,1); save(); render(); };
+        d.onclick=()=>{ own().splice(idx,1); save(); render(); };
         w.append(l,pa,d); bar.appendChild(w);
       }else{
         const c=document.createElement('button'); c.type='button';
@@ -9440,16 +9447,18 @@ applyRawHidden();
       }
     });
     if(editing){
-      const a=document.createElement('button'); a.className='sc-tool'; a.textContent='＋'; a.title='Ajouter un raccourci';
-      a.onclick=()=>{ items.push({label:'',path:''}); save(); render(); const ls=bar.querySelectorAll('.sc-i-lbl'); ls[ls.length-1].focus(); };
+      const a=document.createElement('button'); a.className='sc-tool'; a.textContent='＋'; a.title='Ajouter un raccourci à cet onglet';
+      a.onclick=()=>{ own().push({label:'',path:''}); save(); render(); const ls=bar.querySelectorAll('.sc-i-lbl'); ls[ls.length-1].focus(); };
       bar.appendChild(a);
     }
-    const t=document.createElement('button'); t.className='sc-tool'+(editing?' on':'');
-    t.textContent=editing?'✓ OK':'✎'; t.title=editing?'Terminer l\u2019édition':'Modifier les raccourcis';
-    t.onclick=()=>{ editing=!editing; render(); };
-    bar.appendChild(t);
+    const tg=document.createElement('button'); tg.className='sc-tool'+(editing?' on':'');
+    tg.textContent=editing?'✓ OK':'✎'; tg.title=editing?'Terminer l\u2019édition':'Modifier les raccourcis de cet onglet';
+    tg.onclick=()=>{ editing=!editing; render(); };
+    bar.appendChild(tg);
   }
-  render();
+  let lastTab=null;
+  window.scRender=function(){ if(activeId!==lastTab){ editing=false; lastTab=activeId; } render(); };
+  window.scRender();
 })();
 </script>
 </body>
