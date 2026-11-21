@@ -15,7 +15,7 @@
   .total .big{font-size:30px;font-weight:700}
   .total small{display:block;color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.05em}
   .wrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:12px}
-  table{width:100%;border-collapse:collapse;min-width:980px}
+  table{width:100%;border-collapse:collapse;min-width:1080px}
   th,td{padding:10px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
   th{color:var(--mut);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
   th:first-child,td:first-child{text-align:left}
@@ -32,6 +32,19 @@
   .status{color:var(--mut);font-size:12px}
   .err{color:var(--down);font-size:12px}
   input.man{width:90px;text-align:right}
+  .gap{min-width:180px;display:flex;flex-direction:column;gap:5px;text-align:left}
+  .gap .top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+  .gap .pct{font-size:19px;font-weight:700}
+  .gap .abs{font-size:12px;color:var(--mut)}
+  .gbar{position:relative;height:12px;background:#0e1116;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+  .gbar i{position:absolute;top:0;bottom:0;transition:width .3s}
+  .gbar i.gp{left:50%;background:linear-gradient(90deg,#16803c,var(--up))}
+  .gbar i.gn{right:50%;background:linear-gradient(270deg,#b32424,var(--down))}
+  .gbar::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:2px;margin-left:-1px;background:var(--txt);opacity:.7}
+  .gscale{display:flex;justify-content:space-between;font-size:10px;color:var(--mut)}
+  tr.gain td:first-child{box-shadow:inset 4px 0 var(--up)}
+  tr.loss td:first-child{box-shadow:inset 4px 0 var(--down)}
+  select{background:#0e1116;border:1px solid var(--line);color:var(--txt);border-radius:6px;padding:6px 8px;font:inherit}
   table.hide-pos .pos{display:none}
   table.hide-pos{min-width:0}
   .links{margin-top:18px;font-size:13px}
@@ -61,6 +74,10 @@
   <button onclick="refresh()">⟳ Actualiser</button>
   <button class="ghost" id="hideBtn" onclick="toggleHide()">🙈 Masquer quantité / valeur / +/-</button>
   <button class="ghost" onclick="resetAll()">Réinitialiser</button>
+  <label class="status">Échelle de la barre d'écart :
+    <select id="scaleSel" onchange="setScale(this.value)">
+      <option value="10">±10 %</option><option value="25">±25 %</option><option value="50">±50 %</option><option value="100">±100 %</option>
+    </select></label>
   <span class="status" id="status"></span>
 </div>
 <div class="sub" style="margin-top:10px">Les tickers sont modifiables (format Yahoo : <b>IWDA.AS</b>, <b>WPEA.PA</b>, <b>BTC-EUR</b>, <b>GC=F</b>, <b>EURUSD=X</b>…). Les valeurs en USD sont converties en EUR avec le cours EUR/USD. Prix de revient dans la devise du ticker. <b>Cours manuel</b> : si renseigné (même devise que le ticker, EUR si le cours est indisponible), il remplace le cours en direct ; vider le champ pour revenir à l'automatique. Vos saisies sont mémorisées dans ce navigateur.</div>
@@ -89,6 +106,7 @@ const KEY = "portefeuille_v2";
 let state;
 try { state = JSON.parse(localStorage.getItem(KEY)) || null; } catch(e){ state = null; }
 if(!state || state.length !== DEFAULTS.length) state = JSON.parse(JSON.stringify(DEFAULTS));
+let SCALE = 25; try{ SCALE = parseFloat(localStorage.getItem("portefeuille_scale")) || 25; }catch(e){}
 const quotes = {}; // ticker -> {price, prev, cur, err}
 
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
@@ -212,8 +230,13 @@ function render(){
     // écart par unité vs prix de revient (toujours visible, indépendant de la quantité)
     if(!s.fx && cost>0){
       const d = q.price-cost, pc = d/cost*100, u = d>=0;
-      eEl.innerHTML = `<span class="${u?'up':'down'}">${u?'▲ +':'▼ '}${fmt(d)} ${sym(q.cur)}<br><small>${u?'+':''}${fmt(pc)} %</small></span>`;
-    } else eEl.textContent = "—";
+      const w = Math.min(Math.abs(pc)/SCALE,1)*50;
+      eEl.innerHTML = `<div class="gap">
+        <div class="top"><span class="pct ${u?'up':'down'}">${u?'▲ +':'▼ −'}${fmt(Math.abs(pc))} %</span><span class="abs">${u?'+':'−'}${fmt(Math.abs(d))} ${sym(q.cur)}</span></div>
+        <div class="gbar"><i class="${u?'gp':'gn'}" style="width:${w}%"></i></div>
+        <div class="gscale"><span>−${SCALE}%</span><span>revient</span><span>+${SCALE}%</span></div></div>`;
+      eEl.parentElement.classList.toggle("gain",u); eEl.parentElement.classList.toggle("loss",!u);
+    } else { eEl.textContent = "—"; eEl.parentElement.classList.remove("gain","loss"); }
     // conversion en EUR
     let toEur = 1;
     if(q.cur==="USD") toEur = fx ? 1/fx : NaN;
@@ -253,6 +276,8 @@ async function refresh(){
   st.textContent = "Dernière mise à jour : " + new Date().toLocaleTimeString("fr-FR");
 }
 
+function setScale(v){ SCALE = parseFloat(v)||25; try{ localStorage.setItem("portefeuille_scale", SCALE); }catch(e){} render(); }
+document.getElementById("scaleSel").value = String(SCALE);
 const HKEY = "portefeuille_hide";
 let hidePos = false;
 try{ hidePos = localStorage.getItem(HKEY)==="1"; }catch(e){}
