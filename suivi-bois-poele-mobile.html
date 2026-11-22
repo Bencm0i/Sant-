@@ -49,6 +49,10 @@ details.card summary{cursor:pointer;font-weight:600;min-height:28px}
 .it:last-child{border:0}
 .it>div{flex:1;min-width:0}
 .it .x{min-height:44px;min-width:44px;padding:0;color:var(--warn)}
+.it .ed{min-height:44px;min-width:44px;padding:0;font-size:20px}
+dialog{width:calc(100% - 24px);max-width:520px;border:1px solid var(--line);border-radius:16px;background:var(--card);color:var(--tx);padding:16px}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+dialog h3{margin:0 0 4px}
 .it small{display:block;color:var(--mut);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 svg{width:100%;height:auto;display:block}
 .sg label{display:block;font-size:13px;color:var(--mut);margin-top:10px}
@@ -101,7 +105,7 @@ nav button.on{color:var(--acc);font-weight:700}
       </div>
       <label class="f">Date</label><input type="date" id="p-date">
       <label class="tg"><input type="checkbox" id="p-disc"><span id="p-disc-l"></span></label>
-      <button class="main" id="p-add">Ajouter l’achat</button>
+      <button class="main" id="p-buy">Ajouter l’achat</button>
     </details>
   </section>
 
@@ -132,6 +136,17 @@ nav button.on{color:var(--acc);font-weight:700}
     </div>
   </section>
 </div>
+
+<dialog id="dlg">
+  <h3>Modifier l’achat</h3>
+  <div class="row2">
+    <div><label class="f">Sacs</label><input type="number" id="e-bags" inputmode="numeric" min="1" step="1"></div>
+    <div><label class="f">Prix / sac (€)</label><input type="number" id="e-price" inputmode="decimal" step="0.01"></div>
+  </div>
+  <label class="f">Date</label><input type="date" id="e-date">
+  <label class="tg"><input type="checkbox" id="e-disc"><span id="e-disc-l"></span></label>
+  <div class="row2" style="margin-top:14px"><button id="e-cancel">Annuler</button><button class="main" id="e-save" style="margin-top:0">Enregistrer</button></div>
+</dialog>
 
 <div id="toast"><span id="toast-t"></span><button id="toast-u">Annuler</button></div>
 
@@ -222,7 +237,7 @@ $('#add').onclick=()=>{
   $('#note').value='';save();render();
   toast(`+${nf(kg,1)} kg le ${dm(curDate)}`,()=>{S.usage=S.usage.filter(u=>u.id!==id);save();render()});
 };
-$('#p-add').onclick=()=>{
+$('#p-buy').onclick=()=>{
   const b=parseFloat($('#p-bags').value),p=parseFloat($('#p-price').value);
   if(!(b>0)||!(p>=0)){toast('Sacs et prix à renseigner');return}
   const id=uid();S.purchases.push({id,date:$('#p-date').value||today(),bags:b,price:p,disc:$('#p-disc').checked});save();render();
@@ -279,13 +294,32 @@ function renderHist(c){
   const s=c.s,us=[...S.usage].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,100);
   $('#h-use').innerHTML=us.length?us.map(u=>`<div class="it"><div><b>${nf(u.kg,1)} kg</b> <span class="sub">· ${nf(u.kg/s.bagKg,2)} sac</span><small>${dm(u.date)}/${u.date.slice(0,4)}${u.note?' · '+esc(u.note):''}</small></div><button class="x" data-du="${u.id}" aria-label="Supprimer">✕</button></div>`).join(''):'<div class="empty">Aucune conso</div>';
   const ps=[...S.purchases].sort((a,b)=>b.date.localeCompare(a.date));
-  $('#h-pur').innerHTML=ps.length?ps.map(p=>{const tot=p.bags*p.price*(p.disc?1-s.disc/100:1);return `<div class="it"><div><b>${nf(p.bags,0)} sac(s)</b> <span class="sub">· ${eur(tot)}</span><small>${dm(p.date)}/${p.date.slice(0,4)} · ${eur(p.price)}/sac${p.disc?' · −'+nf(s.disc,0)+' %':''}</small></div><button class="x" data-dp="${p.id}" aria-label="Supprimer">✕</button></div>`}).join(''):'<div class="empty">Aucun achat</div>';
+  $('#h-pur').innerHTML=ps.length?ps.map(p=>{const tot=p.bags*p.price*(p.disc?1-s.disc/100:1);return `<div class="it"><div><b>${nf(p.bags,0)} sac(s)</b> <span class="sub">· ${eur(tot)}</span><small>${dm(p.date)}/${p.date.slice(0,4)} · ${eur(p.price)}/sac${p.disc?' · −'+nf(s.disc,0)+' %':''}</small></div><button class="ed" data-ep="${p.id}" aria-label="Modifier">✎</button><button class="x" data-dp="${p.id}" aria-label="Supprimer">✕</button></div>`}).join(''):'<div class="empty">Aucun achat</div>';
 }
 document.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
   if(b.dataset.du&&confirm('Supprimer cette conso ?')){S.usage=S.usage.filter(u=>u.id!==b.dataset.du);save();render()}
+  if(b.dataset.ep)openEdit(b.dataset.ep);
   if(b.dataset.dp&&confirm('Supprimer cet achat ?')){S.purchases=S.purchases.filter(p=>p.id!==b.dataset.dp);save();render()}
 });
+
+/* ---------- modifier un achat ---------- */
+let editId=null;
+function openEdit(id){
+  const p=S.purchases.find(x=>x.id===id);if(!p)return;
+  editId=id;$('#e-bags').value=p.bags;$('#e-price').value=p.price;$('#e-date').value=p.date;$('#e-disc').checked=!!p.disc;
+  $('#e-disc-l').textContent='Remise −'+nf(S.settings.disc,0)+' %';$('#dlg').showModal();
+}
+$('#e-cancel').onclick=()=>$('#dlg').close();
+$('#e-save').onclick=()=>{
+  const p=S.purchases.find(x=>x.id===editId),b=parseFloat($('#e-bags').value),pr=parseFloat($('#e-price').value);
+  if(!p)return;
+  if(!(b>0)||!(pr>=0)){alert('Sacs et prix à renseigner');return}
+  const old={...p};
+  p.bags=b;p.price=pr;p.date=$('#e-date').value||p.date;p.disc=$('#e-disc').checked;
+  save();$('#dlg').close();render();
+  toast('Achat modifié',()=>{Object.assign(p,old);save();render()});
+};
 
 /* ---------- réglages / données ---------- */
 function buildSettings(){
