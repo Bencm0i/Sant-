@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parcelles cadastrales – mise en évidence</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KICA8cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjExMiIgZmlsbD0iIzE2MmEyNCIvPgogIDxnIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS13aWR0aD0iMTQiPgogICAgPHBvbHlnb24gcG9pbnRzPSI4NCwxNzAgMjM2LDEwMCAxOTYsMjY4IDEwMCwzNDAiIGZpbGw9IiNmZjJkOTUiIHN0cm9rZT0iI2ZmZiIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIyMzYsMTAwIDQzMiwxNDYgMzg0LDI1MCAxOTYsMjY4IiBmaWxsPSIjZmZjYzAwIiBzdHJva2U9IiNmZmYiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iMTAwLDM0MCAxOTYsMjY4IDI2Miw0MTQgMTEyLDQyNiIgZmlsbD0iIzJmNWE0OSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utb3BhY2l0eT0iLjQ1Ii8+CiAgICA8cG9seWdvbiBwb2ludHM9IjE5NiwyNjggMzg0LDI1MCA0MjQsNDA0IDI2Miw0MTQiIGZpbGw9IiMzMGQ1YzgiIHN0cm9rZT0iI2ZmZiIvPgogICAgPHBvbHlnb24gcG9pbnRzPSIzODQsMjUwIDQzMiwxNDYgNDQwLDMxNiIgZmlsbD0iIzJmNWE0OSIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utb3BhY2l0eT0iLjQ1Ii8+CiAgPC9nPgo8L3N2Zz4K">
+<link rel="icon" type="image/png" sizes="64x64" href="data:image/png;base64,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">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{--bg:#eef0ea;--ink:#1c2a33;--mute:#5d6b73;--line:#cfd5cb;--card:#fbfcf8;--acc:#1b5e9b;--err:#b3261e}
+@media (prefers-color-scheme:dark){:root{--bg:#1a2328;--ink:#e6ebe4;--mute:#97a5ac;--line:#33424a;--card:#222e34;--acc:#6db3f2;--err:#ff8a80}}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{display:flex;font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:var(--bg)}
+aside{width:370px;max-width:100%;display:flex;flex-direction:column;border-right:1px solid var(--line);overflow-y:auto}
+aside>*{flex-shrink:0}
+.head{padding:16px 18px 10px}
+h1{font:600 21px/1.2 "Iowan Old Style",Palatino,Georgia,serif;margin:0 0 4px}
+.sub{color:var(--mute);margin:0;font-size:13px}
+.box{padding:0 18px 12px}
+textarea{width:100%;height:84px;resize:vertical;font:12.5px/1.4 ui-monospace,Menlo,Consolas,monospace;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:6px;padding:6px 11px}
+button:hover{border-color:var(--acc)}
+button.main{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+label.opt{display:flex;gap:6px;align-items:center;margin-top:8px;color:var(--ink)}
+input[type=range]{width:110px}
+#status{min-height:18px;margin-top:8px;font-size:12.5px;color:var(--mute)}
+#status.err{color:var(--err)}
+#total{padding:8px 18px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-weight:600;font-size:13px}
+#list{flex:1 0 140px;overflow:auto;margin:0;padding:0;list-style:none}
+#list li{display:flex;gap:10px;align-items:center;padding:9px 18px;border-bottom:1px solid var(--line)}
+#list li.off{opacity:.45}
+#list input[type=color]{width:30px;height:30px;padding:0;border:1px solid var(--line);border-radius:5px;background:none;cursor:pointer;flex:none}
+.meta{flex:1;min-width:0}
+.meta b{display:block;font-size:14px}
+.meta span{display:block;color:var(--mute);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.act{display:flex;gap:4px}
+.act button{padding:3px 7px;font-size:12px}
+.empty{padding:18px;color:var(--mute)}
+details{border-top:1px solid var(--line);padding:8px 18px 10px}
+summary{cursor:pointer;font:600 15px/1.3 "Iowan Old Style",Palatino,Georgia,serif}
+.hint{color:var(--mute);font-size:12px;margin:6px 0 0}
+button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+input[type=number],select{font:inherit;padding:5px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink)}
+input[type=number]{width:62px}
+#dcol{width:34px;height:30px;padding:0;border:1px solid var(--line);border-radius:5px;background:none;cursor:pointer}
+#map{flex:1;min-width:0}
+#map.pick{cursor:crosshair}
+.plabel{background:rgba(0,0,0,.72);color:#fff;border:0;box-shadow:none;font-weight:700;font-size:12px;padding:2px 6px}
+.plabel:before{display:none}
+.zt{display:inline-block;min-width:22px;text-align:center;padding:0 6px;margin-right:4px;border-radius:4px;color:#111;font-style:normal;font-weight:700;font-size:11px;line-height:17px}
+.plu{color:var(--ink)!important}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;margin-top:8px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:4px;vertical-align:-2px;border:1px solid rgba(0,0,0,.35)}
+.pluPop b{display:block;margin-top:6px}.pluPop b:first-child{margin-top:0}
+.pluPop small{display:block;color:#555}
+@media (max-width:760px){body{flex-direction:column-reverse}aside{width:100%;height:50%;border-right:0;border-top:1px solid var(--line)}#map{height:50%;flex:none}}
+</style>
+</head>
+<body>
+<aside>
+  <div class="head">
+    <h1>Parcelles cadastrales</h1>
+    <p class="sub">Données Etalab / IGN (API Carto). Ajoutez plusieurs parcelles pour les comparer sur l’orthophoto.</p>
+  </div>
+  <div class="box">
+    <textarea id="input" spellcheck="false" aria-label="Références de parcelles" placeholder="Un lien cadastre.data.gouv.fr ou une référence (ex. 071010000C0703) par ligne"></textarea>
+    <div class="row">
+      <button class="main" id="add">Ajouter les parcelles</button>
+      <button id="clear">Tout effacer</button>
+    </div>
+    <label class="opt"><input type="checkbox" id="pick"> Ajouter une parcelle en cliquant sur la carte</label>
+    <label class="opt"><input type="checkbox" id="dim" checked> Assombrir tout ce qui n’est pas sélectionné</label>
+    <label class="opt">Remplissage <input type="range" id="fill" min="0" max="80" value="25"></label>
+    <div id="status" role="status"></div>
+  </div>
+  <div id="total"></div>
+  <ul id="list"></ul>
+  <details open>
+    <summary>Dessiner et mesurer</summary>
+    <div class="row">
+      <button data-draw="line">Ligne</button><button data-draw="poly">Polygone</button><button data-draw="circle">Cercle</button>
+      <input type="color" id="dcol" value="#00e5ff" aria-label="Couleur du dessin">
+    </div>
+    <div class="row"><button id="dfin">Terminer</button><button id="dundo">Annuler le point</button><button id="dclear">Effacer les dessins</button></div>
+    <p class="hint">Clic = ajouter un point. Clic droit, Entrée ou « Terminer » = finir. Échap = annuler. Longueurs et surfaces s’affichent en direct.</p>
+  </details>
+  <details open>
+    <summary>Maisons à placer</summary>
+    <div class="row">
+      <select id="htype" aria-label="Type de construction">
+        <option value="maison">Maison standard</option><option value="petite">Petite maison</option><option value="grande">Grande maison</option><option value="garage">Garage</option><option value="piscine">Piscine</option>
+      </select>
+      <button class="main" id="hadd">Placer au centre de la carte</button>
+    </div>
+    <div class="row">
+      <label>Largeur <input type="number" id="hw" value="10" min="1" step="0.5"> m</label>
+      <label>Longueur <input type="number" id="hl" value="8" min="1" step="0.5"> m</label>
+    </div>
+    <div class="row"><label>Rotation <input type="range" id="ha" min="0" max="359" value="0"> <span id="hav">0°</span></label><button id="hdel">Supprimer</button></div>
+    <p class="hint">Glissez la maison sur la carte pour la déplacer. Cliquez-la pour la sélectionner et changer sa taille ou son angle. Maison standard : 10 × 8 m, soit 80 m² au sol.</p>
+  </details>
+  <details open>
+    <summary>Urbanisme (PLU)</summary>
+    <label class="opt"><input type="checkbox" id="pluOn"> Afficher le zonage sur la carte</label>
+    <label class="opt">Opacité <input type="range" id="pluOp" min="10" max="90" value="40"></label>
+    <div class="row"><button id="pluRefresh">Revérifier les parcelles</button></div>
+    <div class="legend"><span><i style="background:#e53935"></i>U urbaine</span><span><i style="background:#fb8c00"></i>AU à urbaniser</span><span><i style="background:#fdd835"></i>A agricole</span><span><i style="background:#43a047"></i>N naturelle</span></div>
+    <p class="hint">Chaque parcelle affiche sa zone dans la liste. Avec le zonage affiché, cliquez sur la carte pour le détail (règlement). Source : Géoportail de l’Urbanisme. Information indicative : le document en mairie fait foi.</p>
+  </details>
+  <div class="box"><div class="row">
+    <button id="zoomall">Tout afficher</button>
+    <button id="geojson">Exporter GeoJSON</button>
+    <button id="link">Copier le lien</button>
+  </div>
+  <div class="row">
+    <button id="bexport">Sauvegarde JSON</button>
+    <button id="bimport">Importer JSON</button>
+    <input type="file" id="ifile" accept=".json,application/json" hidden>
+  </div>
+  <p class="hint">Les parcelles (ajoutées à la main ou en cliquant sur la carte), leurs couleurs et leur visibilité sont mémorisées automatiquement dans ce navigateur. Le fichier JSON sert de copie de secours ou pour un autre poste.</p></div>
+</aside>
+<div id="map"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const PALETTE=["#ff3b30","#ffcc00","#34c759","#0a84ff","#bf5af2","#ff9f0a","#30d5c8","#ff2d95"];
+const API="https://apicarto.ign.fr/api/cadastre/parcelle";
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* ---------- Carte ---------- */
+const map=L.map("map",{maxZoom:19}).setView([44.376753,4.279146],16);
+const wmts=(layer,fmt)=>L.tileLayer(`https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${layer}&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=${fmt}`,{maxZoom:19,attribution:"© IGN"});
+const bases={
+  "Orthophoto IGN":wmts("ORTHOIMAGERY.ORTHOPHOTOS","image/jpeg"),
+  "Plan IGN":wmts("GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2","image/png"),
+  "OpenStreetMap":L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"})
+};
+bases["Orthophoto IGN"].addTo(map);
+L.control.layers(bases,{"Limites cadastrales (IGN)":wmts("CADASTRALPARCELS.PARCELLAIRE_EXPRESS","image/png")}).addTo(map);
+map.createPane("maskPane").style.zIndex=380;
+map.createPane("pluPane").style.zIndex=390;
+const group=L.featureGroup().addTo(map);
+L.control.scale({metric:true,imperial:false}).addTo(map);
+let mask=null,parcels=[],colorIdx=0;
+
+/* ---------- Lecture des références ---------- */
+function parseRefs(text){
+  const ok=[],bad=[];
+  for(const tok of text.split(/[\s,;]+/).filter(Boolean)){
+    const m=tok.match(/parcelleId=([0-9A-Za-z]{14})/i);
+    const idu=(m?m[1]:tok).toUpperCase();
+    if(/^[0-9A-Z]{14}$/.test(idu)) ok.push(idu); else if(!/^https?:\/\/[^?]*$/i.test(tok)) bad.push(tok);
+  }
+  return {ok:[...new Set(ok)],bad};
+}
+
+/* ---------- API ---------- */
+async function getJSON(url){
+  const r=await fetch(url);
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  return r.json();
+}
+async function fetchByIdu(idu){
+  const base=`${API}?code_insee=${idu.slice(0,5)}&section=${idu.slice(8,10)}&numero=${idu.slice(10,14)}`;
+  let j=await getJSON(base+"&com_abs="+idu.slice(5,8));
+  if(!j.features?.length) j=await getJSON(base);
+  if(!j.features?.length) throw new Error("introuvable");
+  return j.features[0];
+}
+async function fetchByPoint(latlng){
+  const geom=JSON.stringify({type:"Point",coordinates:[latlng.lng,latlng.lat]});
+  const j=await getJSON(`${API}?geom=${encodeURIComponent(geom)}`);
+  if(!j.features?.length) throw new Error("aucune parcelle ici");
+  return j.features[0];
+}
+const iduOf=f=>{const p=f.properties||{};return (p.idu||((p.code_dep||"")+(p.code_com||"")+(p.com_abs||"000")+(p.section||"")+(p.numero||""))).toUpperCase()};
+
+/* ---------- Dessin ---------- */
+const labelOf=f=>{const p=f.properties||{};const n=parseInt(p.numero,10);return Number.isNaN(n)?iduOf(f):`${String(p.section||"").replace(/^0+/,"")} ${n}`};
+function drawParcel(p){
+  if(p.layer) group.removeLayer(p.layer);
+  p.layer=L.geoJSON(p.f,{
+    style:{color:p.color,weight:3,fillColor:p.color,fillOpacity:$("fill").value/100},
+    onEachFeature:(ft,l)=>l.bindTooltip(labelOf(ft),{permanent:true,direction:"center",className:"plabel"})
+  });
+  if(p.visible) group.addLayer(p.layer);
+  typeof raiseTop==="function"&&raiseTop();
+}
+function updateMask(){
+  if(mask){map.removeLayer(mask);mask=null}
+  const vis=parcels.filter(p=>p.visible);
+  if(!$("dim").checked||!vis.length) return;
+  const holes=[];
+  vis.forEach(p=>{
+    const g=p.f.geometry;
+    (g.type==="Polygon"?[g.coordinates]:g.coordinates).forEach(poly=>holes.push(poly[0].map(c=>[c[1],c[0]])));
+  });
+  mask=L.polygon([[[-85,-360],[-85,360],[85,360],[85,-360]],...holes],{pane:"maskPane",stroke:false,fillColor:"#000",fillOpacity:.55,interactive:false}).addTo(map);
+  mask.bringToBack();
+}
+function render(){
+  const ul=$("list");
+  if(!parcels.length){ul.innerHTML='<li class="empty">Aucune parcelle pour l’instant.</li>';$("total").textContent="";return}
+  ul.innerHTML=parcels.map((p,i)=>{
+    const pr=p.f.properties||{};
+    return `<li class="${p.visible?"":"off"}" data-i="${i}">
+      <input type="color" value="${p.color}" aria-label="Couleur ${esc(labelOf(p.f))}">
+      <div class="meta"><b>${esc(labelOf(p.f))}</b><span>${esc(pr.nom_com||"")} · ${pr.contenance!=null?pr.contenance.toLocaleString("fr-FR")+" m²":"surface n/c"}</span><span>${esc(p.idu)}</span><span class="plu" title="${esc(pluInfo(p).text)}">${pluInfo(p).html}</span></div>
+      <div class="act"><button data-a="vis">${p.visible?"Masquer":"Afficher"}</button><button data-a="zoom">Zoom</button><button data-a="del" aria-label="Retirer">✕</button></div></li>`;
+  }).join("");
+  const tot=parcels.filter(p=>p.visible).reduce((s,p)=>s+(p.f.properties?.contenance||0),0);
+  $("total").textContent=`${parcels.length} parcelle${parcels.length>1?"s":""} · ${tot.toLocaleString("fr-FR")} m² (${(tot/10000).toLocaleString("fr-FR",{maximumFractionDigits:3})} ha) visibles`;
+  history.replaceState(null,"","#"+parcels.map(p=>p.idu).join(","));
+}
+function addFeature(f,idu=iduOf(f)){
+  if(parcels.some(p=>p.idu===idu)) return false;
+  const p={idu,f,color:PALETTE[colorIdx++%PALETTE.length],visible:true,layer:null,plu:null};
+  parcels.push(p);drawParcel(p);
+  fetchPlu(p).then(()=>{render();save()});
+  return true;
+}
+function refresh(fit){
+  updateMask();render();save();typeof raiseTop==="function"&&raiseTop();
+  if(fit&&group.getLayers().length) map.fitBounds(group.getBounds(),{padding:[50,50],maxZoom:18});
+}
+function status(msg,err){const s=$("status");s.textContent=msg;s.className=err?"err":""}
+
+/* ---------- Sauvegarde (localStorage + fichier JSON) ---------- */
+const STORE_KEY="parcelles_cadastre_v1";
+function snapshot(){
+  return {app:"parcelles_cadastre",version:1,saved:new Date().toISOString(),
+    parcels:parcels.map(p=>({idu:p.idu,color:p.color,visible:p.visible,f:p.f,plu:p.plu&&p.plu.kind!=="err"?p.plu:null}))};
+}
+function save(force){
+  if(!parcels.length&&!force)return;
+  try{localStorage.setItem(STORE_KEY,JSON.stringify(snapshot()))}
+  catch(e){if(!save.warned){save.warned=true;status("Sauvegarde automatique impossible ("+e.name+"). Utilisez « Sauvegarde JSON ».",true)}}
+}
+function readStore(){
+  try{const raw=localStorage.getItem(STORE_KEY);if(!raw)return null;const j=JSON.parse(raw);return Array.isArray(j.parcels)?j.parcels:null}
+  catch{return null}
+}
+function restoreEntry(e){
+  if(!e||typeof e!=="object"||!e.f||!e.f.geometry)return false;
+  const idu=String(e.idu||iduOf(e.f)).toUpperCase();
+  if(parcels.some(p=>p.idu===idu))return false;
+  const u=e.plu,okPlu=u&&(((u.kind==="plu"||u.kind==="cc")&&Array.isArray(u.zones))||(u.kind==="doc"&&Array.isArray(u.docs))||u.kind==="rnu"||u.kind==="none");
+  const p={idu,f:e.f,color:/^#[0-9a-f]{6}$/i.test(e.color||"")?e.color:PALETTE[colorIdx%PALETTE.length],visible:e.visible!==false,layer:null,plu:okPlu?u:null};
+  colorIdx++;parcels.push(p);drawParcel(p);
+  if(!p.plu)fetchPlu(p).then(()=>{render();save()});
+  return true;
+}
+
+/* ---------- Actions ---------- */
+async function loadRefs(text){
+  const {ok,bad}=parseRefs(text);
+  if(!ok.length){status(bad.length?`Référence non reconnue : ${bad.join(", ")}. Il faut 14 caractères (ex. 071010000C0703).`:"Rien à ajouter.",true);return}
+  status(`Chargement de ${ok.length} parcelle${ok.length>1?"s":""}…`);
+  const res=await Promise.allSettled(ok.map(async idu=>[idu,await fetchByIdu(idu)]));
+  const fails=[];let added=0;
+  res.forEach((r,i)=>{if(r.status==="fulfilled"){if(addFeature(r.value[1],r.value[0]))added++}else fails.push(`${ok[i]} (${r.reason.message})`)});
+  refresh(true);
+  const parts=[`${added} ajoutée${added>1?"s":""}`];
+  if(fails.length)parts.push("échec : "+fails.join(", "));
+  if(bad.length)parts.push("ignoré : "+bad.join(", "));
+  status(parts.join(" — "),fails.length>0);
+}
+$("add").onclick=()=>loadRefs($("input").value);
+$("clear").onclick=()=>{
+  if(parcels.length>1&&!confirm("Effacer les "+parcels.length+" parcelles ? La sauvegarde automatique sera vidée (pensez à « Sauvegarde JSON » avant)."))return;
+  parcels=[];colorIdx=0;group.clearLayers();refresh();save(true);status("");history.replaceState(null,"",location.pathname)
+};
+$("fill").oninput=()=>parcels.forEach(p=>p.layer.setStyle({fillOpacity:$("fill").value/100}));
+$("dim").onchange=updateMask;
+$("pick").onchange=e=>$("map").classList.toggle("pick",e.target.checked);
+$("zoomall").onclick=()=>group.getLayers().length&&map.fitBounds(group.getBounds(),{padding:[50,50],maxZoom:18});
+map.on("click",async e=>{
+  if(!$("pick").checked) return;
+  status("Recherche de la parcelle…");
+  try{const f=await fetchByPoint(e.latlng);status(addFeature(f)?`Parcelle ${labelOf(f)} ajoutée.`:"Déjà dans la liste.");refresh()}
+  catch(err){status("Échec : "+err.message,true)}
+});
+$("list").addEventListener("click",e=>{
+  const li=e.target.closest("li[data-i]");if(!li)return;
+  const p=parcels[+li.dataset.i],a=e.target.dataset.a;
+  if(a==="vis"){p.visible=!p.visible;p.visible?group.addLayer(p.layer):group.removeLayer(p.layer);refresh()}
+  else if(a==="zoom"){map.fitBounds(p.layer.getBounds(),{padding:[60,60],maxZoom:19})}
+  else if(a==="del"){group.removeLayer(p.layer);parcels.splice(+li.dataset.i,1);refresh();save(true)}
+});
+$("list").addEventListener("input",e=>{
+  if(e.target.type!=="color")return;
+  const p=parcels[+e.target.closest("li").dataset.i];p.color=e.target.value;
+  const vis=p.visible;drawParcel(p);p.visible=vis;if(!vis)group.removeLayer(p.layer);save();
+});
+$("geojson").onclick=()=>{
+  const extra=[];
+  houses.forEach(h=>{const f=h.poly.toGeoJSON();f.properties={type:h.t.n,largeur_m:h.w,longueur_m:h.l,angle:h.a};extra.push(f)});
+  drawn.eachLayer(l=>{const f=l.toGeoJSON();f.properties={type:"dessin",mesure:l._meta?.text,...(l.getRadius?{rayon_m:l.getRadius()}:{})};extra.push(f)});
+  if(!parcels.length&&!extra.length)return status("Rien à exporter.",true);
+  const fc={type:"FeatureCollection",features:[...parcels.map(p=>({...p.f,properties:{...p.f.properties,couleur:p.color,urbanisme:pluInfo(p).text}})),...extra]};
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(fc)],{type:"application/geo+json"}));
+  a.download="parcelles.geojson";a.click();URL.revokeObjectURL(a.href);
+};
+$("bexport").onclick=()=>{
+  if(!parcels.length)return status("Rien à sauvegarder.",true);
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(snapshot(),null,1)],{type:"application/json"}));
+  a.download="parcelles_sauvegarde_"+new Date().toISOString().slice(0,10)+".json";a.click();URL.revokeObjectURL(a.href);
+  status("Sauvegarde exportée ("+parcels.length+" parcelle"+(parcels.length>1?"s":"")+").");
+};
+$("bimport").onclick=()=>$("ifile").click();
+$("ifile").onchange=async e=>{
+  const file=e.target.files[0];e.target.value="";if(!file)return;
+  try{
+    const j=JSON.parse(await file.text()),list=Array.isArray(j)?j:j.parcels;
+    if(!Array.isArray(list))throw new Error("format non reconnu");
+    const refs=[];let n=0;
+    list.forEach(x=>{
+      if(typeof x==="string")refs.push(x);
+      else if(x&&x.f){if(restoreEntry(x))n++}
+      else if(x&&x.idu)refs.push(x.idu);
+    });
+    refresh(true);
+    if(refs.length)await loadRefs(refs.join("\n"));
+    else status(n+" parcelle"+(n>1?"s":"")+" importée"+(n>1?"s":"")+".");
+  }catch(err){status("Import impossible : "+err.message,true)}
+};
+$("link").onclick=async()=>{
+  try{await navigator.clipboard.writeText(location.href);status("Lien copié (il recharge les mêmes parcelles).")}
+  catch{status("Copie impossible : copiez l’adresse du navigateur.",true)}
+};
+
+/* ---------- Dessin et mesures ---------- */
+const drawn=L.featureGroup().addTo(map);
+const housesGroup=L.featureGroup().addTo(map);
+let draw=null,dragH=null,selH=null,houses=[];
+const RAD=Math.PI/180;
+const fmtL=m=>m>=1000?(m/1000).toLocaleString("fr-FR",{maximumFractionDigits:2})+" km":m.toLocaleString("fr-FR",{maximumFractionDigits:1})+" m";
+const fmtA=a=>a>=10000?(a/10000).toLocaleString("fr-FR",{maximumFractionDigits:2})+" ha":Math.round(a).toLocaleString("fr-FR")+" m²";
+function pathLen(pts,close){let s=0;for(let i=1;i<pts.length;i++)s+=map.distance(pts[i-1],pts[i]);if(close&&pts.length>2)s+=map.distance(pts[pts.length-1],pts[0]);return s}
+function polyArea(pts){
+  if(pts.length<3)return 0;
+  const k=111320,c=Math.cos(pts[0].lat*RAD);
+  const xy=pts.map(p=>[(p.lng-pts[0].lng)*k*c,(p.lat-pts[0].lat)*k]);
+  let a=0;xy.forEach((p,i)=>{const q=xy[(i+1)%xy.length];a+=p[0]*q[1]-q[0]*p[1]});
+  return Math.abs(a)/2;
+}
+function raiseTop(){housesGroup.eachLayer(l=>l.bringToFront());drawn.eachLayer(l=>l.bringToFront())}
+
+function startDraw(mode){
+  stopDraw();
+  $("pick").checked=false;
+  draw={mode,pts:[],shape:null,tip:L.tooltip({permanent:true,direction:"right",offset:[14,0],className:"plabel"})};
+  $("map").classList.add("pick");map.doubleClickZoom.disable();
+  document.querySelectorAll("[data-draw]").forEach(b=>b.classList.toggle("on",b.dataset.draw===mode));
+  status(mode==="circle"?"Cliquez le centre, puis un point du bord.":"Cliquez les points. Clic droit ou « Terminer » pour finir.");
+}
+function stopDraw(){
+  if(!draw)return;
+  if(draw.shape)map.removeLayer(draw.shape);
+  map.removeLayer(draw.tip);
+  draw=null;map.doubleClickZoom.enable();
+  $("map").classList.toggle("pick",$("pick").checked);
+  document.querySelectorAll("[data-draw]").forEach(b=>b.classList.remove("on"));
+}
+function preview(cursor){
+  if(!draw||!draw.pts.length)return;
+  const d=draw,pts=[...d.pts,cursor],col=$("dcol").value;let txt;
+  if(d.shape)map.removeLayer(d.shape);
+  if(d.mode==="circle"){
+    const r=map.distance(d.pts[0],cursor);
+    d.shape=L.circle(d.pts[0],{radius:r,color:col,weight:2,fillOpacity:.15,interactive:false});
+    txt=`Rayon ${fmtL(r)} · ${fmtA(Math.PI*r*r)}`;
+  }else if(d.mode==="poly"&&pts.length>2){
+    d.shape=L.polygon(pts,{color:col,weight:2,fillOpacity:.15,interactive:false});
+    txt=`${fmtL(pathLen(pts,true))} · ${fmtA(polyArea(pts))}`;
+  }else{
+    d.shape=L.polyline(pts,{color:col,weight:3,interactive:false});
+    txt=fmtL(pathLen(pts));
+  }
+  d.shape.addTo(map);
+  d.tip.setLatLng(cursor).setContent(txt);
+  if(!map.hasLayer(d.tip))d.tip.addTo(map);
+}
+function finishDraw(){
+  if(!draw)return;
+  const d=draw,pts=d.pts,col=$("dcol").value;let layer,txt;
+  if(d.mode==="circle"&&pts.length>=2){
+    const r=map.distance(pts[0],pts[1]);
+    layer=L.circle(pts[0],{radius:r,color:col,weight:3,fillOpacity:.15});
+    txt=`Rayon ${fmtL(r)} · ${fmtA(Math.PI*r*r)}`;
+  }else if(d.mode==="poly"&&pts.length>=3){
+    layer=L.polygon(pts,{color:col,weight:3,fillOpacity:.15});
+    txt=`${fmtL(pathLen(pts,true))} · ${fmtA(polyArea(pts))}`;
+  }else if(d.mode==="line"&&pts.length>=2){
+    layer=L.polyline(pts,{color:col,weight:3});
+    txt=fmtL(pathLen(pts));
+  }else{stopDraw();status("Pas assez de points pour ce dessin.",true);return}
+  stopDraw();
+  layer._meta={text:txt};
+  layer.bindTooltip(txt,{permanent:true,direction:"center",className:"plabel"});
+  drawn.addLayer(layer);
+  status("Dessin ajouté : "+txt);
+}
+document.querySelectorAll("[data-draw]").forEach(b=>b.onclick=()=>startDraw(b.dataset.draw));
+$("dfin").onclick=finishDraw;
+$("dundo").onclick=()=>{
+  if(!draw)return;
+  draw.pts.pop();
+  if(draw.shape){map.removeLayer(draw.shape);draw.shape=null}
+  if(draw.pts.length)preview(draw.pts[draw.pts.length-1]);
+};
+$("dclear").onclick=()=>{stopDraw();drawn.clearLayers();status("Dessins effacés.")};
+$("pick").addEventListener("change",e=>{if(e.target.checked)stopDraw()});
+
+/* ---------- Maisons ---------- */
+const TYPES={
+  maison:{n:"Maison",w:10,l:8,fill:"#e8e1ce",roof:"#a9442c"},
+  petite:{n:"Petite maison",w:8,l:6,fill:"#e8e1ce",roof:"#a9442c"},
+  grande:{n:"Grande maison",w:14,l:10,fill:"#e8e1ce",roof:"#a9442c"},
+  garage:{n:"Garage",w:6,l:3,fill:"#c9ccd0",roof:"#6b7078"},
+  piscine:{n:"Piscine",w:8,l:4,fill:"#5ec8f0",roof:null}
+};
+function hGeo(h){
+  const ky=111320,kx=ky*Math.cos(h.c.lat*RAD),cs=Math.cos(h.a*RAD),sn=Math.sin(h.a*RAD);
+  const P=(x,y)=>L.latLng(h.c.lat+(-x*sn+y*cs)/ky,h.c.lng+(x*cs+y*sn)/kx);
+  const a=h.w/2,b=h.l/2;
+  return {body:[P(-a,-b),P(-a,b),P(a,b),P(a,-b)],ridge:h.l>=h.w?[P(0,-b),P(0,b)]:[P(-a,0),P(a,0)]};
+}
+const hText=h=>`${h.t.n} ${h.w.toLocaleString("fr-FR")} × ${h.l.toLocaleString("fr-FR")} m · ${Math.round(h.w*h.l)} m²`;
+function updHouse(h){
+  const g=hGeo(h);
+  h.poly.setLatLngs(g.body);
+  if(h.ridge)h.ridge.setLatLngs(g.ridge);
+  const tp=h.poly.getTooltip();tp.setContent(hText(h));tp.setLatLng(h.poly.getCenter());
+}
+function selectH(h){
+  selH=h;
+  houses.forEach(x=>x.poly.setStyle({color:x===h?"#fff":"#222",weight:x===h?3:2,dashArray:x===h?"6 4":null}));
+  if(h){$("hw").value=h.w;$("hl").value=h.l;$("ha").value=h.a;$("hav").textContent=h.a+"°"}
+}
+function addHouse(){
+  const t=TYPES[$("htype").value],w=+$("hw").value,l=+$("hl").value;
+  if(!(w>0&&l>0)){status("Largeur et longueur doivent être positives.",true);return}
+  const h={t,c:map.getCenter(),w,l,a:+$("ha").value||0};
+  const g=hGeo(h);
+  h.poly=L.polygon(g.body,{color:"#222",weight:2,fillColor:t.fill,fillOpacity:.92});
+  h.poly.bindTooltip(hText(h),{permanent:true,direction:"center",className:"plabel"});
+  if(t.roof)h.ridge=L.polyline(g.ridge,{color:t.roof,weight:4,interactive:false});
+  h.poly.on("mousedown",e=>{
+    if(draw)return;
+    selectH(h);
+    dragH={h,dLat:e.latlng.lat-h.c.lat,dLng:e.latlng.lng-h.c.lng};
+    map.dragging.disable();L.DomEvent.stopPropagation(e);
+  });
+  h.poly.on("click",e=>{if(!draw)L.DomEvent.stopPropagation(e)});
+  houses.push(h);
+  housesGroup.addLayer(h.poly);if(h.ridge)housesGroup.addLayer(h.ridge);
+  raiseTop();selectH(h);updHouse(h);
+  status(`${hText(h)} ajoutée. Glissez-la sur la parcelle.`);
+}
+function removeHouse(h){
+  housesGroup.removeLayer(h.poly);if(h.ridge)housesGroup.removeLayer(h.ridge);
+  houses=houses.filter(x=>x!==h);if(selH===h)selH=null;
+}
+$("htype").onchange=()=>{const t=TYPES[$("htype").value];$("hw").value=t.w;$("hl").value=t.l};
+$("hadd").onclick=addHouse;
+$("hdel").onclick=()=>{if(selH)removeHouse(selH);else status("Cliquez d’abord sur une maison.",true)};
+["hw","hl","ha"].forEach(id=>$(id).oninput=()=>{
+  $("hav").textContent=($("ha").value||0)+"°";
+  if(!selH)return;
+  const w=+$("hw").value,l=+$("hl").value;
+  if(w>0&&l>0){selH.w=w;selH.l=l}
+  selH.a=+$("ha").value||0;updHouse(selH);
+});
+
+/* ---------- Événements carte (dessin + glisser) ---------- */
+map.on("click",e=>{
+  if(!draw)return;
+  draw.pts.push(e.latlng);
+  if(draw.mode==="circle"&&draw.pts.length===2){finishDraw();return}
+  preview(e.latlng);
+});
+map.on("mousemove",e=>{
+  if(dragH){dragH.h.c=L.latLng(e.latlng.lat-dragH.dLat,e.latlng.lng-dragH.dLng);updHouse(dragH.h);return}
+  if(draw)preview(e.latlng);
+});
+map.on("contextmenu",e=>{if(draw){e.originalEvent.preventDefault();finishDraw()}});
+window.addEventListener("mouseup",()=>{if(dragH){dragH=null;map.dragging.enable()}});
+document.addEventListener("keydown",e=>{
+  const typing=/INPUT|TEXTAREA|SELECT/.test(e.target.tagName);
+  if(e.key==="Escape")stopDraw();
+  else if(e.key==="Enter"&&draw&&!typing)finishDraw();
+  else if((e.key==="Delete"||e.key==="Backspace")&&selH&&!typing&&!draw){removeHouse(selH);e.preventDefault()}
+});
+
+/* ---------- Urbanisme (PLU / carte communale) ---------- */
+const GPU="https://apicarto.ign.fr/api/gpu";
+const ZCOL={U:"#e53935",AU:"#fb8c00",A:"#fdd835",N:"#43a047"};
+const ZLAB={U:"zone urbaine",AU:"zone à urbaniser",A:"zone agricole",N:"zone naturelle et forestière"};
+const normT=t=>{t=String(t||"").toUpperCase();return t.startsWith("AU")?"AU":t.slice(0,1)};
+const isC=t=>/^z?c$/i.test(String(t||"").trim());
+const zoneOf=(pr,k)=>k==="cc"
+  ?{k,t:String(pr.typesect||""),lib:pr.libelle||pr.typesect||"",long:pr.libelong||"",part:pr.partition||"",date:pr.datappro||"",url:pr.urlfic||""}
+  :{k,t:normT(pr.typezone),tz:pr.typezone||"",lib:pr.libelle||pr.typezone||"",long:pr.libelong||"",part:pr.partition||"",date:pr.datappro||"",url:pr.urlfic||""};
+const zoneColor=z=>z.k==="cc"?(isC(z.t)?"#e53935":"#43a047"):(ZCOL[z.t]||"#9e9e9e");
+const zoneLabel=z=>z.k==="cc"?(isC(z.t)?"secteur constructible":"secteur non constructible"):(ZLAB[z.t]||"");
+const fmtD=d=>/^\d{8}$/.test(String(d))?`${d.slice(6)}/${d.slice(4,6)}/${d.slice(0,4)}`:String(d||"");
+function roundGeom(g){const r=c=>typeof c[0]==="number"?[+c[0].toFixed(6),+c[1].toFixed(6)]:c.map(r);return {type:g.type,coordinates:r(g.coordinates)}}
+const geomQ=g=>"?geom="+encodeURIComponent(JSON.stringify(roundGeom(g)));
+function uniqZones(feats,k){
+  const seen=new Set(),out=[];
+  feats.forEach(f=>{const z=zoneOf(f.properties||{},k),key=z.part+"|"+z.lib+"|"+z.t;if(!seen.has(key)){seen.add(key);out.push(z)}});
+  return out;
+}
+const rnuCache={};
+async function isRnu(insee){
+  if(insee in rnuCache) return rnuCache[insee];
+  let v=null;
+  try{
+    const j=await getJSON(`${GPU}/municipality?insee=${insee}`);
+    const o=Array.isArray(j)?j[0]:(j.features?.[0]?.properties||j);
+    if(o&&typeof o.is_rnu==="boolean") v=o.is_rnu;
+  }catch{}
+  return rnuCache[insee]=v;
+}
+async function fetchPlu(p){
+  try{
+    const q=geomQ(p.f.geometry);
+    let j=await getJSON(`${GPU}/zone-urba${q}`);
+    if(j.features?.length){p.plu={kind:"plu",zones:uniqZones(j.features,"plu")};return}
+    j=await getJSON(`${GPU}/secteur-cc${q}`);
+    if(j.features?.length){p.plu={kind:"cc",zones:uniqZones(j.features,"cc")};return}
+    j=await getJSON(`${GPU}/document${q}`);
+    if(j.features?.length){
+      p.plu={kind:"doc",docs:[...new Set(j.features.map(f=>{const x=f.properties||{};return [x.du_type,x.name||x.partition].filter(Boolean).join(" ")}))]};
+      return;
+    }
+    p.plu={kind:(await isRnu(p.idu.slice(0,5)))===true?"rnu":"none"};
+  }catch(e){p.plu={kind:"err",msg:e.message}}
+}
+function pluInfo(p){
+  const u=p.plu,badge=z=>`<i class="zt" style="background:${zoneColor(z)}">${esc(z.lib||z.t)}</i>`;
+  if(!u) return {html:"Urbanisme : recherche…",text:""};
+  if(u.kind==="plu"||u.kind==="cc"){
+    const labs=[...new Set(u.zones.map(zoneLabel).filter(Boolean))].join(", ");
+    return {
+      html:(u.kind==="cc"?"Carte communale : ":"PLU : ")+u.zones.map(badge).join("")+esc(labs),
+      text:(u.kind==="cc"?"Carte communale : ":"PLU : ")+u.zones.map(z=>z.lib||z.t).join(", ")+(labs?" ("+labs+")":"")
+    };
+  }
+  if(u.kind==="doc"){const t="Document d’urbanisme : "+u.docs.join(", ")+" (zonage non trouvé)";return {html:esc(t),text:t}}
+  if(u.kind==="rnu"){const t="Commune au RNU : pas de PLU ni de carte communale";return {html:esc(t),text:t}}
+  if(u.kind==="err"){const t="Urbanisme indisponible ("+u.msg+")";return {html:esc(t),text:t}}
+  const t="Aucun zonage d’urbanisme trouvé";return {html:esc(t),text:t};
+}
+$("pluRefresh").onclick=()=>{
+  if(!parcels.length)return status("Aucune parcelle à vérifier.",true);
+  parcels.forEach(p=>p.plu=null);render();status("Vérification de l’urbanisme…");
+  Promise.all(parcels.map(fetchPlu)).then(()=>{render();save();status("Urbanisme mis à jour.")});
+};
+
+let pluLayer=null,pluFeats=[],pluReq=0,pluTimer=null;
+function clearPlu(){if(pluLayer){map.removeLayer(pluLayer);pluLayer=null}pluFeats=[]}
+async function loadPluView(){
+  if(!$("pluOn").checked)return;
+  if(map.getZoom()<13){clearPlu();status("Zoomez davantage pour afficher le zonage (zoom 13 minimum).");return}
+  const b=map.getBounds(),n=b.getNorth(),s=b.getSouth(),e=b.getEast(),w=b.getWest();
+  const q=geomQ({type:"Polygon",coordinates:[[[w,s],[e,s],[e,n],[w,n],[w,s]]]}),id=++pluReq;
+  status("Chargement du zonage…");
+  try{
+    const [z,c]=await Promise.all([getJSON(`${GPU}/zone-urba${q}`),getJSON(`${GPU}/secteur-cc${q}`).catch(()=>({features:[]}))]);
+    if(id!==pluReq)return;
+    clearPlu();
+    pluFeats=[
+      ...(z.features||[]).map(f=>({...f,properties:{...f.properties,_k:"plu"}})),
+      ...(c.features||[]).map(f=>({...f,properties:{...f.properties,_k:"cc"}}))
+    ];
+    if(!pluFeats.length){status("Aucun zonage d’urbanisme dans cette vue (commune au RNU ou document non numérisé).");return}
+    pluLayer=L.geoJSON({type:"FeatureCollection",features:pluFeats},{
+      pane:"pluPane",interactive:false,
+      style:f=>{const col=zoneColor(zoneOf(f.properties,f.properties._k));return {color:col,weight:1.5,fillColor:col,fillOpacity:$("pluOp").value/100}}
+    }).addTo(map);
+    status(`${pluFeats.length} zone${pluFeats.length>1?"s":""} d’urbanisme affichée${pluFeats.length>1?"s":""}. Cliquez sur la carte pour le détail.`);
+  }catch(err){if(id===pluReq)status("Zonage indisponible : "+err.message,true)}
+}
+$("pluOn").onchange=()=>{if($("pluOn").checked)loadPluView();else{pluReq++;clearPlu();status("")}};
+$("pluOp").oninput=()=>pluLayer&&pluLayer.setStyle({fillOpacity:$("pluOp").value/100});
+map.on("moveend",()=>{if(!$("pluOn").checked)return;clearTimeout(pluTimer);pluTimer=setTimeout(loadPluView,500)});
+
+function inRing(pt,ring){let c=false;for(let i=0,j=ring.length-1;i<ring.length;j=i++){const a=ring[i],b=ring[j];if((a[1]>pt.lat)!==(b[1]>pt.lat)&&pt.lng<(b[0]-a[0])*(pt.lat-a[1])/(b[1]-a[1])+a[0])c=!c}return c}
+function inGeom(g,pt){
+  const polys=g.type==="Polygon"?[g.coordinates]:g.type==="MultiPolygon"?g.coordinates:[];
+  return polys.some(poly=>inRing(pt,poly[0])&&!poly.slice(1).some(h=>inRing(pt,h)));
+}
+map.on("click",e=>{
+  if(!$("pluOn").checked||!pluFeats.length||draw||$("pick").checked)return;
+  const hits=pluFeats.filter(f=>f.geometry&&inGeom(f.geometry,e.latlng));
+  if(!hits.length)return;
+  const html=hits.map(f=>{
+    const z=zoneOf(f.properties,f.properties._k);
+    const link=/^https?:\/\//i.test(z.url)?` · <a href="${esc(z.url)}" target="_blank" rel="noopener">document</a>`:"";
+    return `<div class="pluPop"><b><span class="zt" style="background:${zoneColor(z)};padding:0 6px;border-radius:4px">${esc(z.lib||z.t)}</span> ${esc(zoneLabel(z))}</b>`
+      +(z.long?`<small>${esc(z.long)}</small>`:"")
+      +`<small>${z.k==="cc"?"Carte communale":"PLU / POS"}${z.part?" · "+esc(z.part):""}${z.date?" · approuvé le "+esc(fmtD(z.date)):""}${link}</small></div>`;
+  }).join("");
+  L.popup({maxWidth:300}).setLatLng(e.latlng).setContent(html).openOn(map);
+});
+
+/* ---------- Démarrage ---------- */
+render();
+const DEFAULTS=["071010000C0461","071010000C0687","071010000C0702","071010000C0703","071010000C0751","071010000C0878","071010000C0887","071010000D0764","071010000D0773","071010000D0774","071010000D0775","071010000D0776","071010000D0777","071010000D1284","07101000ZI0042","07101000ZI0045","07101000ZI0046","07101000ZI0055","07101000ZK0066","07101000ZK0067","07101000ZK0219"];
+const hashRefs=location.hash.slice(1),stored=readStore();
+if(stored)stored.forEach(restoreEntry);
+const todo=stored?parseRefs(hashRefs).ok.filter(id=>!parcels.some(p=>p.idu===id)).join("\n"):(hashRefs||DEFAULTS.join(","));
+$("input").value=[...new Set([...parcels.map(p=>p.idu),...parseRefs(todo).ok])].join("\n");
+if(todo)loadRefs(todo);
+else{
+  refresh(true);
+  if(parcels.length)status(parcels.length+" parcelle"+(parcels.length>1?"s":"")+" restaurée"+(parcels.length>1?"s":"")+" depuis la sauvegarde.");
+}
+</script>
+</body>
+</html>
