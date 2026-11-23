@@ -2943,9 +2943,9 @@ mark{background:#f3d98a;color:var(--ink);border-radius:2px;}
 .text-col:not([data-mode="edit"]) .col-head{background:transparent;border-bottom-color:transparent;}
 .text-col:not([data-mode="edit"]) .mode-badge{color:#7a5a1f;background:#fbf1da;border-color:#e0c98f;}
 /* Le bouton qui ramène à l'édition ressort */
-.text-col[data-mode="preview"] button[id$="PreviewBtn"],
+.text-col[data-mode="preview"] button[id$="PreviewBtn"]:not(.mode-switch),
 .text-col[data-mode="accordion"] button[id$="AccordionBtn"]{background:var(--accent);border-color:var(--accent);color:#fff;}
-.text-col[data-mode="preview"] button[id$="PreviewBtn"]:hover,
+.text-col[data-mode="preview"] button[id$="PreviewBtn"]:not(.mode-switch):hover,
 .text-col[data-mode="accordion"] button[id$="AccordionBtn"]:hover{color:#fff;opacity:0.9;}
 /* En lecture : on cache tout ce qui n'a de sens qu'en édition (le surlignage reste, il marche sur l'aperçu) */
 .text-col:not([data-mode="edit"]) .edit-only{display:none !important;}
@@ -3569,6 +3569,14 @@ h1 .spine{width:7px;height:16px;}
   .layout.raw-hidden #rawCol,.layout.raw-hidden #colResizer{display:none;}
   .layout.raw-hidden #iaCol{flex:1 1 auto !important;border-right-width:10px;}
 }
+/* Interrupteur Édition / Lecture */
+.mode-switch{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;width:auto;cursor:pointer;}
+.mode-switch .ms-ico{font-size:0.85rem;line-height:1;opacity:.45;transition:opacity .15s;}
+.mode-switch .ms-track{position:relative;width:34px;height:18px;border-radius:999px;background:rgba(120,120,120,0.35);transition:background .2s;flex:0 0 auto;}
+.mode-switch .ms-knob{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.35);transition:transform .2s;}
+.mode-switch[aria-checked="false"] .ms-ico:first-child,.mode-switch[aria-checked="true"] .ms-ico:last-child{opacity:1;}
+.mode-switch[aria-checked="true"] .ms-track{background:var(--accent);}
+.mode-switch[aria-checked="true"] .ms-knob{transform:translateX(16px);}
 /* Onglet de marge : petite languette collée au bord gauche du Texte (✕ = masquer, « Marge » = afficher) */
 .marge-tab{
   position:absolute;left:0;top:50%;transform:translateY(-50%);z-index:6;
@@ -3835,7 +3843,7 @@ h1 .spine{width:7px;height:16px;}
     <div class="col-head">
       <span class="col-label"><span class="active-dot" id="rawDot"></span><span id="rawLabel">Marge</span><span class="mode-badge" id="rawModeBadge"></span></span>
       <div class="col-tools">
-        <button id="rawPreviewBtn" onclick="togglePreview('raw')" title="Basculer entre édition et aperçu markdown">👁 Lecture</button>
+        <button type="button" id="rawPreviewBtn" class="mode-switch" role="switch" aria-checked="false" onclick="togglePreview('raw')" title="Basculer entre édition et lecture"><span class="ms-ico">✎</span><span class="ms-track"><span class="ms-knob"></span></span><span class="ms-ico">👁</span></button>
         <button id="mtagsPinBtn" onclick="toggleMtagsPin()" title="Afficher/masquer la colonne des tags de marge">☰ Tags</button>
       </div>
     </div>
@@ -3865,7 +3873,7 @@ h1 .spine{width:7px;height:16px;}
       <span class="col-label"><span class="active-dot" id="iaDot"></span>Texte<span class="mode-badge" id="iaModeBadge"></span></span>
       <div class="col-tools">
         <button id="iaFindBtn" class="edit-only" onclick="toggleFindBar('ia')" title="Rechercher / remplacer dans ce texte">🔍 Chercher</button>
-        <button id="iaPreviewBtn" onclick="togglePreview('ia')" title="Basculer entre édition et aperçu markdown">👁 Lecture</button>
+        <button type="button" id="iaPreviewBtn" class="mode-switch" role="switch" aria-checked="false" onclick="togglePreview('ia')" title="Basculer entre édition et lecture"><span class="ms-ico">✎</span><span class="ms-track"><span class="ms-knob"></span></span><span class="ms-ico">👁</span></button>
         <button id="iaAccordionBtn" onclick="toggleAccordion('ia')" title="Regrouper le texte en accordéon, une section par horodatage">📑 Accordéon</button>
         <button id="tlBtn" onclick="toggleTimeline()" title="Afficher/masquer la frise chronologique des horodatages (Alt+T)">🧭 Chronologie</button>
         <button class="edit-only" onclick="insertTimestamp('ia')" title="Insérer la date et l'heure actuelles dans le texte">🕒 Horodatage</button>
@@ -6476,7 +6484,7 @@ function renderViewState(which){
   refreshSearchHits(which);
   updateHlOverlay(which);
 
-  if(previewBtn) previewBtn.textContent = mode === 'preview' ? '✎ Éditer' : '👁 Lecture';
+  if(previewBtn) previewBtn.setAttribute('aria-checked', mode === 'preview' ? 'true' : 'false');
   if(accordionBtn) accordionBtn.textContent = mode === 'accordion' ? '✎ Éditer' : '📑 Accordéon';
   tlRefresh(which);
 }
