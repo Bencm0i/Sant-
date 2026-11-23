@@ -1271,6 +1271,7 @@ body.public-mode .pub-toolbar .pub-hide-in-public { display:none; }
   <button class="tab-btn" onclick="switchTab('immobilier')">🏘️ Immobilier</button>
   <button class="tab-btn" onclick="switchTab('poches')">🗂️ Poches</button>
   <button class="tab-btn" onclick="switchTab('depenses')">💸 Dépenses</button>
+  <button class="tab-btn" onclick="switchTab('gains')">💹 Gains</button>
   <button class="tab-btn" onclick="switchTab('heritage')">🎁 Héritage</button>
   <button class="tab-btn" onclick="switchTab('public')">🌐 Public</button>
 </div>
@@ -1502,6 +1503,11 @@ body.public-mode .pub-toolbar .pub-hide-in-public { display:none; }
 </div>
 
 <!-- ═══ PANEL : DCA ═══ -->
+<!-- ═══ PANEL : GAINS (revenus des placements vs dépenses) ═══ -->
+<div class="panel" id="panel-gains">
+  <div id="body-gains"></div>
+</div>
+
 <div class="panel" id="panel-public">
   <button class="pub-btn" id="pub-exit" onclick="togglePublicMode(false)">✕ Quitter</button>
   <div class="pub-toolbar">
@@ -2006,6 +2012,7 @@ function switchTab(name) {
   if (name === 'poches') { if (typeof renderPoches === 'function') renderPoches(); }
   if (name === 'public') { renderPublic(); }
   if (name === 'livrets') { renderLivrets(); }
+  if (name === 'gains') { renderGains(); }
 }
 
 
@@ -2054,6 +2061,137 @@ function pubCollect(inclLivrets) {
   })).filter(x => x.val > 0) });
 
   return cats.filter(c => c.lines.length);
+}
+
+
+// ─── ONGLET GAINS : tous les gains de placements vs dépenses mensuelles (KPI 10) ───
+// Deux familles, volontairement séparées :
+//  • Revenus « réels » : intérêts livrets (nets), intérêts compte USD, loyers SCPI, loyers immobilier
+//  • Gains « estimés » des placements de marché (PEA, CTO, Revolut, PEE, Assurance-vie) :
+//    capital investi × taux annuel estimé ÷ 12 (même méthode que la carte « Taux de rendement moyen »,
+//    0 si taux négatif ou date de début non renseignée)
+function gainsAnnualise(cout, gain, dateStr) {
+  if (!(cout > 0) || !dateStr) return null;
+  const d0 = new Date(dateStr);
+  if (isNaN(d0)) return null;
+  const dureeEff = (Date.now() - d0.getTime()) / 86400000 / 365.25 / 2; // apports réguliers ≈ moitié du temps écoulé
+  if (!(dureeEff > 0.08)) return null;
+  const f = (cout + gain) / cout;
+  if (f <= 0) return null;
+  return (Math.pow(f, 1 / dureeEff) - 1) * 100;
+}
+
+function renderGains() {
+  const box = document.getElementById('body-gains');
+  if (!box || typeof window.computeKPIs !== 'function') return;
+  const k = window.computeKPIs();
+  const E0 = v => new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v||0);
+  const sg = v => (v >= 0 ? '+' : '−');
+  const pctF = v => (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(1).replace('.', ',') + ' %';
+  const colV = v => v > 0.005 ? 'var(--green)' : v < -0.005 ? 'var(--red)' : 'var(--muted)';
+  const row = (label, sub, val, color, extra) => `<div class="field-row"><div class="field-label">${label}<small>${sub||''}</small></div><div style="text-align:right;flex-shrink:0;"><div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:${color||'var(--text)'};">${val}</div>${extra?`<div style="font-size:10px;color:var(--muted);">${extra}</div>`:''}</div></div>`;
+  const totalRow = (label, val, color) => `<div class="bank-total-row"><span class="bank-total-label">${label}</span><span class="bank-total-val" style="color:${color||'var(--accent)'};">${val}</span></div>`;
+
+  // ── 1. Revenus réels ──────────────────────────────────────────────
+  const reels = [];
+  lvEnsure().lignes.forEach(r => {
+    const c = lvCalc(r);
+    if (c.m > 0 && c.tb > 0) reels.push({ cat:'Livrets', label:(lvEsc(r.nom) || 'Livret') + (r.banque ? ' · ' + lvEsc(r.banque) : ''), sub:`${lvPct(c.tn)} net · capital ${E0(c.m)}`, m:c.netMois });
+  });
+  (DATA.investissements.compte_usd || []).forEach(r => {
+    const c = usdCalc(r);
+    if (c.soldeAct > 0 && c.fx > 0 && (r.apy || 0) > 0) reels.push({ cat:'Compte USD', label:lvEsc(r.nom) || 'Compte USD', sub:`APY ${r.apy} % · ${E0(c.valEUR)}`, m:(c.soldeAct * r.apy / 100 / 12) / c.fx });
+  });
+  (DATA.scpi || []).forEach(r => {
+    if ((r.loyerMensuel || 0) > 0) reels.push({ cat:'SCPI', label:lvEsc(r.produit || r.gestionnaire) || 'SCPI', sub:'Loyer brut mensuel perçu', m:r.loyerMensuel });
+  });
+  ['p1','p2','p3'].forEach(key => {
+    const t = immoLoyerTotal(DATA.immobilier[key]);
+    if (t > 0) reels.push({ cat:'Immobilier', label:'Loyers ' + key.toUpperCase(), sub:'Loyers bruts mensuels', m:t });
+  });
+  const totReels = reels.reduce((s, x) => s + x.m, 0);
+
+  // ── 2. Gains estimés (marchés) ────────────────────────────────────
+  const pockets = [
+    { label:'PEA',  icon:'📈', key:'pea',     cout:k.peaPR,    gain:k.pmvPEA },
+    { label:'CTO',  icon:'📊', key:'cto',     cout:k.ctoPR,    gain:k.pmvCTO },
+    { label:'Revolut (investi)', icon:'💳', key:'revolut', cout:k.revInvPR, gain:k.pmvRev },
+    { label:'PEE / Épargne entreprise', icon:'🏢', key:'pee', cout:k.eePR, gain:k.pmvEE },
+    { label:'Assurance-vie', icon:'🛡️', key:'av', cout:k.avVers, gain:k.pmvAV },
+  ].filter(p => p.cout > 0);
+  pockets.forEach(p => {
+    const taux = gainsAnnualise(p.cout, p.gain, (DATA.rendementDates || {})[p.key]);
+    p.taux = taux;
+    p.m = (taux !== null && taux > 0) ? p.cout * taux / 100 / 12 : 0;
+    p.fallback = false;
+    if (p.key === 'av' && taux === null) {
+      // Repli : intérêts du fonds euro seul (taux saisi sur chaque contrat)
+      const fe = (DATA.investissements.assurance_vie || []).reduce((s, av) => s + (av.fondsEuro || 0) * (av.tauxRendement || 0) / 100 / 12, 0);
+      if (fe > 0) { p.m = fe; p.fallback = true; }
+    }
+  });
+  const totEstimes = pockets.reduce((s, p) => s + p.m, 0);
+
+  // ── 3. Bilan vs dépenses (KPI 10 = Dépenses mensuelles) ──────────
+  const dep = k.depMens || 0;
+  const totalAll = totReels + totEstimes;
+  const covAll  = dep > 0 ? totalAll / dep * 100 : null;
+  const covReel = dep > 0 ? totReels / dep * 100 : null;
+  const ecartAll = totalAll - dep, ecartReel = totReels - dep;
+  const barTot = totalAll + dep;
+  const gPct = barTot > 0 ? totalAll / barTot * 100 : 50;
+  const covCol = c => c === null ? 'var(--muted)' : c >= 100 ? 'var(--green)' : c >= 60 ? 'var(--gold)' : 'var(--red)';
+
+  let html = '';
+  html += `<div class="section accent-gold"><div class="section-head"><div class="section-title">⚔️ Gains de placements vs dépenses</div><span class="badge ${covAll !== null && covAll >= 100 ? 'green' : 'gold'}">${covAll === null ? '—' : covAll.toFixed(0) + ' %'}</span></div><div class="section-body">
+    <div style="position:relative;height:42px;background:var(--surface2);border-radius:8px;overflow:hidden;border:1px solid var(--border);box-shadow:inset 0 0 10px rgba(0,0,0,0.25);">
+      <div style="position:absolute;left:0;top:0;bottom:0;width:${gPct.toFixed(1)}%;background:linear-gradient(90deg,#3d8a5c,var(--green));display:flex;align-items:center;justify-content:flex-end;padding-right:8px;">
+        <span style="font-family:'Syne',sans-serif;font-size:11px;font-weight:800;color:#fff;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.3);">💹 ${E0(totalAll)}</span></div>
+      <div style="position:absolute;right:0;top:0;bottom:0;width:${(100 - gPct).toFixed(1)}%;background:linear-gradient(270deg,#8f3a3a,var(--red));display:flex;align-items:center;justify-content:flex-start;padding-left:8px;">
+        <span style="font-family:'Syne',sans-serif;font-size:11px;font-weight:800;color:#fff;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,0.3);">${E0(dep)} 💸</span></div>
+      <div style="position:absolute;left:${gPct.toFixed(1)}%;top:-3px;bottom:-3px;width:3px;background:var(--gold);transform:translateX(-50%);box-shadow:0 0 8px var(--gold);"></div>
+    </div>
+    <div style="margin-top:12px;">
+      ${row('Revenus réels / mois', 'Livrets nets · USD · loyers SCPI & immo', E0(totReels), 'var(--green)')}
+      ${row('Gains estimés marchés / mois', 'PEA · CTO · Revolut · PEE · AV (taux annuel estimé ÷ 12)', E0(totEstimes), 'var(--gold)')}
+      ${row('TOTAL gains placements / mois', E0(totalAll * 12) + ' / an', E0(totalAll), 'var(--accent)')}
+      ${row('Dépenses mensuelles (KPI 10)', E0(dep * 12) + ' / an', E0(dep), 'var(--red)')}
+    </div>
+    <div style="margin-top:6px;padding-top:10px;border-top:1px solid var(--border);">
+      ${row('Couverture — revenus réels seuls', 'Solide : ne dépend pas des marchés', covReel === null ? '—' : covReel.toFixed(0) + ' %', covCol(covReel), covReel === null ? '' : (ecartReel >= 0 ? 'excédent ' : 'manque ') + E0(Math.abs(ecartReel)) + ' / mois')}
+      ${row('Couverture — réels + estimés', 'Optimiste : les gains de marché varient', covAll === null ? '—' : covAll.toFixed(0) + ' %', covCol(covAll), covAll === null ? '' : (ecartAll >= 0 ? 'excédent ' : 'manque ') + E0(Math.abs(ecartAll)) + ' / mois')}
+    </div>
+    <p style="font-size:10px;color:var(--muted);margin-top:10px;line-height:1.5;">${dep > 0 ? '' : '⚠ Aucune dépense renseignée (onglet Dépenses). '}Les loyers sont bruts (avant charges et impôts), les intérêts de livrets sont nets d'imposition.</p>
+  </div></div>`;
+
+  html += `<div class="section accent-green"><div class="section-head"><div class="section-title">💰 Revenus réels / mois</div><span class="badge green">${E0(totReels)}</span></div><div class="section-body">`
+    + (reels.length ? reels.map(x => row(x.label, x.cat + ' · ' + x.sub, E0(x.m) + ' / mois', 'var(--green)', E0(x.m * 12) + ' / an')).join('') + totalRow('TOTAL RÉEL / MOIS', E0(totReels), 'var(--green)')
+       : '<p style="color:var(--muted);font-size:11px;">Aucun revenu saisi (taux des livrets, loyers SCPI / immobilier, APY du compte USD).</p>')
+    + `</div></div>`;
+
+  html += `<div class="section accent-blue"><div class="section-head"><div class="section-title">📈 Gains estimés — placements de marché</div><span class="badge gold">${E0(totEstimes)}</span></div><div class="section-body">`
+    + (pockets.length ? pockets.map(p => {
+        const pPct = p.cout > 0 ? p.gain / p.cout * 100 : 0;
+        const tauxTxt = p.fallback ? 'fonds euro seul' : (p.taux === null ? 'date de début manquante' : pctF(p.taux) + ' / an');
+        return row(`${p.icon} ${p.label}`, `Investi ${E0(p.cout)} · cumulé <span style="color:${colV(p.gain)};">${pctF(pPct)}</span> · ${tauxTxt}`, p.m > 0 ? E0(p.m) + ' / mois' : '—', p.m > 0 ? 'var(--gold)' : 'var(--muted)', p.m > 0 ? E0(p.m * 12) + ' / an' : '');
+      }).join('') + totalRow('TOTAL ESTIMÉ / MOIS', E0(totEstimes), 'var(--gold)')
+        + `<p style="font-size:10px;color:var(--muted);margin-top:8px;line-height:1.5;">Estimation par CAGR (durée effective ≈ moitié du temps écoulé depuis le début). Renseignez les dates de début dans KPI → « Taux de rendement moyen ». Taux négatif ou date absente = 0 €. Ordre de grandeur, pas une promesse.</p>`
+       : '<p style="color:var(--muted);font-size:11px;">Aucun placement avec prix de revient renseigné.</p>')
+    + `</div></div>`;
+
+  // ── 4. Plus-values latentes cumulées ──────────────────────────────
+  const pmvLines = [
+    { l:'PEA', v:k.pmvPEA }, { l:'CTO', v:k.pmvCTO }, { l:'Revolut', v:k.pmvRev },
+    { l:'PEE / Épargne entreprise', v:k.pmvEE }, { l:'Assurance-vie', v:k.pmvAV }, { l:'SCPI (parts vs achat)', v:k.pmvSCPI },
+  ].filter(x => x.v !== 0);
+  const pmvTot = pmvLines.reduce((s, x) => s + x.v, 0);
+  html += `<div class="section"><div class="section-head"><div class="section-title">🏆 Gains cumulés depuis l'origine</div><span class="badge ${pmvTot >= 0 ? 'green' : 'red'}">${sg(pmvTot)}${E0(Math.abs(pmvTot))}</span></div><div class="section-body">`
+    + pmvLines.map(x => row(x.l, 'Plus/moins-value latente', sg(x.v) + E0(Math.abs(x.v)), colV(x.v))).join('')
+    + (k.scpiLoyersPercus > 0 ? row('Loyers SCPI perçus (cumul estimé)', 'Depuis les dates d\'achat saisies', '+' + E0(k.scpiLoyersPercus), 'var(--green)') : '')
+    + totalRow('TOTAL (PMV + LOYERS SCPI)', sg(pmvTot + k.scpiLoyersPercus) + E0(Math.abs(pmvTot + k.scpiLoyersPercus)), colV(pmvTot + k.scpiLoyersPercus))
+    + `<p style="font-size:10px;color:var(--muted);margin-top:8px;line-height:1.5;">Les plus-values latentes ne sont pas dépensables sans vendre ; les loyers immobilier ne sont pas comptés ici (flux, pas capital).</p></div></div>`;
+
+  box.innerHTML = html;
 }
 
 function renderPublic() {
