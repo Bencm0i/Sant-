@@ -1264,6 +1264,7 @@ body.public-mode .pub-toolbar .pub-hide-in-public { display:none; }
   <button class="tab-btn active" onclick="switchTab('kpi')">📊 KPI</button>
   <button class="tab-btn" onclick="switchTab('dca')">🔁 DCA<span class="tab-alert-dot" id="dcaAlertDot"></span></button>
   <button class="tab-btn" onclick="switchTab('banques')">🏦 Banques</button>
+  <button class="tab-btn" onclick="switchTab('livrets')">💰 Livrets</button>
   <button class="tab-btn" onclick="switchTab('investissements')">📈 Invest.</button>
   <button class="tab-btn" onclick="switchTab('scpi')">🏢 SCPI</button>
   <button class="tab-btn" onclick="switchTab('actifs')">🏠 Actifs</button>
@@ -1329,6 +1330,27 @@ body.public-mode .pub-toolbar .pub-hide-in-public { display:none; }
 </div>
 
 <!-- ═══ PANEL : INVESTISSEMENTS ═══ -->
+<div class="panel" id="panel-livrets">
+  <div class="section accent-gold">
+    <div class="section-head"><div class="section-title">💰 Total intérêts <span class="badge gold">brut · net</span></div></div>
+    <div class="section-body">
+      <div class="form-field" style="max-width:220px;">
+        <label class="lbl">Imposition par défaut (%)</label>
+        <input type="number" id="lv-impot-defaut" step="0.1" min="0" max="100" inputmode="decimal" autocomplete="off" oninput="lvSetDefault(this.value)">
+      </div>
+      <div id="lv-totaux"></div>
+      <p style="color:var(--muted);font-size:10px;margin-top:10px;line-height:1.5;">Les montants sont repris de l’onglet Banques. Taux net = taux brut × (1 − imposition). Une ligne dont l’imposition est vide utilise la valeur par défaut ; Livret A et LDDS sont préréglés à 0 % (exonérés).</p>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-head">
+      <div class="section-title">💰 Livrets &amp; €ster</div>
+      <button class="mini-btn" style="width:auto;margin:0;padding:5px 12px;" onclick="lvAdd()">＋</button>
+    </div>
+    <div class="section-body" id="body-livrets"></div>
+  </div>
+</div>
+
 <div class="panel" id="panel-investissements">
   <div class="section accent-blue">
     <div class="section-head">
@@ -1706,6 +1728,17 @@ body.public-mode .pub-toolbar .pub-hide-in-public { display:none; }
 
 <script>
 let DATA = {
+  livrets:{
+    impotDefaut:30,
+    migBoursoPlus:true,
+    lignes:[
+      {nom:"Livret A",type:"Livret A",banque:"Boursorama",src:"boursorama:1",montant:0,tauxBrut:0,impot:0},
+      {nom:"Livret+",type:"Livret+",banque:"Boursorama",src:"boursorama:2",montant:0,tauxBrut:0,impot:null},
+      {nom:"LDDS",type:"LDDS",banque:"Fortuneo",src:"fortuneo:2",montant:0,tauxBrut:0,impot:0},
+      {nom:"Livret+",type:"Livret+",banque:"Fortuneo",src:"fortuneo:1",montant:0,tauxBrut:0,impot:null},
+      {nom:"€ster",type:"€ster",banque:"Revolut",src:"revolut:1",montant:0,tauxBrut:0,impot:null},
+    ],
+  },
   boursorama:[
     {label:"Compte courant",val:0,liq:0,risk:1},{label:"Livret A",val:0,liq:1,risk:1},
     {label:"Livret B+",val:0,liq:1,risk:1},{label:"CTO",val:0,liq:1,risk:4},
@@ -1964,14 +1997,15 @@ else initAccordions();
 // ─── TAB SWITCHING ─────────────────────────────────────────────────────────
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  const map = {kpi:0,dca:1,banques:2,investissements:3,scpi:4,actifs:5,immobilier:6,poches:7,depenses:8,heritage:9,public:10};
-  document.querySelectorAll('.tab-btn')[map[name]].classList.add('active');
+  const tabBtn = document.querySelector(`.tab-btn[onclick*="switchTab('${name}')"]`);
+  if (tabBtn) tabBtn.classList.add('active');
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-'+name).classList.add('active');
   if (name === 'kpi') { if (typeof renderKPIPanel === 'function') renderKPIPanel(); }
   if (name === 'dca') { if (typeof renderDCA === 'function') renderDCA(); if (typeof renderDcaRegleCash === 'function') renderDcaRegleCash(); }
   if (name === 'poches') { if (typeof renderPoches === 'function') renderPoches(); }
   if (name === 'public') { renderPublic(); }
+  if (name === 'livrets') { renderLivrets(); }
 }
 
 
@@ -2650,6 +2684,141 @@ async function fetchAllAvPrices() {
   for (let ai = 0; ai < n; ai++) jobs.push(fetchAllInvPrices('av:' + ai));
   await Promise.allSettled(jobs);
 }
+
+// ─── ONGLET LIVRETS : taux brut / net, intérêts annuels et mensuels ────────
+const lvEur = v => new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',minimumFractionDigits:2,maximumFractionDigits:2}).format(v||0);
+const lvPct = v => new Intl.NumberFormat('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}).format(v||0) + ' %';
+const lvEsc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+
+function lvEnsure() {
+  if (!DATA.livrets || typeof DATA.livrets !== 'object') DATA.livrets = {impotDefaut:30, lignes:[]};
+  if (!Array.isArray(DATA.livrets.lignes)) DATA.livrets.lignes = [];
+  if (typeof DATA.livrets.impotDefaut !== 'number') DATA.livrets.impotDefaut = 30;
+  if (!DATA.livrets.migBoursoPlus) {
+    DATA.livrets.migBoursoPlus = true;
+    if (!DATA.livrets.lignes.some(r => r.src === 'boursorama:2')) {
+      const idx = DATA.livrets.lignes.findIndex(r => r.src === 'boursorama:1');
+      DATA.livrets.lignes.splice(idx >= 0 ? idx + 1 : DATA.livrets.lignes.length, 0,
+        {nom:"Livret+",type:"Livret+",banque:"Boursorama",src:"boursorama:2",montant:0,tauxBrut:0,impot:null});
+    }
+  }
+  return DATA.livrets;
+}
+function lvMontant(r) {
+  if (r.src) {
+    const [b, i] = r.src.split(':');
+    return (DATA[b] && DATA[b][+i] && DATA[b][+i].val) || 0;
+  }
+  return r.montant || 0;
+}
+function lvCalc(r) {
+  const L = lvEnsure();
+  const m   = lvMontant(r);
+  const tb  = r.tauxBrut || 0;
+  const imp = (r.impot === null || r.impot === undefined) ? L.impotDefaut : r.impot;
+  const tn  = tb * (1 - imp / 100);
+  const brutAn = m * tb / 100;
+  const netAn  = m * tn / 100;
+  return {m, tb, imp, tn, brutAn, netAn, brutMois: brutAn / 12, netMois: netAn / 12};
+}
+
+function renderLivrets() {
+  const L = lvEnsure();
+  const dEl = document.getElementById('lv-impot-defaut');
+  if (dEl && document.activeElement !== dEl) dEl.value = L.impotDefaut;
+  const c = document.getElementById('body-livrets');
+  if (!c) return;
+  const stat = (label, id) => `<div><div class="lbl" style="margin-bottom:2px;">${label}</div><div id="${id}" style="font-size:13px;color:var(--text);"></div></div>`;
+  c.innerHTML = L.lignes.map((r, i) => {
+    const linked = !!r.src;
+    return `
+    <div class="card" style="margin-bottom:10px;">
+      <div class="card-head">
+        <span class="card-title-sm">${lvEsc(r.nom) || 'Livret'}${r.banque ? ` <span class="badge">${lvEsc(r.banque)}</span>` : ''}</span>
+        <button class="del-btn" onclick="delLivret(${i})">✕</button>
+      </div>
+      <div class="card-body">
+        <div class="grid2">
+          <div class="form-field"><label class="lbl">Nom</label>
+            <input type="text" value="${lvEsc(r.nom)}" oninput="lvSet(${i},'nom',this.value,'text')"></div>
+          <div class="form-field"><label class="lbl">Banque</label>
+            <input type="text" value="${lvEsc(r.banque)}" oninput="lvSet(${i},'banque',this.value,'text')"></div>
+          <div class="form-field"><label class="lbl">Montant (€)${linked ? ' · depuis Banques' : ''}</label>
+            <input type="number" step="0.01" min="0" inputmode="decimal" autocomplete="off" value="${lvMontant(r) || ''}"${linked ? ' disabled' : ''}
+              oninput="lvSet(${i},'montant',this.value,'num')"></div>
+          <div class="form-field"><label class="lbl">Taux brut (%)</label>
+            <input type="number" step="0.01" min="0" inputmode="decimal" autocomplete="off" value="${r.tauxBrut || ''}"
+              oninput="lvSet(${i},'tauxBrut',this.value,'num')"></div>
+          <div class="form-field"><label class="lbl">Imposition (%)</label>
+            <input type="number" step="0.1" min="0" max="100" inputmode="decimal" autocomplete="off"
+              value="${(r.impot === null || r.impot === undefined) ? '' : r.impot}" placeholder="défaut : ${L.impotDefaut}" class="lv-impot-input"
+              oninput="lvSet(${i},'impot',this.value,'impot')"></div>
+          <div class="form-field"><label class="lbl">Taux net (%)</label>
+            <div id="lv-tn-${i}" style="padding:9px 0;color:var(--green);font-weight:500;"></div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;margin-top:4px;padding-top:10px;border-top:1px solid var(--border);">
+          ${stat('Brut / an', 'lv-ba-' + i)}${stat('Net / an', 'lv-na-' + i)}
+          ${stat('Brut / mois', 'lv-bm-' + i)}${stat('Net / mois', 'lv-nm-' + i)}
+        </div>
+      </div>
+    </div>`;
+  }).join('') || '<p style="color:var(--muted);font-size:11px;">Aucune ligne.</p>';
+  lvRecalc();
+}
+
+// Met à jour uniquement les valeurs calculées (ne touche pas aux champs → pas de perte de focus)
+function lvRecalc() {
+  const L = lvEnsure();
+  const set = (id, txt) => { const e = document.getElementById(id); if (e) e.textContent = txt; };
+  let T = {m:0, brutAn:0, netAn:0, brutMois:0, netMois:0};
+  L.lignes.forEach((r, i) => {
+    const k = lvCalc(r);
+    set('lv-tn-' + i, lvPct(k.tn));
+    set('lv-ba-' + i, lvEur(k.brutAn));
+    set('lv-na-' + i, lvEur(k.netAn));
+    set('lv-bm-' + i, lvEur(k.brutMois));
+    set('lv-nm-' + i, lvEur(k.netMois));
+    T.m += k.m; T.brutAn += k.brutAn; T.netAn += k.netAn; T.brutMois += k.brutMois; T.netMois += k.netMois;
+  });
+  document.querySelectorAll('.lv-impot-input').forEach(inp => { inp.placeholder = 'défaut : ' + L.impotDefaut; });
+  const tbMoy = T.m > 0 ? T.brutAn / T.m * 100 : 0;
+  const tnMoy = T.m > 0 ? T.netAn / T.m * 100 : 0;
+  const t = document.getElementById('lv-totaux');
+  if (!t) return;
+  const cell = (label, val, color) => `<div><div class="lbl" style="margin-bottom:2px;">${label}</div><div style="font-size:15px;font-weight:500;color:${color || 'var(--text)'};">${val}</div></div>`;
+  t.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 10px;margin-top:6px;">
+      ${cell('Épargne totale', lvEur(T.m))}
+      ${cell('Taux moyen brut → net', lvPct(tbMoy) + ' → ' + lvPct(tnMoy))}
+      ${cell('Brut / an', lvEur(T.brutAn), 'var(--gold)')}
+      ${cell('Net / an', lvEur(T.netAn), 'var(--green)')}
+      ${cell('Brut / mois', lvEur(T.brutMois), 'var(--gold)')}
+      ${cell('Net / mois', lvEur(T.netMois), 'var(--green)')}
+    </div>`;
+}
+
+function lvSet(i, key, raw, kind) {
+  const r = lvEnsure().lignes[i];
+  if (!r) return;
+  if (kind === 'text') r[key] = raw;
+  else if (kind === 'impot') r.impot = (raw === '') ? null : (parseFloat(raw) || 0);
+  else r[key] = parseFloat(raw) || 0;
+  lvRecalc();
+  autoSave();
+}
+function lvSetDefault(raw) {
+  const v = parseFloat(raw);
+  lvEnsure().impotDefaut = isFinite(v) ? v : 0;
+  lvRecalc();
+  autoSave();
+}
+function lvAdd() {
+  lvEnsure().lignes.push({nom:'',type:'Autre',banque:'',src:'',montant:0,tauxBrut:0,impot:null});
+  renderLivrets();
+  autoSave();
+}
+function delLivret(i) { deleteWithUndo(lvEnsure().lignes, i, renderLivrets, 'Livret supprimé'); }
+
 
 // ─── ÉPARGNE BLOQUÉE ───────────────────────────────────────────────────────
 function renderEB() {
@@ -3793,6 +3962,7 @@ function renderAll() {
   renderEE();
   renderAV();
   renderEB();
+  renderLivrets();
   renderUsd();
   renderSCPI();
   renderATH();
