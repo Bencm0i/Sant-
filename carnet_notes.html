@@ -3569,7 +3569,22 @@ h1 .spine{width:7px;height:16px;}
   .layout.raw-hidden #rawCol,.layout.raw-hidden #colResizer{display:none;}
   .layout.raw-hidden #iaCol{flex:1 1 auto !important;border-right-width:10px;}
 }
-#rawShowBtn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+/* Onglet de marge : petite languette collée au bord gauche du Texte (✕ = masquer, « Marge » = afficher) */
+.marge-tab{
+  position:absolute;left:0;top:50%;transform:translateY(-50%);z-index:6;
+  width:24px;min-height:44px;padding:8px 0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  border:1.5px solid var(--line);border-left:none;border-radius:0 12px 12px 0;
+  background:rgba(120,120,120,0.28);color:#3b4a5a;cursor:pointer;
+  font-size:0.85rem;line-height:1;opacity:.75;
+  transition:opacity .15s,background .15s;
+}
+.marge-tab:hover{opacity:1;background:rgba(120,120,120,0.42);}
+.marge-tab .mt-lbl{display:none;writing-mode:vertical-rl;font-size:0.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;}
+.layout.raw-hidden .marge-tab{background:var(--accent);color:#fff;border-color:var(--accent);opacity:.9;padding:12px 0;}
+.layout.raw-hidden .marge-tab .mt-lbl{display:block;}
+.layout.raw-hidden .marge-tab .mt-ico{display:none;}
+@media(max-width:820px){ .marge-tab{display:none;} }
 
 /* ═══ RACCOURCIS ÉDITABLES (barre sous l'en-tête) ═══ */
 .sc-bar{flex:0 0 100%;width:100%;display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding-top:2px;}
@@ -3822,7 +3837,6 @@ h1 .spine{width:7px;height:16px;}
       <div class="col-tools">
         <button id="rawPreviewBtn" onclick="togglePreview('raw')" title="Basculer entre édition et aperçu markdown">👁 Lecture</button>
         <button id="mtagsPinBtn" onclick="toggleMtagsPin()" title="Afficher/masquer la colonne des tags de marge">☰ Tags</button>
-        <button id="rawHideBtn" onclick="toggleRawCol()" title="Masquer toute la colonne Marge (le bouton « ◧ Marge » dans l'en-tête du Texte la ramène)">◀ Masquer la marge</button>
       </div>
     </div>
     <div class="marge-body">
@@ -3846,10 +3860,10 @@ h1 .spine{width:7px;height:16px;}
   <div class="col-resizer" id="colResizer" title="Glisser pour redimensionner la colonne Texte"></div>
 
   <div class="text-col" id="iaCol">
+    <button type="button" id="margeTab" class="marge-tab" onclick="toggleRawCol()" title="Masquer la marge"><span class="mt-ico">✕</span><span class="mt-lbl">Marge</span></button>
     <div class="col-head">
       <span class="col-label"><span class="active-dot" id="iaDot"></span>Texte<span class="mode-badge" id="iaModeBadge"></span></span>
       <div class="col-tools">
-        <button id="rawShowBtn" onclick="toggleRawCol()" title="Afficher / masquer la colonne Marge">◧ Marge</button>
         <button id="iaFindBtn" class="edit-only" onclick="toggleFindBar('ia')" title="Rechercher / remplacer dans ce texte">🔍 Chercher</button>
         <button id="iaPreviewBtn" onclick="togglePreview('ia')" title="Basculer entre édition et aperçu markdown">👁 Lecture</button>
         <button id="iaAccordionBtn" onclick="toggleAccordion('ia')" title="Regrouper le texte en accordéon, une section par horodatage">📑 Accordéon</button>
@@ -4470,8 +4484,8 @@ function applyRawHidden(){
   try{ h = localStorage.getItem(RAW_HIDDEN_KEY) === '1'; }catch(e){}
   const lay = document.querySelector('.layout');
   if(lay) lay.classList.toggle('raw-hidden', h);
-  const b = document.getElementById('rawShowBtn');
-  if(b){ b.classList.toggle('active', !h); b.textContent = h ? '◧ Afficher la marge' : '◧ Marge'; }
+  const b = document.getElementById('margeTab');
+  if(b){ b.title = h ? 'Afficher la marge' : 'Masquer la marge'; }
 }
 function toggleRawCol(){
   let h = false;
