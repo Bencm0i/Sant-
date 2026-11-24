@@ -2889,7 +2889,7 @@ input[type=file]{display:none;}
 .col-tools select:hover{border-color:var(--accent);color:var(--accent);}
 textarea.note-area{
   flex:1;width:100%;border:none;outline:none;resize:none;
-  font-family:'IBM Plex Mono',monospace;font-size:0.86rem;line-height:1.65;
+  font-family:'IBM Plex Mono',monospace;font-size:calc(0.86rem * var(--zoom,1));line-height:1.65;
   padding:18px 20px;color:var(--ink);background-color:#fffdf7;
   box-shadow:inset 3px 0 0 var(--accent);caret-color:var(--accent);
   transition:background-color .15s, box-shadow .15s;
@@ -2901,7 +2901,7 @@ textarea.note-area::placeholder{color:#b0a695;}
 .area-wrap{position:relative;flex:1;display:flex;flex-direction:column;min-height:0;}
 .hit-overlay,.hl-overlay{
   display:none;position:absolute;top:0;left:0;pointer-events:none;overflow:hidden;
-  font-family:'IBM Plex Mono',monospace;font-size:0.86rem;line-height:1.65;
+  font-family:'IBM Plex Mono',monospace;font-size:calc(0.86rem * var(--zoom,1));line-height:1.65;
   padding:18px 20px;white-space:pre-wrap;overflow-wrap:break-word;word-wrap:break-word;
   color:transparent;mix-blend-mode:multiply;
 }
@@ -3312,7 +3312,16 @@ mark.hl.hl-bleu{background:var(--hl-bleu);}
 
 /* CHRONOLOGIE : frise latérale des horodatages (colonne Texte) */
 .text-body{flex:1;display:flex;flex-direction:row;min-height:0;}
-.text-main{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0;}
+.text-main{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0;position:relative;}
+.zoom-zone{
+  position:absolute;top:0;bottom:0;right:16px;width:22px;z-index:5;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  background:rgba(47,93,98,0.04);border-left:1px dashed rgba(47,93,98,0.18);
+  color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;font-size:0.62rem;font-weight:700;
+  cursor:ns-resize;user-select:none;opacity:.55;transition:opacity .15s, background .15s;
+}
+.zoom-zone:hover{opacity:1;background:rgba(47,93,98,0.10);}
+.zoom-zone .zz-val{writing-mode:vertical-rl;letter-spacing:.05em;}
 #tlBtn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
 .timeline-side{
   flex:0 0 152px;width:152px;display:flex;flex-direction:column;min-height:0;
@@ -3925,6 +3934,7 @@ h1 .spine{width:7px;height:16px;}
     </div>
     <div class="note-preview" id="iaPreview" style="display:none;"></div>
     <div class="note-preview" id="iaAccordionView" style="display:none;"></div>
+    <div class="zoom-zone" id="zoomZone" title="Molette ici pour zoomer / dézoomer (clic : revenir à 100 %)"><span>🔍</span><span class="zz-val" id="zoomZoneVal">100%</span></div>
     </div>
     <aside class="timeline-side" id="iaTimeline" aria-label="Chronologie des horodatages">
       <div class="col-grip" data-rz="tl" title="Glisser pour régler la largeur de la chronologie (double-clic : par défaut)"></div>
@@ -8732,6 +8742,8 @@ function zoomSet(z){
   document.documentElement.style.setProperty('--zoom', readZoom);
   const v = document.getElementById('zoomVal');
   if(v) v.textContent = Math.round(readZoom*100) + '%';
+  const zz = document.getElementById('zoomZoneVal');
+  if(zz) zz.textContent = Math.round(readZoom*100) + '%';
   try{ localStorage.setItem('carnet_read_zoom', String(readZoom)); }catch(e){}
 }
 function zoomStep(dir){ zoomSet(readZoom + dir*0.1); }
@@ -8745,6 +8757,11 @@ function zoomStep(dir){ zoomSet(readZoom + dir*0.1); }
     else if(e.key === '-' || e.key === '−'){ e.preventDefault(); zoomStep(-1); }
     else if(e.key === '0'){ e.preventDefault(); zoomSet(1); }
   });
+  const zone = document.getElementById('zoomZone');
+  if(zone){
+    zone.addEventListener('wheel', (e)=>{ e.preventDefault(); zoomStep(e.deltaY < 0 ? 1 : -1); }, {passive:false});
+    zone.addEventListener('click', ()=>zoomSet(1));
+  }
   document.addEventListener('wheel', (e)=>{
     if(!e.ctrlKey || !e.target.closest || !e.target.closest('.note-preview')) return;
     e.preventDefault(); zoomStep(e.deltaY < 0 ? 1 : -1);
