@@ -3668,18 +3668,6 @@ textarea.note-area,.hit-overlay,.hl-overlay{
         <button type="button" id="zoomVal" onclick="zoomSet(1)" title="Revenir à 100 %">100%</button>
         <button type="button" onclick="zoomStep(1)" title="Zoom avant">+</button>
       </div>
-      <select id="fontSel" class="font-sel" onchange="fontSet(this.value)" title="Police du texte (Marge et Texte)">
-        <option value="def">Aa Défaut</option>
-        <option value="inter">Inter</option>
-        <option value="calibri">Calibri</option>
-        <option value="narrow">Arial Narrow (condensée)</option>
-        <option value="segoe">Segoe UI</option>
-        <option value="lora">Lora (serif)</option>
-        <option value="georgia">Georgia (serif)</option>
-        <option value="verdana">Verdana</option>
-        <option value="plex">IBM Plex Mono</option>
-        <option value="courier">Courier New</option>
-      </select>
       <button class="btn" onclick="toggleSidebar()" title="Afficher/masquer la liste des onglets (Alt+S)">☰ Onglets</button>
       <button class="btn" onclick="toggleExplorer()" title="Liste de tous les onglets : nom, description, dates, colonnes réglables (Alt+M)">☰ Liste</button>
       <button class="btn" id="planBtn" onclick="togglePlan()" title="Plan : la mise en page de tous les onglets en un coup d'œil, avec recherche visible (Alt+L)">🗺 Plan</button>
@@ -3920,6 +3908,18 @@ textarea.note-area,.hit-overlay,.hl-overlay{
       <span class="col-label"><span class="active-dot" id="iaDot"></span>Texte<span class="mode-badge" id="iaModeBadge"></span></span>
       <div class="col-tools">
         <button id="iaFindBtn" class="edit-only" onclick="toggleFindBar('ia')" title="Rechercher / remplacer dans ce texte">🔍 Chercher</button>
+        <select id="fontSel" class="font-sel" onchange="fontSet(this.value)" title="Police du texte (Marge et Texte)">
+          <option value="def">Aa Défaut</option>
+          <option value="inter">Inter</option>
+          <option value="calibri">Calibri</option>
+          <option value="narrow">Arial Narrow (condensée)</option>
+          <option value="segoe">Segoe UI</option>
+          <option value="lora">Lora (serif)</option>
+          <option value="georgia">Georgia (serif)</option>
+          <option value="verdana">Verdana</option>
+          <option value="plex">IBM Plex Mono</option>
+          <option value="courier">Courier New</option>
+        </select>
         <button type="button" id="iaPreviewBtn" class="mode-switch" role="switch" aria-checked="false" onclick="togglePreview('ia')" title="Basculer entre édition et lecture"><span class="ms-ico">✎</span><span class="ms-track"><span class="ms-knob"></span></span><span class="ms-ico">👁</span></button>
         <button id="iaAccordionBtn" onclick="toggleAccordion('ia')" title="Regrouper le texte en accordéon, une section par horodatage">📑 Accordéon</button>
         <button id="tlBtn" onclick="toggleTimeline()" title="Afficher/masquer la frise chronologique des horodatages (Alt+T)">🧭 Chronologie</button>
