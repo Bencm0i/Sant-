@@ -3617,6 +3617,32 @@ h1 .spine{width:7px;height:16px;}
 .sc-edit button,.sc-tool{font-size:0.72rem;border:1px solid var(--line);background:#fff;border-radius:6px;padding:1px 6px;cursor:pointer;color:var(--ink-soft);}
 .sc-tool:hover,.sc-edit button:hover{border-color:var(--accent);color:var(--accent);}
 .sc-tool.on{background:rgba(47,93,98,0.12);border-color:var(--accent);color:var(--accent);}
+
+/* ═══ POLICE CHOISIE + TEXTE PLUS COMPACT PAR DÉFAUT ═══ */
+:root{--ff-edit:'IBM Plex Mono',monospace;--ff-read:'Lora',Georgia,serif;--ff-head:'Lora',serif;}
+textarea.note-area,.hit-overlay,.hl-overlay{
+  font-family:var(--ff-edit);font-size:calc(0.8rem * var(--zoom,1));line-height:1.45;padding:10px 14px;
+}
+.note-preview{
+  padding:14px max(16px, calc((100% - 60rem) / 2)) 28px;
+  font-family:var(--ff-read);font-weight:400;font-size:0.95rem;line-height:1.5;
+}
+.note-preview h1,.note-preview h2,.note-preview h3{font-family:var(--ff-head);margin:1em 0 0.3em;line-height:1.25;}
+.note-preview h1:first-child,.note-preview h2:first-child,.note-preview h3:first-child{margin-top:0;}
+.note-preview h1{font-size:1.5rem;padding-bottom:0.15em;}
+.note-preview h2{font-size:1.25rem;}
+.note-preview h3{font-size:1.07rem;}
+.note-preview p{margin:0 0 0.55em;}
+.note-preview ul,.note-preview ol{margin:0 0 0.55em;padding-left:1.4em;}
+.note-preview li{margin:0.1em 0;}
+.note-preview blockquote,.note-preview pre{margin-bottom:0.55em;}
+.note-preview img{margin:0.4em 0;}
+.note-preview th{font-family:var(--ff-head);}
+.font-sel{
+  font-family:'IBM Plex Mono',monospace;font-size:0.7rem;font-weight:600;padding:4px 6px;border-radius:7px;
+  border:1.5px solid var(--line);background:#fff;color:var(--ink-soft);cursor:pointer;max-width:140px;
+}
+.font-sel:hover{border-color:var(--accent);color:var(--accent);}
 </style>
 </head>
 <body>
@@ -3642,6 +3668,18 @@ h1 .spine{width:7px;height:16px;}
         <button type="button" id="zoomVal" onclick="zoomSet(1)" title="Revenir à 100 %">100%</button>
         <button type="button" onclick="zoomStep(1)" title="Zoom avant">+</button>
       </div>
+      <select id="fontSel" class="font-sel" onchange="fontSet(this.value)" title="Police du texte (Marge et Texte)">
+        <option value="def">Aa Défaut</option>
+        <option value="inter">Inter</option>
+        <option value="calibri">Calibri</option>
+        <option value="narrow">Arial Narrow (condensée)</option>
+        <option value="segoe">Segoe UI</option>
+        <option value="lora">Lora (serif)</option>
+        <option value="georgia">Georgia (serif)</option>
+        <option value="verdana">Verdana</option>
+        <option value="plex">IBM Plex Mono</option>
+        <option value="courier">Courier New</option>
+      </select>
       <button class="btn" onclick="toggleSidebar()" title="Afficher/masquer la liste des onglets (Alt+S)">☰ Onglets</button>
       <button class="btn" onclick="toggleExplorer()" title="Liste de tous les onglets : nom, description, dates, colonnes réglables (Alt+M)">☰ Liste</button>
       <button class="btn" id="planBtn" onclick="togglePlan()" title="Plan : la mise en page de tous les onglets en un coup d'œil, avec recherche visible (Alt+L)">🗺 Plan</button>
@@ -4027,8 +4065,8 @@ const PALETTE = ['#2f5d62','#b5573f','#c98a2c','#6b4a6b','#5c6b3f','#45566b','#7
 let state = { order: [], tabs: {} };
 let activeId = null;
 let saveTimer = null;
-let rawViewMode = 'edit'; // 'edit' | 'preview' | 'accordion'
-let iaViewMode = 'edit';
+let rawViewMode = 'preview'; // 'edit' | 'preview' | 'accordion' — lecture par défaut à l'ouverture
+let iaViewMode = 'preview';
 
 // ── MULTI-ONGLETS : un onglet périmé ne doit jamais écraser un autre ────────
 const TAB_ID = 't' + Math.random().toString(36).slice(2, 9);
@@ -8766,6 +8804,36 @@ function zoomStep(dir){ zoomSet(readZoom + dir*0.1); }
     if(!e.ctrlKey || !e.target.closest || !e.target.closest('.note-preview')) return;
     e.preventDefault(); zoomStep(e.deltaY < 0 ? 1 : -1);
   }, {passive:false});
+})();
+
+// ── POLICE DU TEXTE ──
+const FONTS = {
+  def:     null,
+  inter:   "'Inter',system-ui,sans-serif",
+  calibri: "Calibri,Carlito,'Segoe UI',sans-serif",
+  narrow:  "'Arial Narrow','Liberation Sans Narrow','Roboto Condensed',Arial,sans-serif",
+  segoe:   "'Segoe UI',system-ui,sans-serif",
+  lora:    "'Lora',Georgia,serif",
+  georgia: "Georgia,'Times New Roman',serif",
+  verdana: "Verdana,Geneva,sans-serif",
+  plex:    "'IBM Plex Mono',monospace",
+  courier: "'Courier New',Courier,monospace"
+};
+function fontApply(key){
+  const f = FONTS[key] || null, r = document.documentElement.style;
+  if(f){ r.setProperty('--ff-edit', f); r.setProperty('--ff-read', f); r.setProperty('--ff-head', f); }
+  else { r.removeProperty('--ff-edit'); r.removeProperty('--ff-read'); r.removeProperty('--ff-head'); }
+  const sel = document.getElementById('fontSel'); if(sel) sel.value = FONTS.hasOwnProperty(key) ? key : 'def';
+}
+function fontSet(key){
+  fontApply(key);
+  try{ localStorage.setItem('carnet_font', key); }catch(e){}
+  ['raw','ia'].forEach(w=>{ try{ updateHlOverlay(w); refreshSearchHits(w); }catch(e){} });
+}
+(function(){
+  let k = 'def';
+  try{ k = localStorage.getItem('carnet_font') || 'def'; }catch(e){}
+  fontApply(k);
 })();
 
 // ── PLAN DES ONGLETS ─────────────────────────────────────────────────────────
